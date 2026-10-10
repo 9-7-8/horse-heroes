@@ -1,0 +1,63 @@
+SESSION LOG 2026-10-10 08:58 - the next-thing routine, and the menu parts
+========================================================================
+
+ASKED
+  "Build the next part from issues, and define a routine for just getting
+  started on the next thing on your todo list, prioritizing fixing bugs,
+  then writing and running tests, then adding features."
+  Then: "End the session. Always end session when you finish a part."
+
+DONE
+  - procedures/next-thing.txt, new: bugs, then tests, then the next feature
+    issue of the earliest release; then end the session. INDEX line added.
+  - Bugs: none open, build green at the start.
+  - Tests: 13 new sim tests (RNG ranges and distributions, the gear table
+    rolled 100,000 times against its weights, points per rarity, a
+    consistency check over assets/data). Tested: cargo test, 21 pass.
+  - #90 closed: the new data test failed on "Bridle" and "Browband"; the
+    Head names are now Halter and Fly Veil. Tested, and seen running: a
+    Starlit Halter drop in camp (--seed 6, screenshot at 68 s).
+  - #237 closed: the menu parts. src/game/menu/ (tokens, parts, gallery),
+    tokens in assets/data/menu.ron, docs/menu-parts.md. Three tests hold
+    the tokens to states that differ in lightness. Seen running: the parts
+    screen (--parts), read in colour and in greyscale.
+  - build-and-run.txt: IDLE_SHOT_AT, --seed and --parts noted.
+  - Pushed, with the owner's go-ahead through the question tool.
+
+DECIDED
+  Hers:
+  - The order: bugs, then tests, then features.
+  - End the session whenever a part is finished.
+  Made for her, to be corrected:
+  - Within a release, PICK UP chooses the feature, then what others depend
+    on, then the lowest number. "proposed" and "decision" issues are
+    skipped.
+  - Head gear names: Halter and Fly Veil.
+  - The look of each state (menu-parts.md): hover lightens, pressed
+    inverts, selected sinks with an accent border and a mark bar,
+    unavailable empties, focus is a ring. Dark palette, all in menu.ron.
+  - The parts screen opens with --parts or F2.
+  - Every interactive part is a Bevy headless Button and sends Activate.
+
+FOUND
+  - Bevy 0.20: a helper returning `impl Bundle` must take &str, not
+    `impl Into<String>`, or the bundle captures the borrow. Two Node
+    components in one spawn tuple is a duplicate; spawn, then insert.
+  - A focused Button activates on Space and Enter. The slice's HUD also
+    sets out on Space; the shell (#226) and keys (#229) must settle that.
+  - Classes are still in the sim and the HUD though the design removed
+    them; that work is #220 to #222 in 0.6.0.
+  - "Closes #N" took a few seconds after the push to close the issues.
+  - The first greyscale copy of the screenshot was cropped by the
+    conversion, not by the game.
+
+NOT DONE
+  - Hover, press, Tab and the live confirmation on the parts screen have
+    not been tried by hand; only the forced states were looked at.
+  - The owner has not looked at the parts screen.
+  - #199 still waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. With no bug filed it lands on #226, the
+  menu shell: bar of five places, status strip and footer, built from the
+  parts in src/game/menu/parts.rs.

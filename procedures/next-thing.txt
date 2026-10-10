@@ -2,8 +2,8 @@ NEXT-THING
 ==========
 Starts on: "next thing", "keep going", "build the next part", "what's next",
            or a session opened with no particular ask.
-Leaves:    one thing finished, checked, committed and its issue closed - or a
-           plain statement of what stopped it.
+Leaves:    one thing finished, checked, committed and its issue closed, and
+           the session ended - or a plain statement of what stopped it.
 
 Pick one thing, by the order below, and start on it without asking. The order
 is the owner's (2026-10-10): bugs, then tests, then features.
@@ -53,6 +53,11 @@ DOING IT
     issue and leave it open.
   - docs/<system>.md for a system built or changed.
 
+THEN END THE SESSION
+  When the part is finished, run end-session.txt without being asked (owner,
+  2026-10-10: "Always end session when you finish a part"). One part, one
+  session: do not roll on into the next thing.
+
 REPORT
   Which tier the thing came from, what it was, and how it was checked.
   If tiers 1 and 2 were empty, say so in a few words; do not list checks.
@@ -61,4 +66,4 @@ DO NOT
   - Start a feature over a red build or a known bug.
   - Pick by what is most interesting; the order above decides.
   - Build on an issue labelled "proposed" as if it were confirmed.
-  - Push. Pushing belongs to end-session.txt.
+  - Push before the part is finished. end-session.txt pushes.
