@@ -501,7 +501,9 @@ the same day. The advice built on them is in [menus.md](menus.md).
   without the mouse. A controller is not a design target.
 - **On the road, look and plan.** Every place opens on the road. Gear,
   ability and pet changes made there are queued and applied on arrival, so
-  "gear and pets change in town only" still holds.
+  "gear and pets change in town only" still holds. **Looks queue too**
+  (owner, 2026-10-10, #239): a look changed on the road is planned and
+  applied on arrival like gear, so every change to a horse follows one rule.
 - **Menus are built first.** "The menus should be one of the first things we
   build, so we can tune it throughout. All buttons should be there, even if
   they're not functional, as early as possible."
@@ -532,8 +534,9 @@ that.
 
 ## Proposed, awaiting her decision
 
-Most of what stood here was confirmed on 2026-10-10 and is in the section
-above. What remains proposed:
+Nothing in this file is still proposed. Most of what stood here was confirmed
+on 2026-10-10 and is in the section above. The last four, below, were
+**confirmed by the owner later on 2026-10-10** and are decided:
 
 - **Loot handling:** collect routine rewards automatically, aggregate the
   ordinary, spotlight upgrades, rare looks and build-changing pieces, then
@@ -567,6 +570,10 @@ after the main loop works.
 Every `decision` issue was answered on 2026-10-10. What is left is tuning and
 content, and lives on the implementing issues: reaction timings, journey
 length, purity gained per boss, which pet abilities come first.
+
+Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
+when a release is next to be built, its proposed issues are put to her then,
+not earlier.
 
 ## Against the game as built
 

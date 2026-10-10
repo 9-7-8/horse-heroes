@@ -188,7 +188,8 @@ one: "Bags full. The journey continues; keep rules choose what is carried."
 
 Every place opens on the road. Opening one brings the scene back to the top
 third; closing it lets the scene expand again, and no menu covers a drop in
-flight. Gear, abilities and pets change in town only, so on the road those
+flight. Gear, abilities, pets and looks change in town only (looks: owner,
+2026-10-10, #239), so on the road those
 changes are **planned**: shown on the horse as pending, listed in the footer,
 editable until arrival, and applied together when the party reaches a town.
 A player who checks in between towns is never left with nothing to do, and
