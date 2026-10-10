@@ -734,6 +734,124 @@ mod tests {
         assert_eq!(fading.ward, 0.0);
     }
 
+    fn horse_of(expedition: &Expedition, class: Class) -> usize {
+        expedition.party.iter().position(|f| f.class == class).unwrap()
+    }
+
+    /// Let one horse use its ability on the next tick, and nobody do
+    /// anything else.
+    fn only_the_ability_of(expedition: &mut Expedition, horse: usize) {
+        hold_the_party(expedition);
+        for foe in &mut expedition.foes {
+            foe.attack_timer = f32::MAX;
+        }
+        expedition.party[horse].ability_timer = TICK * 0.5;
+    }
+
+    fn lines_with(expedition: &Expedition, text: &str) -> usize {
+        expedition.log.iter().filter(|line| line.contains(text)).count()
+    }
+
+    /// Focused Shot is one hit on the current target and no other, with the
+    /// Ranger's attack times `focused_shot_multiplier` and the elemental
+    /// part left as it is.
+    #[test]
+    fn focused_shot_multiplies_the_attack_on_the_current_target() {
+        let data = Data::load();
+        let rules = &data.rules;
+        let mut run = fighting(
+            &data,
+            0,
+            &[&[("corrupted_stag", Element::Plant), ("mire_toad", Element::Plant)]],
+        );
+        let ranger = horse_of(&run, Class::Ranger);
+        only_the_ability_of(&mut run, ranger);
+        run.tick(&data, TICK);
+
+        let (attack, elemental) = run.power(ranger);
+        let physical = attack * rules.focused_shot_multiplier - run.foes[0].defense as f32;
+        let expected = (physical + elemental * rules.strong_multiplier).round() as i32;
+        assert_eq!(run.foes[0].max_health - run.foes[0].health, expected);
+        assert_eq!(run.foes[1].health, run.foes[1].max_health);
+        assert_eq!(lines_with(&run, "Focused Shot on"), 1);
+        assert_eq!(run.strong_hits, 1);
+
+        // It is worth more than an ordinary hit, by the attack alone.
+        let before = run.foes[0].health;
+        run.strike(rules, ranger, 0, attack, elemental, "hits");
+        let ordinary = before - run.foes[0].health;
+        assert_eq!(
+            expected - ordinary,
+            (attack * (rules.focused_shot_multiplier - 1.0)).round() as i32
+        );
+    }
+
+    /// Elemental Burst hits every enemy still standing with the Wizard's
+    /// elemental times `burst_multiplier`, by the triangle, past defense
+    /// and with no attack in it.
+    #[test]
+    fn elemental_burst_hits_every_standing_enemy_with_elemental_alone() {
+        let data = Data::load();
+        let rules = &data.rules;
+        use Element::*;
+        let mut run = fighting(
+            &data,
+            0,
+            &[&[
+                ("corrupted_stag", Plant),
+                ("mire_toad", Fire),
+                ("thornling", Fire),
+                ("mire_toad", Ice),
+            ]],
+        );
+        assert!(run.foes[0].defense > 0, "the stag is the enemy with defense");
+        // The thornling fell earlier in this fight.
+        run.foes[2].health = 0;
+        let wizard = horse_of(&run, Class::Wizard);
+        only_the_ability_of(&mut run, wizard);
+        run.tick(&data, TICK);
+
+        let burst = run.power(wizard).1 * rules.burst_multiplier;
+        for (target, multiplier) in [(0, rules.strong_multiplier), (1, 1.0), (3, rules.weak_multiplier)] {
+            let foe = &run.foes[target];
+            assert_eq!(foe.max_health - foe.health, (burst * multiplier).round() as i32, "{}", foe.name);
+        }
+        assert_eq!(lines_with(&run, "Elemental Burst on"), 3);
+        assert_eq!((run.strong_hits, run.resisted_hits), (1, 1));
+        assert!(run.kills.is_empty(), "a fallen enemy is not hit again");
+    }
+
+    /// Each ability comes round once per cooldown, the first time after one
+    /// whole cooldown.
+    #[test]
+    fn the_shot_and_the_burst_keep_their_cooldowns() {
+        let data = Data::load();
+        let rules = &data.rules;
+        for (class, cooldown, line) in [
+            (Class::Ranger, rules.focused_shot_cooldown, "Focused Shot on"),
+            (Class::Wizard, rules.burst_cooldown, "Elemental Burst on"),
+        ] {
+            let mut run = fighting(&data, 0, &[&[("corrupted_stag", Element::Fire)]]);
+            let horse = horse_of(&run, class);
+            let first = run.party[horse].ability_timer;
+            assert_eq!(first, cooldown);
+            only_the_ability_of(&mut run, horse);
+            run.party[horse].ability_timer = first;
+            run.foes[0].health = i32::MAX;
+
+            // Half a cooldown short of the first use, then three and a half
+            // cooldowns in all: three uses.
+            for _ in 0..(cooldown * 0.5 / TICK).round() as usize {
+                run.tick(&data, TICK);
+            }
+            assert_eq!(lines_with(&run, line), 0);
+            for _ in 0..(cooldown * 3.0 / TICK).round() as usize {
+                run.tick(&data, TICK);
+            }
+            assert_eq!(lines_with(&run, line), 3, "{line}");
+        }
+    }
+
     /// The fairy spring heals the horses still standing, by `bonus_heal` of
     /// their health and not past it, after its own encounter and no other.
     #[test]
