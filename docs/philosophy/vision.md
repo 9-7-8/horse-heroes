@@ -285,5 +285,5 @@ here have since been answered by her and moved up to Confirmed.
 
 Owner's design discussion summary, received 2026-10-09 (all sections); the
 retirement section is from her later proposal, same date. The summary's
-header says it follows a document about a Windows installer and updater, which
-has not been received.
+header says it follows a document about a Windows installer and updater; that
+arrived later the same day and is in [distribution.md](distribution.md).

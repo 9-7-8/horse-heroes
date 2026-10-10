@@ -22,6 +22,8 @@ Read the relevant file before designing or tuning the system it covers.
 | [town.md](town.md) | The non-combat half: the owner's six caravan-shop decisions, what makes it cosy, the town session, listing and selling over time, player-set prices and goodwill, buying, recruiting and retiring as social moments, decoration, town juice and interface |
 | [travel.md](travel.md) | Journeys: the owner's eight travel rules, the tile map, purity and danger, routes, travel days, road events, the guaranteed boss, failure, and starting small |
 | [cargo.md](cargo.md) | Shared party cargo: the owner's five decisions, what happens when a drop arrives, protection, keep rules, explanations, rarity shown several ways, selling on arrival, capacity changes |
+| [horse-shape.md](horse-shape.md) | The base horse: a sport-type Friesian build, every dimension as a ratio of withers height, landmark heights, and what carries the likeness in a low-poly model |
+| [distribution.md](distribution.md) | Shipping on Windows: a per-user installer, a separate launcher that checks releases, verifying before executing, where saves live, publishing order and clean-machine tests (untested guide) |
 | [the-loop.md](the-loop.md) | The four layers, what the player should be able to say, the loop from intention to hypothesis, and the checklist to run before adding content |
 | [incremental-and-idle.md](incremental-and-idle.md) | Accumulation and reinvestment, the tension every resource needs, respecting absence, bounded offline progress, prestige |
 | [juice.md](juice.md) | Feedback in general: the four questions, three levels of importance, state changes, sound, motion, and not hiding information |
