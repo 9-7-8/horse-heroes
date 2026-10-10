@@ -6,9 +6,15 @@
 //! found exactly as it was left.
 
 use bevy::{
-    input_focus::{FocusCause, InputFocus, InputFocusVisible, tab_navigation::TabGroup},
+    input_focus::{
+        FocusCause, InputFocus, InputFocusVisible,
+        directional_navigation::{AutoNavigationConfig, FocusableArea},
+        navigator::find_best_candidate,
+        tab_navigation::TabGroup,
+    },
+    math::CompassOctant,
     prelude::*,
-    ui::{InteractionDisabled, Selected},
+    ui::{InteractionDisabled, Selected, UiGlobalTransform},
     ui_widgets::{
         Activate, ControlOrientation, ScrollArea, ScrollIntoView, Scrollbar, ScrollbarThumb,
     },
@@ -16,7 +22,7 @@ use bevy::{
 use serde::Deserialize;
 
 use super::parts::{
-    ClosePanel, CounterValue, NotBuilt, RowValue, button, counter, dim, panel, reason, row,
+    ClosePanel, CounterValue, NotBuilt, Part, RowValue, button, counter, dim, panel, reason, row,
     side_panel, tab, text, title,
 };
 use super::tokens::Tokens;
@@ -469,6 +475,8 @@ impl Plugin for ShellPlugin {
             .add_systems(
                 Update,
                 (
+                    lose_hidden_focus,
+                    arrows,
                     keys,
                     escape,
                     follow_the_party,
@@ -1054,6 +1062,97 @@ fn keys(
     }
 }
 
+/// A control that goes out of sight gives up the keyboard focus (#244), so
+/// Enter and Space never press something on a page that is not showing.
+fn lose_hidden_focus(mut focus: ResMut<InputFocus>, nodes: Query<&ComputedNode>) {
+    if let Some(entity) = focus.get()
+        && nodes.get(entity).is_ok_and(|node| node.is_empty())
+    {
+        focus.clear();
+    }
+}
+
+/// The arrow keys, and the way each moves the keyboard focus.
+const ARROWS: [(KeyCode, CompassOctant); 4] = [
+    (KeyCode::ArrowUp, CompassOctant::North),
+    (KeyCode::ArrowDown, CompassOctant::South),
+    (KeyCode::ArrowLeft, CompassOctant::West),
+    (KeyCode::ArrowRight, CompassOctant::East),
+];
+
+/// Where the focus goes from `from`: the nearest of `parts` that way, by the
+/// rule Bevy's own directional navigation scores with. None when nothing
+/// lies that way, and the focus stays where it is.
+fn towards(from: Entity, way: CompassOctant, parts: &[FocusableArea]) -> Option<Entity> {
+    let origin = parts.iter().find(|part| part.entity == from)?;
+    find_best_candidate(origin, way, parts, &AutoNavigationConfig::default())
+}
+
+/// An arrow key moves the keyboard focus to the nearest control that way
+/// (#229): down a list, along a row of buttons, across to the next column.
+/// With no focus in sight, the first press puts it on the first control of
+/// the page that is showing, or on the open place in the bar when none is.
+fn arrows(
+    keys: Res<ButtonInput<KeyCode>>,
+    shell: Res<Shell>,
+    mut focus: ResMut<InputFocus>,
+    mut focus_visible: ResMut<InputFocusVisible>,
+    root: Single<Entity, With<ShellRoot>>,
+    children: Query<&Children>,
+    parts: Query<(&ComputedNode, &UiGlobalTransform), With<Part>>,
+    pages: Query<(Entity, &Page)>,
+    places: Query<(Entity, &PlaceButton)>,
+) {
+    let Some(&(_, way)) = ARROWS.iter().find(|(key, _)| keys.just_pressed(*key)) else {
+        return;
+    };
+    // Only what is laid out: a control of a page that is not showing has
+    // no size.
+    let area = |entity: Entity| {
+        let (node, transform) = parts.get(entity).ok()?;
+        if node.is_empty() {
+            return None;
+        }
+        let scale = node.inverse_scale_factor();
+        let (_, _, at) = transform.to_scale_angle_translation();
+        Some(FocusableArea {
+            entity,
+            position: at * scale,
+            size: node.size() * scale,
+        })
+    };
+    let all: Vec<FocusableArea> = children.iter_descendants(*root).filter_map(area).collect();
+    let from = focus
+        .get()
+        .filter(|from| all.iter().any(|part| part.entity == *from));
+    let next = match from {
+        Some(from) => towards(from, way, &all),
+        None => pages
+            .iter()
+            .find(|(_, page)| match **page {
+                Page::Tab(place, tab) => place == shell.place() && tab == shell.tab(place),
+                _ => false,
+            })
+            .and_then(|(page, _)| {
+                children
+                    .iter_descendants_depth_first(page)
+                    .find(|entity| area(*entity).is_some())
+            })
+            .or_else(|| {
+                places
+                    .iter()
+                    .find(|(_, place)| place.0 == shell.place())
+                    .map(|(entity, _)| entity)
+            }),
+    };
+    if let Some(next) = next {
+        focus.set(next, FocusCause::Navigated);
+    }
+    if from.is_some() || next.is_some() {
+        focus_visible.0 = true;
+    }
+}
+
 fn close_detail(shell: &mut Shell, focus: &mut InputFocus) {
     if let Some(opener) = shell.close_detail() {
         focus.set(opener, FocusCause::Navigated);
@@ -1116,11 +1215,11 @@ fn move_scene(
 fn show_place(
     shell: Res<Shell>,
     view: Res<SceneView>,
-    mut pages: Query<(&Page, &mut Node), Without<ShellRoot>>,
+    mut pages: Query<(&Page, &mut Node, &mut Visibility), Without<ShellRoot>>,
 ) {
     // A place that is being put away stays in view until it is covered.
     let place_in_view = shell.is_open() || view.progress < 1.0;
-    for (page, mut node) in &mut pages {
+    for (page, mut node, mut visibility) in &mut pages {
         let shown = match *page {
             Page::Place(place) => place == shell.place() && place_in_view,
             Page::Tab(place, tab) => tab == shell.tab(place),
@@ -1130,6 +1229,16 @@ fn show_place(
         let wanted = if shown { Display::Flex } else { Display::None };
         if node.display != wanted {
             node.display = wanted;
+        }
+        // Hidden as well as out of the layout: Tab passes over what is
+        // hidden, and stops at what is only out of the layout (#244).
+        let wanted = if shown {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+        if *visibility != wanted {
+            *visibility = wanted;
         }
     }
 }
@@ -1501,6 +1610,7 @@ fn keys_list(map: &Places, horses: &[&str]) -> String {
         format!("Horses: {}", party.join(", ")),
         format!("Actions: {}", actions.join(", ")),
         "Esc: back one level".into(),
+        "Arrows: move focus that way".into(),
         "Tab, Shift+Tab: move focus".into(),
         "Enter: press what has focus".into(),
     ]
@@ -1797,6 +1907,48 @@ mod tests {
             said.contains("Space Set out") && !said.contains("Not built"),
             "{said}"
         );
+        assert!(said.contains("Arrows:"), "{said}");
+    }
+
+    /// The arrow keys (#229): down a list is the next row and up is the one
+    /// before, left and right leave the list for what is beside it, and
+    /// where nothing lies that way the focus stays.
+    #[test]
+    fn an_arrow_moves_to_the_nearest_control_that_way() {
+        let mut world = World::new();
+        let mut part = |x: f32, y: f32, width: f32| FocusableArea {
+            entity: world.spawn_empty().id(),
+            position: Vec2::new(x, y),
+            size: Vec2::new(width, 30.0),
+        };
+        // Three rows of a list, a button beside the middle one, and a
+        // button under the list. Down the screen is a greater y.
+        let rows = [
+            part(300.0, 100.0, 300.0),
+            part(300.0, 130.0, 300.0),
+            part(300.0, 160.0, 300.0),
+        ];
+        let beside = part(600.0, 130.0, 100.0);
+        let under = part(200.0, 220.0, 100.0);
+        let mut parts = rows.to_vec();
+        parts.extend([beside, under]);
+        let go = |from: FocusableArea, key: KeyCode| {
+            let (_, way) = ARROWS.iter().find(|(arrow, _)| *arrow == key).unwrap();
+            towards(from.entity, *way, &parts)
+        };
+        assert_eq!(go(rows[0], KeyCode::ArrowDown), Some(rows[1].entity));
+        assert_eq!(go(rows[1], KeyCode::ArrowDown), Some(rows[2].entity));
+        assert_eq!(go(rows[2], KeyCode::ArrowDown), Some(under.entity));
+        assert_eq!(go(rows[2], KeyCode::ArrowUp), Some(rows[1].entity));
+        assert_eq!(go(rows[1], KeyCode::ArrowUp), Some(rows[0].entity));
+        assert_eq!(go(rows[1], KeyCode::ArrowRight), Some(beside.entity));
+        assert_eq!(go(beside, KeyCode::ArrowLeft), Some(rows[1].entity));
+        assert_eq!(go(rows[0], KeyCode::ArrowUp), None);
+        assert_eq!(go(beside, KeyCode::ArrowRight), None);
+
+        // A focus that is not among them moves nowhere.
+        let elsewhere = world.spawn_empty().id();
+        assert_eq!(towards(elsewhere, CompassOctant::South, &parts), None);
     }
 
     /// Everything the text overlay did is done from a control: each element,

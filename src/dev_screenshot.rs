@@ -11,7 +11,10 @@
 
 use bevy::{
     input::InputSystems,
-    input_focus::{FocusCause, InputFocus, InputFocusVisible},
+    input_focus::{
+        FocusCause, InputFocus, InputFocusVisible,
+        tab_navigation::{NavAction, TabNavigation},
+    },
     prelude::*,
     render::view::screenshot::{Screenshot, save_to_disk},
     ui_widgets::Activate,
@@ -88,6 +91,11 @@ enum Step {
     /// Give the keyboard focus to the first control of that name, as Tab
     /// would; `None` takes it away again.
     Focus(Option<&'static str>),
+    /// Press what has the keyboard focus, as Enter does.
+    Enter,
+    /// Go round every stop Tab makes and log how many there are, and how
+    /// many of them are out of sight.
+    TabRound,
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -120,6 +128,7 @@ const MIDWAY: f32 = 0.2;
 fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
     let mut steps = vec![
         Step::Shot("town opens on horses".into()),
+        Step::TabRound,
         Step::Horse(1),
         Step::Shot("second horse selected".into()),
         Step::Slot(0),
@@ -185,6 +194,22 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyH),
         Step::Key(KeyCode::Digit1),
         Step::Shot("by keys the drop waits in the cargo".into()),
+        // The arrow keys: onto the first slot, down to the second, open it,
+        // close it, and across to the horses.
+        Step::Key(KeyCode::ArrowDown),
+        Step::Key(KeyCode::ArrowDown),
+        Step::Shot("by arrows down the slots".into()),
+        Step::Enter,
+        Step::Shot("by arrows a slot opened".into()),
+        Step::Key(KeyCode::Escape),
+        Step::Key(KeyCode::ArrowLeft),
+        Step::Shot("by arrows across to the horses".into()),
+        Step::Key(KeyCode::ArrowRight),
+        Step::Key(KeyCode::ArrowRight),
+        Step::Shot("by arrows across to the cargo".into()),
+        // Space presses what has the focus, so let go of it before Space
+        // is to send the party off.
+        Step::Focus(None),
         Step::Key(KeyCode::KeyE),
         Step::Shot("by keys the drop equipped".into()),
         Step::Key(KeyCode::KeyC),
@@ -238,6 +263,8 @@ fn tour(
     map: Res<Places>,
     mut focus: ResMut<InputFocus>,
     mut focus_visible: ResMut<InputFocusVisible>,
+    tab_stops: TabNavigation,
+    nodes: Query<&ComputedNode>,
     mut exit: MessageWriter<AppExit>,
 ) {
     tour.wait -= time.delta_secs();
@@ -275,8 +302,10 @@ fn tour(
             .filter(|(_, b)| map.control(b.id).name == *name)
             .min_by_key(|(_, b)| b.id)
             .map(|(e, _)| e),
+        Step::Enter => focus.get(),
         Step::Key(_)
         | Step::Focus(_)
+        | Step::TabRound
         | Step::Wait(_)
         | Step::SetOut
         | Step::Town
@@ -295,6 +324,23 @@ fn tour(
             None => focus.clear(),
         }
         focus_visible.0 = control.is_some();
+    }
+    if let Step::TabRound = step {
+        let (mut stops, mut unseen) = (0, 0);
+        let mut at = InputFocus::default();
+        let mut first = None;
+        while let Ok(next) = tab_stops.navigate(&at, NavAction::Next) {
+            if first == Some(next) || stops > 1000 {
+                break;
+            }
+            first = first.or(Some(next));
+            stops += 1;
+            if nodes.get(next).is_ok_and(|node| node.is_empty()) {
+                unseen += 1;
+            }
+            at = InputFocus::from_entity(next);
+        }
+        info!("tour: Tab makes {stops} stops, {unseen} of them out of sight");
     }
     if let Some(entity) = pressed {
         commands.trigger(Activate { entity });
