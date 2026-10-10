@@ -76,6 +76,20 @@ No avatar and no explanation for the organiser is required.
   mix of attack, health and cooldown as every other. The categories should
   feel natural for autonomous horses.
 
+### Travel
+
+Established in discussion and listed as such in her travel document; the
+detail built on them is in [travel.md](travel.md).
+
+- The world is procedurally generated and **finite**.
+- The player chooses a **destination city**.
+- Distance determines the number of travel days; horses cover a limited
+  distance per day.
+- **Every journey ends with a boss encounter.**
+- More dangerous areas have more and stronger encounters and stronger bosses.
+- Local danger depends on the **purity of nearby world tiles**.
+- Towns and regions update when visited or when the world map is opened.
+
 ### What the long game is for
 
 - The central combat and build interest is **damage types and how they
@@ -166,8 +180,8 @@ main loop works. Both hold.
 ## Open
 
 Party size and duplicates; whether class or element can change; what makes a
-recruit valuable without replacing a favourite; routes or home-city
-expeditions; how saddlebags count and what happens when they fill; how the
+recruit valuable without replacing a favourite; the shape of the map and how
+routes are picked; how saddlebags count and what happens when they fill; how the
 shop works and how relationships are earned; what work a horse can do in
 town; the exact reaction rules; what pets do; what failure costs; whether
 restoration is permanent; whether corrupted creatures are killed or cured;
