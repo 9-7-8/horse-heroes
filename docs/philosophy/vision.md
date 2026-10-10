@@ -328,7 +328,9 @@ they disagree with anything earlier in this file, they are newer.
 - **Prices change every real-world day, within a trend.** One city might
   always pay above average for apples; the exact amount fluctuates.
 - The player can set up **automatic buying and a set of routes**, with
-  conditions such as "only buy if their price is less than X".
+  conditions such as "only buy if their price is less than X". Selling takes
+  the same kind of limit: a price floor below which the goods stay aboard.
+- **Goodwill moves market prices**, as it does stall prices.
 - The model is Tiny Rails, taken almost exactly, apart from the daily price
   change ([inspirations.md](inspirations.md)).
 - **Goods ride in a caravan hold** of their own, counted in units.
