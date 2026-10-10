@@ -55,6 +55,21 @@ A fountain needs all of them, in order.
 - **Loot never hides what matters.** Enemies, hazards and exits stay readable
   through the pile.
 
+### Aggregate the ordinary, spotlight the meaningful
+
+Do not present eighty useless drops one by one. That is satisfying once and
+tedious by the hundredth run. This matters most for a report on a run nobody
+watched:
+
+- currency and materials resolve first;
+- ordinary items collapse into a summary;
+- high-rarity items appear one at a time;
+- the top tier gets a stronger reveal of its own;
+- each revealed item can be acted on there and then.
+
+The report is a controlled fountain, with the same beats as the one in the
+world.
+
 ### Relevance
 
 The ceremony carries emotional value even when most items are junk, but
@@ -93,4 +108,7 @@ ceremony alone does not last.
 ## Source
 
 Owner's notes on loot fountains and combat feedback in a reference action RPG,
-received 2026-10-09 (section 2).
+received 2026-10-09 (section 2). The part on aggregating and spotlighting is
+from her notes on carrying those systems over to an idle game, same date
+(section 2.1). What makes an item worth dropping is in
+[items-and-builds.md](items-and-builds.md).

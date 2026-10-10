@@ -12,6 +12,8 @@ Read the relevant file before designing or tuning the system it covers.
 | [feedback-chain.md](feedback-chain.md) | Why every action must visibly change the world, and the time scales a reward loop runs on |
 | [loot-fountain.md](loot-fountain.md) | The reward ceremony: its seven beats, what makes it land, and why drops must stay relevant |
 | [combat-rhythm.md](combat-rhythm.md) | Attack phases, keeping timings separate, and response before polish (incomplete, see the file) |
+| [build-laboratory.md](build-laboratory.md) | What an idle game keeps from an action RPG: the five promises, policies in place of execution, bounded runs, difficulty as a choice, targeted farming (incomplete, see the file) |
+| [items-and-builds.md](items-and-builds.md) | What an item must be: a rarity ladder with jobs, rule-changing powers, relevance as a mix, sets without uniforms |
 
 ## How these files are kept
 

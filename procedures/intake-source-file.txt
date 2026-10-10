@@ -1,0 +1,30 @@
+INTAKE-SOURCE-FILE
+==================
+Starts on: "intake this", "process this file", a txt of design notes handed over.
+Leaves:    guidance in docs/philosophy/, work as GitHub issues, one commit.
+
+STEPS
+1. Read the whole file. Check its last line: uploads have arrived cut off
+   mid-sentence. If it is, carry on with what is there, mark the affected
+   philosophy file "Incomplete", and tell the owner.
+2. Read docs/philosophy/README.md and list the open issues
+   (gh issue list --repo 9-7-8/horse-heroes --state all --limit 200).
+3. Split the material:
+     guidance (why, what to avoid, how to judge)  -> docs/philosophy/
+     work (something to build)                    -> an issue
+4. Philosophy: fold into the file that already covers the topic; add a file
+   only for a new topic and add it to the README table. Every file keeps
+   Principles / For Horse Heroes / Source. "For Horse Heroes" must be checked
+   against the game as built (docs/expedition.md, assets/data/), not guessed.
+5. Issues: one feature each, under an epic as a sub-issue. Body is Why (citing
+   the philosophy file), What, Done when, Depends on. Where an existing issue
+   already covers the feature, comment on it instead of opening a second one.
+   Say in each new epic where it stands against pillar 1.
+6. Commit the docs. Do not push (end-session.txt does that).
+7. Report: issue numbers by epic, files touched, anything cut off or left out.
+
+DO NOT
+  - Use the name of any existing game in issues, docs or commits. The repo is
+    public. Cite the source as the owner's notes on a reference game.
+  - Copy specific content (item names, set names, numbers) from the source.
+    Take the principle and write Horse Heroes examples.
