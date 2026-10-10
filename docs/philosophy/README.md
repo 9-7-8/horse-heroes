@@ -15,7 +15,7 @@ Read the relevant file before designing or tuning the system it covers.
 | [endgame.md](endgame.md) | How it ends: success makes combat unnecessary; what "cleared" means; a finite loot supply; the dragon's defeat; what stays playable in peace |
 | [generations.md](generations.md) | Retirement into towns and back, residents building by magic, town states, families and colour genetics, descendants, updating towns on demand |
 | [cosmetics.md](cosmetics.md) | The wardrobe: gear, displayed look and dye kept separate, unlocking looks through play, rider-free equipment, meaning without power, presets, layers, provenance (a proposal) |
-| [pets.md](pets.md) | Pets as companions with one small job: a collar, forgiving assignment, cuteness that is not a stat (a recommendation toward an open decision) |
+| [pets.md](pets.md) | Pets: what is confirmed (cannot die, assigned to horses, collar and optional armour), one signature ability, supporting reactions without replacing horses, gentle exhaustion, favourites kept viable |
 | [gear.md](gear.md) | The owner's slot mapping (halter, barding, boots, martingale, horseshoes, mouth weapon, braid, plus saddlebags and pet saddle), what each slot owns, accuracy and crit rules, exceptional pieces, how a piece is generated and compared |
 | [town.md](town.md) | The non-combat half: the owner's six caravan-shop decisions, what makes it cosy, the town session, listing and selling over time, player-set prices and goodwill, buying, recruiting and retiring as social moments, decoration, town juice and interface |
 | [travel.md](travel.md) | Journeys: the owner's eight travel rules, the tile map, purity and danger, routes, travel days, road events, the guaranteed boss, failure, and starting small |

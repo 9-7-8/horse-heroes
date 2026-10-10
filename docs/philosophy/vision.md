@@ -61,8 +61,11 @@ No avatar and no explanation for the organiser is required.
   the world says how magic, tools, pets or other inhabitants make it possible.
 - **Horses have telekinetic magic**, and resident horses use it to help build
   their towns.
-- **A retired horse can be invited back**, and its gear and assigned pets
-  return with it.
+- **When a horse retires, all its gear and pets return to the party.** It can
+  be invited back, and is then given gear and a pet again.
+- **Pets cannot die.** The player chooses pets and assigns them to horses;
+  they may ride in saddles; pet equipment stays small, a collar and
+  optionally armour.
 - **Breeding exists as background flavour.** It has genetics, superficial and
   for colour only for now, borrowed from the horse breeding mod she has
   already made. It is not an important mechanic and everything it affects is

@@ -16,8 +16,11 @@ From her second document on retirement and from what she said when handing it
 over (2026-10-09):
 
 1. **A retired horse can be invited back** to the party.
-2. **Its gear and its assigned pets go with it and come back with it.**
-   Nothing is lost, sold or silently reassigned.
+2. **When a horse retires, all its gear and its pets return to the party.**
+   The horse does not keep them. Invited back, it needs gear and a pet
+   assigned afresh. *(Corrected: the second retirement document read this
+   rule as "they stay with the horse and return when it is recalled". Her
+   later pet document says that reading was wrong and gives this one.)*
 3. **Resident horses help build towns with telekinetic horse magic.** That is
    how horses lift, carry, place and assemble without hands.
 4. Towns update when visited or when the world map is opened.
@@ -45,14 +48,22 @@ visible in its town, counts in its population, and can be met on a visit.
 - It should read as **the horse choosing a different life**, not the player
   firing a unit.
 - It is **reversible without being meaningless**. Visiting its town, the
-  player invites the horse back, and it rejoins with everything it had. An
-  invitation is generally accepted; a refusal belongs to an authored story
-  event, never to a hidden roll that locks away a favourite. A horse who
-  rejoins keeps its connection to the town, and the town keeps its history
-  and anything permanent it gained.
-- **The horse retires as a complete package**: itself, its gear, its pet.
-  Before confirming, the game says which town, what happens to the gear and
-  the pet, and how to invite the horse back.
+  player invites the horse back. An invitation is generally accepted; a
+  refusal belongs to an authored story event, never to a hidden roll that
+  locks away a favourite. A horse who rejoins keeps its connection to the
+  town, and the town keeps its history and anything permanent it gained.
+- **On retiring, the horse hands everything back.** Its gear returns to the
+  party's shared ownership; its pet, with the pet's own gear, returns to the
+  party's pet roster with its assignment cleared; the bond and history
+  between horse and pet are kept. If the returned gear would overflow shared
+  cargo, that is resolved openly, never by silently dropping something.
+  Before confirming, the game says which town, that gear and pet come back
+  to the party, and how to invite the horse back.
+- **On returning, the horse is equipped again.** The player chooses gear and
+  a pet for it. A remembered earlier loadout may be offered as a shortcut,
+  after checking that those pieces and that pet are actually available.
+- Leaving a pet in town with a horse would be a separate, explicit choice if
+  it ever exists. It is never a side effect of retirement.
 - **No bonus for leaving and returning.** Permanent milestones belong to the
   town's history and are never awarded twice.
 - It must **never be mandatory maintenance**. It is a valuable choice, not a
