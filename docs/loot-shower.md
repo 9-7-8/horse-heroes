@@ -207,6 +207,7 @@ What is heard, and where it is named:
 
 | when | sound | named in |
 |---|---|---|
+| an enemy's body breaks | `death_small`, a crack; `death_big`, the crack and a low boom | the death's `sound`, `deaths.ron` ([death-events.md](death-events.md)) |
 | a burst's first piece leaves | `launch_small`, a pop; `launch_full`, a rush of air over a rising note | the fountain's `sound`, `loot_shower.ron` |
 | a piece of gear is thrown | one for each rarity, below | the rarity's `look.sound`, `gear.ron` |
 | a piece touches the ground | `land_coin`, a clink; `land_gear`, a thud | `sound.land_coin`, `sound.land_gear` |
@@ -312,7 +313,9 @@ full scale, short, and silent at both ends; a voice is the pitch it says;
 the same recipe gives the same samples; every sound the data names is
 there, and every fountain and rarity names one; no two rarities share a
 sound or its notes, none is used for anything else, a better tier's is
-never shorter and a Rare has more notes than any tier below; a stream of
+never shorter and a Rare has more notes than any tier below; a final
+death's sound is told from an ordinary one's, and a death and its launch
+fit inside full scale together; a stream of
 pickups only rises until it tops out; a run starts again after a silence
 and not between two pieces of one burst; landings together are one sound
 and a later bounce is quieter.

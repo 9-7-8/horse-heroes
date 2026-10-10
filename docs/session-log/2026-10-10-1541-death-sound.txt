@@ -1,0 +1,53 @@
+SESSION LOG 2026-10-10 15:41 - a sound for a death
+==================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty. Tier 3: #241, built (ae5b3ad), left open.
+    A death names its sound in deaths.ron and the break plays it
+    (Heard::Died). Two recipes in sounds.ron: death_small, a short dry
+    crack; death_big, the crack with a low boom falling away under it.
+    Tested: cargo check and cargo test green, 104 pass, no warning. Two
+    new tests in src/fx/sound.rs: a final's sound is at least twice as
+    long and an octave lower than an ordinary's and no death's sound is
+    used for anything else; a death and its launch, played together when
+    each is due, stay inside full scale.
+    Seen running, by the log only: --seed 6 to 68 s played death_small
+    within a tenth of a second of each of five launch_small, and
+    death_big in the same frame-or-two as launch_full. Only the GOG
+    overlay's lines otherwise.
+  - docs/death-events.md and docs/loot-shower.md, Sound.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The two recipes. Each is two or three lines in sounds.ron.
+  - Bigger is longer and lower, not only louder.
+  - A death must name a sound; none is not allowed, as it is for a
+    rarity.
+
+FOUND
+  - launch_full peaks at only 0.24 of full scale: its hiss is cut so low
+    that little of its level is left. death_big peaks at 0.37, so the
+    death may be the louder of the two. I first wrote a test that a death
+    is never louder than its launch and took it out: it would have made
+    the final's death the quietest thing in the fountain. Which should
+    lead is for an ear.
+
+NOT DONE
+  - Nobody has listened. #241's last line of done-when, and it depends
+    on #10 being heard first.
+  - Carried over, unchanged: the rest of #229 (the Keys control, arrow
+    keys in lists, a key for List); nobody has pressed a key or a
+    pointer for real, or seen a tab's page scroll; nobody has seen the
+    rarity shapes tumble or be picked up; #187 waits on the owner's look
+    at the horse and #10 on her listening (F4); nobody has watched a
+    death or the screen response move; the fountains are not tuned; a
+    place left open on the road still cuts a beam off; a lost trail is
+    not held on the road (#176); in town the horses walk on the spot;
+    #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Tier 1 is empty. 0.2.0 has the rest of
+  #229 to build; #10, #187 and #241 wait on the owner's ear and eye.

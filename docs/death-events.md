@@ -22,7 +22,9 @@ enemies only.
 4. **The break**: the body is cut `per_side` ways along each edge and the
    pieces are thrown out from its middle, up, and away from the party
    (`plan_shards`). They tumble, fall, and stop where they first touch the
-   ground. After `linger_secs` they shrink away over `fade_secs`.
+   ground. After `linger_secs` they shrink away over `fade_secs`. The
+   break is heard: the death's `sound`, a recipe in `sounds.ron`
+   ([loot-shower.md](loot-shower.md), Sound), sent as `Heard::Died`.
 5. **The mark**: a disc in the element's colour, darkened, on the ground
    where the body broke. It comes up at once and shrinks away over the last
    `mark_fade_secs` of its `mark_secs`.
@@ -42,9 +44,12 @@ there and its name in `enemies.ron`.
 | Shards | 8 | 27, thrown higher |
 | Shards gone after | 1.1 s | 1.7 s |
 | Mark | 0.6 body sizes, 2.5 s | 0.9 body sizes, 6 s |
+| Sound | `death_small`, a short dry crack | `death_big`, the crack and a low boom falling away under it |
 
 The big fall is as long as the full fountain's `delay_secs`, so the drops
-come out of the break. The shards are gone before the fountain's pieces
+come out of the break, and the death's sound and the launch's start
+together. An ordinary enemy's crack comes a tenth of a second after its
+fountain's pop. The shards are gone before the fountain's pieces
 are at rest, so the pile is read with nothing lying over it.
 
 ## An exhausted horse
@@ -82,14 +87,18 @@ view.
 - a final's death is bigger and slower than an ordinary one's in every
   number, and any death is over before the next enemies arrive;
 - a body has broken by the time its fountain throws its first piece;
+- a final's sound is told from an ordinary's (twice as long, an octave
+  lower, and used for nothing else), and a death and its launch played
+  together stay inside full scale (`src/fx/sound.rs`);
 - a kill says how its enemy dies (`src/sim/expedition.rs`);
 - an exhausted horse lies down only while the party stands
   (`src/game/scene.rs`).
 
 ## Not built
 
-- No sound of its own: a death is heard only as its fountain's launch
-  (#241).
+- Nobody has listened to a death (#241). The recipes are first guesses,
+  and whether the death covers the launch is for an ear to say. A run with
+  `--seed 6` has an ordinary death at 21.3 s and the final one at 64.5 s.
 - A lost trail is not held on the road, so the last horse to tire is seen
   getting up in town and never lying down. Whether to hold it is #176's.
 - A hit shows nothing yet: no stagger and no flash before the death.
