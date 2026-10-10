@@ -9,6 +9,8 @@ Read the relevant file before designing or tuning the system it covers.
 
 | File | Covers |
 | --- | --- |
+| [five-link-loop.md](five-link-loop.md) | **Build this first.** The smallest whole game: five links (route, party, expedition, loot, town), one rule and one test each, and the minimum integrated test |
+| [inspirations.md](inspirations.md) | The games this one learns from, by name, and the one problem each is for; how to study one without growing the scope |
 | [vision.md](vision.md) | **Read first.** What the owner wants built: the world, the loop, what the player controls, equipment rules, what is confirmed, proposed and open. Outranks the other files |
 | [elemental-combat.md](elemental-combat.md) | How horses cooperate: Primers, Finishers, three pair reactions, three same-element Crescendos, anti-chain rules, automation, how it is shown (a proposal, see the file) |
 | [failure.md](failure.md) | What happens when a journey fails: nobody dies, a safe return, a bounded loss and cost, no automatic retry, a report that teaches, and the tone of it |
@@ -46,5 +48,8 @@ Read the relevant file before designing or tuning the system it covers.
 - When a principle is tried in the running game and turns out wrong for this
   game, change the file and say why. The owner's verdict on feel outranks
   anything written here.
-- The game is original. These files take principles from studying other games,
-  never names, content, or specific designs.
+- The game is original. These files take principles from studying other
+  games, never content, numbers or specific designs. The games themselves may
+  be named as inspirations (owner, 2026-10-09) and are listed in
+  `inspirations.md`; files written before that say "a reference action RPG"
+  and the like.
