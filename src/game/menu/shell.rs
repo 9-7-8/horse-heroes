@@ -77,8 +77,8 @@ pub struct Tab {
     pub controls: Vec<Control>,
 }
 
-/// A control planned for the menus. One with an `action` works; one without
-/// is not built yet, and a press on it says so.
+/// A control planned for the menus. One with an `action` or a `shows` works;
+/// one with neither is not built yet, and a press on it says so.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Control {
     pub name: String,
@@ -95,9 +95,26 @@ pub struct Control {
     pub proposed: bool,
     #[serde(default)]
     pub action: Option<Action>,
+    /// What a press opens in the side panel of its page.
+    #[serde(default)]
+    pub shows: Option<Shows>,
     /// Its number among all the controls of the map, set on loading.
     #[serde(skip)]
     pub id: usize,
+}
+
+impl Control {
+    /// Whether a press does what the control says: it acts, or it shows.
+    pub fn built(&self) -> bool {
+        self.action.is_some() || self.shows.is_some()
+    }
+}
+
+/// What a control shows in the side panel when it is pressed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+pub enum Shows {
+    /// Every key, and what it works.
+    Keys,
 }
 
 /// What a tab shows. `Planned` is a tab whose system is not built.
@@ -265,7 +282,8 @@ impl Place {
 pub enum Item {
     /// A gear slot of the selected horse.
     Slot(usize),
-    /// A control that is not built, by its `id`: what it will do.
+    /// A control, by its `id`: what it shows, or, for one that is not
+    /// built, what it will do.
     Control(usize),
 }
 
@@ -876,7 +894,7 @@ fn spawn_control(
             place,
         },
     ));
-    if control.action.is_none() {
+    if !control.built() {
         entity.insert(NotBuilt);
     }
 }
@@ -962,7 +980,8 @@ fn on_activate(
     } else if let Ok(button) = controls.get(entity) {
         match map.control(button.id).action {
             Some(action) => game.act(action),
-            // Not built: say so, in the side panel of the page it is on.
+            // It shows something, or is not built and says so: either way
+            // in the side panel of the page it is on.
             None => {
                 let place = button.place.unwrap_or(shell.place());
                 shell.open(place);
@@ -1000,8 +1019,10 @@ fn keys(
     if keys.get_just_pressed().len() == 0 {
         return;
     }
-    let down =
-        |key: Option<&str>| key.and_then(key_code).is_some_and(|code| keys.just_pressed(code));
+    let down = |key: Option<&str>| {
+        key.and_then(key_code)
+            .is_some_and(|code| keys.just_pressed(code))
+    };
     for (entity, place) in &places {
         if down(map.page_key(place.0)) {
             commands.trigger(Activate { entity });
@@ -1158,8 +1179,8 @@ fn mark_chosen(
         }
     }
 
-    // A control that works is unavailable while its action cannot be done.
-    // One that is not built is chosen while the panel saying so is open.
+    // A control that acts is unavailable while its action cannot be done.
+    // Any other is chosen while the panel it opened is showing.
     for (entity, button, selected, disabled) in &planned {
         let (chosen, blocked) = match map.control(button.id).action {
             Some(action) => (
@@ -1275,7 +1296,17 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             };
             let item = match detail.item {
                 Item::Slot(slot) => slot,
-                Item::Control(id) => return not_built(map.control(id)),
+                Item::Control(id) => {
+                    let control = map.control(id);
+                    return match control.shows {
+                        Some(Shows::Keys) => {
+                            let horses: Vec<&str> =
+                                game.party.iter().map(|horse| horse.name.as_str()).collect();
+                            format!("{}\n{}", control.name, keys_list(map, &horses))
+                        }
+                        None => not_built(control),
+                    };
+                }
             };
             let slot = Slot::ALL[item];
             match &selected.gear[item] {
@@ -1386,9 +1417,8 @@ fn blocked_line<'a>(controls: impl IntoIterator<Item = &'a Control>, game: &Game
 /// "All but Equip: not built yet." `hint` adds that a press says more,
 /// where there is room for it.
 fn unbuilt_line(controls: &[Control], hint: bool) -> String {
-    let (working, unbuilt): (Vec<&Control>, Vec<&Control>) = controls
-        .iter()
-        .partition(|control| control.action.is_some());
+    let (working, unbuilt): (Vec<&Control>, Vec<&Control>) =
+        controls.iter().partition(|control| control.built());
     if unbuilt.is_empty() {
         return String::new();
     }
@@ -1434,6 +1464,49 @@ fn not_built(control: &Control) -> String {
     out
 }
 
+/// What the Keys control shows (#229): every key and what it works, taken
+/// from the map, so a key changed in `places.ron` is changed here. Escape,
+/// Tab and Enter are not in the file; what they do is in `escape` and Bevy.
+fn keys_list(map: &Places, horses: &[&str]) -> String {
+    let pair = |key: &str, name: &str| format!("{key} {name}");
+    let places: Vec<String> = map
+        .pages()
+        .filter_map(|page| Some(pair(page.key.as_deref()?, &page.name)))
+        .collect();
+    // Every place numbers its own tabs, so the keys are listed once.
+    let mut tabs: Vec<&str> = Vec::new();
+    for key in map
+        .pages()
+        .flat_map(|page| &page.tabs)
+        .filter_map(|tab| tab.key.as_deref())
+    {
+        if !tabs.contains(&key) {
+            tabs.push(key);
+        }
+    }
+    let party: Vec<String> = map
+        .horse_keys
+        .iter()
+        .zip(horses)
+        .map(|(key, name)| pair(key, name))
+        .collect();
+    let actions: Vec<String> = map
+        .list
+        .iter()
+        .filter_map(|control| Some(pair(control.key.as_deref()?, &control.name)))
+        .collect();
+    [
+        format!("Places: {}", places.join(", ")),
+        format!("Tabs of a place: {}", tabs.join(", ")),
+        format!("Horses: {}", party.join(", ")),
+        format!("Actions: {}", actions.join(", ")),
+        "Esc: back one level".into(),
+        "Tab, Shift+Tab: move focus".into(),
+        "Enter: press what has focus".into(),
+    ]
+    .join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1449,11 +1522,11 @@ mod tests {
             assert!(!control.name.is_empty());
             assert!(!control.does.is_empty(), "{} does nothing", control.name);
             assert!(
-                control.action.is_some() || control.issue.is_some(),
+                control.built() || control.issue.is_some(),
                 "{} neither works nor names its issue",
                 control.name
             );
-            if control.action.is_none() {
+            if !control.built() {
                 assert!(not_built(control).contains("Not built yet."));
             }
         }
@@ -1503,6 +1576,13 @@ mod tests {
                             let line = blocked_line(group, &game);
                             assert!(line.contains(name), "{state}: {line}");
                         }
+                        // It shows something, whatever the party is doing:
+                        // no line says it cannot be used.
+                        None if control.built() => {
+                            assert!(given.is_empty(), "{state}: {name}");
+                            let named = unbuilt.contains(name);
+                            assert_eq!(named, unbuilt.starts_with("All but "), "{unbuilt}");
+                        }
                         // Named, or covered by a line that names the others.
                         None => {
                             assert!(given.is_empty(), "{state}: {name}");
@@ -1535,7 +1615,7 @@ mod tests {
         let places = Places::load();
         for group in places.groups() {
             let line = unbuilt_line(group, false);
-            let working = group.iter().filter(|c| c.action.is_some());
+            let working = group.iter().filter(|c| c.built());
             if line.starts_with("All but ") {
                 for control in working {
                     assert!(line.contains(control.name.as_str()), "{line}");
@@ -1585,8 +1665,16 @@ mod tests {
         let mut seen = Vec::new();
         for control in places.controls() {
             let Some(key) = &control.key else { continue };
-            assert!(key_code(key).is_some(), "{}: no key called {key}", control.name);
-            assert!(control.action.is_some(), "{} has a key and no action", control.name);
+            assert!(
+                key_code(key).is_some(),
+                "{}: no key called {key}",
+                control.name
+            );
+            assert!(
+                control.built(),
+                "{} has a key and does nothing",
+                control.name
+            );
             assert!(!seen.contains(key), "two controls answer {key}");
             seen.push(key.clone());
         }
@@ -1629,6 +1717,86 @@ mod tests {
         }
         let party = crate::sim::data::Data::load().horses.len();
         assert!(places.horse_keys.len() >= party, "a horse has no key");
+    }
+
+    /// The Keys control lists every key in the file beside what it works
+    /// (#229), and is itself a control that works, on the Settings page.
+    #[test]
+    fn the_keys_control_lists_every_key() {
+        let places = Places::load();
+        let data = crate::sim::data::Data::load();
+        let horses: Vec<&str> = data
+            .horses
+            .iter()
+            .map(|horse| horse.name.as_str())
+            .collect();
+        let list = keys_list(&places, &horses);
+        let line = |start: &str| {
+            list.lines()
+                .find(|line| line.starts_with(start))
+                .unwrap_or_else(|| panic!("no line for {start}"))
+        };
+        for page in places.pages() {
+            let key = page.key.as_deref().unwrap();
+            assert!(
+                line("Places").contains(&format!("{key} {}", page.name)),
+                "{list}"
+            );
+            for tab in &page.tabs {
+                let key = tab.key.as_deref().unwrap();
+                assert!(
+                    line("Tabs").split([' ', ',']).any(|word| word == key),
+                    "{list}"
+                );
+            }
+        }
+        for (key, horse) in places.horse_keys.iter().zip(&horses) {
+            assert!(line("Horses").contains(&format!("{key} {horse}")), "{list}");
+        }
+        let mut keyed = 0;
+        for control in places.controls() {
+            let Some(key) = &control.key else { continue };
+            assert!(
+                line("Actions").contains(&format!("{key} {}", control.name)),
+                "{list}"
+            );
+            keyed += 1;
+        }
+        assert!(keyed > 0);
+
+        let shows: Vec<&Control> = places
+            .settings
+            .controls
+            .iter()
+            .filter(|c| c.shows == Some(Shows::Keys))
+            .collect();
+        assert_eq!(shows.len(), 1, "Settings has one Keys control");
+        assert!(shows[0].built() && shows[0].action.is_none());
+
+        // Pressed, it says the list in the side panel of Settings.
+        let page = places.settings_page();
+        let mut shell = Shell::new(places.pages().count());
+        shell.show_detail(
+            page,
+            Detail {
+                tab: 0,
+                item: Item::Control(shows[0].id),
+                opener: None,
+            },
+        );
+        let game = Game::new(6);
+        let said = fact(
+            &game,
+            &Uncollected::default(),
+            &shell,
+            &places,
+            Fact::Detail(page),
+        );
+        assert!(said.starts_with(&shows[0].name), "{said}");
+        assert!(
+            said.contains("Space Set out") && !said.contains("Not built"),
+            "{said}"
+        );
     }
 
     /// Everything the text overlay did is done from a control: each element,
@@ -1696,7 +1864,9 @@ mod tests {
             for (i, (heading, job, _, _)) in pages.iter().enumerate() {
                 assert!(!job.is_empty(), "{heading} has no job");
                 assert!(
-                    pages[i + 1..].iter().all(|(other, _, _, _)| other != heading),
+                    pages[i + 1..]
+                        .iter()
+                        .all(|(other, _, _, _)| other != heading),
                     "two pages are called {heading}"
                 );
             }

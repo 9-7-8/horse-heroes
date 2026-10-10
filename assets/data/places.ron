@@ -7,12 +7,13 @@
 // A control is (name, does, and then whichever of these apply):
 //   does      what it does, or will do, in one plain sentence.
 //   issue     the issue that will make it work. A control with an issue and
-//             no action is not built: it is drawn as unavailable, and a
+//             no action or shows is not built: it is drawn as unavailable, and a
 //             press says so and says what it will do.
 //   proposed  the issue is a proposal the owner has not decided.
 //   action    what it does today: Element(Fire), EquipDrop, SetOut.
+//   shows     what a press opens in the side panel of its page: Keys.
 //   key       the key that works it, printed on it: a letter, a digit or
-//             Space. Only a control with an action has one.
+//             Space. Only a control with an action or a shows has one.
 // Every key is in this file (#229). A place's `key` opens it and a control's
 // presses it, wherever the player is. A tab's `key` chooses it while its
 // place is showing, so two places may use the same keys for their tabs and
@@ -235,7 +236,7 @@
             (name: "Flash", does: "Turns flashes down, from full to off.", issue: 45),
             (name: "Effects", does: "Turns the number of effects down, from full to off.", issue: 45),
             (name: "Volume", does: "Turns the sound down, from full to off.", issue: 45),
-            (name: "Keys", does: "Shows the key for every place, tab and action.", issue: 229),
+            (name: "Keys", does: "Shows the key for every place, tab and action.", shows: Keys, key: "K"),
         ],
     ),
     horse_keys: ["Z", "X", "C"],
