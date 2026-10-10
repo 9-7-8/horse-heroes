@@ -36,6 +36,9 @@ STEPS
      changed. It is not a log.
    - Memory: save what the owner corrected or asked for as a standing thing;
      delete any memory that is no longer true.
+   - GitHub issues: every question raised this session and left unanswered
+     is in an issue labelled "decision" (owner, 2026-10-09). A question that
+     was only said in chat is lost; file it before the log is written.
 
 5. Write the session log: a NEW file
        docs/session-log/<YYYY-MM-DD>-<HHMM>-<slug>.txt

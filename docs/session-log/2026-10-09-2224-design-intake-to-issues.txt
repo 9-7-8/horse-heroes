@@ -1,0 +1,123 @@
+SESSION 2026-10-09 22:24 - design documents taken in as issues and philosophy
+
+ASKED
+  - "We're going to use github issues to track both issues, and future
+    features." Process each txt file into future features, one feature per
+    issue with sub-issues, "or just turn them into plan documents, whatever
+    you think is best, but I have a preference for using github issues".
+  - "You'll also need to maintain a folder of philosophy documents, which
+    include advice and guidelines you'll follow while creating the game."
+  - Twenty-three files handed over one or two at a time, each with "intake
+    this".
+  - On breeding: "it will have genetics, but they'll be superficial and for
+    color only for now. I have already created an entire horse breeding
+    minecraft mod, and you'll just be borrowing the system from that.
+    Breeding won't be an important mechanic, just a background flavor thing
+    -- all breeding will just affect aesthetic outcome."
+  - "You can make a note of all the game's we're using as inspiration,
+    because inspiration isn't copyright infringement."
+  - "Record every single open question left in this chat into issues, and
+    then end the session."
+
+DONE
+  No code or game data was changed this session. Everything below is
+  documentation and GitHub issues.
+  - docs/philosophy/: 25 files and a README index. Checked: written and
+    committed; not reviewed by the owner.
+      Start with README.md. vision.md is what she wants built and outranks
+      the rest; five-link-loop.md is what to build first.
+  - 200 GitHub issues on 9-7-8/horse-heroes, all open: 16 epics with
+    sub-issues, 19 decision issues, 6 milestone checklists, the rest
+    features. Checked: counted with gh after every batch; sub-issue links
+    read back for each epic.
+  - procedures/intake-source-file.txt, written the second time the routine
+    came up and corrected as it went. In INDEX.txt.
+  - CLAUDE.md: a Planning section (plans are GitHub issues), a Vision
+    paragraph pointing at vision.md, docs/philosophy/ in the layout, and her
+    exception to pillar 2.
+  - Build: cargo check and cargo test both exit 0, 5 tests pass. Nothing
+    visible changed, so no screenshot run.
+
+DECIDED
+  By the owner, in her documents or in chat (all recorded in
+  docs/philosophy/vision.md under Confirmed):
+  - The world: solarpunk fairy world, one greedy black dragon; the player
+    organises an autonomous gaggle; depth, not breadth.
+  - Equipment: no bridles, bits, reins or stirrups. Slots are halter
+    (accuracy), barding, boots, martingale, horseshoes (crit), a mouth-held
+    weapon, a mane or tail braid, plus saddlebags and pet saddles.
+  - Travel: finite generated world; choose a destination city; distance
+    sets travel days; danger from the purity of nearby tiles; a journey
+    through danger ends with a boss.
+  - Cargo: loot is shared by the party; a full bag never stops the journey;
+    keep rules, rarity first by default.
+  - The caravan is the travelling home and shop: list gear, townsfolk buy
+    over time, prices set as a percentage, discounts earn goodwill, unsold
+    stock travels with the party.
+  - Failure: nobody dies; return to the previous city, lose a configurable
+    amount of loot, pay a modest cost, wait to be sent out. No automatic
+    retry.
+  - Retirement: gear and pets return to the party when a horse retires; it
+    can be invited back. Residents build with telekinetic horse magic.
+  - Breeding: colour-only genetics borrowed from her own mod; aesthetic
+    only; background flavour.
+  - The ending: success makes combat unnecessary. Cleared regions have no
+    monsters. The game is finite.
+  - Inspiration games may be named.
+  For her, by the session (say so if any is wrong; all are listed in
+  issue #200):
+  - The endgame note's endpoint was recorded as hers, since the note opens
+    by agreeing with it.
+  - The base horse was read as a Friesian build in whatever colours her
+    genetics give, not as black horses.
+  - Her breeding mod was assumed to be the folder CLAUDE.md says not to
+    touch, and was not opened.
+  - Six judgments written into the philosophy files as guidance, such as
+    "rarity reads on the drop, the chosen look wins on the horse".
+  - Earlier issues that later documents overtook were commented on and left
+    open, not closed.
+  - Issues and philosophy files written before she allowed game names still
+    say "a reference action RPG"; inspirations.md is the key.
+
+FOUND
+  - Two uploads arrived cut off mid-sentence (the first two files). Issue
+    #199. combat-rhythm.md and build-laboratory.md are marked incomplete.
+  - The documents disagree with each other in places, later ones overriding
+    earlier: the equipment categories, the elemental rules, what a full bag
+    does, patrols and an endless mode, and which way round the retirement
+    rule goes. Where that happened the earlier issue was rewritten with a
+    dated "Revised" line, and the philosophy file says what changed.
+  - The retirement rule was recorded the wrong way round for two files,
+    following a document that misread it; corrected when a later document
+    said so.
+  - Several documents treat a screen layout (scene in the top third, menus
+    below) as established. No document decides it, and the game as built is
+    a full-window scene. Issue #145.
+  - Selling over time in town pulls against idle-first. No document
+    resolves it. On issues #84 and #200.
+  - The slot mapping needs mechanics the game does not have: misses,
+    critical hits, impairments, resources.
+  - A finite world with no combat after clearing means the total loot is
+    bounded. Issue #182.
+  - The documents' "[web:n]" citations point at nothing; claims resting on
+    them are unverified, including what they say about Bevy.
+  - In a shell opened before Rust was installed, cargo is not on PATH; call
+    it by full path (already noted in setup-toolchain.txt).
+  - Creating issues by script: an issue must be created after everything it
+    cites, or relinked afterwards; a literal here-string must not double
+    its apostrophes.
+
+NOT DONE
+  - Nothing was built. The game is exactly as the previous session left it.
+  - The Bridle and Browband names in assets/data/gear.ron still contradict a
+    confirmed rule. Issue #90; a small fix, deliberately not made during an
+    intake.
+  - None of the decision issues has been answered.
+  - The philosophy files have not been read by the owner.
+  - The two cut-off files and one reference image are still missing (#199).
+
+PICK UP
+  Ask the owner, with the question tool, the questions in issue #200 that
+  block the core loop: whether the party leaves town by itself after a
+  success, and whether the Primer and Finisher rule is confirmed (#80).
+  Then start issue #185, the five-link core loop, with link 1.
