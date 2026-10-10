@@ -299,6 +299,26 @@ impl Game {
     }
 }
 
+#[cfg(test)]
+impl Game {
+    /// A game back in town from its first trail, with whatever it dropped.
+    pub fn back_from_a_trail(seed: u64) -> Game {
+        let mut game = Game::new(seed);
+        game.act(Action::SetOut);
+        let outcome = loop {
+            let Screen::Trail(expedition) = &mut game.screen else {
+                unreachable!("the party set out");
+            };
+            expedition.tick(&game.data, TICK);
+            if let Some(outcome) = expedition.outcome.clone() {
+                break outcome;
+            }
+        };
+        game.return_to_camp(outcome);
+        game
+    }
+}
+
 pub fn advance(
     time: Res<Time>,
     mut game: ResMut<Game>,
@@ -385,7 +405,9 @@ pub fn report_text(game: &Game) -> String {
     match &game.screen {
         Screen::Camp { last, note, .. } => {
             let Some(outcome) = last else {
-                return "No trail walked yet.".into();
+                return "No trail walked yet.\n\
+                        What happens on a trail is reported here when the party is back."
+                    .into();
             };
             out += &format!(
                 "{}  cleared {}/{} encounters, +{} coins\n\
@@ -535,6 +557,31 @@ mod tests {
         }
         game.act(Action::Element(Element::Fire));
         assert_eq!(game.element, Element::Ice, "no change on the road");
+    }
+
+    /// A press does something exactly when `can` allows it (#233): with a
+    /// drop home, Equip is allowed and puts it on; after that it is refused.
+    #[test]
+    fn what_can_be_done_is_done() {
+        let home = || {
+            (0..50)
+                .map(Game::back_from_a_trail)
+                .find(|game| game.pending_drop().is_some())
+                .expect("no seed under 50 brings a drop home")
+        };
+        let mut game = home();
+        assert_eq!(game.can(Action::EquipDrop), Ok(()));
+        let gear = game.pending_drop().unwrap();
+        let (fits, slot, name) = (gear.fits, gear.slot.index(), gear.name.clone());
+        game.act(Action::EquipDrop);
+        assert!(game.pending_drop().is_none());
+        assert_eq!(game.party[fits].gear[slot].as_ref().unwrap().name, name);
+        assert_eq!(game.can(Action::EquipDrop), Err("Nothing to equip."));
+
+        let mut game = home();
+        assert_eq!(game.can(Action::SetOut), Ok(()));
+        game.act(Action::SetOut);
+        assert!(!game.in_town());
     }
 
     /// The road is held for a won trail's last drops and for nothing else.

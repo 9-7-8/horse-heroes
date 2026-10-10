@@ -142,6 +142,22 @@ impl Places {
         &self.list[id]
     }
 
+    /// The controls of the map in the groups they are drawn in: those of a
+    /// tab, of a place without tabs, of a cargo column, and of the footer.
+    /// A group says under itself why any of its controls cannot be used.
+    #[cfg(test)]
+    pub fn groups(&self) -> Vec<&[Control]> {
+        let mut groups = Vec::new();
+        for place in self.pages() {
+            groups.extend(place.tabs.iter().map(|tab| tab.controls.as_slice()));
+            groups.push(&place.controls);
+            groups.push(&place.cargo);
+        }
+        groups.push(&self.footer);
+        groups.retain(|group| !group.is_empty());
+        groups
+    }
+
     /// The key that opens a page: a place, or settings.
     pub fn page_key(&self, page: usize) -> Option<&str> {
         self.pages().nth(page)?.key.as_deref()
@@ -382,6 +398,12 @@ pub struct ControlButton {
     pub place: Option<usize>,
 }
 
+/// The line under a group of controls that says why those of them that work
+/// cannot be used now (#233). It holds their `id`s, and is hidden while all
+/// of them can be used.
+#[derive(Component)]
+struct Blocked(Vec<usize>);
+
 /// Something shown only while the player is there.
 #[derive(Component)]
 enum Page {
@@ -433,6 +455,7 @@ impl Plugin for ShellPlugin {
                     move_scene,
                     show_place,
                     mark_chosen,
+                    show_reasons,
                     show_facts,
                 )
                     .chain(),
@@ -680,6 +703,17 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                 .with_children(|footer| {
                     footer.spawn((text(t, ""), Live(Fact::Footer)));
                     footer.spawn(spacer());
+                    // One above the other and never squeezed: the footer
+                    // has one line's height and little width to spare.
+                    footer
+                        .spawn(Node {
+                            flex_direction: FlexDirection::Column,
+                            flex_shrink: 0.0,
+                            ..default()
+                        })
+                        .with_children(|reasons| {
+                            spawn_reasons(reasons, t, &places.footer, false);
+                        });
                     for control in &places.footer {
                         spawn_control(footer, t, control, None);
                     }
@@ -696,7 +730,7 @@ fn spawn_content(
 ) {
     match content {
         Content::Planned => {
-            page.spawn(reason(t, "Not built yet."));
+            page.spawn(reason(t, "This page is not built yet."));
         }
         Content::Element => {
             page.spawn((text(t, ""), Live(Fact::Element)));
@@ -793,6 +827,25 @@ fn spawn_controls(
                 spawn_control(row, t, control, place);
             }
         });
+    spawn_reasons(parent, t, controls, true);
+}
+
+/// Under a group of controls, why any of them cannot be used (#233): a line
+/// that follows the game for those that work, and a line for those that are
+/// not built, which does not change.
+fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Control], hint: bool) {
+    let working: Vec<usize> = controls
+        .iter()
+        .filter(|control| control.action.is_some())
+        .map(|control| control.id)
+        .collect();
+    if !working.is_empty() {
+        parent.spawn((reason(t, ""), Blocked(working)));
+    }
+    let unbuilt = unbuilt_line(controls, hint);
+    if !unbuilt.is_empty() {
+        parent.spawn(reason(t, &unbuilt));
+    }
 }
 
 /// One observer for every control of the shell: what a press does depends
@@ -1055,6 +1108,34 @@ fn mark_chosen(
     }
 }
 
+/// Say under each group of controls why those that work cannot be used now,
+/// and put the line away while all of them can.
+fn show_reasons(
+    game: Res<Game>,
+    map: Res<Places>,
+    mut lines: Query<(&Blocked, &mut Node, &Children)>,
+    mut texts: Query<&mut Text>,
+) {
+    for (blocked, mut node, children) in &mut lines {
+        let words = blocked_line(blocked.0.iter().map(|&id| map.control(id)), &game);
+        let wanted = if words.is_empty() {
+            Display::None
+        } else {
+            Display::Flex
+        };
+        if node.display != wanted {
+            node.display = wanted;
+        }
+        for child in children.iter() {
+            if let Ok(mut text) = texts.get_mut(child)
+                && text.0 != words
+            {
+                text.0 = words.clone();
+            }
+        }
+    }
+}
+
 fn show_facts(
     game: Res<Game>,
     uncollected: Res<Uncollected>,
@@ -1161,20 +1242,17 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         },
         Fact::Element => {
             let rules = &game.data.rules;
-            let mut out = format!(
+            format!(
                 "Party element: {}\nFire beats Plant, Plant beats Ice, Ice beats Fire \
                  (strong x{}, resisted x{}).",
                 game.element.name(),
                 rules.strong_multiplier,
                 rules.weak_multiplier,
-            );
-            if let Err(why) = game.can(Action::Element(game.element)) {
-                out += &format!("\n{why}");
-            }
-            out
+            )
         }
-        Fact::Report => report_text(game),
-        Fact::ReportSide => report_side(game),
+        // No blank line at the end: it would push the controls down.
+        Fact::Report => report_text(game).trim_end().into(),
+        Fact::ReportSide => report_side(game).trim_end().into(),
         Fact::Footer => match &game.screen {
             Screen::Camp { countdown, .. } => format!(
                 "Ready for: a level {} trail, {} encounters. Setting out in {:.0}s.",
@@ -1193,6 +1271,77 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             }
         },
     }
+}
+
+/// The working controls among these that cannot be used now, gathered by the
+/// reason, in the order of the map. The reason is `Game::can`'s, the check
+/// `Game::act` makes, so what is shown is why the press would do nothing.
+fn blocked<'a>(
+    controls: impl IntoIterator<Item = &'a Control>,
+    game: &Game,
+) -> Vec<(Vec<&'a str>, &'static str)> {
+    let mut reasons: Vec<(Vec<&str>, &str)> = Vec::new();
+    for control in controls {
+        let Some(Err(why)) = control.action.map(|action| game.can(action)) else {
+            continue;
+        };
+        match reasons.iter_mut().find(|(_, reason)| *reason == why) {
+            Some((names, _)) => names.push(&control.name),
+            None => reasons.push((vec![&control.name], why)),
+        }
+    }
+    reasons
+}
+
+/// What a group of controls says in place about those: "Fire, Ice, Plant:
+/// in town only." Empty when every working control can be used.
+fn blocked_line<'a>(controls: impl IntoIterator<Item = &'a Control>, game: &Game) -> String {
+    let lines: Vec<String> = blocked(controls, game)
+        .iter()
+        .map(|(names, why)| reason_line(names, why))
+        .collect();
+    lines.join(" ")
+}
+
+/// What a group of controls says in place about those of them that are not
+/// built. It names them, or, where that is shorter, the ones that work:
+/// "All but Equip: not built yet." `hint` adds that a press says more,
+/// where there is room for it.
+fn unbuilt_line(controls: &[Control], hint: bool) -> String {
+    let (working, unbuilt): (Vec<&Control>, Vec<&Control>) = controls
+        .iter()
+        .partition(|control| control.action.is_some());
+    if unbuilt.is_empty() {
+        return String::new();
+    }
+    let names = |controls: &[&Control]| {
+        let names: Vec<&str> = controls.iter().map(|c| c.name.as_str()).collect();
+        names.join(", ")
+    };
+    let mut out = if working.is_empty() && unbuilt.len() > 1 {
+        "None of these is built yet.".to_string()
+    } else if !working.is_empty() && working.len() < unbuilt.len() {
+        format!("All but {}: not built yet.", names(&working))
+    } else {
+        format!("{}: not built yet.", names(&unbuilt))
+    };
+    if hint {
+        out += match unbuilt.len() {
+            1 => " Press it to see what it will do.",
+            _ => " Press one to see what it will do.",
+        };
+    }
+    out
+}
+
+/// The controls a reason is about, then the reason, as one sentence.
+fn reason_line(names: &[&str], why: &str) -> String {
+    let mut letters = why.chars();
+    let why: String = match letters.next() {
+        Some(first) => first.to_lowercase().chain(letters).collect(),
+        None => String::new(),
+    };
+    format!("{}: {}", names.join(", "), why)
 }
 
 /// What a control that is not built says when it is pressed.
@@ -1230,6 +1379,123 @@ mod tests {
                 assert!(not_built(control).contains("Not built yet."));
             }
         }
+    }
+
+    /// The party in each state the slice has: in town before any trail, in
+    /// town with a drop to equip, and on the road.
+    fn states() -> Vec<(&'static str, Game)> {
+        let with_a_drop = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let mut on_the_road = Game::new(6);
+        on_the_road.act(Action::SetOut);
+        vec![
+            ("in town", Game::new(6)),
+            ("in town with a drop", with_a_drop),
+            ("on the road", on_the_road),
+        ]
+    }
+
+    /// "Nothing is silently unavailable" (#233): in every state, a control
+    /// that cannot be used is named in a line under its group, and for one
+    /// that works the reason given is the one `Game::can` refuses it with.
+    /// A control that can be used is in neither line.
+    #[test]
+    fn no_unavailable_control_is_without_its_reason() {
+        let places = Places::load();
+        let grouped: usize = places.groups().iter().map(|group| group.len()).sum();
+        assert_eq!(grouped, places.controls().len(), "a control is in no group");
+        for (state, game) in states() {
+            for group in places.groups() {
+                let reasons = blocked(group, &game);
+                let unbuilt = unbuilt_line(group, true);
+                for control in group {
+                    let name = control.name.as_str();
+                    let given: Vec<&str> = reasons
+                        .iter()
+                        .filter(|(names, _)| names.contains(&name))
+                        .map(|(_, why)| *why)
+                        .collect();
+                    match control.action.map(|action| game.can(action)) {
+                        Some(Ok(())) => assert!(given.is_empty(), "{state}: {name}"),
+                        Some(Err(why)) => {
+                            assert_eq!(given, [why], "{state}: {name}");
+                            assert!(!why.is_empty());
+                            let line = blocked_line(group, &game);
+                            assert!(line.contains(name), "{state}: {line}");
+                        }
+                        // Named, or covered by a line that names the others.
+                        None => {
+                            assert!(given.is_empty(), "{state}: {name}");
+                            let covered = unbuilt.starts_with("None of these")
+                                || unbuilt.starts_with("All but ")
+                                || unbuilt.contains(name);
+                            assert!(covered, "{state}: {unbuilt}");
+                            assert!(unbuilt.contains("built yet"), "{unbuilt}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_reason_reads_as_one_sentence() {
+        assert_eq!(
+            reason_line(&["Fire", "Ice"], "In town only."),
+            "Fire, Ice: in town only."
+        );
+        let game = Game::new(6);
+        assert_eq!(blocked_line(&Places::load().footer, &game), "");
+    }
+
+    /// The line about controls that are not built names whichever is the
+    /// shorter list, and a control that works is never said to be unbuilt.
+    #[test]
+    fn the_unbuilt_line_names_the_shorter_list() {
+        let places = Places::load();
+        for group in places.groups() {
+            let line = unbuilt_line(group, false);
+            let working = group.iter().filter(|c| c.action.is_some());
+            if line.starts_with("All but ") {
+                for control in working {
+                    assert!(line.contains(control.name.as_str()), "{line}");
+                }
+            } else if !line.starts_with("None of these") {
+                for control in working {
+                    assert!(!line.contains(control.name.as_str()), "{line}");
+                }
+            }
+        }
+        let cargo = &places.places[0].cargo;
+        assert_eq!(unbuilt_line(cargo, false), "All but Equip: not built yet.");
+        assert_eq!(
+            unbuilt_line(&places.footer, false),
+            "Planned changes: not built yet."
+        );
+    }
+
+    /// An empty list says what belongs in it and where that comes from
+    /// (#233): the cargo, an empty slot and the report, before any trail.
+    #[test]
+    fn an_empty_list_says_what_belongs_in_it() {
+        let places = Places::load();
+        let game = Game::new(6);
+        let uncollected = Uncollected::default();
+        let mut shell = Shell::new(places.pages().count());
+        shell.show_detail(
+            0,
+            Detail {
+                tab: 0,
+                item: Item::Slot(0),
+                opener: None,
+            },
+        );
+        let say = |what| fact(&game, &uncollected, &shell, &places, what);
+        assert!(say(Fact::Cargo).contains("Gear the horses bring back"));
+        assert!(say(Fact::Detail(0)).contains("Gear comes from the trail"));
+        assert!(say(Fact::Report).contains("is reported here"));
     }
 
     /// A printed key is one the game can read, works a control that works,
