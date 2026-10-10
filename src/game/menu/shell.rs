@@ -6,7 +6,7 @@
 //! found exactly as it was left.
 
 use bevy::{
-    input_focus::{FocusCause, InputFocus, tab_navigation::TabGroup},
+    input_focus::{FocusCause, InputFocus, InputFocusVisible, tab_navigation::TabGroup},
     prelude::*,
     ui::{InteractionDisabled, Selected},
     ui_widgets::Activate,
@@ -14,12 +14,12 @@ use bevy::{
 use serde::Deserialize;
 
 use super::parts::{
-    ClosePanel, CounterValue, PartText, button, counter, dim, panel, reason, row, side_panel, tab,
-    text, title,
+    ClosePanel, CounterValue, NotBuilt, PartText, button, counter, dim, panel, reason, row,
+    side_panel, tab, text, title,
 };
 use super::tokens::Tokens;
 use crate::game::{
-    Game, SceneView, Screen, Uncollected, report_side, report_text, stats_line,
+    Action, Game, SceneView, Screen, Uncollected, report_side, report_text, stats_line,
 };
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
@@ -27,8 +27,14 @@ use crate::sim::expedition::Phase;
 /// The map of the menus, from `assets/data/places.ron`.
 #[derive(Resource, Clone, Debug, Deserialize)]
 pub struct Places {
-    pub settings: String,
     pub places: Vec<Place>,
+    /// At the far end of the bar: a page like a place, and not one of them.
+    pub settings: Place,
+    #[serde(default)]
+    pub footer: Vec<Control>,
+    /// Every control of the map, by its `id`.
+    #[serde(skip)]
+    list: Vec<Control>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -42,6 +48,12 @@ pub struct Place {
     pub horse_columns: bool,
     #[serde(default)]
     pub tabs: Vec<Tab>,
+    /// The controls of a place with no tabs.
+    #[serde(default)]
+    pub controls: Vec<Control>,
+    /// The controls of the cargo column, in a place with `horse_columns`.
+    #[serde(default)]
+    pub cargo: Vec<Control>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -50,6 +62,31 @@ pub struct Tab {
     pub job: String,
     #[serde(default)]
     pub content: Content,
+    #[serde(default)]
+    pub controls: Vec<Control>,
+}
+
+/// A control planned for the menus. One with an `action` works; one without
+/// is not built yet, and a press on it says so.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Control {
+    pub name: String,
+    /// What it does, or will do.
+    pub does: String,
+    /// The key that works it, printed on it.
+    #[serde(default)]
+    pub key: Option<String>,
+    /// The issue that will make it work.
+    #[serde(default)]
+    pub issue: Option<u32>,
+    /// The issue is a proposal the owner has not decided.
+    #[serde(default)]
+    pub proposed: bool,
+    #[serde(default)]
+    pub action: Option<Action>,
+    /// Its number among all the controls of the map, set on loading.
+    #[serde(skip)]
+    pub id: usize,
 }
 
 /// What a tab shows. `Planned` is a tab whose system is not built.
@@ -58,21 +95,116 @@ pub enum Content {
     #[default]
     Planned,
     Gear,
+    /// The party's one element, the slice's stand-in for abilities.
+    Element,
     Report,
 }
 
 impl Places {
     pub fn load() -> Places {
-        ron::from_str(include_str!("../../../assets/data/places.ron"))
-            .unwrap_or_else(|e| panic!("assets/data/places.ron: {e}"))
+        let mut places: Places = ron::from_str(include_str!("../../../assets/data/places.ron"))
+            .unwrap_or_else(|e| panic!("assets/data/places.ron: {e}"));
+        let mut list = Vec::new();
+        for (id, control) in places.controls_mut().into_iter().enumerate() {
+            control.id = id;
+            list.push(control.clone());
+        }
+        places.list = list;
+        places
     }
+
+    /// Every page of the menus: the places, then settings.
+    pub fn pages(&self) -> impl Iterator<Item = &Place> {
+        self.places.iter().chain(std::iter::once(&self.settings))
+    }
+
+    /// Which page settings is: the one after the places.
+    pub fn settings_page(&self) -> usize {
+        self.places.len()
+    }
+
+    /// Every control of the map, in the order of their `id`.
+    #[cfg(test)]
+    pub fn controls(&self) -> &[Control] {
+        &self.list
+    }
+
+    pub fn control(&self, id: usize) -> &Control {
+        &self.list[id]
+    }
+
+    fn controls_mut(&mut self) -> Vec<&mut Control> {
+        let mut all = Vec::new();
+        for place in self
+            .places
+            .iter_mut()
+            .chain(std::iter::once(&mut self.settings))
+        {
+            for tab in &mut place.tabs {
+                all.extend(tab.controls.iter_mut());
+            }
+            all.extend(place.controls.iter_mut());
+            all.extend(place.cargo.iter_mut());
+        }
+        all.extend(self.footer.iter_mut());
+        all
+    }
+}
+
+/// The key a control's `key` names: a letter, a digit or Space.
+pub fn key_code(name: &str) -> Option<KeyCode> {
+    Some(match name {
+        "Space" => KeyCode::Space,
+        "0" => KeyCode::Digit0,
+        "1" => KeyCode::Digit1,
+        "2" => KeyCode::Digit2,
+        "3" => KeyCode::Digit3,
+        "4" => KeyCode::Digit4,
+        "5" => KeyCode::Digit5,
+        "6" => KeyCode::Digit6,
+        "7" => KeyCode::Digit7,
+        "8" => KeyCode::Digit8,
+        "9" => KeyCode::Digit9,
+        "A" => KeyCode::KeyA,
+        "B" => KeyCode::KeyB,
+        "C" => KeyCode::KeyC,
+        "D" => KeyCode::KeyD,
+        "E" => KeyCode::KeyE,
+        "F" => KeyCode::KeyF,
+        "G" => KeyCode::KeyG,
+        "H" => KeyCode::KeyH,
+        "I" => KeyCode::KeyI,
+        "J" => KeyCode::KeyJ,
+        "K" => KeyCode::KeyK,
+        "L" => KeyCode::KeyL,
+        "M" => KeyCode::KeyM,
+        "N" => KeyCode::KeyN,
+        "O" => KeyCode::KeyO,
+        "P" => KeyCode::KeyP,
+        "Q" => KeyCode::KeyQ,
+        "R" => KeyCode::KeyR,
+        "S" => KeyCode::KeyS,
+        "T" => KeyCode::KeyT,
+        "U" => KeyCode::KeyU,
+        "V" => KeyCode::KeyV,
+        "W" => KeyCode::KeyW,
+        "X" => KeyCode::KeyX,
+        "Y" => KeyCode::KeyY,
+        "Z" => KeyCode::KeyZ,
+        _ => return None,
+    })
 }
 
 impl Place {
     /// The pages of a place: one per tab, or the place itself when it has none.
-    fn pages(&self) -> Vec<(String, &str, Content)> {
+    fn pages(&self) -> Vec<(String, &str, Content, &[Control])> {
         if self.tabs.is_empty() {
-            return vec![(self.name.clone(), &self.job, Content::Planned)];
+            return vec![(
+                self.name.clone(),
+                &self.job,
+                Content::Planned,
+                &self.controls,
+            )];
         }
         self.tabs
             .iter()
@@ -81,10 +213,20 @@ impl Place {
                     format!("{}, {}", self.name, tab.name),
                     tab.job.as_str(),
                     tab.content,
+                    tab.controls.as_slice(),
                 )
             })
             .collect()
     }
+}
+
+/// What a side panel is about.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Item {
+    /// A gear slot of the selected horse.
+    Slot(usize),
+    /// A control that is not built, by its `id`: what it will do.
+    Control(usize),
 }
 
 /// Detail about one thing, open in a place's side panel.
@@ -92,7 +234,7 @@ impl Place {
 pub struct Detail {
     /// The tab it was opened from; it shows on that tab only.
     pub tab: usize,
-    pub item: usize,
+    pub item: Item,
     /// The control that opened it, which gets the focus back.
     pub opener: Option<Entity>,
 }
@@ -210,9 +352,13 @@ pub struct SlotRow {
     pub slot: usize,
 }
 
-/// The one departure action, in the footer.
+/// A control from the map of the menus. `place` is the page it is on; a
+/// control of the footer is on none.
 #[derive(Component)]
-pub struct SetOut;
+pub struct ControlButton {
+    pub id: usize,
+    pub place: Option<usize>,
+}
 
 /// Something shown only while the player is there.
 #[derive(Component)]
@@ -241,6 +387,8 @@ enum Fact {
     SelectedStats,
     Slot(usize),
     Detail(usize),
+    Cargo,
+    Element,
     Report,
     ReportSide,
     Footer,
@@ -251,12 +399,13 @@ pub struct ShellPlugin;
 impl Plugin for ShellPlugin {
     fn build(&self, app: &mut App) {
         let places = Places::load();
-        app.insert_resource(Shell::new(places.places.len()))
+        app.insert_resource(Shell::new(places.pages().count()))
             .insert_resource(places)
             .add_systems(Startup, spawn)
             .add_systems(
                 Update,
                 (
+                    keys,
                     escape,
                     follow_the_party,
                     move_scene,
@@ -335,7 +484,10 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                     bar.spawn((tab(t, &place.name, None), PlaceButton(p)));
                 }
                 bar.spawn(spacer());
-                bar.spawn((button(t, &places.settings, None), InteractionDisabled));
+                bar.spawn((
+                    button(t, &places.settings.name, None),
+                    PlaceButton(places.settings_page()),
+                ));
             });
 
             // The status strip. Bags, hold and the day keep their positions
@@ -391,7 +543,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                         "On the road. Open a place to look and plan; press it again, or Escape, to give the scene its room back.",
                     ));
                 });
-                for (p, place) in places.places.iter().enumerate() {
+                for (p, place) in places.pages().enumerate() {
                     area.spawn((
                         Page::Place(p),
                         Node {
@@ -448,7 +600,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                 ..default()
                             })
                             .with_children(|pages| {
-                                for (i, (heading, job, content)) in
+                                for (i, (heading, job, content, controls)) in
                                     place.pages().into_iter().enumerate()
                                 {
                                     pages
@@ -466,7 +618,18 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                         .with_children(|tab_page| {
                                             tab_page.spawn(title(t, &heading));
                                             tab_page.spawn(dim(t, job));
+                                            // One horse is selected in every place,
+                                            // and settings is not a place.
+                                            if content == Content::Planned
+                                                && p != places.settings_page()
+                                            {
+                                                tab_page.spawn((
+                                                    text(t, ""),
+                                                    Live(Fact::SelectedHorse),
+                                                ));
+                                            }
                                             spawn_content(tab_page, t, p, i, content);
+                                            spawn_controls(tab_page, t, controls, Some(p));
                                         });
                                 }
                             });
@@ -476,11 +639,8 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                     .insert(column(t.size.cargo_width))
                                     .with_children(|cargo| {
                                         cargo.spawn(dim(t, "cargo"));
-                                        cargo.spawn(dim(t, "Nothing here yet."));
-                                        cargo.spawn(dim(
-                                            t,
-                                            "Gear the horses bring back is carried here.",
-                                        ));
+                                        cargo.spawn((dim(t, ""), Live(Fact::Cargo)));
+                                        spawn_controls(cargo, t, &place.cargo, Some(p));
                                     });
                             }
 
@@ -498,7 +658,9 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                 .with_children(|footer| {
                     footer.spawn((text(t, ""), Live(Fact::Footer)));
                     footer.spawn(spacer());
-                    footer.spawn((button(t, "Set out", Some("Space")), SetOut));
+                    for control in &places.footer {
+                        spawn_control(footer, t, control, None);
+                    }
                 });
         });
 }
@@ -512,8 +674,14 @@ fn spawn_content(
 ) {
     match content {
         Content::Planned => {
-            page.spawn((text(t, ""), Live(Fact::SelectedHorse)));
             page.spawn(reason(t, "Not built yet."));
+        }
+        Content::Element => {
+            page.spawn((text(t, ""), Live(Fact::Element)));
+            page.spawn(reason(
+                t,
+                "Abilities are not built yet: the party fights with one element.",
+            ));
         }
         Content::Gear => {
             page.spawn((text(t, ""), Live(Fact::SelectedStats)));
@@ -559,6 +727,52 @@ fn spawn_content(
     }
 }
 
+/// A control of the map, with the key that works it printed on it. One that
+/// is not built is drawn as unavailable and can still be pressed.
+fn spawn_control(
+    parent: &mut ChildSpawnerCommands,
+    t: &Tokens,
+    control: &Control,
+    place: Option<usize>,
+) {
+    let mut entity = parent.spawn((
+        button(t, &control.name, control.key.as_deref()),
+        ControlButton {
+            id: control.id,
+            place,
+        },
+    ));
+    if control.action.is_none() {
+        entity.insert(NotBuilt);
+    }
+}
+
+/// The controls of a page, in the order of the map, wrapping as they must.
+fn spawn_controls(
+    parent: &mut ChildSpawnerCommands,
+    t: &Tokens,
+    controls: &[Control],
+    place: Option<usize>,
+) {
+    if controls.is_empty() {
+        return;
+    }
+    parent
+        .spawn(Node {
+            flex_wrap: FlexWrap::Wrap,
+            column_gap: Val::Px(t.space.s),
+            row_gap: Val::Px(t.space.s),
+            margin: UiRect::top(Val::Px(t.space.s)),
+            flex_shrink: 0.0,
+            ..default()
+        })
+        .with_children(|row| {
+            for control in controls {
+                spawn_control(row, t, control, place);
+            }
+        });
+}
+
 /// One observer for every control of the shell: what a press does depends
 /// on what the control is.
 fn on_activate(
@@ -566,12 +780,13 @@ fn on_activate(
     mut shell: ResMut<Shell>,
     mut game: ResMut<Game>,
     mut focus: ResMut<InputFocus>,
+    map: Res<Places>,
     places: Query<&PlaceButton>,
     tabs: Query<&TabButton>,
     horses: Query<&HorseButton>,
     slots: Query<&SlotRow>,
     closes: Query<(), With<ClosePanel>>,
-    set_outs: Query<(), With<SetOut>>,
+    controls: Query<&ControlButton>,
 ) {
     let entity = activate.entity;
     if let Ok(place) = places.get(entity) {
@@ -585,14 +800,56 @@ fn on_activate(
             row.place,
             Detail {
                 tab: row.tab,
-                item: row.slot,
+                item: Item::Slot(row.slot),
                 opener: Some(entity),
             },
         );
     } else if closes.contains(entity) {
         close_detail(&mut shell, &mut focus);
-    } else if set_outs.contains(entity) {
-        game.set_out();
+    } else if let Ok(button) = controls.get(entity) {
+        match map.control(button.id).action {
+            Some(action) => game.act(action),
+            // Not built: say so, in the side panel of the page it is on.
+            None => {
+                let place = button.place.unwrap_or(shell.place());
+                shell.open(place);
+                let tab = shell.tab(place);
+                shell.show_detail(
+                    place,
+                    Detail {
+                        tab,
+                        item: Item::Control(button.id),
+                        opener: Some(entity),
+                    },
+                );
+            }
+        }
+    }
+}
+
+/// The key printed on a control presses it, wherever the player is. Space
+/// is the one conflict, since a focused button also answers Space: while a
+/// control shows keyboard focus, Space presses that control and no other.
+fn keys(
+    mut commands: Commands,
+    keys: Res<ButtonInput<KeyCode>>,
+    focus: Res<InputFocus>,
+    focus_visible: Res<InputFocusVisible>,
+    map: Res<Places>,
+    controls: Query<(Entity, &ControlButton)>,
+) {
+    if keys.get_just_pressed().len() == 0 {
+        return;
+    }
+    let on_a_control = focus_visible.0 && focus.get().is_some();
+    for (entity, button) in &controls {
+        let key = map.control(button.id).key.as_deref();
+        let Some(code) = key.and_then(key_code) else {
+            continue;
+        };
+        if keys.just_pressed(code) && !(code == KeyCode::Space && on_a_control) {
+            commands.trigger(Activate { entity });
+        }
     }
 }
 
@@ -697,16 +954,22 @@ fn mark_chosen(
             With<SlotRow>,
         )>,
     >,
-    set_outs: Query<(Entity, Has<InteractionDisabled>), With<SetOut>>,
+    map: Res<Places>,
+    planned: Query<(
+        Entity,
+        &ControlButton,
+        Has<Selected>,
+        Has<InteractionDisabled>,
+    )>,
 ) {
     for (entity, place, tab, horse, slot, selected) in &controls {
         let wanted = place.is_some_and(|place| place.0 == shell.place() && shell.is_open())
             || tab.is_some_and(|tab| tab.tab == shell.tab(tab.place))
             || horse.is_some_and(|horse| horse.0 == shell.horse())
             || slot.is_some_and(|row| {
-                shell
-                    .detail(row.place)
-                    .is_some_and(|detail| detail.tab == row.tab && detail.item == row.slot)
+                shell.detail(row.place).is_some_and(|detail| {
+                    detail.tab == row.tab && detail.item == Item::Slot(row.slot)
+                })
             });
         if wanted && !selected {
             commands.entity(entity).insert(Selected);
@@ -715,11 +978,30 @@ fn mark_chosen(
         }
     }
 
-    for (entity, disabled) in &set_outs {
-        if game.in_town() && disabled {
-            commands.entity(entity).remove::<InteractionDisabled>();
-        } else if !game.in_town() && !disabled {
+    // A control that works is unavailable while its action cannot be done.
+    // One that is not built is chosen while the panel saying so is open.
+    for (entity, button, selected, disabled) in &planned {
+        let (chosen, blocked) = match map.control(button.id).action {
+            Some(action) => (
+                action == Action::Element(game.element),
+                game.can(action).is_err(),
+            ),
+            None => (
+                shell
+                    .detail(button.place.unwrap_or(shell.place()))
+                    .is_some_and(|detail| detail.item == Item::Control(button.id)),
+                false,
+            ),
+        };
+        if chosen && !selected {
+            commands.entity(entity).insert(Selected);
+        } else if !chosen && selected {
+            commands.entity(entity).remove::<Selected>();
+        }
+        if blocked && !disabled {
             commands.entity(entity).insert(InteractionDisabled);
+        } else if !blocked && disabled {
+            commands.entity(entity).remove::<InteractionDisabled>();
         }
     }
 }
@@ -728,6 +1010,7 @@ fn show_facts(
     game: Res<Game>,
     uncollected: Res<Uncollected>,
     shell: Res<Shell>,
+    map: Res<Places>,
     live: Query<(Entity, &Live)>,
     children: Query<&Children>,
     counters: Query<(), With<CounterValue>>,
@@ -750,14 +1033,14 @@ fn show_facts(
         let Some(mut text) = target.and_then(|target| texts.get_mut(target).ok()) else {
             continue;
         };
-        let words = fact(&game, &uncollected, &shell, live.0);
+        let words = fact(&game, &uncollected, &shell, &map, live.0);
         if text.0 != words {
             text.0 = words;
         }
     }
 }
 
-fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, fact: Fact) -> String {
+fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fact: Fact) -> String {
     let selected = &game.party[shell.horse().min(game.party.len() - 1)];
     match fact {
         // A coin counts when it reaches the party, not when it drops.
@@ -788,8 +1071,12 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, fact: Fact) -> St
             let Some(detail) = shell.detail(place) else {
                 return String::new();
             };
-            let slot = Slot::ALL[detail.item];
-            match &selected.gear[detail.item] {
+            let item = match detail.item {
+                Item::Slot(slot) => slot,
+                Item::Control(id) => return not_built(map.control(id)),
+            };
+            let slot = Slot::ALL[item];
+            match &selected.gear[item] {
                 Some(gear) => format!(
                     "{}\n{} slot, worn by {}\n{}\n{}",
                     gear.name,
@@ -804,6 +1091,44 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, fact: Fact) -> St
                     selected.name,
                 ),
             }
+        }
+        Fact::Cargo => match game.pending_drop() {
+            Some(gear) => {
+                let horse = &game.party[gear.fits];
+                let worn = match &horse.gear[gear.slot.index()] {
+                    Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
+                    None => "nothing".into(),
+                };
+                format!(
+                    "{}\n{}, {}\n{}\nFits {}, who wears: {}{}",
+                    gear.name,
+                    game.data.gear.rarities[gear.rarity].name,
+                    gear.slot.name(),
+                    stats_line(gear.stats),
+                    horse.name,
+                    worn,
+                    if game.drop_is_upgrade() {
+                        "\nAn upgrade."
+                    } else {
+                        ""
+                    },
+                )
+            }
+            None => "Nothing here yet.\nGear the horses bring back is carried here.".into(),
+        },
+        Fact::Element => {
+            let rules = &game.data.rules;
+            let mut out = format!(
+                "Party element: {}\nFire beats Plant, Plant beats Ice, Ice beats Fire \
+                 (strong x{}, resisted x{}).",
+                game.element.name(),
+                rules.strong_multiplier,
+                rules.weak_multiplier,
+            );
+            if let Err(why) = game.can(Action::Element(game.element)) {
+                out += &format!("\n{why}");
+            }
+            out
         }
         Fact::Report => report_text(game),
         Fact::ReportSide => report_side(game),
@@ -827,9 +1152,105 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, fact: Fact) -> St
     }
 }
 
+/// What a control that is not built says when it is pressed.
+fn not_built(control: &Control) -> String {
+    let mut out = format!("{}\nNot built yet.\n{}", control.name, control.does);
+    if let Some(issue) = control.issue {
+        out += &match control.proposed {
+            true => format!("\nA proposal, not decided: issue #{issue}."),
+            false => format!("\nPlanned: issue #{issue}."),
+        };
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// "No control is silent" (#238): every control says what it does, and
+    /// one that does nothing yet names the issue that will make it work.
+    #[test]
+    fn no_control_is_silent() {
+        let places = Places::load();
+        assert!(!places.controls().is_empty());
+        for (id, control) in places.controls().iter().enumerate() {
+            assert_eq!(control.id, id);
+            assert!(!control.name.is_empty());
+            assert!(!control.does.is_empty(), "{} does nothing", control.name);
+            assert!(
+                control.action.is_some() || control.issue.is_some(),
+                "{} neither works nor names its issue",
+                control.name
+            );
+            if control.action.is_none() {
+                assert!(not_built(control).contains("Not built yet."));
+            }
+        }
+    }
+
+    /// A printed key is one the game can read, works a control that works,
+    /// and works only that control.
+    #[test]
+    fn every_key_is_a_real_key_and_works_one_control() {
+        let places = Places::load();
+        let mut seen = Vec::new();
+        for control in places.controls() {
+            let Some(key) = &control.key else { continue };
+            assert!(key_code(key).is_some(), "{}: no key called {key}", control.name);
+            assert!(control.action.is_some(), "{} has a key and no action", control.name);
+            assert!(!seen.contains(key), "two controls answer {key}");
+            seen.push(key.clone());
+        }
+    }
+
+    /// Everything the text overlay did is done from a control: each element,
+    /// equipping the drop, and setting out, once each.
+    #[test]
+    fn everything_the_slice_can_do_has_its_one_control() {
+        let places = Places::load();
+        let mut actions: Vec<Action> = crate::sim::data::Element::ALL
+            .into_iter()
+            .map(Action::Element)
+            .collect();
+        actions.extend([Action::EquipDrop, Action::SetOut]);
+        for action in actions {
+            let controls = places
+                .controls()
+                .iter()
+                .filter(|control| control.action == Some(action));
+            assert_eq!(controls.count(), 1, "{action:?}");
+        }
+    }
+
+    /// One name for one thing: on any one page, counting the cargo column
+    /// that stays beside it, no two controls share a name.
+    #[test]
+    fn no_two_controls_of_a_page_share_a_name() {
+        for place in Places::load().pages() {
+            for (heading, _, _, controls) in place.pages() {
+                let mut names: Vec<&str> = controls
+                    .iter()
+                    .chain(&place.cargo)
+                    .map(|control| control.name.as_str())
+                    .collect();
+                let count = names.len();
+                names.sort();
+                names.dedup();
+                assert_eq!(names.len(), count, "{heading}");
+            }
+        }
+    }
+
+    /// Every page has at least one control planned for it.
+    #[test]
+    fn every_page_has_its_controls() {
+        for place in Places::load().pages() {
+            for (heading, _, _, controls) in place.pages() {
+                assert!(!controls.is_empty(), "{heading} has no controls");
+            }
+        }
+    }
 
     /// "It must stay five places" (epic #225), in the owner's order.
     #[test]
@@ -845,10 +1266,10 @@ mod tests {
     fn every_page_has_its_own_name_and_a_job() {
         for place in Places::load().places {
             let pages = place.pages();
-            for (i, (heading, job, _)) in pages.iter().enumerate() {
+            for (i, (heading, job, _, _)) in pages.iter().enumerate() {
                 assert!(!job.is_empty(), "{heading} has no job");
                 assert!(
-                    pages[i + 1..].iter().all(|(other, _, _)| other != heading),
+                    pages[i + 1..].iter().all(|(other, _, _, _)| other != heading),
                     "two pages are called {heading}"
                 );
             }
@@ -881,7 +1302,7 @@ mod tests {
         let mut shell = Shell::new(5);
         let detail = Detail {
             tab: 0,
-            item: 1,
+            item: Item::Slot(1),
             opener: None,
         };
         shell.show_detail(0, detail);
@@ -930,7 +1351,7 @@ mod tests {
         let mut shell = Shell::new(5);
         let detail = Detail {
             tab: 1,
-            item: 2,
+            item: Item::Slot(2),
             opener: None,
         };
         shell.choose_tab(0, 1);

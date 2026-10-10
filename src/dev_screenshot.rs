@@ -13,8 +13,10 @@ use bevy::{
     ui_widgets::Activate,
 };
 
-use crate::game::Game;
-use crate::game::menu::shell::{HorseButton, PlaceButton, Places, SlotRow, TabButton};
+use crate::game::menu::shell::{
+    ControlButton, HorseButton, PlaceButton, Places, SlotRow, TabButton,
+};
+use crate::game::{Action, Game};
 
 #[derive(Resource)]
 struct Shot {
@@ -72,6 +74,8 @@ enum Step {
     Tab(usize, usize),
     Horse(usize),
     Slot(usize),
+    /// Press the first control of that name.
+    Control(&'static str),
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -104,6 +108,9 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("second horse selected".into()),
         Step::Slot(0),
         Step::Shot("side panel open".into()),
+        Step::Control("Compare"),
+        Step::Shot("a control not built says so".into()),
+        Step::Slot(0),
     ];
     for (p, place) in places.places.iter().enumerate() {
         steps.push(Step::Place(p));
@@ -121,8 +128,15 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         }
     }
     steps.extend([
+        Step::Place(places.settings_page()),
+        Step::Shot(places.settings.name.clone()),
+        Step::Control("Shake"),
+        Step::Shot("a setting not built says so".into()),
         Step::Place(0),
         Step::Shot("back on horses as it was left".into()),
+        Step::Control("Ice"),
+        Step::Shot("ice chosen".into()),
+        Step::Control("Fire"),
         Step::Tab(0, 0),
         Step::Shot("side panel still open on its tab".into()),
         Step::Place(places.places.len() - 1),
@@ -147,6 +161,11 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Town,
         Step::Wait(SETTLE),
         Step::Shot("back in town with the report".into()),
+        Step::Place(0),
+        Step::Tab(0, 0),
+        Step::Shot("the drop waits in the cargo".into()),
+        Step::Control("Equip"),
+        Step::Shot("the drop equipped".into()),
     ]);
     tour.steps = steps;
 }
@@ -160,6 +179,8 @@ fn tour(
     tabs: Query<(Entity, &TabButton)>,
     horses: Query<(Entity, &HorseButton)>,
     slots: Query<(Entity, &SlotRow)>,
+    controls: Query<(Entity, &ControlButton)>,
+    map: Res<Places>,
     mut exit: MessageWriter<AppExit>,
 ) {
     tour.wait -= time.delta_secs();
@@ -175,7 +196,7 @@ fn tour(
     }
     // The party leaves when the tour says so, not in the middle of it.
     match step {
-        Step::SetOut => game.set_out(),
+        Step::SetOut => game.act(Action::SetOut),
         _ => game.hold_in_town(),
     }
     let pressed = match step {
@@ -188,6 +209,11 @@ fn tour(
             .map(|(e, _)| e),
         Step::Horse(h) => horses.iter().find(|(_, b)| b.0 == *h).map(|(e, _)| e),
         Step::Slot(s) => slots.iter().find(|(_, b)| b.slot == *s).map(|(e, _)| e),
+        Step::Control(name) => controls
+            .iter()
+            .filter(|(_, b)| map.control(b.id).name == *name)
+            .min_by_key(|(_, b)| b.id)
+            .map(|(e, _)| e),
         Step::Wait(_) | Step::SetOut | Step::Town | Step::Shot(_) => None,
     };
     if let Some(entity) = pressed {

@@ -1,10 +1,22 @@
-// The map of the menus: the places in the bar, in order, and the tabs of
-// each. Rename or rearrange here; no menu code holds a name of its own.
+// The map of the menus: the places in the bar, in order, the tabs of each,
+// and every control planned for each. Rename or rearrange here; no menu code
+// holds a name of its own.
 // `job` is the one line saying what is decided there. `content` names what
 // a tab shows once its system is built; a tab without one says so.
+//
+// A control is (name, does, and then whichever of these apply):
+//   does      what it does, or will do, in one plain sentence.
+//   issue     the issue that will make it work. A control with an issue and
+//             no action is not built: it is drawn as unavailable, and a
+//             press says so and says what it will do.
+//   proposed  the issue is a proposal the owner has not decided.
+//   action    what it does today: Element(Fire), EquipDrop, SetOut.
+//   key       the key that works it, printed on it: a letter, a digit or
+//             Space. Only a control with an action has one for now (#229).
+// `cargo` is the controls of the cargo column, `footer` the footer's.
 // Guidance: docs/philosophy/menus.md. How it works: docs/menu-shell.md.
+#![enable(implicit_some)]
 (
-    settings: "Settings",
     places: [
         (
             name: "Horses",
@@ -12,39 +24,198 @@
             // stay in view on every tab.
             horse_columns: true,
             tabs: [
-                (name: "Gear", job: "What the selected horse wears.", content: Gear),
-                (name: "Abilities", job: "Which abilities the selected horse carries."),
-                (name: "Pet", job: "Which pet rides with the selected horse."),
-                (name: "Look", job: "How the selected horse looks."),
+                (
+                    name: "Gear",
+                    job: "What the selected horse wears.",
+                    content: Gear,
+                    controls: [
+                        (name: "Take off", does: "Takes the piece in the open slot off the selected horse and puts it in the cargo.", issue: 227),
+                        (name: "Compare", does: "Shows a piece beside the one it would replace, with the difference in each stat.", issue: 11),
+                        (name: "Undo", does: "Steps back through the changes made during this town visit.", issue: 230),
+                        (name: "Save loadout", does: "Saves the party's gear and abilities under a name.", issue: 50),
+                        (name: "Restore loadout", does: "Puts a saved loadout back on the party in one action.", issue: 50),
+                        (name: "Sets", does: "Shows the party sets these pieces belong to, and how many pieces of each are worn.", issue: 36),
+                    ],
+                ),
+                (
+                    name: "Abilities",
+                    job: "Which abilities the selected horse carries.",
+                    content: Element,
+                    controls: [
+                        (name: "Fire", does: "The party fights with Fire on the next trail.", action: Element(Fire), key: "1"),
+                        (name: "Ice", does: "The party fights with Ice on the next trail.", action: Element(Ice), key: "2"),
+                        (name: "Plant", does: "The party fights with Plant on the next trail.", action: Element(Plant), key: "3"),
+                        (name: "Equip ability", does: "Puts an ability the selected horse has bought into one of its slots.", issue: 222),
+                        (name: "Spend points", does: "Buys an ability from the shared pool with the selected horse's ability points.", issue: 220),
+                        (name: "Reassign points", does: "Takes the selected horse's ability points back, to spend again.", issue: 220),
+                        (name: "Policy", does: "Chooses when an ability fires, from a short list of rules.", issue: 22),
+                        (name: "Variant", does: "Chooses which variant of an ability is active.", issue: 23),
+                        (name: "Focus", does: "Chooses what the party attacks first.", issue: 24),
+                        (name: "Stance", does: "Chooses aggressive, balanced or defensive for the party.", issue: 24),
+                        (name: "Recovery", does: "Chooses when the party's healing is spent.", issue: 25),
+                        (name: "Party profile", does: "Says what this build is good and bad at.", issue: 49),
+                    ],
+                ),
+                (
+                    name: "Pet",
+                    job: "Which pet rides with the selected horse.",
+                    controls: [
+                        (name: "Assign pet", does: "Seats a pet from the collection on the selected horse's saddle.", issue: 106),
+                        (name: "Send pet home", does: "Takes the pet off the selected horse and back into the collection.", issue: 106),
+                        (name: "Change collar", does: "Puts a collar on the pet, which changes how it helps.", issue: 139),
+                    ],
+                ),
+                (
+                    name: "Look",
+                    job: "How the selected horse looks.",
+                    controls: [
+                        (name: "Wardrobe", does: "Browses the looks, with a preview on the horse beside its current look.", issue: 132, proposed: true),
+                        (name: "Wear look", does: "Shows a piece with a look from the library and leaves its stats alone.", issue: 92),
+                        (name: "Follow gear", does: "Puts a slot back to showing the piece that is equipped.", issue: 129),
+                        (name: "Recolour", does: "Chooses a palette for a piece, with a preview.", issue: 67),
+                        (name: "Coat and mane", does: "Chooses the horse's coat, mane and tail; locks and rerolls its traits.", issue: 68),
+                        (name: "Save outfit", does: "Saves the horse's looks and palettes under a name.", issue: 133),
+                        (name: "Restore outfit", does: "Puts a saved outfit back on the horse without touching its gear.", issue: 133),
+                        (name: "Party theme", does: "Applies one palette or emblem across the whole party.", issue: 134, proposed: true),
+                    ],
+                ),
+            ],
+            cargo: [
+                (name: "Equip", does: "Puts the piece the party brought back on the horse it fits.", action: EquipDrop, key: "E"),
+                (name: "List", does: "Lists the piece at the stall.", issue: 99),
+                (name: "Store", does: "Puts the piece in this town's stash.", issue: 202),
+                (name: "Lock", does: "Keeps the piece safe from every automatic action.", issue: 34),
+                (name: "Favourite", does: "Marks the piece as a favourite.", issue: 228),
+                (name: "Filter", does: "Shows only some of the cargo: by slot, rarity, new, favourite or usable by the selected horse.", issue: 235),
+                (name: "Sort", does: "Puts the cargo in another order.", issue: 235),
+                (name: "Search", does: "Finds a piece by its name.", issue: 235),
             ],
         ),
         (
             name: "Trade",
             tabs: [
-                (name: "Sell", job: "What is listed at the stall, and at what price."),
-                (name: "Buy", job: "Gear and goods this town sells."),
-                (name: "Storage", job: "What is kept in this town's stash."),
-                (name: "Rules", job: "Keep rules and auto-buy rules."),
+                (
+                    name: "Sell",
+                    job: "What is listed at the stall, and at what price.",
+                    controls: [
+                        (name: "List selected", does: "Makes the selected pieces the stall's stock, after showing their count and what they could earn.", issue: 99),
+                        (name: "Take back", does: "Takes a listed piece off the stall and back into the cargo.", issue: 99),
+                        (name: "Set price", does: "Prices a piece, a category or all new stock: fair, friendly, premium or custom.", issue: 101),
+                        (name: "Buy back", does: "Buys a piece sold this visit back at the price paid.", issue: 151),
+                        (name: "List goods", does: "Lists trade goods from the hold at the stall.", issue: 209),
+                    ],
+                ),
+                (
+                    name: "Buy",
+                    job: "Gear and goods this town sells.",
+                    controls: [
+                        (name: "Buy piece", does: "Buys a piece of gear from the town's shop with coins.", issue: 141, proposed: true),
+                        (name: "Use service", does: "Pays for a service this town offers.", issue: 141, proposed: true),
+                        (name: "Buy goods", does: "Buys trade goods at this town's price, into the hold.", issue: 209),
+                    ],
+                ),
+                (
+                    name: "Storage",
+                    job: "What is kept in this town's stash.",
+                    controls: [
+                        (name: "Store", does: "Moves a piece from the cargo into this town's stash.", issue: 202),
+                        (name: "Take out", does: "Moves a piece from this town's stash into the cargo.", issue: 202),
+                    ],
+                ),
+                (
+                    name: "Rules",
+                    job: "Keep rules and auto-buy rules.",
+                    controls: [
+                        (name: "Add keep rule", does: "Adds a rule saying what the party keeps, ignores or protects.", issue: 52),
+                        (name: "Reorder rules", does: "Changes which keep rule is tried first.", issue: 52),
+                        (name: "Test rules", does: "Tries the keep rules on the cargo without dropping anything, and shows the counts.", issue: 167),
+                        (name: "Add buy rule", does: "Adds a rule to buy or list a good at a stop when its price is right.", issue: 211),
+                        (name: "Save route", does: "Saves a list of stops and their rules as a route to repeat.", issue: 211),
+                    ],
+                ),
             ],
         ),
         (
             name: "Map",
             job: "Destination, route options, the itinerary, and what is restored.",
+            controls: [
+                (name: "Choose destination", does: "Picks a city, and shows the route to it before the party leaves.", issue: 156),
+                (name: "Route", does: "Chooses between the safest, the fastest and a balanced route.", issue: 157, proposed: true),
+                (name: "Add to itinerary", does: "Queues a destination for the party to leave for by itself.", issue: 201),
+                (name: "Clear itinerary", does: "Empties the queue, so the party waits in town.", issue: 201),
+                (name: "Trail modifiers", does: "Shows what the trail ahead has rolled, and what answers it.", issue: 28),
+                (name: "World map", does: "Shows the regions, towns and routes, what is restored, and where each horse lives.", issue: 123),
+            ],
         ),
         (
             name: "Town",
             tabs: [
-                (name: "Projects", job: "Deliveries to this town's projects."),
-                (name: "Residents", job: "Recruits, retired horses, invitations back, and retiring."),
+                (
+                    name: "Projects",
+                    job: "Deliveries to this town's projects.",
+                    controls: [
+                        (name: "Deliver", does: "Hands over goods and coins from the hold to a town project.", issue: 172),
+                    ],
+                ),
+                (
+                    name: "Residents",
+                    job: "Recruits, retired horses, invitations back, and retiring.",
+                    controls: [
+                        (name: "Choose party", does: "Decides who travels and who stays in this town.", issue: 102),
+                        (name: "Retire here", does: "Retires a party horse into this town; its gear and its pet come back to the party.", issue: 117),
+                        (name: "Invite back", does: "Asks a horse retired in this town to rejoin the party.", issue: 117),
+                        (name: "Meet", does: "Opens a horse who lives in this town: its name, look, trait and record.", issue: 116, proposed: true),
+                    ],
+                ),
             ],
         ),
         (
             name: "Journal",
             tabs: [
-                (name: "Report", job: "The latest loot, trail and stall reports.", content: Report),
-                (name: "Journal", job: "What happened on the road."),
-                (name: "Codex", job: "What has been found."),
+                (
+                    name: "Report",
+                    job: "The latest loot, trail and stall reports.",
+                    content: Report,
+                    controls: [
+                        (name: "Loot report", does: "Shows the latest loot: the ordinary in one line, the best one piece at a time.", issue: 32),
+                        (name: "Trail report", does: "Shows what happened on the last trail and why.", issue: 51),
+                        (name: "Stall report", does: "Shows what sold while the party was away.", issue: 170),
+                        (name: "Earlier", does: "Opens the reports before this one.", issue: 231),
+                    ],
+                ),
+                (
+                    name: "Journal",
+                    job: "What happened on the road.",
+                    controls: [
+                        (name: "One horse", does: "Shows only the selected horse's part of the journal.", issue: 107),
+                    ],
+                ),
+                (
+                    name: "Codex",
+                    job: "What has been found.",
+                    controls: [
+                        (name: "Gear effects", does: "Lists the gear effects found, and the unfound ones in outline.", issue: 30),
+                        (name: "Sets", does: "Lists the sets found, and the unfound ones in outline.", issue: 30),
+                        (name: "Final enemies", does: "Lists the pieces only a final enemy drops.", issue: 30),
+                    ],
+                ),
             ],
         ),
+    ],
+    // At the far end of the bar. Not one of the five places.
+    settings: (
+        name: "Settings",
+        job: "How the game feels and how it is worked.",
+        controls: [
+            (name: "Shake", does: "Turns screen shake down, from full to off.", issue: 45),
+            (name: "Flash", does: "Turns flashes down, from full to off.", issue: 45),
+            (name: "Effects", does: "Turns the number of effects down, from full to off.", issue: 45),
+            (name: "Volume", does: "Turns the sound down, from full to off.", issue: 45),
+            (name: "Keys", does: "Shows the key for every place, tab and action.", issue: 229),
+        ],
+    ),
+    footer: [
+        (name: "Planned changes", does: "Lists the changes planned on the road, to edit or cancel before the party arrives.", issue: 234),
+        (name: "Set out", does: "Sends the party off on the next trail.", action: SetOut, key: "Space"),
     ],
 )

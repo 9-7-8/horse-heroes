@@ -1,14 +1,12 @@
 //! Drives the sim and presents it: the camp/trail loop and input. What the
 //! player reads and presses is the menu shell (`menu::shell`).
 
-use bevy::{
-    input_focus::{InputFocus, InputFocusVisible},
-    prelude::*,
-};
+use bevy::prelude::*;
+use serde::Deserialize;
 
 use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
-use crate::sim::loot::{Horse, score};
+use crate::sim::loot::{Gear, Horse, score};
 
 pub mod menu;
 pub mod scene;
@@ -109,8 +107,19 @@ impl Plugin for GamePlugin {
             .add_message::<Killed>()
             .add_message::<Withdrew>()
             .add_plugins(scene::ScenePlugin { bare: self.bare })
-            .add_systems(Update, (input, advance).chain());
+            .add_systems(Update, advance);
     }
+}
+
+/// Something the player can do from a control of the menus. Which control
+/// does which is `action` in `assets/data/places.ron`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+pub enum Action {
+    /// Fight the next trail with this element.
+    Element(Element),
+    /// Put the last trail's drop on the horse it fits.
+    EquipDrop,
+    SetOut,
 }
 
 pub enum Screen {
@@ -173,7 +182,7 @@ impl Game {
     }
 
     /// Whether the pending drop beats what its horse wears in that slot.
-    fn drop_is_upgrade(&self) -> bool {
+    pub fn drop_is_upgrade(&self) -> bool {
         let Screen::Camp {
             last: Some(outcome),
             ..
@@ -217,10 +226,48 @@ impl Game {
         }
     }
 
-    /// The departure action. Does nothing on the road.
-    pub fn set_out(&mut self) {
-        if self.in_town() {
-            self.depart();
+    /// Whether an action can be done now, and if not, why not in plain
+    /// words. `act` uses the same check, so the reason a control shows is
+    /// the reason the action would fail.
+    pub fn can(&self, action: Action) -> Result<(), &'static str> {
+        let Screen::Camp { last, .. } = &self.screen else {
+            return Err("In town only.");
+        };
+        match action {
+            Action::Element(_) | Action::SetOut => Ok(()),
+            Action::EquipDrop => match last {
+                Some(outcome) if outcome.drop.is_some() => Ok(()),
+                _ => Err("Nothing to equip."),
+            },
+        }
+    }
+
+    /// Do an action, if it can be done.
+    pub fn act(&mut self, action: Action) {
+        if self.can(action).is_err() {
+            return;
+        }
+        match action {
+            Action::Element(element) => self.element = element,
+            Action::EquipDrop => {
+                if let Some(text) = self.equip_drop()
+                    && let Screen::Camp { note, .. } = &mut self.screen
+                {
+                    *note = text;
+                }
+            }
+            Action::SetOut => self.depart(),
+        }
+    }
+
+    /// The last trail's drop, while it waits in town to be equipped.
+    pub fn pending_drop(&self) -> Option<&Gear> {
+        match &self.screen {
+            Screen::Camp {
+                last: Some(outcome),
+                ..
+            } => outcome.drop.as_ref(),
+            _ => None,
         }
     }
 
@@ -249,39 +296,6 @@ impl Game {
             note: String::new(),
             countdown: CAMP_SECS,
         };
-    }
-}
-
-fn input(
-    keys: Res<ButtonInput<KeyCode>>,
-    focus: Res<InputFocus>,
-    focus_visible: Res<InputFocusVisible>,
-    mut game: ResMut<Game>,
-) {
-    if !game.in_town() {
-        return;
-    }
-    for (key, element) in [
-        (KeyCode::Digit1, Element::Fire),
-        (KeyCode::Digit2, Element::Ice),
-        (KeyCode::Digit3, Element::Plant),
-    ] {
-        if keys.just_pressed(key) {
-            game.element = element;
-        }
-    }
-    if keys.just_pressed(KeyCode::KeyE) {
-        if let Some(text) = game.equip_drop() {
-            if let Screen::Camp { note, .. } = &mut game.screen {
-                *note = text;
-            }
-        }
-    }
-    // Space sets out, except while a control shows keyboard focus: there
-    // Space presses that control, and must not also send the party off.
-    let on_a_control = focus_visible.0 && focus.get().is_some();
-    if keys.just_pressed(KeyCode::Space) && !on_a_control {
-        game.set_out();
     }
 }
 
@@ -392,8 +406,7 @@ pub fn report_text(game: &Game) -> String {
                 };
                 out += &format!(
                     "\nNEW GEAR: {} [{}, {}]  {}\n\
-                     \x20 fits {} the {}, who wears: {}\n\
-                     \x20 [E] equip{}\n",
+                     \x20 fits {} the {}, who wears: {}{}\n",
                     gear.name,
                     game.data.gear.rarities[gear.rarity].name,
                     gear.slot.name(),
@@ -479,7 +492,7 @@ pub fn report_side(game: &Game) -> String {
                 out += &format!("  {}. {}\n", i + 1, names.join(", "));
             }
             out += &format!(
-                "\nELEMENT: {}    [1] Fire  [2] Ice  [3] Plant\n\
+                "\nELEMENT: {}\n\
                  Fire beats Plant, Plant beats Ice, Ice beats Fire\n\
                  (strong x{}, resisted x{})\n",
                 game.element.name(),
@@ -498,6 +511,32 @@ pub fn report_side(game: &Game) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// What the slice can do is done in town, and a refusal says why.
+    #[test]
+    fn an_action_that_cannot_be_done_says_why() {
+        let mut game = Game::new(6);
+        assert_eq!(game.can(Action::Element(Element::Ice)), Ok(()));
+        assert_eq!(game.can(Action::SetOut), Ok(()));
+        assert_eq!(game.can(Action::EquipDrop), Err("Nothing to equip."));
+
+        game.act(Action::Element(Element::Ice));
+        assert_eq!(game.element, Element::Ice);
+        game.act(Action::EquipDrop);
+        assert!(game.in_town(), "a refused action changes nothing");
+
+        game.act(Action::SetOut);
+        assert!(!game.in_town());
+        for action in [
+            Action::Element(Element::Fire),
+            Action::EquipDrop,
+            Action::SetOut,
+        ] {
+            assert_eq!(game.can(action), Err("In town only."));
+        }
+        game.act(Action::Element(Element::Fire));
+        assert_eq!(game.element, Element::Ice, "no change on the road");
+    }
 
     /// The road is held for a won trail's last drops and for nothing else.
     #[test]

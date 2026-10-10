@@ -46,6 +46,11 @@ pub struct CounterValue;
 #[derive(Component)]
 pub struct ClosePanel;
 
+/// On a control whose system is not built. It is drawn as unavailable and
+/// can still be pressed: the press is what says so.
+#[derive(Component)]
+pub struct NotBuilt;
+
 #[derive(Component)]
 pub struct ConfirmAction;
 
@@ -467,6 +472,7 @@ pub fn style_parts(
             Has<Pressed>,
             Has<Selected>,
             Has<InteractionDisabled>,
+            Has<NotBuilt>,
             Option<&ShowLook>,
             &mut BackgroundColor,
             &mut BorderColor,
@@ -486,9 +492,20 @@ pub fn style_parts(
     };
     let mut stack = Vec::new();
 
-    for (entity, hovered, pressed, selected, unavailable, shown, mut fill, mut border, mut ring) in
-        &mut parts
+    for (
+        entity,
+        hovered,
+        pressed,
+        selected,
+        disabled,
+        not_built,
+        shown,
+        mut fill,
+        mut border,
+        mut ring,
+    ) in &mut parts
     {
+        let unavailable = disabled || not_built;
         let look = match shown {
             Some(shown) => shown.0,
             None => Look {
