@@ -213,6 +213,24 @@ down its right on every tab. Until 0.4.0 the cargo holds one thing: the
 piece the last trail dropped, with the horse it fits and what that horse
 wears, until it is equipped or the party leaves. Equip is there.
 
+## A tab that does not fit
+
+A tab's page scrolls when it is taller than its room (#243), which today
+happens at the smallest window with the side panel open. It is Bevy's
+`ScrollArea` with a `Scrollbar` beside it, both from `bevy::ui_widgets`,
+whose plugins come with `DefaultPlugins`:
+
+- The wheel scrolls the page the pointer is over.
+- The bar shows only while the page does not fit (`show_scrollbars`). It
+  keeps its width, `size.scrollbar_width`, while hidden, so a page does not
+  move when it starts to scroll. It can be dragged.
+- A control that takes the keyboard focus is brought into view
+  (`follow_focus`, which sends Bevy's `ScrollIntoView`), so Tab never lands
+  on something out of sight.
+
+The horses and cargo columns and the side panel do not scroll; they fit at
+the smallest window today.
+
 ## Keys
 
 Every key is in `places.ron` and is printed on what it works (#229). `keys`
@@ -258,7 +276,8 @@ is not built on two of them, chooses an element, saves a numbered PNG of
 each into the folder (which must exist), sends the party off, photographs
 the road view
 and a place being opened and closed there (two of them part of the way
-through the move), waits for the party to come home, and then makes a town visit by keys
+through the move, and one with the keyboard focus put on Sets to show the
+page scrolling to it), waits for the party to come home, and then makes a town visit by keys
 alone: H, 1, E to equip the drop, C, 2, I and F on the abilities, T, 3, S,
 Escape, Space to set out, and J, 1, Escape on the road. Then it exits. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
@@ -277,8 +296,6 @@ are checked by hand.
 - A fountain to check the road view's room against: #4, #8 (the last part of
   #205).
 - What is planned on the road, listed in the footer: #234.
-- At 1120x640 with the side panel open, the Gear tab's last control and its
-  reason line are cut off: #243.
 - The rest of #229: the Keys control in Settings, arrow keys in lists, and
   keys for actions not built yet.
 - The Horses place proper, with cargo: #227.

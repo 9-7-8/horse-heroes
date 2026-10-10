@@ -1,0 +1,52 @@
+SESSION LOG 2026-10-10 15:07 - a tab that does not fit scrolls
+==============================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tier 1: #243, a bug, closed (c39e59f). A tab's page is Bevy's
+    ScrollArea with a Scrollbar beside it. The bar shows only while the
+    page does not fit and keeps its width while hidden. A control that
+    takes the keyboard focus is brought into view. The menu tour has a
+    new step that puts the focus on Sets on the road, and a picture of it.
+    Tested: cargo check and cargo test green, 100 pass, no warning. No new
+    test: nothing in src/sim/ changed.
+    Seen running, in still pictures read by me: the menu tour at --seed 6,
+    at 1120x640 (the bar is there, and focus on Sets scrolls the page to
+    show all of it) and at 1600x900 (no bar, nothing moved). Only the GOG
+    overlay's lines in the log.
+  - docs/menu-shell.md, "A tab that does not fit";
+    docs/gallery/2026-10-10-scrolling.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - Scroll, not squeeze: the page is a row of buttons and a line short
+    at the smallest window, and every tab will gain controls.
+  - The bar is 6 pixels wide and always takes its room, so the page does
+    not shift when it appears (menus.md, Things stay where they are).
+  - Only a tab's page scrolls. The horses and cargo columns and the side
+    panel do not; they fit today.
+
+FOUND
+  - Bevy 0.20 has ScrollArea, Scrollbar and ScrollIntoView in
+    bevy::ui_widgets, and DefaultPlugins adds their plugins. Nothing of
+    ours handles the wheel.
+
+NOT DONE
+  - The wheel and dragging the bar are Bevy's own and were not tried: the
+    tour has no pointer. Nobody has seen the page move.
+  - The tour's pictures after 27 are numbered one higher than before.
+  - Carried over, unchanged: the rest of #229 (the Keys control, arrow
+    keys in lists, a key for List); nobody has pressed a key or a
+    pointer for real; #187 waits on the owner's look at the horse and
+    #10 on her listening (F4); nobody has watched a death or the screen
+    response move; the fountains are not tuned; a place left open on
+    the road still cuts a beam off; a lost trail is not held on the
+    road (#176); in town the horses walk on the spot; #199 waits on the
+    owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Tier 1 is empty. 0.2.0 has #240 (rarity
+  by shape) and #241 (a sound for a death) to build, then the rest of
+  #229; #240 is the lower number.

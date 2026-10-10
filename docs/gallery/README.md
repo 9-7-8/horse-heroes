@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-10, a tab that does not fit scrolls](2026-10-10-scrolling/README.md) (#243)
 - [2026-10-10, a control that cannot be used says why](2026-10-10-reasons/README.md) (#233)
 - [2026-10-10, keys for places, tabs and horses](2026-10-10-keys/README.md) (#229)
 - [2026-10-10, the whole menu skeleton](2026-10-10-menu-skeleton/README.md) (#238)
