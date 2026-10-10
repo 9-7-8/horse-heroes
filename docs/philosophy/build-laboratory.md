@@ -58,6 +58,9 @@ by the computer. Give it a new job on the meta layer.
   scripting language is work.
 - **Stances and policies are build decisions**, and the player must be able to
   recognise them as such. Opaque AI behaviour teaches nothing.
+- **Show the policies in the results.** If the player picks "auto" and every
+  build behaves alike, automation has removed the strategy. A report that
+  names the settings in force lets an outcome be traced to a choice.
 - **A modifier is a question put to the build**: is it suitable, should a skill
   change, should the tier drop, is the reward bonus worth it?
 

@@ -9,6 +9,9 @@ Read the relevant file before designing or tuning the system it covers.
 
 | File | Covers |
 | --- | --- |
+| [the-loop.md](the-loop.md) | Start here. The four layers, what the player should be able to say, the loop from intention to hypothesis, and the checklist to run before adding content |
+| [incremental-and-idle.md](incremental-and-idle.md) | Accumulation and reinvestment, the tension every resource needs, respecting absence, bounded offline progress, prestige |
+| [juice.md](juice.md) | Feedback in general: the four questions, three levels of importance, state changes, sound, motion, and not hiding information |
 | [feedback-chain.md](feedback-chain.md) | Why every action must visibly change the world, and the time scales a reward loop runs on |
 | [loot-fountain.md](loot-fountain.md) | The reward ceremony: its seven beats, what makes it land, and why drops must stay relevant |
 | [combat-rhythm.md](combat-rhythm.md) | Attack phases, keeping timings separate, and response before polish (incomplete, see the file) |

@@ -20,6 +20,10 @@ STEPS
    the philosophy file), What, Done when, Depends on. Where an existing issue
    already covers the feature, comment on it instead of opening a second one.
    Say in each new epic where it stands against pillar 1.
+   Create them in dependency order (an issue after everything it cites), so
+   every "Depends on" can carry a real number. Link a sub-issue with
+   gh api repos/9-7-8/horse-heroes/issues/<epic>/sub_issues -F sub_issue_id=<id>
+   where <id> is the child's .id from the API, not its number.
 6. Commit the docs. Do not push (end-session.txt does that).
 7. Report: issue numbers by epic, files touched, anything cut off or left out.
 

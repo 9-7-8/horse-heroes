@@ -32,6 +32,10 @@ in which each step visibly causes the next.
    | Hours | A build comes together and changes what the character can do |
    | Long term | Restart, experiment, optimise, push a new benchmark |
 
+   Seconds keep the game alive while watched, and need restraint so they do
+   not become noise. Minutes are the "one more run" layer. Days and weeks are
+   the lasting relationship, and must not be bought by starving the minutes.
+
 4. **Power must show.** A stronger build should make combat look and sound
    different, not only move a number. That is what closes the loop.
 

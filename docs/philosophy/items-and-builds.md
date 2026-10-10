@@ -83,6 +83,20 @@ irrelevant. Guard against it:
 
 > The player should make a build, not merely assemble a mandatory uniform.
 
+### Identity, not only numbers
+
+If every build is "more damage", numbers grow and identity does not. Build
+around tags and behaviours, and let the presentation show which build this is.
+
+An item card for a meaningful piece is a **design prompt, not a stat sheet**.
+It says why the piece is relevant to the current build: which abilities
+trigger its power, how often that happens now, and what kind of piece would
+combine with it. It suggests without deciding.
+
+The measure of success is that the player reads the text. Equipping whatever
+has the highest score, or going to an outside guide to learn what combines
+with what, are both signs the game is not explaining itself.
+
 ### What can be done with an item
 
 A meaningful drop offers more than equip-or-ignore: compare, lock, salvage,
@@ -108,4 +122,6 @@ and a reason to return.
 ## Source
 
 Owner's notes on which loot-and-build systems carry over from a reference
-action RPG to an idle game, received 2026-10-09 (sections 2.1 to 2.4).
+action RPG to an idle game, received 2026-10-09 (sections 2.1 to 2.4). The
+part on identity and item cards is from her notes on MDA and juice, same date
+(sections 7.4, 11.3, 11.4).
