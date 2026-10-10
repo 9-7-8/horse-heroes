@@ -15,7 +15,7 @@ Read the relevant file before designing or tuning the system it covers.
 | [cosmetics.md](cosmetics.md) | The wardrobe: gear, displayed look and dye kept separate, unlocking looks through play, rider-free equipment, meaning without power, presets, layers, provenance (a proposal) |
 | [pets.md](pets.md) | Pets as companions with one small job: a collar, forgiving assignment, cuteness that is not a stat (a recommendation toward an open decision) |
 | [gear.md](gear.md) | The starter gear system: each category owns a question, what each may carry, a small item, saddlebags, the town shop, how to grow it and what not to add early (categories are a proposal) |
-| [town.md](town.md) | The non-combat half: what makes it cosy, the town session, selling as curation, prices and trust, buying, recruiting and retiring as social moments, decoration, town juice and interface (the caravan is a proposal) |
+| [town.md](town.md) | The non-combat half: the owner's six caravan-shop decisions, what makes it cosy, the town session, listing and selling over time, player-set prices and goodwill, buying, recruiting and retiring as social moments, decoration, town juice and interface |
 | [travel.md](travel.md) | Journeys: the owner's eight travel rules, the tile map, purity and danger, routes, travel days, road events, the guaranteed boss, failure, and starting small |
 | [cargo.md](cargo.md) | Shared party cargo: the owner's five decisions, what happens when a drop arrives, protection, keep rules, explanations, rarity shown several ways, selling on arrival, capacity changes |
 | [the-loop.md](the-loop.md) | The four layers, what the player should be able to say, the loop from intention to hypothesis, and the checklist to run before adding content |

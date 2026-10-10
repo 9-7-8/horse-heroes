@@ -76,6 +76,19 @@ No avatar and no explanation for the organiser is required.
   mix of attack, health and cooldown as every other. The categories should
   feel natural for autonomous horses.
 
+### The caravan shop
+
+Confirmed direction in her caravan shop document; the detail is in
+[town.md](town.md).
+
+- The caravan is the party's **travelling home and shop**.
+- The player lists gear for sale; local horses and townspeople **buy it over
+  time**.
+- The player **sets prices as a percentage** above or below a baseline.
+- **Lower prices improve relationships** with townsfolk.
+- **Unsold stock comes with the party** when the caravan leaves.
+- The shop is idle-friendly and simpler than a business simulator.
+
 ### Loot and cargo
 
 Recorded as her confirmed decisions in her loot and saddlebags document; the
@@ -136,8 +149,8 @@ needs, extensive crafting, town construction, and many more damage types.
 
 - **Road and town as two phases.** Road: automatic action and the occasional
   discovery. Town: concentrated decisions about builds, trade, companions and
-  looks. Developed, with a proposed travelling caravan, in
-  [town.md](town.md).
+  looks. Developed in [town.md](town.md); the caravan itself is now
+  confirmed, above.
 - **A screen layout:** the top third a fixed-view 3D scene, the lower
   two-thirds menus. Four of her documents treat this as established; the document
   that decided it has not been received, so it is listed here until she
