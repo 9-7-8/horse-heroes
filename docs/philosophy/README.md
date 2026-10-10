@@ -10,7 +10,7 @@ Read the relevant file before designing or tuning the system it covers.
 | File | Covers |
 | --- | --- |
 | [vision.md](vision.md) | **Read first.** What the owner wants built: the world, the loop, what the player controls, equipment rules, what is confirmed, proposed and open. Outranks the other files |
-| [elemental-combat.md](elemental-combat.md) | Element identities, setup statuses, pair reactions, class patterns, individual attunement (mostly proposed, see the file) |
+| [elemental-combat.md](elemental-combat.md) | How horses cooperate: Primers, Finishers, three pair reactions, three same-element Crescendos, anti-chain rules, automation, how it is shown (a proposal, see the file) |
 | [generations.md](generations.md) | Retirement into towns, town states, families and descendants, updating towns on demand, a completable world and optional endless play (her proposal; details are recommendations) |
 | [cosmetics.md](cosmetics.md) | The wardrobe: gear, displayed look and dye kept separate, unlocking looks through play, rider-free equipment, meaning without power, presets, layers, provenance (a proposal) |
 | [pets.md](pets.md) | Pets as companions with one small job: a collar, forgiving assignment, cuteness that is not a stat (a recommendation toward an open decision) |

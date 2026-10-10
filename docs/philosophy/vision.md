@@ -126,7 +126,7 @@ needs, extensive crafting, town construction, and many more damage types.
   looks. Developed, with a proposed travelling caravan, in
   [town.md](town.md).
 - **A screen layout:** the top third a fixed-view 3D scene, the lower
-  two-thirds menus. Three of her documents treat this as established; the document
+  two-thirds menus. Four of her documents treat this as established; the document
   that decided it has not been received, so it is listed here until she
   confirms it.
 - **Equipment as five categories:** focus (offence), protection (defence),

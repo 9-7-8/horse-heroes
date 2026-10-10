@@ -263,7 +263,7 @@ revisited by choice.
   horses left in towns generate resources. They are compatible only if a
   resident's yield is something other than the player's stock being sold.
 - The document treats a screen layout as established: the top third a fixed
-  3D view, the lower two-thirds menus. Three of the owner's documents refer to
+  3D view, the lower two-thirds menus. Four of the owner's documents refer to
   it; the one that decided it has not been received. It is filed to be
   confirmed, not assumed.
 
