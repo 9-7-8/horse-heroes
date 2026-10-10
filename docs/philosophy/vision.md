@@ -59,6 +59,14 @@ No avatar and no explanation for the organiser is required.
 - **The world respects horse bodies.** A horse cannot simply be given
   human-style farm work: it has no hands. Either the task suits a horse, or
   the world says how magic, tools, pets or other inhabitants make it possible.
+- **Horses have telekinetic magic**, and resident horses use it to help build
+  their towns.
+- **A retired horse can be invited back**, and its gear and assigned pets
+  return with it.
+- **Breeding exists as background flavour.** It has genetics, superficial and
+  for colour only for now, borrowed from the horse breeding mod she has
+  already made. It is not an important mechanic and everything it affects is
+  aesthetic.
 - Pets are collectible companions assigned to individual horses. What they
   do in play is open; the recommendation she was given is in
   [pets.md](pets.md).
@@ -142,8 +150,14 @@ may become an independent management game.
 **Put depth into:** party selection, elemental cooperation, differentiated
 equipment, routes, town residency, commerce, appearance collection.
 
-**Stay away from, until the main loop works:** breeding, detailed survival
-needs, extensive crafting, town construction, and many more damage types.
+**Stay away from, until the main loop works:** detailed survival needs,
+extensive crafting, town construction, and many more damage types. The
+summary's list also had breeding; she has since said breeding is in, as
+background flavour with colour-only genetics, so what remains of that
+guardrail is that it must never become a system the player has to work.
+"Town construction" here means the player building a town as a management
+game; residents rebuilding their own town by magic is confirmed and is not
+that.
 
 ## Proposed, awaiting her decision
 
@@ -199,9 +213,10 @@ goal, cleansing every region, and endless play is optional. The idea is hers;
 the details are recommendations. All of it is in
 [generations.md](generations.md).
 
-This touches the guardrail above against breeding. It is not a genetics or
-pairing system, and its own advice is to prototype it small and only after the
-main loop works. Both hold.
+Her later statement settles how far it goes: coat colour is inherited through
+a superficial genetics system, nothing inherited affects play, and the whole
+thing is flavour. Its own advice still holds: prototype it small, and only
+after the main loop works.
 
 ## Open
 

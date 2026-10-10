@@ -34,8 +34,10 @@ and icon, never by colour alone.
 - Classes get distinct tack cues, but the player must still recognise **their
   horse** under them. Class and element remain separate systems.
 - Inheritance, when descendants arrive ([generations.md](generations.md)), is
-  a model of its own: a few inherited tags that feed the horse generator.
-  Visual noise is not a substitute for inheritance rules. Not needed now.
+  a model of its own: colour genetics taken from the owner's own horse
+  breeding mod, aesthetic only. Visual noise is not a substitute for
+  inheritance rules. Coat colour should therefore be a self-contained part of
+  a horse's appearance, so a genotype can supply it in place of a roll.
 
 ### Enemies
 
