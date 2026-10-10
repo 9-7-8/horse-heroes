@@ -1,9 +1,9 @@
 # The loot shower
 
-What is built of it so far: drops as physical objects (#4) and the rarity
-signal (#6). The eruption beat of
-[the loot fountain](philosophy/loot-fountain.md). Pickup, fountain sizes,
-screen response and sound are their own issues (#7 to #10) and are not built.
+What is built of it so far: drops as physical objects (#4), the rarity
+signal (#6) and the pickup (#7). The eruption and collection beats of
+[the loot fountain](philosophy/loot-fountain.md). Fountain sizes, screen
+response and sound are their own issues (#8 to #10) and are not built.
 
 ## What happens
 
@@ -18,6 +18,8 @@ screen response and sound are their own issues (#7 to #10) and are not built.
 4. Each piece waits its turn (`stagger_secs` apart, in a shuffled order),
    leaves the body on its own arc, tumbles, bounces `bounces` times with a
    squash at each landing, stops, and lies down flat.
+5. The burst lies still, then its pieces go to the party one after another
+   (Pickup, below).
 
 The sim decides what drops; `fx` only shows it. Every kill drops coins. The
 enemy whose fall wins the trail also drops the run's one gear piece, the same
@@ -48,11 +50,35 @@ menus only (owner, 2026-10-10). Blue is close to Ice, orange to Fire and
 green to Plant, and a yellow Rare is hard to pick out among gold coins;
 shape per tier (#240) is what will separate those.
 
+## Pickup
+
+`plan_pickup` decides, when the burst is thrown, when each piece leaves the
+ground: the whole burst is at rest for `pickup_pause_secs`, so it can be
+read, and then the pieces leave `pickup_stagger_secs` apart, the nearest to
+the party first. A piece heads for the middle of the nearest horse
+(`scene::nearest_horse`), starts at `pickup_speed`, gains `pickup_accel`
+every second (`step_home`), shrinks over the last `pickup_shrink` of the
+way, and is gone when it gets there. A beam sinks as its piece leaves. The
+party does not wait for it: if it has walked on, the pieces catch it up.
+
+The coins counter counts a coin when it arrives, not when it drops. A kill's
+coins are shared over its coin pieces (`coin_values`; a kill worth more
+than `most_pieces` coins has pieces worth several). `game::advance` adds
+them to `Uncollected` as it reports the kill, each piece takes its share
+off as it arrives, and the counter shows what the party has earned less
+what is uncollected. This is only when the counter shows a coin: what the
+party owns is the sim's count and does not depend on the drops. A piece
+the ground carried off screen before its turn counts as arrived.
+
+Gear arrives the same way and moves no counter yet: the bags counter waits
+for saddlebags (#100). Once there are pets they do the fetching (owner,
+2026-10-10; #106, #137), and what is kept is for the keep rules (#52).
+
 ## The numbers
 
 All of them are named fields in `assets/data/loot_shower.ron`, loaded into
 the `Shower` resource. No drop code holds a number of its own, except three
-that are not feel: when `--burst` fires, how many directions are tried, and
+that are not feel: when `--burst` or `--pickup` fires, how many directions are tried, and
 how far off screen a drop is forgotten.
 
 ## The fan, and keeping enemies in view
@@ -69,14 +95,15 @@ an enemy; one in the air can pass in front of one for a moment.
 ## Standing and walking
 
 The party stands still to fight: the ground stops scrolling and the horses'
-legs come to rest (`Game::party_moving`). Drops lie where they landed for as
-long as the fight lasts. When the party walks on, the ground takes the drops
-with it to the left, also the ones still in the air, and each is removed
-once it is well off screen. Nothing picks them up yet (#7).
+legs come to rest (`Game::party_moving`). Drops lie where they landed until their
+turn to be collected. When the party walks on, the ground takes the drops
+with it to the left, also the ones still in the air; a piece on its way to
+the party is not carried. One that got well off screen uncollected is
+removed.
 
 The last kill of a trail sends the party back to town in the same moment, so
-its burst is seen while the scene shrinks to the town layout and drifts off
-with the ground.
+its burst is seen, and collected, while the scene shrinks to the town
+layout.
 
 ## The test burst
 
@@ -84,7 +111,9 @@ with the ground.
 the gear named in `burst_gear` (three Normal, two Magic, and one each of
 Rare, Legendary and Set) from
 `burst_seed` from where the first enemy stands. It is the same burst every
-time, it stays where it lands, and pressing F3 again replaces it. When its
+time, it stays where it lands, and pressing F3 again replaces it. `F4`, or
+`--pickup`, throws the same burst and lets the party collect it; its pieces
+are worth no coins. When its
 pieces are at rest the log has one line:
 
     test burst: 48 pieces at rest after 2.67 s, mean frame 33.4 ms, worst
@@ -106,10 +135,14 @@ launches are staggered and within their speeds; a burst is spread over the
 fan; every piece bounces as often as the data says and rests on the trail;
 no piece rests on a standing enemy, whichever of the three died; the test
 burst has gear of every rarity; the seed puts the gear among the coins; the
-no two rarities share a colour, and the top tier has a beam.
+no two rarities share a colour, and the top tier has a beam; a kill's coin pieces add up to its coins; the
+burst waits out the pause and then leaves one piece at a time, nearest
+first; a collected piece only gains speed and arrives, at 20, 60 and 240
+frames a second.
 `src/sim/expedition.rs`: every kill is reported once, and the coins of the
 kills add up to the run's coins; the winning kill carries the run's gear and
 no other kill carries any.
 
 Pictures: [drops](gallery/2026-10-10-drops/README.md),
-[the rarity signal](gallery/2026-10-10-rarity-signal/README.md).
+[the rarity signal](gallery/2026-10-10-rarity-signal/README.md),
+[the pickup](gallery/2026-10-10-pickup/README.md).

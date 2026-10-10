@@ -1,0 +1,54 @@
+SESSION LOG 2026-10-10 11:46 - the pickup
+=========================================
+
+ASKED
+  "Next, then how many parts are left before the first release?" -
+  procedures/next-thing.txt, and a count.
+
+DONE
+  - Tiers 1 and 2 were empty: build green, 50 tests, no open bug.
+  - Tier 3, #7, the pickup (22ef7d9, closes #7). A burst lies still for
+    pickup_pause_secs once all of it is at rest, then its pieces leave
+    pickup_stagger_secs apart, nearest to the party first, each gaining
+    speed to the nearest horse and shrinking as it arrives. A beam sinks
+    as its piece leaves. The coins counter counts a coin when it arrives.
+    F4 or --pickup throws the test burst and has it collected.
+    Tested: cargo test, 53 pass (three new).
+    Seen running, in screenshots read by the session: the test burst at
+    rest in the pause and mid-collection; a real kill of 4 coins with the
+    counter at 2 and a coin about to reach the lead horse. A log line,
+    since removed, showed every coin of five kills arriving one at a time
+    and nothing left uncollected.
+  - docs/loot-shower.md (Pickup), docs/gallery/2026-10-10-pickup,
+    build-and-run.txt and tune-loot-feel.txt name --pickup and F4.
+  - The count: after #7, nine issues are open in 0.2.0 The loot shower,
+    the first release: #8, #9, #10, #17, #205, #229, #233, #238, #240.
+
+DECIDED
+  Made for her, to be corrected:
+  - The five pickup numbers (pause 0.9 s, 0.06 s apart, start 1, gain 45,
+    shrink over 1.2). First guesses, not tuned.
+  - Pieces go to the nearest horse, which is nearly always the lead one.
+  - The party does not wait for the pickup; pieces catch it up.
+  - A piece that left the screen uncollected counts as arrived, so the
+    counter always ends on what the party owns.
+  - #7 closed although gear moves no counter: there is no bags counter to
+    move until saddlebags (#100).
+
+FOUND
+  - Nothing broken. A fight takes about 9 s before its first kill
+    (seed 6: 21.3 s after launch), so IDLE_SHOT_AT=17 shows no drops.
+
+NOT DONE
+  - Nobody has watched the pickup move; it has only been seen in stills.
+    The owner has not looked.
+  - The winning kill's gear being collected has not been looked at in a
+    real run, only gear in the test burst.
+  - An arrival has no flash or sound of its own: #9 and #10.
+  - Carried over: #205 waits on #8; #199 waits on the owner's source
+    files; Focused Shot and Elemental Burst have no test of their numbers.
+
+PICK UP
+  Run procedures/next-thing.txt. It should land on #8, fountain sizes:
+  small drops for ordinary encounters, the full fountain for the final
+  enemy (#205 waits on it).

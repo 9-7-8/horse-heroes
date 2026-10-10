@@ -25,7 +25,8 @@ STEPS
    The drop's numbers are in assets/data/loot_shower.ron.
 2. Make the scene repeatable: a debug key or startup flag that spawns a fixed
    burst from a fixed seed, so two runs can be compared.
-   That is F3 in the running game, or --burst at launch
+   That is F3 in the running game, or --burst at launch; F4 or --pickup
+   throws the same burst and has it collected
    (docs/loot-shower.md, "The test burst").
 3. Change ONE parameter. Run it. Look at it (build-and-run.txt step 4).
 4. Show the owner and ask, with the tool, offering the before, the after, and

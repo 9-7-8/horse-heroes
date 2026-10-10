@@ -33,6 +33,10 @@ Use the cheapest step that can prove the change:
    it at any time) and logs its frame times (docs/loot-shower.md); a
    picture at IDLE_SHOT_AT=2.2 is the burst in the air, at 2.9 its last
    pieces in the air with both beams up, at 4.8 at rest.
+   --pickup throws the same burst and lets the party collect it (F4):
+   at IDLE_SHOT_AT=4.4 it is at rest in the pause, at 5.8 its coins are on
+   their way. A real kill: --seed 6 at IDLE_SHOT_AT=23.85 has the first
+   enemy's coins arriving and the counter part way.
    IDLE_TOUR walks the menus instead (docs/menu-shell.md): it presses
    through every place and tab, then the road view and the move between
    the layouts, saves a numbered PNG of each into the folder it names
