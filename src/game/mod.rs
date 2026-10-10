@@ -97,6 +97,8 @@ pub fn road_is_held(won: bool, fell: bool, pieces: usize) -> bool {
 
 pub struct GamePlugin {
     pub seed: u64,
+    /// Start with the horses' hair hidden (`--bare`). F5 toggles it.
+    pub bare: bool,
 }
 
 impl Plugin for GamePlugin {
@@ -106,7 +108,7 @@ impl Plugin for GamePlugin {
             .init_resource::<Uncollected>()
             .add_message::<Killed>()
             .add_message::<Withdrew>()
-            .add_plugins(scene::ScenePlugin)
+            .add_plugins(scene::ScenePlugin { bare: self.bare })
             .add_systems(Update, (input, advance).chain());
     }
 }

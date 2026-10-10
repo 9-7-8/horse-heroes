@@ -1,15 +1,23 @@
 //! The 3D picture: a fixed isometric-angle camera, a trail that scrolls left,
-//! three box-built horses walking right, and cubes for the enemies. A horse
-//! at no health is exhausted, not gone: it lies down while the party stands
-//! and walks on with its head low.
+//! three horses walking right, built to the proportions in
+//! `horse_shape.ron`, and cubes for the enemies. A horse at no health is
+//! exhausted, not gone: it lies down while the party stands and walks on
+//! with its head low.
 //!
 //! The trail runs along world +X, which is screen-right. Height is Y.
 
-use bevy::{camera::ScalingMode, prelude::*, window::PrimaryWindow};
+use bevy::{
+    asset::RenderAssetUsages,
+    camera::ScalingMode,
+    mesh::{Indices, PrimitiveTopology},
+    prelude::*,
+    window::PrimaryWindow,
+};
 
 use super::menu::tokens::Tokens;
 use super::{Game, SceneView, Screen};
 use crate::sim::data::Element;
+use crate::sim::horse_shape::{Frame, HorseShape, Joint, Kind, LEGS, Part, Section};
 use crate::sim::rng::Rng;
 
 /// World units of height visible in the scene: in the town layout, and in
@@ -43,6 +51,9 @@ const TIRED_LIE_HANG: f32 = 0.45;
 const TIRED_FOLD: f32 = std::f32::consts::FRAC_PI_2;
 const TIRED_BELLY: f32 = 0.08;
 const TIRED_STRIDE: f32 = 0.5;
+/// How dark a horse's hooves and hair are, as shares of its body's shade.
+const HOOF_SHADE: f32 = 0.45;
+const HAIR_SHADE: f32 = 0.3;
 
 /// The colour an enemy of each element is drawn in.
 pub fn element_colour(element: Element) -> Color {
@@ -53,19 +64,37 @@ pub fn element_colour(element: Element) -> Color {
     }
 }
 
-pub struct ScenePlugin;
+pub struct ScenePlugin {
+    /// Start with the horses' hair hidden.
+    pub bare: bool,
+}
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::BLACK))
+            .insert_resource(Bare(self.bare))
             .init_resource::<Tired>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
-                (frame, scroll, (sync_horses, swing_legs).chain(), sync_enemies),
+                (
+                    frame,
+                    scroll,
+                    (sync_horses, swing_legs).chain(),
+                    sync_enemies,
+                    toggle_hair,
+                ),
             );
     }
 }
+
+/// Whether the horses' hair is hidden, to see the build underneath.
+#[derive(Resource)]
+struct Bare(bool);
+
+/// One piece of a horse, and what it is made of.
+#[derive(Component)]
+struct Piece(Kind);
 
 #[derive(Component)]
 struct Scrolling;
@@ -120,6 +149,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    bare: Res<Bare>,
 ) {
     // Camera at the isometric elevation (about 35 degrees), looking across
     // the trail. Its projection covers the whole window and the menu shell
@@ -158,11 +188,22 @@ fn setup(
         ));
     }
 
+    // Every horse is the base horse for now, so one set of meshes does for
+    // all three.
+    let shape = HorseShape::load();
+    let horse = shape.base(shape.height);
+    let pieces: Vec<(Part, Handle<Mesh>)> = horse
+        .parts()
+        .into_iter()
+        .map(|part| (part, meshes.add(piece_mesh(&part, joint_origin(&horse, part.joint)))))
+        .collect();
     for (i, &x) in HORSE_X.iter().enumerate() {
         spawn_horse(
             &mut commands,
             &mut materials,
-            &cube,
+            &horse,
+            &pieces,
+            bare.0,
             i,
             Vec3::new(x, 0.0, HORSE_Z[i]),
         );
@@ -185,102 +226,163 @@ fn setup(
     commands.insert_resource(elements);
 }
 
-/// Build a horse out of boxes. Its proportions and shade come from `index`,
-/// so each party member has its own look, the same every launch.
+/// Where a joint is, in the horse's own space.
+fn joint_origin(horse: &Frame, joint: Joint) -> Vec3 {
+    match joint {
+        Joint::Trunk => Vec3::ZERO,
+        Joint::Neck => Vec2::from(horse.neck_joint()).extend(0.0),
+        Joint::Leg(leg) => Vec3::from(horse.leg_joint(leg)),
+    }
+}
+
+/// The mesh of one piece: the solid between its two sections, flat-faced,
+/// placed relative to the joint it moves with.
+fn piece_mesh(part: &Part, origin: Vec3) -> Mesh {
+    let corners = |section: &Section| {
+        let (near, far) = (section.z + section.width / 2.0, section.z - section.width / 2.0);
+        [
+            Vec3::new(section.top[0], section.top[1], near) - origin,
+            Vec3::new(section.top[0], section.top[1], far) - origin,
+            Vec3::new(section.bottom[0], section.bottom[1], far) - origin,
+            Vec3::new(section.bottom[0], section.bottom[1], near) - origin,
+        ]
+    };
+    let (a, b) = (corners(&part.from), corners(&part.to));
+    let middle = a.iter().chain(&b).sum::<Vec3>() / 8.0;
+    let faces = [
+        [a[0], a[1], a[2], a[3]],
+        [b[0], b[1], b[2], b[3]],
+        [a[0], a[1], b[1], b[0]],
+        [a[3], a[2], b[2], b[3]],
+        [a[0], a[3], b[3], b[0]],
+        [a[1], a[2], b[2], b[1]],
+    ];
+    let mut positions = Vec::new();
+    let mut normals = Vec::new();
+    let mut indices = Vec::new();
+    for face in faces {
+        // Whichever way round the face was listed, it faces out of the piece.
+        let mut normal = (face[2] - face[0]).cross(face[3] - face[1]).normalize_or_zero();
+        let centre = face.iter().sum::<Vec3>() / 4.0;
+        let outward = normal.dot(centre - middle) >= 0.0;
+        if !outward {
+            normal = -normal;
+        }
+        let first = positions.len() as u32;
+        let order = if outward { [0, 1, 2, 0, 2, 3] } else { [0, 2, 1, 0, 3, 2] };
+        indices.extend(order.map(|i| first + i));
+        for corner in face {
+            positions.push(corner.to_array());
+            normals.push(normal.to_array());
+        }
+    }
+    let uvs = vec![[0.0, 0.0]; positions.len()];
+    Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
+        .with_inserted_indices(Indices::U32(indices))
+}
+
+/// Build a horse from its pieces. Its shade comes from `index`, so each
+/// party member has its own look, the same every launch. The neck and each
+/// leg hang from a joint; hair is pieces of its own, hidden when `bare`.
 fn spawn_horse(
     commands: &mut Commands,
     materials: &mut Assets<StandardMaterial>,
-    cube: &Handle<Mesh>,
+    horse: &Frame,
+    pieces: &[(Part, Handle<Mesh>)],
+    bare: bool,
     index: usize,
     position: Vec3,
 ) {
     let mut rng = Rng::new(0x4057E + index as u64);
-    let mut roll = |lo: f32, hi: f32| lo + (hi - lo) * rng.unit();
+    let shade = 0.55 + 0.45 * rng.unit();
+    let grey = |share: f32| Color::srgb(shade * share, shade * share, shade * share);
+    let body = materials.add(grey(1.0));
+    let hoof = materials.add(grey(HOOF_SHADE));
+    let hair = materials.add(grey(HAIR_SHADE));
 
-    let body_len = roll(1.5, 2.0);
-    let body_h = roll(0.55, 0.75);
-    let body_w = roll(0.45, 0.6);
-    let leg_len = roll(0.75, 1.05);
-    let neck_len = roll(0.7, 1.0);
-    let head_len = roll(0.5, 0.7);
-    let shade = roll(0.55, 1.0);
-
-    let material = materials.add(Color::srgb(shade, shade, shade));
-    let part = |translation: Vec3, tilt: f32, scale: Vec3| {
-        (
-            Mesh3d(cube.clone()),
-            MeshMaterial3d(material.clone()),
-            Transform::from_translation(translation)
-                .with_rotation(Quat::from_rotation_z(tilt))
-                .with_scale(scale),
-        )
+    let piece = |joint: Joint| {
+        let (body, hoof, hair) = (&body, &hoof, &hair);
+        pieces
+            .iter()
+            .filter(move |(part, _)| part.joint == joint)
+            .map(move |(part, mesh)| {
+                let material = match part.kind {
+                    Kind::Body => body,
+                    Kind::Hoof => hoof,
+                    Kind::Hair => hair,
+                };
+                (
+                    Piece(part.kind),
+                    Mesh3d(mesh.clone()),
+                    MeshMaterial3d(material.clone()),
+                    Transform::default(),
+                    hair_visibility(part.kind, bare),
+                )
+            })
     };
-
-    let back = leg_len + body_h;
-    let front = body_len / 2.0;
     commands
         .spawn((
-            HorseBody { index, leg_len },
+            HorseBody { index, leg_len: horse.clearance },
             Transform::from_translation(position),
             Visibility::default(),
         ))
-        .with_children(|horse| {
-            // Body
-            horse.spawn(part(
-                Vec3::new(0.0, leg_len + body_h / 2.0, 0.0),
-                0.0,
-                Vec3::new(body_len, body_h, body_w),
-            ));
+        .with_children(|trunk| {
+            for bundle in piece(Joint::Trunk) {
+                trunk.spawn(bundle);
+            }
             // Neck and head hang from a joint at the withers, which drops
             // them when the horse is exhausted.
-            horse
+            trunk
                 .spawn((
                     Neck(index),
-                    Transform::from_xyz(front, back - 0.15, 0.0),
+                    Transform::from_translation(joint_origin(horse, Joint::Neck)),
                     Visibility::default(),
                 ))
                 .with_children(|neck| {
-                    // Neck, leaning forward
-                    neck.spawn(part(
-                        Vec3::new(0.05, neck_len / 2.0, 0.0),
-                        -0.5,
-                        Vec3::new(0.3, neck_len, 0.28),
-                    ));
-                    // Head
-                    neck.spawn(part(
-                        Vec3::new(0.3 + head_len / 2.0, neck_len * 0.8 + 0.15, 0.0),
-                        -0.3,
-                        Vec3::new(head_len, 0.3, 0.26),
-                    ));
+                    for bundle in piece(Joint::Neck) {
+                        neck.spawn(bundle);
+                    }
                 });
-            // Tail
-            horse.spawn(part(
-                Vec3::new(-front - 0.1, back - 0.35, 0.0),
-                -0.35,
-                Vec3::new(0.12, 0.7, 0.12),
-            ));
-            // Legs hang from a hip that swings; diagonal pairs move together.
-            for (x, z, phase) in [
-                (1.0, 1.0, 0.0),
-                (1.0, -1.0, std::f32::consts::PI),
-                (-1.0, 1.0, std::f32::consts::PI),
-                (-1.0, -1.0, 0.0),
-            ] {
-                horse
+            // Legs hang from a joint that swings; diagonal pairs move
+            // together.
+            for leg in 0..LEGS.len() {
+                let phase = if leg == 0 || leg == 3 { 0.0 } else { std::f32::consts::PI };
+                trunk
                     .spawn((
                         Leg { horse: index, phase },
-                        Transform::from_xyz(x * (front - 0.15), leg_len, z * (body_w / 2.0 - 0.09)),
+                        Transform::from_translation(joint_origin(horse, Joint::Leg(leg))),
                         Visibility::default(),
                     ))
-                    .with_children(|leg| {
-                        leg.spawn(part(
-                            Vec3::new(0.0, -leg_len / 2.0, 0.0),
-                            0.0,
-                            Vec3::new(0.16, leg_len, 0.16),
-                        ));
+                    .with_children(|limb| {
+                        for bundle in piece(Joint::Leg(leg)) {
+                            limb.spawn(bundle);
+                        }
                     });
             }
         });
+}
+
+fn hair_visibility(kind: Kind, bare: bool) -> Visibility {
+    if kind == Kind::Hair && bare { Visibility::Hidden } else { Visibility::Inherited }
+}
+
+/// F5 hides the horses' hair, and shows it again: mane, forelock, tail hair
+/// and feathering. A dev aid, for looking at the build underneath.
+fn toggle_hair(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut bare: ResMut<Bare>,
+    mut pieces: Query<(&Piece, &mut Visibility)>,
+) {
+    if !keys.just_pressed(KeyCode::F5) {
+        return;
+    }
+    bare.0 = !bare.0;
+    for (piece, mut visibility) in &mut pieces {
+        *visibility = hair_visibility(piece.0, bare.0);
+    }
 }
 
 /// Keep the scene in its share of the window. The share is the top of the

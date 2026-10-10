@@ -28,7 +28,10 @@ fn main() {
             primary_window: Some(window),
             ..default()
         }))
-        .add_plugins(game::GamePlugin { seed: seed() })
+        .add_plugins(game::GamePlugin {
+            seed: seed(),
+            bare: std::env::args().any(|arg| arg == "--bare"),
+        })
         .add_plugins(game::menu::MenuPlugin {
             show_parts: std::env::args().any(|arg| arg == "--parts"),
         })

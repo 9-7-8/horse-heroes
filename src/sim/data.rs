@@ -250,7 +250,7 @@ impl Data {
     }
 }
 
-fn parse<T: DeserializeOwned>(file: &str, text: &str) -> T {
+pub(super) fn parse<T: DeserializeOwned>(file: &str, text: &str) -> T {
     ron::from_str(text).unwrap_or_else(|e| panic!("assets/data/{file}: {e}"))
 }
 

@@ -1,0 +1,68 @@
+// The base horse's shape: a mature, modern sport-type Friesian build
+// (docs/philosophy/horse-shape.md). Every length is a ratio of H, the height
+// at the withers, so the horse is resized by changing `height` alone.
+//
+// A dimension is (base, least, most). The base is what every horse is built
+// to today; least and most are the window a horse may vary in and still be
+// this kind of horse (#63). The centimetres in the comments are the brief's,
+// at its reference height of 165 cm.
+(
+    // H in world units.
+    height: 1.6,
+
+    // --- The brief's main dimensions ---------------------------------------
+    head_length:       (0.36, 0.339, 0.376),   // 59 cm, 56-62: poll to muzzle
+    head_width:        (0.14, 0.127, 0.152),   // 23 cm, 21-25: across the cheek
+    muzzle_width:      (0.09, 0.085, 0.103),   // 15 cm, 14-17
+    ear_length:        (0.09, 0.079, 0.097),   // 15 cm, 13-16
+    ear_width:         (0.033, 0.030, 0.036),  // 5 to 6 cm at the base
+    neck_length:       (0.53, 0.497, 0.570),   // 88 cm, 82-94: root to poll
+    // Degrees above level, root to poll, standing. A pose, not a ratio.
+    neck_carriage:     (50.0, 45.0, 55.0),
+    // The neck seen from the side: at the base, the middle and the head.
+    neck_base:         (0.285, 0.267, 0.303),  // 44-50 cm
+    neck_middle:       (0.20, 0.182, 0.218),   // 30-36 cm
+    neck_throat:       (0.133, 0.121, 0.145),  // 20-24 cm
+    body_length:       (1.08, 1.048, 1.109),   // 178 cm, 173-183
+    barrel_width:      (0.36, 0.339, 0.388),   // 60 cm, 56-64
+    chest_width:       (0.26, 0.236, 0.285),   // 43 cm, 39-47
+    hindquarter_width: (0.34, 0.315, 0.364),   // 56 cm, 52-60
+    tail_dock:         (0.25, 0.230, 0.279),   // 42 cm, 38-46
+
+    // --- Linked values -------------------------------------------------------
+    // Depth at the girth and the clearance under the chest add up to H. Only
+    // the depth is chosen; the clearance is what is left, and its own window
+    // is here to check that against (76 + 89 = 165; 72-79 and 86-93).
+    body_depth:        (0.46, 0.436, 0.479),
+    clearance:         (0.54, 0.521, 0.564),
+    // Tail hair is set by where its tips end, not by its length: 5 to 10 cm
+    // above the ground. The length that comes out is checked against the
+    // brief's window (about 140 cm, 130-150).
+    tail_clearance:    (0.045, 0.030, 0.061),
+    tail_length:       (0.85, 0.788, 0.909),
+
+    // --- Landmarks: heights above the ground --------------------------------
+    // The withers are at H. Sockets for gear go at these.
+    croup:             (0.99, 0.982, 1.0),     // 162-165 cm
+    elbow:             (0.60, 0.582, 0.624),   // 96-103
+    knee:              (0.306, 0.291, 0.321),  // 48-53, the front knee's centre
+    hock:              (0.364, 0.345, 0.382),  // 57-63
+    fetlock:           (0.121, 0.109, 0.133),  // 18-22
+    hoof_top:          (0.067, 0.061, 0.073),  // 10-12
+
+    // --- Chosen here, not given by the brief ---------------------------------
+    // Degrees below level that the face points, standing: neither tucked nor
+    // thrown up.
+    face_angle: 47.0,
+    // The head seen from the side: at the jaw and at the muzzle.
+    jaw_depth: 0.15,
+    muzzle_depth: 0.085,
+    // The neck seen from the front: at the base and under the head.
+    neck_width_base: 0.20,
+    neck_width_throat: 0.09,
+    // The cannon bone seen from the side. Every other thickness of a leg is
+    // a multiple of it, so this one number is how sturdy the legs are.
+    bone: 0.058,
+    // How far the mane hangs below the crest, at its longest.
+    mane_fall: 0.24,
+)
