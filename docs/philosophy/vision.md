@@ -487,6 +487,22 @@ enemy, misses, reactions never critting, and flat defence.
 - **Basic attacks are neutral unless the mouth weapon gives them an
   element.** They never apply or consume a Primer.
 
+## Menus and navigation (owner, 2026-10-10)
+
+Her judgment: "This game is going to live and die on how easy and intuitive
+the menus are to navigate." Four choices she made from options put to her
+the same day. The advice built on them is in [menus.md](menus.md).
+
+- **Five places, horse first:** Horses, Trade, Map, Town, Journal, in one bar
+  that is always visible. Town opens on Horses. Gear, abilities, pet and look
+  are tabs on the selected horse. This replaces the four places (Party,
+  Trade, Wardrobe, Town) proposed in town.md.
+- **Mouse first, with a key for everything.** The whole game can be played
+  without the mouse. A controller is not a design target.
+- **On the road, look and plan.** Every place opens on the road. Gear,
+  ability and pet changes made there are queued and applied on arrival, so
+  "gear and pets change in town only" still holds.
+
 ## The design priority
 
 > Complexity through depth, not breadth.

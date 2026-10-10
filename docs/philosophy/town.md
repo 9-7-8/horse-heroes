@@ -7,6 +7,10 @@ The caravan was first a proposal; **the owner has since confirmed it as the
 party's travelling home and shop**, with the six points below. Arrival rates,
 price limits, reputation formulas and upgrades are still to be prototyped.
 
+*(2026-10-10: the four places under "Interface" below are replaced by the
+owner's five, Horses, Trade, Map, Town and Journal. See
+[vision.md](vision.md), "Menus and navigation", and [menus.md](menus.md).)*
+
 ## Confirmed by the owner
 
 1. The caravan is the party's **travelling home and shop**.
