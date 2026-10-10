@@ -17,6 +17,8 @@ Read the relevant file before designing or tuning the system it covers.
 | [combat-rhythm.md](combat-rhythm.md) | Attack phases, keeping timings separate, and response before polish (incomplete, see the file) |
 | [build-laboratory.md](build-laboratory.md) | What an idle game keeps from an action RPG: the five promises, policies in place of execution, bounded runs, difficulty as a choice, targeted farming (incomplete, see the file) |
 | [items-and-builds.md](items-and-builds.md) | What an item must be: a rarity ladder with jobs, rule-changing powers, relevance as a mix, sets without uniforms |
+| [procedural-generation.md](procedural-generation.md) | How anything is generated: authored vocabulary, four layers that agree, one pipeline, seeds and stable identity, constraints and fallbacks, testing, order of work |
+| [fairyland-content.md](fairyland-content.md) | The rules for each generated thing: horses, enemies, gear, trails, corruption, and readability above detail |
 
 ## How these files are kept
 
