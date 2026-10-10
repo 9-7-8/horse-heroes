@@ -70,10 +70,11 @@ another build, sell it, or (if it exists) salvage it.
 
 - A single capacity number first. Not weight and volume and bulk and
   compartments.
-- Pooled across the party is simpler to explain than per horse.
-- **The rule for a full bag matters most**, and there is exactly one. The
-  suggested first rule: return to town automatically, with the option to mark
-  some kinds of drop as higher priority.
+- Capacity is shared by the whole party (confirmed).
+- **The rule for a full bag is decided:** the party carries on, keeping the
+  best cargo its rules allow and leaving the rest. A full bag never ends the
+  trip. This replaces the automatic return to town first suggested here. The
+  whole of it is in [cargo.md](cargo.md).
 - Their value is more loot per trip, never more damage per hit.
 
 ### The town
@@ -151,9 +152,9 @@ set bonuses; generated combinations that can be invalid or unreadable.
   ([elemental-combat.md](elemental-combat.md)): which setup a horse applies,
   how it takes part in a reaction. That makes it the category most likely to
   change who travels together, which is the vision's central test.
-- Saddlebags are the one place abundance and low management meet. The full-bag
-  rule decides whether a huge fountain is a gift or a nuisance
-  ([loot-fountain.md](loot-fountain.md)).
+- Saddlebags are the one place abundance and low management meet. The owner's
+  full-bag rule (keep the best, carry on) is what lets a huge fountain be a
+  gift and not a nuisance ([cargo.md](cargo.md)).
 
 ## Source
 

@@ -105,8 +105,13 @@ ceremony alone does not last.
   the moment: show what changed.
 - All of it is data (pillar 4): rarity tiers, weights, colours, fountain sizes.
 - Huge drops are a confirmed goal ([vision.md](vision.md)), and so is low
-  management. A fountain should feel generous without forcing an inventory
-  interruption: whatever limits carrying has to resolve itself by a rule.
+  management. The owner's rule settles how: the party keeps the best cargo
+  its rules allow and carries on, so a fountain never forces an inventory
+  interruption ([cargo.md](cargo.md)). What flies to the party is what was
+  kept; what stays on the ground was left. Do not hide the rejected loot so
+  well that a victory looks empty.
+- Rarity is shown several ways, never by colour alone, and its colours must
+  not be confusable with the element colours.
 
 ## Source
 

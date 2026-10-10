@@ -76,6 +76,19 @@ No avatar and no explanation for the organiser is required.
   mix of attack, health and cooldown as every other. The categories should
   feel natural for autonomous horses.
 
+### Loot and cargo
+
+Recorded as her confirmed decisions in her loot and saddlebags document; the
+detail is in [cargo.md](cargo.md).
+
+- Loot belongs to the **whole party**; no horse has a personal inventory.
+- **A full bag does not stop the journey.** The party leaves a new item
+  behind or abandons a carried one for a better one. Capacity never sends the
+  party home or skips the boss.
+- The player can tune what is kept. The default is highest rarity first.
+- Rare gear is exciting: its own rarity colour, a more distinctive look, a
+  more impressive reveal.
+
 ### Travel
 
 Established in discussion and listed as such in her travel document; the
@@ -181,7 +194,7 @@ main loop works. Both hold.
 
 Party size and duplicates; whether class or element can change; what makes a
 recruit valuable without replacing a favourite; the shape of the map and how
-routes are picked; how saddlebags count and what happens when they fill; how the
+routes are picked; how the
 shop works and how relationships are earned; what work a horse can do in
 town; the exact reaction rules; what pets do; what failure costs; whether
 restoration is permanent; whether corrupted creatures are killed or cured;
