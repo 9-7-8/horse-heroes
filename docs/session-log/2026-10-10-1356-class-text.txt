@@ -1,0 +1,47 @@
+SESSION LOG 2026-10-10 13:56 - no class name in the report
+==========================================================
+
+ASKED
+  "/next" - procedures/next-thing.txt.
+
+DONE
+  - Tier 1c, a bug the last session met and left without an issue:
+    filed as #242 and fixed (4022e0e, closes it). A dropped piece read
+    "fits Morrow the Wizard"; it now reads "fits Morrow". Class::name
+    is removed, so nothing can print a class. The comment in
+    horses.ron and the party line in the README no longer speak of
+    classes.
+    Tested: cargo check and cargo test green, 94 pass, no warning.
+    Seen running, in a still picture read by me: the menu tour at
+    --seed 6, picture 31, Journal, Report. Only the GOG overlay's
+    lines in the log.
+  - docs/expedition.md: the party and its abilities by horse name, and
+    what the class field still is.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The Class enum stays in the sim. It is what gives each horse its
+    one ability, and replacing it is #221 and #222 (0.6.0), not a bug
+    fix. It is commented as code-only.
+  - The README names each horse's ability instead of a class.
+
+FOUND
+  - Remove-Item on a folder under screenshots/ is refused in this
+    shell. A picture run goes into a folder with a new name instead.
+
+NOT DONE
+  - No test asserts that no class name reaches the player; the report
+    is built in src/game/, and there is nothing left to print one with.
+  - Carried over, unchanged: nobody has pressed anything with a real
+    pointer or the keyboard; #187 waits on the owner's look at the
+    horse and #10 on her listening (F4); nobody has watched a death or
+    the screen response move; the fountains are not tuned; a place
+    left open on the road still cuts a beam off; a lost trail is not
+    held on the road (#176); in town the horses walk on the spot; #199
+    waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Left in 0.2.0: #229, #233, #240, #241
+  to build, and #187 and #10 waiting on the owner. #229 is next, the
+  lowest number: keys for places, tabs and horses, printed on them,
+  from the map file, and Escape going back one level.

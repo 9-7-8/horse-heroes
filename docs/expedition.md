@@ -31,16 +31,18 @@ first if it is an upgrade.
 
 ## Rules as built
 
-- Party: Juniper (Ranger), Morrow (Wizard), Sable (Mage). Fixed; there is no
-  horse picker yet.
+- Party: Juniper, Morrow, Sable. Fixed; there is no horse picker yet. There
+  are no classes. Each horse has one ability, picked by the `class` field in
+  `horses.ron` (Ranger, Wizard, Mage), which is code-only and never shown; it
+  goes with the shared pool of abilities (#221).
 - A trail is 3 ordinary encounters drawn from 5 hand-written pieces in a rolled
   order, then 1 of 2 finals. Each enemy's element is rolled. A quarter of
   trails have a fairy spring that heals the party after one encounter.
 - Every hit is `max(attack - defense, 0) + elemental x triangle`, at least 1.
   Triangle: Fire > Plant > Ice > Fire, x1.5 strong, x0.75 resisted.
-- Ranger: Focused Shot, x2.5 attack on the current target every 4 s.
-  Wizard: Elemental Burst, x2 elemental on every enemy every 5 s.
-  Mage: Ward, halves damage taken for 4 s every 8 s.
+- Juniper: Focused Shot, x2.5 attack on the current target every 4 s.
+  Morrow: Elemental Burst, x2 elemental on every enemy every 5 s.
+  Sable: Ward, halves damage taken for 4 s every 8 s.
 - One gear drop per run if at least one encounter was cleared; a win shifts
   the rarity weights up. Each piece fits one named horse and one of three
   slots (Head, Body, Saddle). On a win the piece comes out of the last
@@ -64,6 +66,6 @@ trail, 44% with the worst. `first_trail_balance` fails if this drifts out of
 
 ## Not built yet
 
-Horse choice per class, buttons (keys only), attack and hit animation, the
+Horse choice, buttons (keys only), attack and hit animation, the
 rest of the loot shower (gear in it, rarity, pickup), sound, saving, spending coins, a second trail, horses that
 differ in shape (all three are the base horse, [horse-model.md](horse-model.md)).
