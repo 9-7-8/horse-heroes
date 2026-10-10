@@ -11,6 +11,7 @@
 
 use bevy::{
     input::InputSystems,
+    input_focus::{FocusCause, InputFocus, InputFocusVisible},
     prelude::*,
     render::view::screenshot::{Screenshot, save_to_disk},
     ui_widgets::Activate,
@@ -84,6 +85,9 @@ enum Step {
     Control(&'static str),
     /// Press a key, as the keyboard would.
     Key(KeyCode),
+    /// Give the keyboard focus to the first control of that name, as Tab
+    /// would; `None` takes it away again.
+    Focus(Option<&'static str>),
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -164,6 +168,9 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("opening a place on the road midway".into()),
         Step::Wait(SETTLE),
         Step::Shot("on the road horses".into()),
+        Step::Focus(Some("Sets")),
+        Step::Shot("focus brings a control into view".into()),
+        Step::Focus(None),
         Step::Place(places.places.len() - 1),
         Step::Shot("on the road journal".into()),
         Step::PlaceMidway(places.places.len() - 1),
@@ -226,6 +233,8 @@ fn tour(
     slots: Query<(Entity, &SlotRow)>,
     controls: Query<(Entity, &ControlButton)>,
     map: Res<Places>,
+    mut focus: ResMut<InputFocus>,
+    mut focus_visible: ResMut<InputFocusVisible>,
     mut exit: MessageWriter<AppExit>,
 ) {
     tour.wait -= time.delta_secs();
@@ -263,8 +272,27 @@ fn tour(
             .filter(|(_, b)| map.control(b.id).name == *name)
             .min_by_key(|(_, b)| b.id)
             .map(|(e, _)| e),
-        Step::Key(_) | Step::Wait(_) | Step::SetOut | Step::Town | Step::Shot(_) => None,
+        Step::Key(_)
+        | Step::Focus(_)
+        | Step::Wait(_)
+        | Step::SetOut
+        | Step::Town
+        | Step::Shot(_) => None,
     };
+    if let Step::Focus(name) = step {
+        let control = name.and_then(|name| {
+            controls
+                .iter()
+                .filter(|(_, b)| map.control(b.id).name == name)
+                .min_by_key(|(_, b)| b.id)
+                .map(|(e, _)| e)
+        });
+        match control {
+            Some(entity) => focus.set(entity, FocusCause::Navigated),
+            None => focus.clear(),
+        }
+        focus_visible.0 = control.is_some();
+    }
     if let Some(entity) = pressed {
         commands.trigger(Activate { entity });
     }

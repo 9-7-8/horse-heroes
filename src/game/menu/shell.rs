@@ -9,7 +9,9 @@ use bevy::{
     input_focus::{FocusCause, InputFocus, InputFocusVisible, tab_navigation::TabGroup},
     prelude::*,
     ui::{InteractionDisabled, Selected},
-    ui_widgets::Activate,
+    ui_widgets::{
+        Activate, ControlOrientation, ScrollArea, ScrollIntoView, Scrollbar, ScrollbarThumb,
+    },
 };
 use serde::Deserialize;
 
@@ -457,6 +459,8 @@ impl Plugin for ShellPlugin {
                     mark_chosen,
                     show_reasons,
                     show_facts,
+                    show_scrollbars,
+                    follow_focus,
                 )
                     .chain(),
             )
@@ -648,18 +652,40 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                 for (i, (heading, job, content, controls)) in
                                     place.pages().into_iter().enumerate()
                                 {
-                                    pages
-                                        .spawn((
-                                            Page::Tab(p, i),
-                                            Node {
-                                                width: Val::Percent(100.0),
-                                                flex_direction: FlexDirection::Column,
-                                                padding: UiRect::all(Val::Px(t.space.m)),
-                                                row_gap: Val::Px(t.space.s),
-                                                overflow: Overflow::clip(),
-                                                ..default()
-                                            },
-                                        ))
+                                    // A tab that does not fit scrolls, with
+                                    // its bar beside it (#243): nothing is
+                                    // cut off without saying so.
+                                    let mut frame = pages.spawn((
+                                        Page::Tab(p, i),
+                                        Node {
+                                            width: Val::Percent(100.0),
+                                            ..default()
+                                        },
+                                    ));
+                                    let mut scrolls = Entity::PLACEHOLDER;
+                                    frame.with_children(|frame| {
+                                        scrolls = frame
+                                            .spawn((
+                                                ScrollArea,
+                                                Node {
+                                                    flex_grow: 1.0,
+                                                    min_width: Val::Px(0.0),
+                                                    flex_direction: FlexDirection::Column,
+                                                    padding: UiRect::all(Val::Px(t.space.m)),
+                                                    row_gap: Val::Px(t.space.s),
+                                                    overflow: Overflow {
+                                                        x: OverflowAxis::Clip,
+                                                        y: OverflowAxis::Scroll,
+                                                    },
+                                                    ..default()
+                                                },
+                                            ))
+                                            .id();
+                                        frame.spawn(scrollbar(t, scrolls));
+                                    });
+                                    frame
+                                        .commands()
+                                        .entity(scrolls)
                                         .with_children(|tab_page| {
                                             tab_page.spawn(title(t, &heading));
                                             tab_page.spawn(dim(t, job));
@@ -719,6 +745,58 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                     }
                 });
         });
+}
+
+/// The bar beside a page that scrolls. It keeps its width whether or not it
+/// shows, so the page does not move when it appears.
+fn scrollbar(t: &Tokens, target: Entity) -> impl Bundle + use<> {
+    (
+        Node {
+            width: Val::Px(t.size.scrollbar_width),
+            flex_shrink: 0.0,
+            ..default()
+        },
+        Scrollbar::new(target, ControlOrientation::Vertical, t.size.control_height),
+        BackgroundColor(t.colour.panel.0),
+        Visibility::Hidden,
+        children![(
+            ScrollbarThumb {
+                border_radius: BorderRadius::all(Val::Px(t.size.radius)),
+                border: UiRect::ZERO,
+            },
+            BackgroundColor(t.colour.control_border.0),
+        )],
+    )
+}
+
+/// A scrollbar shows only while its page does not fit.
+fn show_scrollbars(
+    mut bars: Query<(&Scrollbar, &mut Visibility)>,
+    areas: Query<&ComputedNode, With<ScrollArea>>,
+) {
+    for (bar, mut visibility) in &mut bars {
+        let Ok(area) = areas.get(bar.target) else {
+            continue;
+        };
+        let wanted = if area.content_size().y > area.size().y + 0.5 {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+        if *visibility != wanted {
+            *visibility = wanted;
+        }
+    }
+}
+
+/// A control that takes the keyboard focus is brought into view, so Tab
+/// never lands on something that cannot be seen.
+fn follow_focus(mut commands: Commands, focus: Res<InputFocus>) {
+    if focus.is_changed()
+        && let Some(entity) = focus.get()
+    {
+        commands.trigger(ScrollIntoView { entity });
+    }
 }
 
 fn spawn_content(

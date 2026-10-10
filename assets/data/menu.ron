@@ -21,6 +21,9 @@
         // Wide enough for the largest number shown, so a growing count never
         // moves what is beside it.
         counter_width: 96,
+        // The bar beside a page that scrolls. Its width is kept when it is
+        // hidden, so a page does not move when it starts to scroll.
+        scrollbar_width: 6,
         // The shell: a horse in the status strip, and the two columns that
         // stay beside the tabs of the Horses place.
         strip_horse_width: 150,
