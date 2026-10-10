@@ -141,6 +141,9 @@ pub struct EnemyDef {
     /// The kind of kill it is: the name of the fountain its drops leave in,
     /// one of those in `loot_shower.ron`. The sim only carries the name.
     pub fountain: String,
+    /// How it dies: the name of one of the deaths in `deaths.ron`. The sim
+    /// only carries the name.
+    pub death: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -274,6 +277,7 @@ mod tests {
             assert!(enemy.health > 0 && enemy.attack_interval > 0.0, "{}", enemy.id);
             assert!(0 <= enemy.coins.0 && enemy.coins.0 <= enemy.coins.1, "{}", enemy.id);
             assert!(!enemy.fountain.is_empty(), "{}", enemy.id);
+            assert!(!enemy.death.is_empty(), "{}", enemy.id);
         }
 
         let encounters = &data.encounters;

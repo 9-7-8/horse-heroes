@@ -1,0 +1,77 @@
+// Deaths: how an enemy's body goes when it is brought down. Nothing just
+// vanishes (docs/philosophy/feedback-chain.md): the body is knocked back and
+// tips over, breaks into shards that are thrown out and fall, and leaves a
+// mark on the ground for a while. An enemy names its death in enemies.ron,
+// so a new kind is one more entry here and its name there. Lengths are world
+// units, times are seconds, speeds are units a second. A pair is (least,
+// most), rolled per shard. Horses do not die and have no entry here.
+(
+    // One for each kind of death.
+    //   fall_secs      from the blow to the body breaking: it is knocked back
+    //                  and tips over in this time. A fountain's delay_secs
+    //                  (loot_shower.ron) should not be shorter by much, so
+    //                  the drops come out of the break
+    //   knock_back     how far it is thrown, away from the party
+    //   tip_degrees    how far over it tips
+    //   swell          how many times its size it has grown to as it breaks
+    //   per_side       it breaks into this many shards along each edge, so
+    //                  2 is 8 shards and 3 is 27
+    //   out_speed      a shard's speed outward from the middle of the body
+    //   up_speed       and upward
+    //   back_speed     and away from the party, the same for every shard
+    //   spin           a shard's tumbling, in turns a second
+    //   linger_secs    from the break to the shards starting to shrink away
+    //   fade_secs      how long they take to be gone
+    //   mark_radius    the mark's radius, in body sizes
+    //   mark_secs      from the break to the mark being gone
+    //   mark_fade_secs it shrinks away over the last this much of that
+    deaths: {
+        // An ordinary enemy: knocked away and broken at once.
+        "small": (
+            fall_secs: 0.1,
+            knock_back: 0.4,
+            tip_degrees: 30,
+            swell: 1.0,
+            per_side: 2,
+            out_speed: (1.0, 2.2),
+            up_speed: (2.5, 4.5),
+            back_speed: 1.0,
+            spin: (1.0, 3.0),
+            linger_secs: 0.7,
+            fade_secs: 0.3,
+            mark_radius: 0.6,
+            mark_secs: 2.5,
+            mark_fade_secs: 0.6,
+        ),
+        // A trail's last enemy: it rears back and swells for a beat, then
+        // bursts, in more pieces thrown higher, and its mark stays longer.
+        "big": (
+            fall_secs: 0.3,
+            knock_back: 0.6,
+            tip_degrees: 20,
+            swell: 1.25,
+            per_side: 3,
+            out_speed: (1.5, 3.5),
+            up_speed: (5.0, 8.0),
+            back_speed: 1.5,
+            spin: (0.5, 2.0),
+            linger_secs: 1.0,
+            fade_secs: 0.4,
+            mark_radius: 0.9,
+            mark_secs: 6.0,
+            mark_fade_secs: 1.2,
+        ),
+    },
+
+    gravity: 30.0,
+    // The mark is the enemy's element colour, darkened to this share of it,
+    // and comes up to its size in this time.
+    mark_shade: 0.12,
+    mark_grow_secs: 0.08,
+
+    // Enemies still standing when the party is driven back are not removed
+    // either: they draw off, away from the party, starting at this speed and
+    // gaining this much every second, until they are out of view.
+    withdraw_speed: 1.0,
+    withdraw_accel: 16.0,
+)

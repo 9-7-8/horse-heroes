@@ -1,5 +1,7 @@
 //! The 3D picture: a fixed isometric-angle camera, a trail that scrolls left,
-//! three box-built horses walking right, and cubes for the enemies.
+//! three box-built horses walking right, and cubes for the enemies. A horse
+//! at no health is exhausted, not gone: it lies down while the party stands
+//! and walks on with its head low.
 //!
 //! The trail runs along world +X, which is screen-right. Height is Y.
 
@@ -31,6 +33,16 @@ const HORSE_Z: [f32; 3] = [0.6, -0.6, 0.6];
 /// About how high the middle of a horse's body is.
 const HORSE_MIDDLE: f32 = 1.2;
 pub const ENEMY_X: [f32; 3] = [3.5, 6.0, 8.5];
+/// An exhausted horse: seconds to lie down or get up, how far its neck drops
+/// while it is on its feet and how much further lying down, in radians, how
+/// far forward its legs fold, how high its belly rests, and the share of
+/// its stride it keeps when it walks on.
+const TIRED_SECS: f32 = 0.5;
+const TIRED_HANG: f32 = 1.05;
+const TIRED_LIE_HANG: f32 = 0.45;
+const TIRED_FOLD: f32 = std::f32::consts::FRAC_PI_2;
+const TIRED_BELLY: f32 = 0.08;
+const TIRED_STRIDE: f32 = 0.5;
 
 /// The colour an enemy of each element is drawn in.
 pub fn element_colour(element: Element) -> Color {
@@ -46,10 +58,11 @@ pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::BLACK))
+            .init_resource::<Tired>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
-                (frame, scroll, swing_legs, sync_horses, sync_enemies),
+                (frame, scroll, (sync_horses, swing_legs).chain(), sync_enemies),
             );
     }
 }
@@ -58,11 +71,39 @@ impl Plugin for ScenePlugin {
 struct Scrolling;
 
 #[derive(Component)]
-struct HorseBody(usize);
+struct HorseBody {
+    index: usize,
+    leg_len: f32,
+}
+
+/// The joint at the withers that a horse's neck and head hang from.
+#[derive(Component)]
+struct Neck(usize);
 
 #[derive(Component)]
 struct Leg {
+    horse: usize,
     phase: f32,
+}
+
+/// How each horse is held, 0 to 1: `hang` is how far its head has dropped
+/// and `lie` how far it has lain down. Both stay 0 for a horse that can
+/// fight.
+#[derive(Resource, Default)]
+struct Tired {
+    hang: [f32; HORSE_X.len()],
+    lie: [f32; HORSE_X.len()],
+}
+
+/// What an exhausted horse does: its head hangs, and it lies down unless the
+/// party is walking, when it gets up and comes along. Returns (hang, lie).
+pub fn tired_pose(exhausted: bool, moving: bool) -> (bool, bool) {
+    (exhausted, exhausted && !moving)
+}
+
+/// Eased, so a horse starts and stops moving gently.
+fn eased(t: f32) -> f32 {
+    t * t * (3.0 - 2.0 * t)
 }
 
 #[derive(Component)]
@@ -179,7 +220,7 @@ fn spawn_horse(
     let front = body_len / 2.0;
     commands
         .spawn((
-            HorseBody(index),
+            HorseBody { index, leg_len },
             Transform::from_translation(position),
             Visibility::default(),
         ))
@@ -190,18 +231,28 @@ fn spawn_horse(
                 0.0,
                 Vec3::new(body_len, body_h, body_w),
             ));
-            // Neck, leaning forward
-            horse.spawn(part(
-                Vec3::new(front + 0.05, back + neck_len / 2.0 - 0.15, 0.0),
-                -0.5,
-                Vec3::new(0.3, neck_len, 0.28),
-            ));
-            // Head
-            horse.spawn(part(
-                Vec3::new(front + 0.3 + head_len / 2.0, back + neck_len * 0.8, 0.0),
-                -0.3,
-                Vec3::new(head_len, 0.3, 0.26),
-            ));
+            // Neck and head hang from a joint at the withers, which drops
+            // them when the horse is exhausted.
+            horse
+                .spawn((
+                    Neck(index),
+                    Transform::from_xyz(front, back - 0.15, 0.0),
+                    Visibility::default(),
+                ))
+                .with_children(|neck| {
+                    // Neck, leaning forward
+                    neck.spawn(part(
+                        Vec3::new(0.05, neck_len / 2.0, 0.0),
+                        -0.5,
+                        Vec3::new(0.3, neck_len, 0.28),
+                    ));
+                    // Head
+                    neck.spawn(part(
+                        Vec3::new(0.3 + head_len / 2.0, neck_len * 0.8 + 0.15, 0.0),
+                        -0.3,
+                        Vec3::new(head_len, 0.3, 0.26),
+                    ));
+                });
             // Tail
             horse.spawn(part(
                 Vec3::new(-front - 0.1, back - 0.35, 0.0),
@@ -217,7 +268,7 @@ fn spawn_horse(
             ] {
                 horse
                     .spawn((
-                        Leg { phase },
+                        Leg { horse: index, phase },
                         Transform::from_xyz(x * (front - 0.15), leg_len, z * (body_w / 2.0 - 0.09)),
                         Visibility::default(),
                     ))
@@ -276,7 +327,7 @@ pub fn camera_home() -> Transform {
 }
 
 /// The side of an enemy's cube. Bigger enemies have more health.
-fn enemy_size(max_health: i32) -> f32 {
+pub fn enemy_size(max_health: i32) -> f32 {
     (max_health as f32).cbrt() / 3.5
 }
 
@@ -314,30 +365,58 @@ fn scroll(
     }
 }
 
-fn swing_legs(time: Res<Time>, game: Res<Game>, mut legs: Query<(&Leg, &mut Transform)>) {
+fn swing_legs(
+    time: Res<Time>,
+    game: Res<Game>,
+    tired: Res<Tired>,
+    mut legs: Query<(&Leg, &mut Transform)>,
+) {
     // Standing to fight, the legs come to rest under the horse.
     let swing = if game.party_moving() { 0.45 } else { 0.0 };
     let ease = (time.delta_secs() * 12.0).min(1.0);
     for (leg, mut transform) in &mut legs {
-        let angle = (time.elapsed_secs() * 7.0 + leg.phase).sin() * swing;
+        // An exhausted horse takes shorter steps, and lying down its legs
+        // fold forward along the ground.
+        let stride = 1.0 - (1.0 - TIRED_STRIDE) * eased(tired.hang[leg.horse]);
+        let lie = eased(tired.lie[leg.horse]);
+        let step = (time.elapsed_secs() * 7.0 + leg.phase).sin() * swing * stride;
+        let angle = step * (1.0 - lie) + TIRED_FOLD * lie;
         transform.rotation = transform.rotation.slerp(Quat::from_rotation_z(angle), ease);
     }
 }
 
-/// A horse that is down drops out of view until the next run.
-fn sync_horses(game: Res<Game>, mut horses: Query<(&HorseBody, &mut Visibility)>) {
-    for (body, mut visibility) in &mut horses {
-        let down = match &game.screen {
-            Screen::Trail(expedition) => expedition.party[body.0].health == 0,
+/// A horse at no health stays in view, exhausted: its head hangs, and it
+/// lies down while the party stands. It is on its feet again in town.
+fn sync_horses(
+    time: Res<Time>,
+    game: Res<Game>,
+    mut tired: ResMut<Tired>,
+    mut horses: Query<(&HorseBody, &mut Transform), Without<Neck>>,
+    mut necks: Query<(&Neck, &mut Transform), Without<HorseBody>>,
+) {
+    let step = time.delta_secs() / TIRED_SECS;
+    let towards = |now: f32, wanted: bool| {
+        if wanted { (now + step).min(1.0) } else { (now - step).max(0.0) }
+    };
+    for (body, mut transform) in &mut horses {
+        let exhausted = match &game.screen {
+            Screen::Trail(expedition) => expedition.party[body.index].health == 0,
             Screen::Camp { .. } => false,
         };
-        let wanted = if down {
-            Visibility::Hidden
-        } else {
-            Visibility::Inherited
-        };
-        if *visibility != wanted {
-            *visibility = wanted;
+        let (hang, lie) = tired_pose(exhausted, game.party_moving());
+        tired.hang[body.index] = towards(tired.hang[body.index], hang);
+        tired.lie[body.index] = towards(tired.lie[body.index], lie);
+        // Lying, its belly comes down to just above the ground.
+        let y = -(body.leg_len - TIRED_BELLY) * eased(tired.lie[body.index]);
+        if transform.translation.y != y {
+            transform.translation.y = y;
+        }
+    }
+    for (neck, mut transform) in &mut necks {
+        let drop = TIRED_HANG * eased(tired.hang[neck.0]) + TIRED_LIE_HANG * eased(tired.lie[neck.0]);
+        let rotation = Quat::from_rotation_z(-drop);
+        if transform.rotation != rotation {
+            transform.rotation = rotation;
         }
     }
 }
@@ -376,5 +455,21 @@ fn sync_enemies(
         if *visibility != Visibility::Inherited {
             *visibility = Visibility::Inherited;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A horse that can fight is never held as an exhausted one; an
+    /// exhausted one hangs its head, lies down while the party stands, and
+    /// is on its feet whenever the party walks.
+    #[test]
+    fn an_exhausted_horse_lies_down_only_while_the_party_stands() {
+        assert_eq!(tired_pose(false, false), (false, false));
+        assert_eq!(tired_pose(false, true), (false, false));
+        assert_eq!(tired_pose(true, false), (true, true));
+        assert_eq!(tired_pose(true, true), (true, false));
     }
 }

@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 
+pub mod death;
 pub mod drops;
 pub mod response;
 pub mod sound;
@@ -27,6 +28,7 @@ impl Plugin for FxPlugin {
             pickup: self.pickup,
             burst_at: self.burst_at.unwrap_or(drops::BURST_AT),
         })
+        .add_plugins(death::DeathPlugin)
         .add_plugins(response::ResponsePlugin)
         .add_plugins(sound::SoundPlugin { mute: self.mute });
     }

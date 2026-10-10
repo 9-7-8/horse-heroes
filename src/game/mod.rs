@@ -48,17 +48,31 @@ impl SceneView {
     }
 }
 
-/// An enemy went down: where its body was, the coins it dropped, the kind of
-/// kill it was (the name of its fountain), the rarity tier of the gear it
-/// dropped if it dropped any, and where the enemies still standing are. `fx`
-/// turns it into drops.
+/// An enemy went down: where its body was, its side and its element, the
+/// coins it dropped, the kind of kill it was (the name of its fountain), how
+/// it dies (the name of its death), the rarity tier of the gear it dropped if
+/// it dropped any, and where the enemies still standing are. `fx` turns it
+/// into a death and drops.
 #[derive(Message)]
 pub struct Killed {
     pub at: Vec3,
+    pub size: f32,
+    pub element: Element,
+    pub death: String,
     pub coins: i32,
     pub fountain: String,
     pub gear: Option<usize>,
     pub standing: Vec<Vec3>,
+}
+
+/// The party was driven back from an enemy still standing: where its body
+/// is, its side and its element. `fx` has it draw off, so that it is not
+/// simply gone.
+#[derive(Message)]
+pub struct Withdrew {
+    pub at: Vec3,
+    pub size: f32,
+    pub element: Element,
 }
 
 /// Coins that have dropped and not yet reached the party: in the air, on
@@ -91,6 +105,7 @@ impl Plugin for GamePlugin {
             .init_resource::<SceneView>()
             .init_resource::<Uncollected>()
             .add_message::<Killed>()
+            .add_message::<Withdrew>()
             .add_plugins(scene::ScenePlugin)
             .add_systems(Update, (input, advance).chain());
     }
@@ -273,6 +288,7 @@ pub fn advance(
     mut game: ResMut<Game>,
     mut uncollected: ResMut<Uncollected>,
     mut killed: MessageWriter<Killed>,
+    mut withdrew: MessageWriter<Withdrew>,
 ) {
     let game = &mut *game;
     let dt = time.delta_secs();
@@ -294,6 +310,9 @@ pub fn advance(
                     uncollected.coins += kill.coins.max(0);
                     killed.write(Killed {
                         at: scene::enemy_centre(kill.foe, kill.max_health),
+                        size: scene::enemy_size(kill.max_health),
+                        element: kill.element,
+                        death: kill.death,
                         coins: kill.coins,
                         gear: kill.gear.as_ref().map(|gear| gear.rarity),
                         fountain: kill.fountain,
@@ -310,6 +329,16 @@ pub fn advance(
             if let Some(outcome) = expedition.outcome.clone()
                 && !road_is_held(outcome.won, fell, uncollected.pieces)
             {
+                // Enemies the party leaves standing are handed on, not dropped.
+                for (i, foe) in expedition.foes.iter().enumerate() {
+                    if foe.health > 0 {
+                        withdrew.write(Withdrew {
+                            at: scene::enemy_centre(i, foe.max_health),
+                            size: scene::enemy_size(foe.max_health),
+                            element: foe.element,
+                        });
+                    }
+                }
                 game.return_to_camp(outcome);
             }
         }

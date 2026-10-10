@@ -89,6 +89,7 @@ pub struct Foe {
     attack_timer: f32,
     coins: (i32, i32),
     fountain: String,
+    death: String,
 }
 
 /// An enemy brought down, for the presentation to show: which one, and what
@@ -97,10 +98,13 @@ pub struct Foe {
 pub struct Kill {
     /// Its index among the encounter's enemies, which is where it stood.
     pub foe: usize,
+    pub element: Element,
     pub max_health: i32,
     pub coins: i32,
     /// The kind of kill: its enemy's `fountain` in `enemies.ron`.
     pub fountain: String,
+    /// How it died: its enemy's `death` in `enemies.ron`.
+    pub death: String,
     /// The gear it dropped. Only the enemy whose fall wins the trail drops
     /// any: the run's piece, the same one the outcome carries.
     pub gear: Option<Gear>,
@@ -228,6 +232,7 @@ impl Expedition {
                     attack_timer: def.attack_interval,
                     coins: def.coins,
                     fountain: def.fountain.clone(),
+                    death: def.death.clone(),
                 }
             })
             .collect();
@@ -433,9 +438,11 @@ impl Expedition {
                 .push(format!("{} is defeated (+{} coins)", foe.name, coins));
             self.kills.push(Kill {
                 foe: target,
+                element: foe.element,
                 max_health: foe.max_health,
                 coins,
                 fountain: foe.fountain.clone(),
+                death: foe.death.clone(),
                 gear: None,
             });
         }
@@ -590,6 +597,34 @@ mod tests {
                 assert!(kill.foe < 3 && kill.max_health > 0, "{kill:?}");
             }
         }
+    }
+
+    /// A kill says how its enemy dies and what element it was, so that the
+    /// body can be shown going: each is one its trail's enemies have, and the
+    /// kill that wins a trail dies the way one of the finals does.
+    #[test]
+    fn every_kill_says_how_its_enemy_dies() {
+        let data = Data::load();
+        let deaths_of = |ids: &[String]| -> Vec<&str> {
+            ids.iter().map(|id| data.enemies[data.enemy_index(id)].death.as_str()).collect()
+        };
+        let finals: Vec<&str> = data.encounters.finals.iter().flat_map(|e| deaths_of(e)).collect();
+        let mut won = 0;
+        for seed in 0..100 {
+            let run = run(&data, seed, 0, Element::Fire);
+            let spawns: Vec<&Spawn> = run.plan.encounters.iter().flatten().collect();
+            for kill in &run.kills {
+                let known = spawns.iter().any(|spawn| {
+                    spawn.element == kill.element && data.enemies[spawn.enemy].death == kill.death
+                });
+                assert!(known, "{kill:?}");
+            }
+            if run.outcome.as_ref().unwrap().won {
+                assert!(finals.contains(&run.kills.last().unwrap().death.as_str()));
+                won += 1;
+            }
+        }
+        assert!(won > 0);
     }
 
     /// The run's gear comes out of the enemy whose fall won the trail, and
