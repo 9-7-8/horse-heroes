@@ -1,12 +1,13 @@
 //! Sound for the fountain: a launch sound as a burst leaves, a sound for
 //! each piece of gear thrown that tells its rarity, landings, and a pickup
-//! tick whose pitch climbs across a stream of pickups.
+//! tick whose pitch climbs across a stream of pickups. And for the death the
+//! fountain comes out of: a sound as the body breaks.
 //!
 //! There are no sound files. Every sound is a recipe in
 //! `assets/data/sounds.ron`, made into samples when the game starts
 //! (`render`). Which sound plays when is data too: a rarity names its own in
-//! `gear.ron`, a fountain its own in `loot_shower.ron`, and the rest are in
-//! `sound` there.
+//! `gear.ron`, a fountain its own in `loot_shower.ron`, a death its own in
+//! `deaths.ron`, and the rest are in `sound` in `loot_shower.ron`.
 //!
 //! Making the samples and deciding what is heard (`Run`, `Gate`) are plain
 //! arithmetic, so they are unit-tested; the system below them only plays.
@@ -21,6 +22,7 @@ use bevy::audio::{AddAudioSource, ChannelCount, Decodable, Sample, SampleRate, S
 use bevy::prelude::*;
 use serde::Deserialize;
 
+use super::death::Deaths;
 use super::drops::{Kind, Shower};
 use crate::game::Game;
 use crate::sim::data::GearTable;
@@ -208,9 +210,13 @@ pub fn landing_level(feel: &SoundFeel, touch: u32) -> f32 {
     feel.land_fade.powi(touch as i32)
 }
 
-/// Every sound the fountain names, with where it is named: each must be in
+/// Every sound the data names, with where it is named: each must be in
 /// `sounds.ron`. A rarity may name none.
-pub fn named<'a>(shower: &'a Shower, gear: &'a GearTable) -> Vec<(String, &'a str)> {
+pub fn named<'a>(
+    shower: &'a Shower,
+    gear: &'a GearTable,
+    deaths: &'a Deaths,
+) -> Vec<(String, &'a str)> {
     let feel = &shower.sound;
     let mut names = vec![
         ("loot_shower.ron: land_coin".to_string(), feel.land_coin.as_str()),
@@ -223,6 +229,9 @@ pub fn named<'a>(shower: &'a Shower, gear: &'a GearTable) -> Vec<(String, &'a st
     }
     for rarity in gear.rarities.iter().filter(|r| !r.look.sound.is_empty()) {
         names.push((format!("gear.ron: {}", rarity.name), &rarity.look.sound));
+    }
+    for (name, death) in &deaths.deaths {
+        names.push((format!("deaths.ron: death `{name}`"), &death.sound));
     }
     names
 }
@@ -239,6 +248,8 @@ pub enum Heard {
     Landed { kind: Kind, touch: u32 },
     /// A piece has reached the party.
     Collected(Kind),
+    /// An enemy's body has broken, with this sound.
+    Died(String),
 }
 
 /// A sound made from its recipe: one channel of samples at `RATE`.
@@ -331,10 +342,11 @@ fn setup(
     mut commands: Commands,
     game: Res<Game>,
     shower: Res<Shower>,
+    deaths: Res<Deaths>,
     mut clips: ResMut<Assets<Clip>>,
 ) {
     let book = SoundBook::load();
-    for (place, name) in named(&shower, &game.data.gear) {
+    for (place, name) in named(&shower, &game.data.gear, &deaths) {
         assert!(book.sounds.contains_key(name), "{place}: no sound named `{name}` in sounds.ron");
     }
     let made = book
@@ -365,6 +377,7 @@ fn play(
 
     // What to play this frame: a sound, how loud, and how many semitones up.
     let mut due: Vec<(&str, f32, f32)> = Vec::new();
+    // Launches and breaks, which bring their sound's name with them.
     let mut launches = Vec::new();
     hearing.waiting.retain_mut(|(in_secs, sound)| {
         *in_secs -= dt;
@@ -401,6 +414,7 @@ fn play(
                 due.push((&feel.pickup_coin, 1.0, run_semitones(feel, step)));
             }
             Heard::Collected(Kind::Gear(_)) => due.push((&feel.pickup_gear, 1.0, 0.0)),
+            Heard::Died(sound) => launches.push(sound.clone()),
         }
     }
     due.extend(launches.iter().map(|sound| (sound.as_str(), 1.0, 0.0)));
@@ -516,7 +530,7 @@ mod tests {
     #[test]
     fn every_sound_named_is_there() {
         let (shower, data, book) = (Shower::load(), Data::load(), SoundBook::load());
-        for (place, name) in named(&shower, &data.gear) {
+        for (place, name) in named(&shower, &data.gear, &Deaths::load()) {
             assert!(book.sounds.contains_key(name), "{place}: no sound `{name}`");
         }
         for rarity in &data.gear.rarities {
@@ -554,7 +568,7 @@ mod tests {
             }
         }
         let drop_sounds: Vec<&str> = rarities.iter().map(|r| r.look.sound.as_str()).collect();
-        for (place, name) in named(&shower, &data.gear) {
+        for (place, name) in named(&shower, &data.gear, &Deaths::load()) {
             let uses = drop_sounds.iter().filter(|&&sound| sound == name).count();
             assert!(uses == 0 || place.starts_with("gear.ron"), "{place} uses {name}");
         }
@@ -565,6 +579,67 @@ mod tests {
                 "a Rare has no more notes than a {}",
                 rarities[lesser].name
             );
+        }
+    }
+
+    /// A death can be told by ear: an ordinary enemy's and a final one's do
+    /// not share a sound, the final's is at least twice as long and reaches
+    /// an octave or more lower, and no death's sound is used for anything
+    /// else.
+    #[test]
+    fn a_final_death_is_told_from_an_ordinary_one_by_its_sound() {
+        let (shower, data, book) = (Shower::load(), Data::load(), SoundBook::load());
+        let deaths = Deaths::load();
+        let of = |ids: &Vec<Vec<String>>| -> Vec<&str> {
+            ids.iter()
+                .flatten()
+                .map(|id| {
+                    let enemy = &data.enemies[data.enemy_index(id)];
+                    deaths.death(&enemy.death).sound.as_str()
+                })
+                .collect()
+        };
+        let lowest = |voices: &[Voice]| voices.iter().map(|v| v.freq).fold(f32::MAX, f32::min);
+        for small in of(&data.encounters.ordinary) {
+            for big in of(&data.encounters.finals) {
+                assert_ne!(small, big);
+                let (small, big) = (&book.sounds[small], &book.sounds[big]);
+                assert!(length_secs(big) >= 2.0 * length_secs(small));
+                assert!(lowest(big) <= lowest(small) / 2.0);
+            }
+        }
+        let death_sounds: Vec<&str> = deaths.deaths.values().map(|d| d.sound.as_str()).collect();
+        for (place, name) in named(&shower, &data.gear, &deaths) {
+            assert!(
+                !death_sounds.contains(&name) || place.starts_with("deaths.ron"),
+                "{place} uses {name}"
+            );
+        }
+    }
+
+    /// A death lands with its fountain's launch: the two played together,
+    /// when each is due, stay inside full scale. Whether one covers the
+    /// other is for an ear to say.
+    #[test]
+    fn a_death_and_its_launch_fit_together() {
+        let (shower, data, book) = (Shower::load(), Data::load(), SoundBook::load());
+        let deaths = Deaths::load();
+        for enemy in &data.enemies {
+            let death = deaths.death(&enemy.death);
+            let fountain = shower.fountain(&enemy.fountain);
+            let broke = render(&book.sounds[&death.sound]);
+            let launch = render(&book.sounds[&fountain.sound]);
+            let at = |secs: f32| (secs * RATE as f32) as usize;
+            let (broke_at, launch_at) = (at(death.fall_secs), at(fountain.delay_secs));
+            let mut both = vec![0.0; (broke_at + broke.len()).max(launch_at + launch.len())];
+            for (i, sample) in broke.iter().enumerate() {
+                both[broke_at + i] += sample;
+            }
+            for (i, sample) in launch.iter().enumerate() {
+                both[launch_at + i] += sample;
+            }
+            let loudest = shower.sound.volume * peak(&both);
+            assert!(loudest <= 1.0, "{}: {loudest}", enemy.id);
         }
     }
 

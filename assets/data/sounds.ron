@@ -2,8 +2,8 @@
 // game starts, from the recipe here, so every one is ours to give away under
 // the GPL and nothing is read from disk. Which sound plays when is not here:
 // a rarity names its drop sound in gear.ron, a fountain its launch sound in
-// loot_shower.ron, and the landing and pickup sounds are named in `sound`
-// there.
+// loot_shower.ron, a death its own in deaths.ron, and the landing and pickup
+// sounds are named in `sound` in loot_shower.ron.
 //
 // A sound is a list of voices, added together. A voice is one tone:
 //   wave     Sine, Triangle, Square, or Noise (a hiss; `freq` is how bright)
@@ -25,6 +25,20 @@
         "launch_full": [
             (wave: Noise, freq: 400, slide: 36, secs: 0.45, attack: 0.08, level: 0.45),
             (wave: Sine,  freq: 110, slide: 19, secs: 0.4,  attack: 0.02, level: 0.35),
+        ],
+
+        // An enemy's body breaking, named by its death in deaths.ron. It
+        // sounds with the launch, so it is kept short, or lower than it.
+        // An ordinary enemy: a short dry crack.
+        "death_small": [
+            (wave: Noise,  freq: 3200,             secs: 0.06, attack: 0.001, level: 0.26),
+            (wave: Square, freq: 480,  slide: -14, secs: 0.05, attack: 0.001, level: 0.1),
+        ],
+        // A trail's last enemy: the crack, and a boom falling away under it.
+        "death_big": [
+            (wave: Noise, freq: 2400,             secs: 0.1,  attack: 0.001, level: 0.2),
+            (wave: Sine,  freq: 82,   slide: -12, secs: 0.6,  attack: 0.004, level: 0.34),
+            (wave: Noise, freq: 220,  slide: -12, secs: 0.5,  attack: 0.01,  level: 0.16),
         ],
 
         // A piece touching the ground. A coin clinks; gear thuds.

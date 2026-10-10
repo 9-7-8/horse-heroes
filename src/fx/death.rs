@@ -1,7 +1,8 @@
 //! Death events: no enemy is taken out of the scene without one. A body that
 //! is brought down is knocked back and tips over, breaks into shards that
-//! are thrown out and fall, and leaves a mark on the ground for a while. A
-//! trail's last enemy names a bigger, slower death than an ordinary one.
+//! are thrown out and fall, and leaves a mark on the ground for a while. The
+//! break is heard, by the sound its death names (`fx::sound`). A trail's
+//! last enemy names a bigger, slower death than an ordinary one.
 //! Enemies still standing when the party is driven back draw off out of
 //! view. Every number is in `assets/data/deaths.ron`.
 //!
@@ -15,6 +16,7 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use serde::Deserialize;
 
+use super::sound::Heard;
 use crate::game::scene::{SCROLL_SPEED, element_colour};
 use crate::game::{Game, Killed, Withdrew};
 use crate::sim::data::Element;
@@ -57,6 +59,8 @@ pub struct Death {
     pub mark_radius: f32,
     pub mark_secs: f32,
     pub mark_fade_secs: f32,
+    /// Heard as the body breaks, by its name in `sounds.ron`.
+    pub sound: String,
 }
 
 impl Deaths {
@@ -361,6 +365,7 @@ fn play(
         (Entity, &mut Withdrawing, &mut Transform),
         (Without<Falling>, Without<Debris>, Without<Mark>),
     >,
+    mut heard: MessageWriter<Heard>,
 ) {
     let dt = time.delta_secs();
     // The ground moves under the party as it walks, and takes with it what
@@ -377,6 +382,7 @@ fn play(
         }
         // It breaks: the body goes, and its shards and its mark take its place.
         commands.entity(entity).despawn();
+        heard.write(Heard::Died(death.sound.clone()));
         let shades = look.of(body.element);
         let side = shard_side(death, body.size);
         for shard in plan_shards(death, body.seed, body.centre, body.size) {

@@ -25,6 +25,7 @@
     //   mark_radius    the mark's radius, in body sizes
     //   mark_secs      from the break to the mark being gone
     //   mark_fade_secs it shrinks away over the last this much of that
+    //   sound          heard as it breaks, by its name in sounds.ron
     deaths: {
         // An ordinary enemy: knocked away and broken at once.
         "small": (
@@ -42,6 +43,7 @@
             mark_radius: 0.6,
             mark_secs: 2.5,
             mark_fade_secs: 0.6,
+            sound: "death_small",
         ),
         // A trail's last enemy: it rears back and swells for a beat, then
         // bursts, in more pieces thrown higher, and its mark stays longer.
@@ -60,6 +62,7 @@
             mark_radius: 0.9,
             mark_secs: 6.0,
             mark_fade_secs: 1.2,
+            sound: "death_big",
         ),
     },
 
