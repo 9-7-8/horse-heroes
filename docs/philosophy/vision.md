@@ -141,6 +141,20 @@ needs, extensive crafting, town construction, and many more damage types.
   element is what its magic does, personality is who it is: three separate
   questions.
 
+## Her proposal: retirement and generations
+
+A horse who leaves the party retires into a town and stays a named character
+there. Healthy, restored towns support families; their children may later be
+recruited, so the party is one generation in a longer effort. Towns advance
+only when visited or when the world map is opened. The campaign has a finite
+goal, cleansing every region, and endless play is optional. The idea is hers;
+the details are recommendations. All of it is in
+[generations.md](generations.md).
+
+This touches the guardrail above against breeding. It is not a genetics or
+pairing system, and its own advice is to prototype it small and only after the
+main loop works. Both hold.
+
 ## Open
 
 Party size and duplicates; whether class or element can change; what makes a
@@ -173,6 +187,7 @@ what ends the journey and what follows it. Each group is a `decision` issue.
 
 ## Source
 
-Owner's design discussion summary, received 2026-10-09 (all sections). Its
+Owner's design discussion summary, received 2026-10-09 (all sections); the
+retirement section is from her later proposal, same date. The summary's
 header says it follows a document about a Windows installer and updater, which
 has not been received.

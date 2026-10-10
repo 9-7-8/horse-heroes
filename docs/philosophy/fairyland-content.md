@@ -33,8 +33,9 @@ and icon, never by colour alone.
   deliberate, clearly explained fantasy mechanic.
 - Classes get distinct tack cues, but the player must still recognise **their
   horse** under them. Class and element remain separate systems.
-- Breeding, if ever, is an inheritance model of its own. Visual noise is not
-  a substitute for inheritance rules. Not needed now.
+- Inheritance, when descendants arrive ([generations.md](generations.md)), is
+  a model of its own: a few inherited tags that feed the horse generator.
+  Visual noise is not a substitute for inheritance rules. Not needed now.
 
 ### Enemies
 
