@@ -90,6 +90,33 @@ No avatar and no explanation for the organiser is required.
   and build interactions. Saddlebags and pet saddles stay. No stirrups
   either. The rules built on it are in [gear.md](gear.md).
 
+### Failure
+
+Confirmed in her document on failure and stakes; the detail is in
+[failure.md](failure.md).
+
+- **Horses and pets cannot die.**
+- When health and usable potions run out, the party returns to the previous
+  city, loses a configurable amount of loot, and pays a modest cost in money
+  or materials.
+- It then **waits for the player to send it out, and never retries the
+  failed route by itself.**
+
+### The ending
+
+Her endpoint, set out in the endgame note; the detail is in
+[endgame.md](endgame.md).
+
+- **Success makes combat unnecessary.** The world is actually saved, not
+  farmed for ever.
+- A region is cleared when its corruption source is removed, its town
+  restored and its routes secured. A cleared region has no monsters, and
+  none are brought back for the sake of loot.
+- The game is finite by design. After the dragon there is no combat
+  endgame; a completed save stays open for peaceful play.
+- An open-ended peaceful mode is a possible later expansion, outside the
+  first game's scope.
+
 ### The caravan shop
 
 Confirmed direction in her caravan shop document; the detail is in
@@ -192,9 +219,9 @@ that.
   from automatic disposal.
 - **What a major victory does:** corruption recedes, a town opens or
   recovers, routes become safer, residents offer aid, and horses, pets,
-  styles and equipment become available. Restored places offer **patrols**
-  against remaining incursions, so farming does not need a place to be
-  corrupted again.
+  styles and equipment become available. *(The summary also proposed patrols
+  in restored places for repeat farming. Her endgame rule, under Confirmed,
+  replaces that: a cleared region has no fights.)*
 - **Harmful extraction and domination against restorative, communal
   technology** as the line the world draws, in keeping with solarpunk.
 - **Stories start small:** persistent characters, contextual events and
@@ -213,7 +240,7 @@ A horse who leaves the party retires into a town and stays a named character
 there. Healthy, restored towns support families; their children may later be
 recruited, so the party is one generation in a longer effort. Towns advance
 only when visited or when the world map is opened. The campaign has a finite
-goal, cleansing every region, and endless play is optional. The idea is hers;
+goal, cleansing every region. The idea is hers;
 the details are recommendations. All of it is in
 [generations.md](generations.md).
 
@@ -224,13 +251,12 @@ after the main loop works.
 
 ## Open
 
-Party size and duplicates; whether class or element can change; what makes a
-recruit valuable without replacing a favourite; the shape of the map and how
-routes are picked; how the
-shop works and how relationships are earned; what work a horse can do in
-town; the exact reaction rules; what pets do; what failure costs; whether
-restoration is permanent; whether corrupted creatures are killed or cured;
-what ends the journey and what follows it. Each group is a `decision` issue.
+Party size and duplicates; whether class or element can change; the shape of
+the map and how routes are picked; the details of the shop and of goodwill;
+what residents yield; the exact reaction rules; what pets do; the numbers
+behind a failure; whether corrupted creatures are killed or cured; how world
+time advances. Each group is a `decision` issue. Several questions that stood
+here have since been answered by her and moved up to Confirmed.
 
 ## Against the game as built
 

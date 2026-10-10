@@ -34,7 +34,9 @@ git history, how a system works goes in `docs/`, a routine goes in
    vacuum, sound and screen response come before content breadth. A new system
    that does not make a drop feel better waits behind one that does.
 2. **Idle first.** The game progresses with no input. Input makes it faster or
-   more interesting, never merely possible.
+   more interesting, never merely possible. One exception, the owner's
+   (2026-10-09): after a failed journey the party waits in town until she
+   sends it out, and never retries by itself.
 3. **Simple 3D.** Primitive meshes and flat colours until the loop is fun. Art
    is replaced late, so nothing may depend on a specific model.
 4. **Numbers are data.** Items, affixes, rarities, monsters and drop tables

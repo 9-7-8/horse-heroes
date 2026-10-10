@@ -11,7 +11,9 @@ Read the relevant file before designing or tuning the system it covers.
 | --- | --- |
 | [vision.md](vision.md) | **Read first.** What the owner wants built: the world, the loop, what the player controls, equipment rules, what is confirmed, proposed and open. Outranks the other files |
 | [elemental-combat.md](elemental-combat.md) | How horses cooperate: Primers, Finishers, three pair reactions, three same-element Crescendos, anti-chain rules, automation, how it is shown (a proposal, see the file) |
-| [generations.md](generations.md) | Retirement into towns, town states, families and descendants, updating towns on demand, a completable world and optional endless play (her proposal; details are recommendations) |
+| [failure.md](failure.md) | What happens when a journey fails: nobody dies, a safe return, a bounded loss and cost, no automatic retry, a report that teaches, and the tone of it |
+| [endgame.md](endgame.md) | How it ends: success makes combat unnecessary; what "cleared" means; a finite loot supply; the dragon's defeat; what stays playable in peace |
+| [generations.md](generations.md) | Retirement into towns and back, residents building by magic, town states, families and colour genetics, descendants, updating towns on demand |
 | [cosmetics.md](cosmetics.md) | The wardrobe: gear, displayed look and dye kept separate, unlocking looks through play, rider-free equipment, meaning without power, presets, layers, provenance (a proposal) |
 | [pets.md](pets.md) | Pets as companions with one small job: a collar, forgiving assignment, cuteness that is not a stat (a recommendation toward an open decision) |
 | [gear.md](gear.md) | The owner's slot mapping (halter, barding, boots, martingale, horseshoes, mouth weapon, braid, plus saddlebags and pet saddle), what each slot owns, accuracy and crit rules, exceptional pieces, how a piece is generated and compared |

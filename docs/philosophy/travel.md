@@ -16,7 +16,9 @@ points are a `decision` issue.
 2. The player **chooses a destination city**.
 3. Travel **distance determines the number of travel days**.
 4. Horses can travel only **a limited distance per day**.
-5. **Every journey ends with a boss encounter.**
+5. **Every journey ends with a boss encounter.** (Her later endgame rule
+   refines this: routes in a fully cleared region have no encounters and no
+   boss. See [endgame.md](endgame.md).)
 6. More dangerous areas produce **more encounters, stronger encounters and
    stronger bosses**.
 7. Local danger depends on the **purity of nearby world tiles**.
@@ -157,8 +159,11 @@ choice when needed.
     enter a dangerous region -> survive the road -> defeat its boss
       -> raise regional purity -> later travel is safer -> further destinations open
 
-A restored region stays useful for patrols and loot. It does not need to
-become dangerous again to be worth visiting.
+*(Revised.)* This document expected a restored region to stay useful for
+patrols and loot. The owner's endgame rule says otherwise: a fully cleared
+region has no fights and no combat loot, and is worth visiting for its town
+and its people ([endgame.md](endgame.md)). A region only partly restored
+still has danger, and loot, on its remaining routes.
 
 ### Preparation
 
@@ -179,13 +184,13 @@ the boss's big attack does; why the party won or lost.
 
 ### Failure and safety
 
+The owner has since decided this, and it is in [failure.md](failure.md):
+nobody dies; a beaten party returns to the city it left, loses a configurable
+amount of loot and pays a modest cost; and it waits to be sent out again,
+never retrying by itself. From this document, still:
+
 - Automatic play must never trap the player in repeated failure with no
   explanation.
-- One clear behaviour on failure: retreat to the origin, reach a nearby safe
-  point, arrive late with less, or pause and report that the build is not
-  enough.
-- **No permanent loss of a character to begin with.** Defeat is a readable
-  setback, never the erasure of a loved horse.
 - The likely time and the cost of a failed boss attempt are shown before
   committing.
 

@@ -107,9 +107,11 @@ and icon, never by colour alone.
   low levels: small fissures, sparse dead plants, one altered enemy. Higher:
   more infected growth, darker accents, more enemy modifiers allowed, more
   elites, a corrupted boss family, more dramatic scenery.
-- Visual corruption and mechanical difficulty can be separated. **A healed
-  place must still be worth farming**; restoring it must not delete its
-  value.
+- Visual corruption and mechanical difficulty can be separated.
+- *(Revised.)* This document asked that a healed place still be worth
+  farming. The owner's endgame rule changes the word: **a healed place must
+  still be worth visiting.** A cleared region has no fights; its value is its
+  town, its people, its trade and its looks ([endgame.md](endgame.md)).
 
 ## For Horse Heroes
 

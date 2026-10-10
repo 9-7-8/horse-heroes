@@ -187,24 +187,24 @@ time and applies a **bounded summary** of what would have happened:
     Cleanse every region of the dragon's greed and corruption.
 
 - **Completion is defined by the world, not a boss's health bar.** A region
-  is cleared when its major threat is defeated, its corruption source removed
-  or contained, its routes and settlements safe, its restoration done.
+  is cleared when its corruption source is removed, its town restored and
+  its routes secured. The rule and the ending are in
+  [endgame.md](endgame.md).
 - Progress is visible on a world map.
 - The ending shows the world recovering and the retired horses and their
-  families reacting, records the current generation's journey, and offers a
-  clear way to continue.
+  families reacting, and records the current generation's journey.
 - **The ending never requires collecting everything.** Optional collection
   stays optional.
 
-### Endless play is optional
+### After the ending (revised)
 
-- It must not make finishing the campaign feel pointless, and it must not be
-  an excuse to withhold an ending.
-- The dragon's threat is resolved in the campaign. Endless play is about new
-  local threats and restoration, not the same villain returning unexplained.
-- "Endless" must not mean each region is a bigger number. Rotate a
-  manageable set of enemy, biome and encounter rules and let the combinations
-  supply the variety.
+Both retirement documents proposed an optional endless frontier of new
+threats after the campaign. **The owner's endgame rule replaces that:**
+success makes combat unnecessary, and there is no combat after the dragon.
+A completed save stays open for peaceful play, and an open-ended peaceful
+mode is a possible later expansion that nothing depends on. What survives
+from the earlier advice is its first point: nothing may make finishing the
+campaign feel pointless or withhold the ending.
 
 ### Stories come from state
 
