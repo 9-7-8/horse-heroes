@@ -1,0 +1,55 @@
+SESSION LOG 2026-10-10 14:28 - a control that cannot be used says why
+====================================================================
+
+ASKED
+  "next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty. Tier 3: #233, closed (72e8b0e). Under each
+    group of controls, and beside the footer's, a line names the working
+    controls that cannot be used now with the reason Game::can gives
+    ("Equip: nothing to equip.", "Set out: in town only."), and a second
+    line covers those that are not built. The first line is hidden while
+    every working control can be used. The report, before any trail,
+    says what will be reported there.
+    Tested: cargo check and cargo test green, 100 pass, no warning. New
+    tests hold that in town, in town with a drop and on the road every
+    unavailable control has its line and a working one's reason is
+    can's; that an allowed Equip and Set out are done; and that the
+    empty cargo, slot and report say what belongs in them.
+    Seen running, in still pictures read by me: the menu tour at
+    --seed 6, at 1120x640 and at 1600x900. Only the GOG overlay's lines
+    in the log.
+  - docs/menu-shell.md, "Why a control cannot be used";
+    docs/gallery/2026-10-10-reasons.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - One line per group of controls, not a reason beside each button:
+    78 controls are not built, and a line each would bury the page.
+  - The line about unbuilt controls names whichever list is shorter:
+    them, or the ones that work ("All but Equip: not built yet.").
+  - A reason is can's own words with a small first letter.
+
+FOUND
+  - #243, a bug, filed and not fixed: at 1120x640 with the side panel
+    open, the Gear tab's last button and its reason line are cut off by
+    the footer. The buttons overflowed there before this session.
+  - A here-document in the Bash tool failed again on apostrophes.
+
+NOT DONE
+  - Nobody has looked at the reason lines in the running game; the
+    wording and the place are a first choice.
+  - Carried over, unchanged: the rest of #229 (the Keys control, arrow
+    keys in lists, a key for List); nobody has pressed a key or a
+    pointer for real; #187 waits on the owner's look at the horse and
+    #10 on her listening (F4); nobody has watched a death or the screen
+    response move; the fountains are not tuned; a place left open on
+    the road still cuts a beam off; a lost trail is not held on the
+    road (#176); in town the horses walk on the spot; #199 waits on the
+    owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Tier 1 is not empty: fix #243, the Gear
+  tab cut off at 1120x640 with the side panel open. After it, 0.2.0 has
+  #240 and #241 to build and the rest of #229.

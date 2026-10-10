@@ -157,12 +157,37 @@ the file are the keys of the party's horses, in order (see Keys).
 - **A control with an `action` works.** A press calls `Game::act`. It is
   unavailable (`InteractionDisabled`) while `Game::can` refuses the action,
   and `can` returns the reason in plain words ("In town only.", "Nothing to
-  equip."), which is what #233 will show in place. An element's button is
+  equip."), which is shown in place (see below). An element's button is
   marked selected while it is the party's element.
 - **When a system lands**, its control gets an `action` and stays where it
   is.
 
-Tests in `shell.rs` hold the file to this: no control is silent (each has a
+## Why a control cannot be used
+
+Nothing is silently unavailable (#233). Under each group of controls (a
+tab's, a place's, the cargo column's) and beside the footer's, `spawn_reasons`
+puts up to two `reason` lines:
+
+- **For the controls that work**, a line that follows the game
+  (`Blocked`, filled by `show_reasons`). It names those that cannot be used
+  now, gathered by reason, with the words `Game::can` refuses them with:
+  "Fire, Ice, Plant: in town only.", "Equip: nothing to equip." `Game::act`
+  makes the same check, so the reason shown is why the press would do
+  nothing. The line is hidden while every one of them can be used.
+- **For the controls that are not built**, a line that never changes
+  (`unbuilt_line`). It names them, or the working ones where that is the
+  shorter list ("All but Equip: not built yet."), or says "None of these is
+  built yet." Outside the footer it adds that a press says more.
+
+A new reason is a new `Err` in `Game::can`; nothing in the shell changes.
+
+An empty list says what belongs in it: the cargo, an empty slot's side
+panel, and the report before any trail. A tab with no content says "This
+page is not built yet."
+
+Tests in `shell.rs` hold the file to this: in town, in town with a drop and
+on the road, every control that cannot be used has its line, and a working
+one's reason is `can`'s; no control is silent (each has a
 `does`, and an action or an issue); a key is a real key, on a working
 control, and on one only; each thing the slice can do has exactly one
 control; no two controls of a page share a name; every page has controls;
@@ -252,9 +277,8 @@ are checked by hand.
 - A fountain to check the road view's room against: #4, #8 (the last part of
   #205).
 - What is planned on the road, listed in the footer: #234.
-- Controls that say why they are unavailable, in place: #233. Until then a
-  working control that cannot be used now (Equip with nothing to equip, Set
-  out on the road) looks the same as one that is not built.
+- At 1120x640 with the side panel open, the Gear tab's last control and its
+  reason line are cut off: #243.
 - The rest of #229: the Keys control in Settings, arrow keys in lists, and
   keys for actions not built yet.
 - The Horses place proper, with cargo: #227.
