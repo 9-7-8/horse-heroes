@@ -1,0 +1,55 @@
+SESSION LOG 2026-10-10 14:08 - keys for places, tabs and horses
+===============================================================
+
+ASKED
+  "/next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty. Tier 3: #229, the 0.2.0 part of it
+    (013ec00). Every key is in places.ron and printed on what it works:
+    H T M N J open the places, S Settings, 1 to 4 choose a tab of the
+    place that is showing, Z X C select the horses. A row can carry a
+    key, as a button and a tab already could.
+    Tested: cargo check and cargo test green, 95 pass, no warning. The
+    new test holds that every place, tab and horse has a key and that
+    no key means two things at once.
+    Seen running, in still pictures read by me: the menu tour at
+    --seed 6 now ends with a town visit by keys alone (pictures 32 to
+    39), and one picture at 1120x640, where the strip still fits. The
+    tour puts each key into Bevy's keyboard state for one frame; it is
+    not a keyboard. Only the GOG overlay's lines in the log.
+  - #229 is left open, with a comment saying what is met and what is
+    not.
+  - docs/menu-shell.md, Keys; the README's table of keys; the tour's
+    line in build-and-run.txt; docs/gallery/2026-10-10-keys.
+
+DECIDED
+  Made for the owner, hers to overrule; each is one line in places.ron:
+  - Places by a letter of their name. Town is N, since T is Trade.
+  - Tabs are 1 to 4 in every place, as the parts gallery already drew
+    them, and work only while their place is showing.
+  - So the elements moved from 1 2 3 to F I P.
+  - Horses are Z X C, a key each, not one key that steps through them.
+
+FOUND
+  - A here-document in the Bash tool failed again on apostrophes; the
+    scripts were written with the Write tool under target/, as
+    build-and-run.txt says.
+
+NOT DONE
+  - The rest of #229: the Keys control in Settings, arrow keys in lists
+    and slots (Tab and Enter reach them today), and a key for List,
+    which waits on its button (#99).
+  - Nobody has pressed a key on a real keyboard.
+  - Carried over, unchanged: nobody has pressed anything with a real
+    pointer; #187 waits on the owner's look at the horse and #10 on her
+    listening (F4); nobody has watched a death or the screen response
+    move; the fountains are not tuned; a place left open on the road
+    still cuts a beam off; a lost trail is not held on the road (#176);
+    in town the horses walk on the spot; #199 waits on the owner's
+    source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Left in 0.2.0: #233, #240, #241 to
+  build, the rest of #229, and #187 and #10 waiting on the owner. #233
+  is next: a control that cannot be used says why, in place.

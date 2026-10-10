@@ -38,17 +38,20 @@ builds take seconds.
 
 ## Controls
 
-In camp, between expeditions:
+The menus under the scene work with the mouse or the keyboard: five places
+in a bar, a horse to select, and Set out in the footer. Every key is printed
+on the control it works. The last trail's report is in Journal, Report.
 
 | Key | Action |
 | --- | --- |
-| `1` `2` `3` | Attune the party to Fire, Ice or Plant |
-| `E` | Equip the gear that just dropped |
-| `Space` | Set out now, without waiting for the countdown |
-
-The menus under the scene work with the mouse: five places in a bar, a
-horse to select, and Set out in the footer. The last trail's report is in
-Journal, Report.
+| `H` `T` `M` `N` `J` | Open Horses, Trade, Map, Town or Journal |
+| `1` to `4` | Choose a tab of the open place |
+| `Z` `X` `C` | Select the first, second or third horse |
+| `F` `I` `P` | In town: attune the party to Fire, Ice or Plant |
+| `E` | In town: equip the gear that just dropped |
+| `Space` | In town: set out now, without waiting for the countdown |
+| `Esc` | Close the side panel; on the road, close the open place |
+| `Tab` `Enter` | Move to any control and press it |
 
 ## How it is put together
 

@@ -145,6 +145,9 @@ A control in the file is:
 | `action` | What it does today: `Element(Fire)`, `EquipDrop`, `SetOut` |
 | `key` | The key that works it, printed on it: a letter, a digit or `Space` |
 
+A place, Settings and a tab have a `key` too, and `horse_keys` at the end of
+the file are the keys of the party's horses, in order (see Keys).
+
 - **A control with no `action` is not built.** It carries `NotBuilt`, which
   draws it as unavailable, and it can still be pressed and reached with Tab.
   A press opens the side panel of the page it is on, with its name, "Not
@@ -162,7 +165,8 @@ A control in the file is:
 Tests in `shell.rs` hold the file to this: no control is silent (each has a
 `does`, and an action or an issue); a key is a real key, on a working
 control, and on one only; each thing the slice can do has exactly one
-control; no two controls of a page share a name; every page has controls.
+control; no two controls of a page share a name; every page has controls;
+every place, tab and horse has a key, and no key means two things at once.
 
 ## What a tab shows
 
@@ -186,14 +190,39 @@ wears, until it is equipped or the party leaves. Equip is there.
 
 ## Keys
 
-A control's key is `key` in `places.ron`, and it is printed on the control.
-`keys` in the shell presses the control when its key goes down, wherever the
-player is, by the same `Activate` a click sends. Today: 1, 2, 3 choose the
-element, E equips the drop, Space sets out, all in town only. Space is the
-one conflict, since a focused button also answers Space: while a control
-shows keyboard focus (after Tab), Space presses that control and does not
-send the party off. Every control, built or not, is reached with Tab and
-pressed with Enter. Keys for places and tabs are #229.
+Every key is in `places.ron` and is printed on what it works (#229). `keys`
+in the shell presses the thing when its key goes down, by the same
+`Activate` a click sends.
+
+| Key | What it works | Where it is in the file |
+| --- | --- | --- |
+| H, T, M, N, J | Horses, Trade, Map, Town, Journal | `key` of the place |
+| S | Settings | `key` of `settings` |
+| 1 to 4 | The tabs of the place that is showing | `key` of the tab |
+| Z, X, C | The first, second and third horse | `horse_keys` |
+| F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
+| E | Equip the drop, in town only | `key` of the control |
+| Space | Set out, in town only | `key` of the control |
+| Escape | Back one level | not in the file |
+
+The keys of places, horses and controls work wherever the player is, so no
+two of them are the same. A tab's key works only while its place is showing,
+so every place numbers its tabs from 1, and no tab may take a key of the
+other kind. A place's key is a press on the bar: on the road it opens the
+place, or closes the one that is showing.
+
+Escape closes the side panel; on the road, with no side panel open, it
+closes the place. In town it does nothing else: it never sets out, never
+closes the game and never undoes anything.
+
+Space is the one conflict, since a focused button also answers Space: while
+a control shows keyboard focus (after Tab), Space presses that control and
+does not send the party off. Every control, built or not, is reached with
+Tab and pressed with Enter; that is how a gear slot is opened by keyboard.
+
+Still to come under #229: the Keys control in Settings, moving through
+lists with the arrow keys, and a key for each action as its button is built
+(List, with #99, is the one a town visit lacks).
 
 ## Looking at it
 
@@ -204,8 +233,13 @@ is not built on two of them, chooses an element, saves a numbered PNG of
 each into the folder (which must exist), sends the party off, photographs
 the road view
 and a place being opened and closed there (two of them part of the way
-through the move), waits for the party to come home, equips the drop from
-the cargo, and exits. The party does not leave by itself during the tour.
+through the move), waits for the party to come home, and then makes a town visit by keys
+alone: H, 1, E to equip the drop, C, 2, I and F on the abilities, T, 3, S,
+Escape, Space to set out, and J, 1, Escape on the road. Then it exits. Those
+keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
+they go through `keys` and `escape` as a real press does; they are written
+in `plan_tour`, so a key changed in `places.ron` is changed there too. The
+party does not leave by itself during the tour.
 The tour finds the controls it presses by name (Compare, Shake, Ice, Fire,
 Equip), so one of those renamed in `places.ron` is renamed in
 `plan_tour` too, or its press is skipped. The
@@ -221,5 +255,6 @@ are checked by hand.
 - Controls that say why they are unavailable, in place: #233. Until then a
   working control that cannot be used now (Equip with nothing to equip, Set
   out on the road) looks the same as one that is not built.
-- Keys printed on the places and tabs: #229.
+- The rest of #229: the Keys control in Settings, arrow keys in lists, and
+  keys for actions not built yet.
 - The Horses place proper, with cargo: #227.
