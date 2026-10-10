@@ -3,14 +3,24 @@
 //!
 //! The trail runs along world +X, which is screen-right. Height is Y.
 
-use bevy::{camera::ScalingMode, prelude::*};
+use bevy::{camera::ScalingMode, prelude::*, window::PrimaryWindow};
 
-use super::{Game, SCENE_SHARE, Screen};
+use super::menu::tokens::Tokens;
+use super::{Game, SceneView, Screen};
 use crate::sim::data::Element;
 use crate::sim::rng::Rng;
 
-/// World units of height visible in the scene.
+/// World units of height visible in the scene: in the town layout, and in
+/// the road's, which is taller so that a drop has room to fly.
 const SCENE_HEIGHT: f32 = 7.0;
+const ROAD_HEIGHT: f32 = 12.0;
+/// How far up the scene the aim point sits, from its bottom edge. Lower on
+/// the road: the room gained goes above the party, where the loot goes.
+const SCENE_ANCHOR: f32 = 0.5;
+const ROAD_ANCHOR: f32 = 0.32;
+/// World units of width that stay in view however narrow the window is: the
+/// last horse to the furthest enemy, with a margin.
+const SCENE_WIDTH: f32 = 22.0;
 const SCROLL_SPEED: f32 = 2.5;
 /// Scenery wraps around once it is this far left of the origin.
 const WRAP: f32 = 20.0;
@@ -23,7 +33,10 @@ impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::BLACK))
             .add_systems(Startup, setup)
-            .add_systems(Update, (scroll, swing_legs, sync_horses, sync_enemies));
+            .add_systems(
+                Update,
+                (frame, scroll, swing_legs, sync_horses, sync_enemies),
+            );
     }
 }
 
@@ -54,20 +67,12 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Camera at the isometric elevation (about 35 degrees), looking across
-    // the trail. The scene is the top `SCENE_SHARE` of the window: the
-    // projection covers the whole window, sized so that share is
-    // `SCENE_HEIGHT` units tall, with the aim point at its middle. The menu
-    // shell covers the rest.
+    // the trail. Its projection covers the whole window and the menu shell
+    // is drawn over the lower part; `frame` sizes it every frame.
     let aim = Vec3::new(0.0, 1.6, 0.0);
     commands.spawn((
         Camera3d::default(),
-        Projection::from(OrthographicProjection {
-            scaling_mode: ScalingMode::FixedVertical {
-                viewport_height: SCENE_HEIGHT / SCENE_SHARE,
-            },
-            viewport_origin: Vec2::new(0.5, 1.0 - SCENE_SHARE / 2.0),
-            ..OrthographicProjection::default_3d()
-        }),
+        Projection::from(OrthographicProjection::default_3d()),
         Transform::from_translation(aim + Vec3::new(0.0, 20.0, 28.28)).looking_at(aim, Vec3::Y),
     ));
 
@@ -213,6 +218,43 @@ fn spawn_horse(
                     });
             }
         });
+}
+
+/// Keep the scene in its share of the window. The share is the top of the
+/// window; the projection is sized so that share is as many world units tall
+/// as the layout asks, with the aim point at its anchor. Between the town
+/// layout and the road's everything is mixed by `SceneView`, so the move is
+/// a glide and never a cut.
+fn frame(
+    view: Res<SceneView>,
+    tokens: Res<Tokens>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    mut projection: Single<&mut Projection, With<Camera3d>>,
+) {
+    let expanded = view.expanded();
+    let mix = |town: f32, road: f32| town + (road - town) * expanded;
+    let share = tokens.layout.share(expanded);
+    let aspect = window.width() / window.height().max(1.0);
+    // A window too narrow for the party and its enemies shows more height
+    // instead of cutting them off.
+    let viewport_height = (mix(SCENE_HEIGHT, ROAD_HEIGHT) / share).max(SCENE_WIDTH / aspect);
+    let viewport_origin = Vec2::new(0.5, 1.0 - share + share * mix(SCENE_ANCHOR, ROAD_ANCHOR));
+
+    let Projection::Orthographic(current) = &**projection else {
+        return;
+    };
+    let same = current.viewport_origin == viewport_origin
+        && matches!(
+            current.scaling_mode,
+            ScalingMode::FixedVertical { viewport_height: h } if h == viewport_height
+        );
+    if same {
+        return;
+    }
+    if let Projection::Orthographic(ortho) = &mut **projection {
+        ortho.scaling_mode = ScalingMode::FixedVertical { viewport_height };
+        ortho.viewport_origin = viewport_origin;
+    }
 }
 
 fn scroll(time: Res<Time>, mut scenery: Query<&mut Transform, With<Scrolling>>) {

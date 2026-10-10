@@ -1,16 +1,30 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    window::{WindowResizeConstraints, WindowResolution},
+};
 
 mod dev_screenshot;
 mod game;
 mod sim;
 
 fn main() {
+    // The window cannot be made smaller than the menus need (#205).
+    let layout = game::menu::tokens::Tokens::load().layout;
+    let mut window = Window {
+        title: "Horse Heroes".into(),
+        resize_constraints: WindowResizeConstraints {
+            min_width: layout.min_width,
+            min_height: layout.min_height,
+            ..default()
+        },
+        ..default()
+    };
+    if let Some((width, height)) = window_size() {
+        window.resolution = WindowResolution::new(width, height);
+    }
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Horse Heroes".into(),
-                ..default()
-            }),
+            primary_window: Some(window),
             ..default()
         }))
         .add_plugins(game::GamePlugin { seed: seed() })
@@ -36,4 +50,19 @@ fn seed() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |since| since.as_secs())
+}
+
+/// `--window WIDTHxHEIGHT` opens the window at that size, in the logical
+/// pixels the menu sizes are written in.
+/// A dev aid, for looking at the layout at the smallest size and at odd ones.
+fn window_size() -> Option<(u32, u32)> {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--window" {
+            let size = args.next()?;
+            let (width, height) = size.split_once('x')?;
+            return Some((width.parse().ok()?, height.parse().ok()?));
+        }
+    }
+    None
 }

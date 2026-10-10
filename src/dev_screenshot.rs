@@ -72,7 +72,11 @@ enum Step {
     Tab(usize, usize),
     Horse(usize),
     Slot(usize),
+    /// Press a place and stop the scene part of the way through its move.
+    PlaceMidway(usize),
     Wait(f32),
+    /// Send the party off, and stop the scene part of the way through.
+    SetOut,
     /// Wait for the party to come back to town.
     Town,
     Shot(String),
@@ -87,8 +91,11 @@ struct Tour {
     shots: u32,
 }
 
-/// Seconds for a press to show before the picture is taken.
-const SETTLE: f32 = 0.4;
+/// Seconds for a press to show before the picture is taken: longer than the
+/// scene takes to move between its layouts.
+const SETTLE: f32 = 0.7;
+/// Seconds after a press at which the scene is still on its way.
+const MIDWAY: f32 = 0.2;
 
 fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
     let mut steps = vec![
@@ -120,13 +127,25 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("side panel still open on its tab".into()),
         Step::Place(places.places.len() - 1),
         Step::Tab(places.places.len() - 1, 0),
-        Step::Wait(9.0),
-        Step::Shot("on the road".into()),
+        Step::SetOut,
+        Step::Shot("setting out midway".into()),
+        Step::Wait(SETTLE),
+        Step::Shot("on the road the scene expands".into()),
+        Step::Wait(5.0),
+        Step::Shot("a fight in the road view".into()),
         Step::Horse(2),
-        Step::Place(0),
+        Step::PlaceMidway(0),
+        Step::Shot("opening a place on the road midway".into()),
+        Step::Wait(SETTLE),
         Step::Shot("on the road horses".into()),
         Step::Place(places.places.len() - 1),
+        Step::Shot("on the road journal".into()),
+        Step::PlaceMidway(places.places.len() - 1),
+        Step::Shot("closing it midway".into()),
+        Step::Wait(SETTLE),
+        Step::Shot("closed and the scene expanded again".into()),
         Step::Town,
+        Step::Wait(SETTLE),
         Step::Shot("back in town with the report".into()),
     ]);
     tour.steps = steps;
@@ -136,7 +155,7 @@ fn tour(
     mut commands: Commands,
     time: Res<Time>,
     mut tour: ResMut<Tour>,
-    game: Res<Game>,
+    mut game: ResMut<Game>,
     places: Query<(Entity, &PlaceButton)>,
     tabs: Query<(Entity, &TabButton)>,
     horses: Query<(Entity, &HorseButton)>,
@@ -154,15 +173,22 @@ fn tour(
     if matches!(step, Step::Town) && !game.in_town() {
         return;
     }
+    // The party leaves when the tour says so, not in the middle of it.
+    match step {
+        Step::SetOut => game.set_out(),
+        _ => game.hold_in_town(),
+    }
     let pressed = match step {
-        Step::Place(p) => places.iter().find(|(_, b)| b.0 == *p).map(|(e, _)| e),
+        Step::Place(p) | Step::PlaceMidway(p) => {
+            places.iter().find(|(_, b)| b.0 == *p).map(|(e, _)| e)
+        }
         Step::Tab(p, t) => tabs
             .iter()
             .find(|(_, b)| b.place == *p && b.tab == *t)
             .map(|(e, _)| e),
         Step::Horse(h) => horses.iter().find(|(_, b)| b.0 == *h).map(|(e, _)| e),
         Step::Slot(s) => slots.iter().find(|(_, b)| b.slot == *s).map(|(e, _)| e),
-        Step::Wait(_) | Step::Town | Step::Shot(_) => None,
+        Step::Wait(_) | Step::SetOut | Step::Town | Step::Shot(_) => None,
     };
     if let Some(entity) = pressed {
         commands.trigger(Activate { entity });
@@ -170,6 +196,7 @@ fn tour(
     let mut wait = SETTLE;
     match step {
         Step::Wait(secs) => wait = *secs,
+        Step::PlaceMidway(_) | Step::SetOut => wait = MIDWAY,
         Step::Shot(name) => {
             let path = format!(
                 "{}/{:02}-{}.png",

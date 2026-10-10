@@ -18,7 +18,7 @@ use super::parts::{
     text, title,
 };
 use super::tokens::Tokens;
-use crate::game::{Game, SCENE_SHARE, Screen, report_side, report_text, stats_line};
+use crate::game::{Game, SceneView, Screen, report_side, report_text, stats_line};
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
 
@@ -100,6 +100,9 @@ pub struct Detail {
 #[derive(Resource, Clone, Debug, PartialEq)]
 pub struct Shell {
     place: usize,
+    /// Whether the place is showing. Always, in town. On the road it can be
+    /// closed, which gives its room to the scene.
+    showing: bool,
     horse: usize,
     tabs: Vec<usize>,
     details: Vec<Option<Detail>>,
@@ -109,6 +112,7 @@ impl Shell {
     pub fn new(places: usize) -> Shell {
         Shell {
             place: 0,
+            showing: true,
             horse: 0,
             tabs: vec![0; places],
             details: vec![None; places],
@@ -130,6 +134,28 @@ impl Shell {
     pub fn open(&mut self, place: usize) {
         if place < self.tabs.len() {
             self.place = place;
+            self.showing = true;
+        }
+    }
+
+    /// Whether a place is showing. When none is, the scene has its room.
+    pub fn is_open(&self) -> bool {
+        self.showing
+    }
+
+    /// Put the place away. It is found as it was left when it is opened
+    /// again. The caller sees to it that this happens on the road only.
+    pub fn close(&mut self) {
+        self.showing = false;
+    }
+
+    /// A press on a place in the bar. It opens that place, except that on
+    /// the road a press on the place already showing closes it.
+    pub fn press(&mut self, place: usize, in_town: bool) {
+        if !in_town && self.showing && place == self.place {
+            self.close();
+        } else {
+            self.open(place);
         }
     }
 
@@ -192,7 +218,13 @@ enum Page {
     Place(usize),
     Tab(usize, usize),
     Detail(usize),
+    /// What is left between the strip and the footer with every place closed.
+    RoadView,
 }
+
+/// The whole shell: everything below the scene.
+#[derive(Component)]
+struct ShellRoot;
 
 /// Text that follows the game. On a text it sets that text; on a counter or
 /// a row it sets the value.
@@ -220,7 +252,18 @@ impl Plugin for ShellPlugin {
         app.insert_resource(Shell::new(places.places.len()))
             .insert_resource(places)
             .add_systems(Startup, spawn)
-            .add_systems(Update, (escape, show_place, mark_chosen, show_facts).chain())
+            .add_systems(
+                Update,
+                (
+                    escape,
+                    follow_the_party,
+                    move_scene,
+                    show_place,
+                    mark_chosen,
+                    show_facts,
+                )
+                    .chain(),
+            )
             .add_observer(on_activate);
     }
 }
@@ -261,7 +304,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
         .spawn((
             Node {
                 position_type: PositionType::Absolute,
-                top: Val::Percent(SCENE_SHARE * 100.0),
+                top: Val::Percent(t.layout.town_share * 100.0),
                 bottom: Val::Px(0.0),
                 left: Val::Px(0.0),
                 right: Val::Px(0.0),
@@ -270,6 +313,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
             },
             BackgroundColor(t.colour.screen.0),
             TabGroup::default(),
+            ShellRoot,
         ))
         .with_children(|root| {
             // The bar: the places, in the order of the data file, then settings.
@@ -319,19 +363,39 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                     strip.spawn(counter(t, "day", "-"));
                 });
 
-            // The places. All of them exist all the time; one is shown.
+            // The places. All of them exist all the time; one is shown. The
+            // area is clipped, so a place is covered and uncovered as the
+            // scene moves instead of being squeezed.
             root.spawn(Node {
                 flex_grow: 1.0,
                 min_height: Val::Px(0.0),
+                overflow: Overflow::clip(),
                 ..default()
             })
             .with_children(|area| {
+                area.spawn((
+                    Page::RoadView,
+                    Node {
+                        width: Val::Percent(100.0),
+                        align_items: AlignItems::Center,
+                        padding: UiRect::horizontal(Val::Px(t.space.l)),
+                        display: Display::None,
+                        ..default()
+                    },
+                ))
+                .with_children(|line| {
+                    line.spawn(dim(
+                        t,
+                        "On the road. Open a place to look and plan; press it again, or Escape, to give the scene its room back.",
+                    ));
+                });
                 for (p, place) in places.places.iter().enumerate() {
                     area.spawn((
                         Page::Place(p),
                         Node {
                             width: Val::Percent(100.0),
                             flex_direction: FlexDirection::Column,
+                            flex_shrink: 0.0,
                             ..default()
                         },
                     ))
@@ -509,7 +573,7 @@ fn on_activate(
 ) {
     let entity = activate.entity;
     if let Ok(place) = places.get(entity) {
-        shell.open(place.0);
+        shell.press(place.0, game.in_town());
     } else if let Ok(tab) = tabs.get(entity) {
         shell.choose_tab(tab.place, tab.tab);
     } else if let Ok(horse) = horses.get(entity) {
@@ -536,23 +600,72 @@ fn close_detail(shell: &mut Shell, focus: &mut InputFocus) {
     }
 }
 
-/// Escape goes back one level: it closes the side panel, and nothing else.
+/// Escape goes back one level: it closes the side panel, and on the road,
+/// with no side panel open, the place.
 fn escape(
     keys: Res<ButtonInput<KeyCode>>,
+    game: Res<Game>,
     mut shell: ResMut<Shell>,
     mut focus: ResMut<InputFocus>,
 ) {
-    if keys.just_pressed(KeyCode::Escape) && shell.detail(shell.place()).is_some() {
+    if !keys.just_pressed(KeyCode::Escape) || !shell.is_open() {
+        return;
+    }
+    if shell.detail(shell.place()).is_some() {
         close_detail(&mut shell, &mut focus);
+    } else if !game.in_town() {
+        shell.close();
     }
 }
 
-fn show_place(shell: Res<Shell>, mut pages: Query<(&Page, &mut Node)>) {
+/// Setting out puts the place away, so the road starts with the scene
+/// expanded; arriving opens it again, as it was left. Town is where the
+/// player decides.
+fn follow_the_party(game: Res<Game>, mut shell: ResMut<Shell>, mut was_in_town: Local<bool>) {
+    let in_town = game.in_town();
+    if in_town != *was_in_town {
+        *was_in_town = in_town;
+        if in_town {
+            let place = shell.place();
+            shell.open(place);
+        } else {
+            shell.close();
+        }
+    }
+}
+
+/// Move the scene towards the layout the shell asks for, and the shell's
+/// top edge with it.
+fn move_scene(
+    time: Res<Time>,
+    tokens: Res<Tokens>,
+    shell: Res<Shell>,
+    mut view: ResMut<SceneView>,
+    mut root: Single<&mut Node, With<ShellRoot>>,
+) {
+    let wanted = if shell.is_open() { 0.0 } else { 1.0 };
+    if view.progress != wanted {
+        view.step_towards(!shell.is_open(), time.delta_secs(), tokens.time.layout);
+    }
+    let top = Val::Percent(tokens.layout.share(view.expanded()) * 100.0);
+    if root.top != top {
+        root.top = top;
+    }
+}
+
+fn show_place(
+    shell: Res<Shell>,
+    view: Res<SceneView>,
+    mut pages: Query<(&Page, &mut Node), Without<ShellRoot>>,
+) {
+    // A place that is being put away stays in view until it is covered.
+    let place_in_view = shell.is_open() || view.progress < 1.0;
     for (page, mut node) in &mut pages {
         let shown = match *page {
-            Page::Place(place) => place == shell.place(),
+            Page::Place(place) => place == shell.place() && place_in_view,
             Page::Tab(place, tab) => tab == shell.tab(place),
             Page::Detail(place) => shell.detail(place).is_some(),
+            Page::RoadView => !place_in_view,
         };
         let wanted = if shown { Display::Flex } else { Display::None };
         if node.display != wanted {
@@ -585,7 +698,7 @@ fn mark_chosen(
     set_outs: Query<(Entity, Has<InteractionDisabled>), With<SetOut>>,
 ) {
     for (entity, place, tab, horse, slot, selected) in &controls {
-        let wanted = place.is_some_and(|place| place.0 == shell.place())
+        let wanted = place.is_some_and(|place| place.0 == shell.place() && shell.is_open())
             || tab.is_some_and(|tab| tab.tab == shell.tab(tab.place))
             || horse.is_some_and(|horse| horse.0 == shell.horse())
             || slot.is_some_and(|row| {
@@ -787,6 +900,40 @@ mod tests {
             shell.open(place);
             assert_eq!(shell.horse(), 2);
         }
+    }
+
+    /// On the road a press on the open place puts it away and gives the
+    /// scene its room; any press on the bar brings a place back. In town a
+    /// place is always open.
+    #[test]
+    fn on_the_road_a_place_closes_and_opens_again() {
+        let mut shell = Shell::new(5);
+        shell.press(0, true);
+        assert!(shell.is_open(), "a press in town never closes the place");
+        shell.press(0, false);
+        assert!(!shell.is_open());
+        shell.press(0, false);
+        assert!(shell.is_open());
+        shell.press(3, false);
+        assert!(shell.is_open());
+        assert_eq!(shell.place(), 3);
+    }
+
+    /// A place put away on the road is found as it was left.
+    #[test]
+    fn a_closed_place_keeps_its_tab_and_detail() {
+        let mut shell = Shell::new(5);
+        let detail = Detail {
+            tab: 1,
+            item: 2,
+            opener: None,
+        };
+        shell.choose_tab(0, 1);
+        shell.show_detail(0, detail);
+        shell.close();
+        shell.open(0);
+        assert_eq!(shell.tab(0), 1);
+        assert_eq!(shell.detail(0), Some(detail));
     }
 
     #[test]

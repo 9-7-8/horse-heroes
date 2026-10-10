@@ -8,6 +8,7 @@ pub struct Tokens {
     pub space: Space,
     pub text: TextSizes,
     pub size: Sizes,
+    pub layout: Layout,
     pub time: Times,
     pub colour: Colours,
 }
@@ -45,9 +46,27 @@ pub struct Sizes {
     pub cargo_width: f32,
 }
 
+/// The split of the window between the scene and the menus.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Layout {
+    pub town_share: f32,
+    pub road_share: f32,
+    pub min_width: f32,
+    pub min_height: f32,
+}
+
+impl Layout {
+    /// The share of the window's height the scene takes, from the top, when
+    /// it is `expanded` of the way from the town layout to the road's.
+    pub fn share(&self, expanded: f32) -> f32 {
+        self.town_share + (self.road_share - self.town_share) * expanded
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct Times {
     pub hover: f32,
+    pub layout: f32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -89,5 +108,22 @@ impl Tokens {
     pub fn load() -> Tokens {
         ron::from_str(include_str!("../../../assets/data/menu.ron"))
             .unwrap_or_else(|e| panic!("assets/data/menu.ron: {e}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The road gives the scene more of the window than the town does, and
+    /// both leave room for the menus.
+    #[test]
+    fn the_road_layout_is_the_larger_scene() {
+        let layout = Tokens::load().layout;
+        assert!(0.0 < layout.town_share && layout.town_share < layout.road_share);
+        assert!(layout.road_share < 1.0);
+        assert_eq!(layout.share(0.0), layout.town_share);
+        assert_eq!(layout.share(1.0), layout.road_share);
+        assert!(layout.min_width > 0.0 && layout.min_height > 0.0);
     }
 }

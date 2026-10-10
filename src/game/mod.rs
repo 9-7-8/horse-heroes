@@ -18,9 +18,35 @@ const TICK: f32 = 0.1;
 /// Seconds the camp screen waits before setting out by itself.
 const CAMP_SECS: f32 = 12.0;
 const LOG_LINES: usize = 8;
-/// The share of the window's height the 3D scene takes, from the top. The
-/// menu shell has the rest. One layout for now; the road's is #205.
-pub const SCENE_SHARE: f32 = 1.0 / 3.0;
+
+/// Which of the two layouts the window is in, and how far between them: 0 is
+/// the town layout, with the scene in the top third, and 1 the road's, with
+/// the scene expanded. The menu shell moves it; the scene and the shell both
+/// lay themselves out from it, so they cannot disagree. The shares are in
+/// `assets/data/menu.ron`.
+#[derive(Resource, Default)]
+pub struct SceneView {
+    /// Linear progress, 0 to 1. Read `expanded` for the eased value.
+    pub progress: f32,
+}
+
+impl SceneView {
+    /// Eased, so the scene starts and stops moving gently.
+    pub fn expanded(&self) -> f32 {
+        let t = self.progress.clamp(0.0, 1.0);
+        t * t * (3.0 - 2.0 * t)
+    }
+
+    /// Move towards one layout at a steady rate, taking `secs` end to end.
+    pub fn step_towards(&mut self, expanded: bool, dt: f32, secs: f32) {
+        let step = if secs > 0.0 { dt / secs } else { 1.0 };
+        self.progress = if expanded {
+            (self.progress + step).min(1.0)
+        } else {
+            (self.progress - step).max(0.0)
+        };
+    }
+}
 
 pub struct GamePlugin {
     pub seed: u64,
@@ -29,6 +55,7 @@ pub struct GamePlugin {
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Game::new(self.seed))
+            .init_resource::<SceneView>()
             .add_plugins(scene::ScenePlugin)
             .add_systems(Update, (input, advance).chain());
     }
@@ -113,6 +140,14 @@ impl Game {
 
     pub fn in_town(&self) -> bool {
         matches!(self.screen, Screen::Camp { .. })
+    }
+
+    /// Dev aid: start the wait in town again, so the menu tour can finish
+    /// its walk round town before the party leaves by itself.
+    pub fn hold_in_town(&mut self) {
+        if let Screen::Camp { countdown, .. } = &mut self.screen {
+            *countdown = CAMP_SECS;
+        }
     }
 
     /// The departure action. Does nothing on the road.
