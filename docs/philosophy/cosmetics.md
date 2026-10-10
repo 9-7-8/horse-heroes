@@ -109,9 +109,12 @@ Families of visible equipment:
   accessories.
 
 **Appearance options are broader than gameplay categories.** One gameplay
-identity may take several forms: a focus as a pendant, a woven charm or a
-floating rune; protection as a blanket, a mantle or light barding. The
-gameplay categories stay distinct; the wardrobe stays varied.
+identity may take several forms: barding as a blanket, a woven mantle or
+light plate; a mouth weapon as a rod, a crystal or a compact grip; a braid
+charm on the mane or on the tail. The gameplay slots stay distinct
+([gear.md](gear.md)); the wardrobe stays varied. Two limits from the slot
+rules: a mouth weapon's chosen look must suit its animation family, and a
+horse with a short mane still has somewhere for a braid charm to go.
 
 ### Meaning without power
 

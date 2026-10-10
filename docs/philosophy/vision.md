@@ -83,6 +83,12 @@ No avatar and no explanation for the organiser is required.
   weapons offence and trinkets utility. No slot may become the same generic
   mix of attack, health and cooldown as every other. The categories should
   feel natural for autonomous horses.
+- **Her slot mapping** (her latest, replacing the five categories proposed
+  earlier): halter for accuracy; barding for defence and damage reduction;
+  boots for defence; martingale for varied utility; horseshoes for
+  critical-hit chance; a mouth-held weapon; a mane or tail braid for charms
+  and build interactions. Saddlebags and pet saddles stay. No stirrups
+  either. The rules built on it are in [gear.md](gear.md).
 
 ### The caravan shop
 
@@ -169,14 +175,12 @@ that.
   two-thirds menus. Four of her documents treat this as established; the document
   that decided it has not been received, so it is listed here until she
   confirms it.
-- **Equipment as five categories:** focus (offence), protection (defence),
-  halter (coordination and utility), pet saddle (companion), saddlebags
-  (carrying). She confirmed halters, pet saddles and saddlebags; the
-  focus/protection/halter split is a recommendation. Where a piece is drawn
-  need not be its category: a focus may sit on the halter. Developed in
-  [gear.md](gear.md).
-- **Utility gear specialises behaviour; it never repairs it.** The baseline
-  automation is already competent.
+- *(Replaced.)* Equipment as five categories, with a focus, a protection
+  slot and a halter for coordination, was proposed here. Her slot mapping,
+  under Confirmed above, supersedes it.
+- **Gear specialises behaviour; it never repairs it.** The baseline
+  automation is already competent, and a horse hits reliably without a rare
+  halter.
 - **Elements, classes and reactions:** see
   [elemental-combat.md](elemental-combat.md).
 - **An appearance library:** a piece's look is kept for good once collected,

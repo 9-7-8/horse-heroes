@@ -73,7 +73,7 @@ slower Finisher; the Mage a ward or heal.
 
 - **Tags are not locked to classes for ever.** Class decides how a skill is
   delivered; gear and attunement decide its elemental expression. A later
-  focus or variant may let a Mage prime or a Ranger finish.
+  mouth weapon or variant may let a Mage prime or a Ranger finish.
 - **A party without a Finisher still fights.** It loses a specialised payoff,
   not the ability to function.
 
@@ -175,15 +175,26 @@ visibly through a group while resolving as one limited event.
 
 ### Gear changes its own part
 
-- **Focus:** setup strength, Finisher power, element, a tested skill variant.
-- **Protection:** resistance, mitigation, surviving pressure.
-- **Halter:** which eligible target or ally to favour, whether to wait
-  briefly. **Never required for competent cooperation.**
+The elemental document was written for an earlier set of gear categories. In
+the owner's slot mapping ([gear.md](gear.md)) the same jobs fall like this:
+
+- **Mouth weapon:** setup strength, Finisher power, elemental expression, a
+  tested skill variant.
+- **Braid:** a named cooperation effect, such as a reaction reaching one
+  more enemy within its cap.
+- **Barding and boots:** resistance, mitigation, staying on its feet.
+- **Halter:** accuracy, including against primed targets. A miss never
+  consumes a Primer.
+- **Horseshoes:** crit chance. A crit adds no Primer charges, and reaction
+  damage does not crit to begin with.
 - **Saddlebags:** cargo, nothing to do with reactions.
 - **Pet saddle and collar:** the pet's own role, never a universal reaction
   multiplier.
 
-A halter's look never forces its policy; looks are separate
+Which target or ally to favour, and whether a Finisher waits briefly, are no
+longer a gear slot's job; they are settings, with a competent default.
+**No piece of gear is ever required for the party to cooperate.** A piece's
+look never forces its rule; looks are separate
 ([cosmetics.md](cosmetics.md)).
 
 ### Automation

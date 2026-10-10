@@ -164,8 +164,8 @@ become dangerous again to be worth visiting.
 
 The preview makes the party's choices matter before leaving: expected
 elements, likely statuses and hazards, whether the party has a counter,
-whether capacity is enough, whether a pet or halter would help, whether there
-is a way to recover.
+whether capacity is enough, whether a pet or a particular piece of gear would
+help, whether there is a way to recover.
 
 **Never demand the perfect counter.** Several answers should work: a
 counter-element, more defence, a safer route, a suitable pet, or accepting

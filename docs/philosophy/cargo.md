@@ -91,7 +91,7 @@ player may step in, and successful idle play never needs them to.
 - A small first vocabulary: **Keep, Ignore, Protect**, on rarity, gear
   category and an element tag.
 - Rules read as sentences: "Always keep Rare or better." "Ignore Common
-  protection." "Never abandon locked items."
+  boots." "Never abandon locked items."
 - Precedence is explicit. In the advanced form, rules run top to bottom and
   the first match decides; unmatched items follow the preset; protection
   overrides replacement.
