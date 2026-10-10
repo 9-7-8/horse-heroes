@@ -178,6 +178,10 @@ pub struct RarityLook {
     /// What the screen does when a burst erupts with this tier the best in it.
     #[serde(default)]
     pub response: ResponseDef,
+    /// The sound a drop of this tier makes as it is thrown, by its name in
+    /// `sounds.ron`. Empty is none.
+    #[serde(default)]
+    pub sound: String,
 }
 
 /// How strongly the screen answers a burst: none of either is 0.

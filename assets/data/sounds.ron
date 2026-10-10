@@ -1,0 +1,86 @@
+// The game's sounds. There are no sound files: each sound is made when the
+// game starts, from the recipe here, so every one is ours to give away under
+// the GPL and nothing is read from disk. Which sound plays when is not here:
+// a rarity names its drop sound in gear.ron, a fountain its launch sound in
+// loot_shower.ron, and the landing and pickup sounds are named in `sound`
+// there.
+//
+// A sound is a list of voices, added together. A voice is one tone:
+//   wave     Sine, Triangle, Square, or Noise (a hiss; `freq` is how bright)
+//   freq     its pitch at the start, in hertz
+//   slide    how far the pitch moves by the end, in semitones (12 an octave)
+//   at       seconds into the sound at which it starts
+//   secs     how long it lasts; it dies away over that time
+//   attack   seconds it takes to come up; short is a click, long is a swell
+//   level    how loud, 0 to 1. The levels sounding together must not pass 1.
+// Change one voice at a time and listen (procedures/tune-loot-feel.txt).
+(
+    sounds: {
+        // A burst leaving a body. An ordinary kill: a small pop.
+        "launch_small": [
+            (wave: Sine,  freq: 220,  slide: 12, secs: 0.09, level: 0.3),
+            (wave: Noise, freq: 1800,            secs: 0.05, level: 0.12),
+        ],
+        // A trail's last enemy: a rush of air going up, over a rising note.
+        "launch_full": [
+            (wave: Noise, freq: 400, slide: 36, secs: 0.45, attack: 0.08, level: 0.45),
+            (wave: Sine,  freq: 110, slide: 19, secs: 0.4,  attack: 0.02, level: 0.35),
+        ],
+
+        // A piece touching the ground. A coin clinks; gear thuds.
+        "land_coin": [
+            (wave: Sine, freq: 2100, secs: 0.07, attack: 0.001, level: 0.28),
+            (wave: Sine, freq: 3150, secs: 0.05, attack: 0.001, level: 0.14),
+        ],
+        "land_gear": [
+            (wave: Sine,  freq: 150, slide: -7, secs: 0.12, attack: 0.002, level: 0.5),
+            (wave: Noise, freq: 900,            secs: 0.05, attack: 0.001, level: 0.18),
+        ],
+
+        // A piece reaching the party. The coin's tick is the one whose pitch
+        // climbs across a stream of pickups.
+        "pickup_coin": [
+            (wave: Triangle, freq: 520,  secs: 0.09, level: 0.34),
+            (wave: Sine,     freq: 1040, secs: 0.06, level: 0.14),
+        ],
+        "pickup_gear": [
+            (wave: Sine, freq: 392, secs: 0.22, level: 0.34),
+            (wave: Sine, freq: 784, secs: 0.18, level: 0.18),
+        ],
+
+        // A piece of gear being thrown, one for each rarity: more notes,
+        // higher, longer and fuller with every tier.
+        // Normal: one dull note.
+        "drop_normal": [
+            (wave: Triangle, freq: 330, secs: 0.18, level: 0.3),
+        ],
+        // Magic: two notes going up.
+        "drop_magic": [
+            (wave: Sine, freq: 523, at: 0.0,  secs: 0.22, level: 0.34),
+            (wave: Sine, freq: 784, at: 0.07, secs: 0.26, level: 0.34),
+        ],
+        // Rare: three bright notes up an octave, each with a glint above it.
+        "drop_rare": [
+            (wave: Sine, freq: 659,  at: 0.0,  secs: 0.3,  level: 0.26),
+            (wave: Sine, freq: 988,  at: 0.07, secs: 0.3,  level: 0.26),
+            (wave: Sine, freq: 1319, at: 0.14, secs: 0.42, level: 0.26),
+            (wave: Sine, freq: 2637, at: 0.14, secs: 0.3,  level: 0.1),
+        ],
+        // Legendary: a low boom, and a major chord climbing out of it.
+        "drop_legendary": [
+            (wave: Sine,     freq: 98,  slide: -5, at: 0.0,  secs: 0.7, attack: 0.01, level: 0.34),
+            (wave: Triangle, freq: 392,            at: 0.0,  secs: 0.9, level: 0.15),
+            (wave: Triangle, freq: 494,            at: 0.06, secs: 0.9, level: 0.15),
+            (wave: Triangle, freq: 587,            at: 0.12, secs: 0.9, level: 0.15),
+            (wave: Sine,     freq: 784,            at: 0.18, secs: 1.0, level: 0.15),
+        ],
+        // Set: a bell of stacked fifths struck at once, and a high ring after.
+        "drop_set": [
+            (wave: Sine, freq: 294,  at: 0.0,  secs: 1.2, attack: 0.002, level: 0.2),
+            (wave: Sine, freq: 440,  at: 0.0,  secs: 1.2, attack: 0.002, level: 0.2),
+            (wave: Sine, freq: 659,  at: 0.0,  secs: 1.1, attack: 0.002, level: 0.18),
+            (wave: Sine, freq: 988,  at: 0.0,  secs: 1.0, attack: 0.002, level: 0.14),
+            (wave: Sine, freq: 1976, at: 0.22, secs: 1.0, attack: 0.05,  level: 0.1),
+        ],
+    },
+)

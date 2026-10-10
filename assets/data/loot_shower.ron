@@ -14,6 +14,8 @@
     //   up_speed, out_speed   the arc: how fast up, and along the ground
     //   spin          tumbling in the air, in turns a second
     //   most_pieces   one coin piece per coin dropped, up to this many
+    //   sound         heard once as the first piece leaves, by its name in
+    //                 sounds.ron
     fountains: {
         // An ordinary enemy: small, quick, low.
         "small": (
@@ -24,6 +26,7 @@
             out_speed: (0.6, 1.4),
             spin: (1.5, 3.0),
             most_pieces: 6,
+            sound: "launch_small",
         ),
         // A trail's last enemy: a beat of nothing, then large, staggered, wide.
         "full": (
@@ -34,6 +37,7 @@
             out_speed: (0.9, 2.4),
             spin: (1.5, 3.0),
             most_pieces: 24,
+            sound: "launch_full",
         ),
     },
 
@@ -87,6 +91,33 @@
         shake_hz: 16.0,
         flash_secs: 0.3,
         coins: (shake: 0.0, flash: 0.0),
+    ),
+
+    // Sound. The sounds themselves are recipes in sounds.ron; this is which
+    // of them the fountain uses and how. A rarity's drop sound is named in
+    // gear.ron and a fountain's launch sound above.
+    //   volume          multiplies every sound; 0 turns sound off
+    //   land_gap_secs   landings closer together than this are heard as one
+    //   land_fade       each later bounce of a piece is this much quieter
+    //   land_vary       a landing's pitch is moved up to this many semitones
+    //                   either way, so a burst is not one note repeated
+    //   pickup_scale    the notes a stream of pickups climbs, in semitones
+    //                   above the first; past its end it starts again an
+    //                   octave up
+    //   pickup_most_steps   the run stops climbing after this many notes
+    //   pickup_run_secs     a pickup this long after the last starts a new run
+    sound: (
+        volume: 0.6,
+        land_coin: "land_coin",
+        land_gear: "land_gear",
+        land_gap_secs: 0.035,
+        land_fade: 0.55,
+        land_vary: 2.0,
+        pickup_coin: "pickup_coin",
+        pickup_gear: "pickup_gear",
+        pickup_scale: [0, 2, 4, 7, 9],
+        pickup_most_steps: 10,
+        pickup_run_secs: 0.5,
     ),
 
     // The test burst: thrown as this fountain, with this many coins.

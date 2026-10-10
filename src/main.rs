@@ -36,6 +36,7 @@ fn main() {
             burst: std::env::args().any(|arg| arg == "--burst"),
             pickup: std::env::args().any(|arg| arg == "--pickup"),
             burst_at: burst_at(),
+            mute: std::env::args().any(|arg| arg == "--mute"),
         })
         .add_plugins(dev_screenshot::DevScreenshotPlugin)
         .run();

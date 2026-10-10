@@ -24,6 +24,7 @@ use crate::sim::data::{BeamDef, GearTable, RarityDef};
 use crate::sim::rng::Rng;
 
 use super::response::{Erupted, ResponseFeel};
+use super::sound::{Heard, SoundFeel};
 
 /// Seconds after launch at which `--burst` throws the test burst, unless
 /// `--burst-at` says otherwise.
@@ -57,6 +58,7 @@ pub struct Shower {
     pub pickup_accel: f32,
     pub pickup_shrink: f32,
     pub response: ResponseFeel,
+    pub sound: SoundFeel,
     pub burst_fountain: String,
     pub burst_pieces: usize,
     pub burst_gear: Vec<String>,
@@ -74,6 +76,8 @@ pub struct Fountain {
     pub out_speed: (f32, f32),
     pub spin: (f32, f32),
     pub most_pieces: usize,
+    /// Heard once as its first piece leaves, by its name in `sounds.ron`.
+    pub sound: String,
 }
 
 impl Shower {
@@ -351,6 +355,7 @@ impl Plugin for DropsPlugin {
 /// child, the model, carries its tumble.
 #[derive(Component)]
 struct Piece {
+    kind: Kind,
     /// Seconds until it leaves the body. It is hidden until then.
     delay: f32,
     body: Body,
@@ -569,6 +574,7 @@ fn spawn_burst(
             }
         });
         piece.insert(Piece {
+            kind: *kind,
             delay: launch.delay,
             body: launch.body(shower, origin),
             axis: launch.axis,
@@ -599,6 +605,7 @@ fn launch_kills(
     mut commands: Commands,
     mut killed: MessageReader<Killed>,
     mut erupted: MessageWriter<Erupted>,
+    mut heard: MessageWriter<Heard>,
     mut uncollected: ResMut<Uncollected>,
     look: Res<Look>,
     shower: Res<Shower>,
@@ -616,6 +623,10 @@ fn launch_kills(
             in_secs: fountain.delay_secs,
             best: best_tier(&kinds),
         });
+        heard.write(Heard::Burst {
+            in_secs: fountain.delay_secs,
+            sound: fountain.sound.clone(),
+        });
         let after = After::Kill(kill.coins);
         spawn_burst(&mut commands, &look, &shower, kill.at, &launches, &kinds, after);
     }
@@ -631,6 +642,7 @@ fn test_burst(
     look: Res<Look>,
     shower: Res<Shower>,
     mut erupted: MessageWriter<Erupted>,
+    mut heard: MessageWriter<Heard>,
     mut test: ResMut<TestBurst>,
     pieces: Query<(Entity, &Piece)>,
 ) {
@@ -665,6 +677,10 @@ fn test_burst(
         in_secs: fountain.delay_secs,
         best: best_tier(&kinds),
     });
+    heard.write(Heard::Burst {
+        in_secs: fountain.delay_secs,
+        sound: fountain.sound.clone(),
+    });
     test.watch = Some(Watch::default());
 }
 
@@ -673,6 +689,7 @@ fn fly(
     time: Res<Time>,
     game: Res<Game>,
     shower: Res<Shower>,
+    mut heard: MessageWriter<Heard>,
     mut uncollected: ResMut<Uncollected>,
     mut test: ResMut<TestBurst>,
     mut pieces: Query<(Entity, &mut Piece, &mut Transform, &mut Visibility), Without<Model>>,
@@ -697,12 +714,20 @@ fn fly(
                 continue;
             }
             *visibility = Visibility::Inherited;
+            if let Kind::Gear(tier) = piece.kind {
+                heard.write(Heard::Thrown(tier));
+            }
         }
 
         let was_resting = piece.body.resting;
+        let touch = shower.bounces - piece.body.bounces_left;
         if piece.body.step(&shower, dt) {
             piece.squash = 1.0;
             piece.spin *= shower.grip;
+            heard.write(Heard::Landed {
+                kind: piece.kind,
+                touch,
+            });
         }
         if piece.body.resting {
             if !was_resting {
@@ -726,6 +751,7 @@ fn fly(
         if let Some(speed) = &mut piece.homing {
             let to = nearest_horse(piece.body.position);
             if step_home(&shower, &mut piece.body.position, speed, to, dt) {
+                heard.write(Heard::Collected(piece.kind));
                 uncollected.take(piece);
                 commands.entity(entity).despawn();
                 continue;

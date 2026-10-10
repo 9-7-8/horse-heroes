@@ -5,6 +5,7 @@ use bevy::prelude::*;
 
 pub mod drops;
 pub mod response;
+pub mod sound;
 
 pub struct FxPlugin {
     /// Throw the test burst shortly after launch (`--burst`). F3 throws it
@@ -15,6 +16,8 @@ pub struct FxPlugin {
     /// Seconds after launch at which either of them throws it
     /// (`--burst-at`), for a look at it on the road.
     pub burst_at: Option<f32>,
+    /// Play no sound (`--mute`).
+    pub mute: bool,
 }
 
 impl Plugin for FxPlugin {
@@ -24,6 +27,7 @@ impl Plugin for FxPlugin {
             pickup: self.pickup,
             burst_at: self.burst_at.unwrap_or(drops::BURST_AT),
         })
-        .add_plugins(response::ResponsePlugin);
+        .add_plugins(response::ResponsePlugin)
+        .add_plugins(sound::SoundPlugin { mute: self.mute });
     }
 }
