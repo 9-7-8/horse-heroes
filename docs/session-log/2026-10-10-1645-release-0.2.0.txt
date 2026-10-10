@@ -1,0 +1,45 @@
+ASKED
+  "Build the installer and release 0.02.0, unsigned, so I can test it"
+
+DONE
+  - Version 0.2.0 in Cargo.toml, the only place it is written.
+    (cargo test: 106 passed)
+  - installer/build.ps1: release build with the C runtime linked in, a
+    staged folder (game, LICENSE.txt, SOURCE.txt, version.txt,
+    THIRD-PARTY-NOTICES.txt), and the installer. (run; exit 0)
+  - installer/horse-heroes.iss: per user, application ID 9-7-8.HorseHeroes,
+    Windows 10 and 11 x64, Start menu shortcut, optional desktop one.
+  - A released build opens no console window.
+  - The staged game, started from another directory: seen running, picture
+    read (road view, first fight).
+  - The installer: silent install into a scratch folder with a space and a
+    non-ASCII letter, uninstall entry and shortcut present, installed game
+    ran and wrote nothing in its folder, silent uninstall left nothing.
+  - Published v0.2.0 as a GitHub Release with HorseHeroes-Setup.exe and its
+    .sha256; the downloaded asset's hash matches the build.
+  - procedures/release-a-build.txt, written from this first run.
+  - README: an "Installing it" section, with the SmartScreen warning.
+
+DECIDED (for her; all reversible except the tag)
+  - "0.02.0" read as 0.2.0, the milestone's version.
+  - The asset is HorseHeroes-Setup.exe, the same name every release.
+  - The GPL is shown as information in the wizard, not as an agreement.
+  - Inno Setup 6.7.3 was installed for this user with winget.
+  - Released with four issues of the 0.2.0 milestone open (#10, #187,
+    #229, #241); the release notes say so.
+
+FOUND
+  - cargo test and the release build do not share a target folder: the
+    first release build is a full one, about seven and a half minutes.
+
+NOT DONE
+  - Nobody has clicked through the wizard or seen the SmartScreen warning:
+    that is the owner's test.
+  - No clean-machine test (#198): this machine has developer tools on it.
+  - No upgrade test: there is no earlier release to upgrade from.
+  - No launcher (#194), so shortcuts start the game. No signing, no update
+    manifest (#195). #190, #192 and #197 stay open for these.
+
+PICK UP
+  Ask the owner what her test of the 0.2.0 installer showed, and file what
+  it found.
