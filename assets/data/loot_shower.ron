@@ -42,6 +42,6 @@
     // The test burst.
     burst_pieces: 40,
     // Gear thrown with them, by rarity name: a mixed burst to tell them apart in.
-    burst_gear: ["Common", "Common", "Common", "Uncommon", "Uncommon", "Rare"],
+    burst_gear: ["Normal", "Normal", "Normal", "Magic", "Magic", "Rare", "Legendary", "Set"],
     burst_seed: 4,
 )

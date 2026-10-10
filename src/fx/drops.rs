@@ -606,8 +606,8 @@ fn fly(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::scene::{TRAIL_DEPTH, element_colour};
-    use crate::sim::data::{Data, Element};
+    use crate::game::scene::TRAIL_DEPTH;
+    use crate::sim::data::Data;
 
     const ORIGIN: Vec3 = Vec3::new(ENEMY_X[0], 0.5, 0.0);
 
@@ -663,38 +663,23 @@ mod tests {
         assert!(places.len() > 7, "the Rare was thrown only {} ways", places.len());
     }
 
-    /// Rarities are told apart without colour, lighter up the tiers, and
-    /// their colours are not an element's colour or the coins' gold. The top
-    /// tier has a beam.
+    /// No two rarities share a colour, glow and size never fall going up the
+    /// tiers, and the top tier has a beam. Rarity colours need not differ
+    /// from the element colours: rarity shows on drops and in menus only.
     #[test]
-    fn rarity_colours_are_their_own() {
-        let (s, data) = (Shower::load(), Data::load());
-        let rarities = &data.gear.rarities;
-        let luma = |c: Srgba| 0.299 * c.red + 0.587 * c.green + 0.114 * c.blue;
+    fn rarity_colours_are_told_apart() {
+        let rarities = Data::load().gear.rarities;
+        for (i, a) in rarities.iter().enumerate() {
+            for b in &rarities[i + 1..] {
+                let (x, y) = (rarity_colour(a), rarity_colour(b));
+                let apart = (x.red - y.red).abs() + (x.green - y.green).abs() + (x.blue - y.blue).abs();
+                assert!(apart >= 0.4, "{} and {} are {apart} apart", a.name, b.name);
+            }
+        }
         for pair in rarities.windows(2) {
-            let step = luma(rarity_colour(&pair[1])) - luma(rarity_colour(&pair[0]));
-            assert!(step >= 0.1, "{} is only {step} lighter", pair[1].name);
             assert!(pair[1].look.glow >= pair[0].look.glow && pair[1].look.size >= pair[0].look.size);
         }
         assert!(rarities.last().unwrap().look.beam.is_some());
-
-        let mut taken: Vec<(String, Hsla)> = Element::ALL
-            .iter()
-            .map(|&element| (element.name().into(), element_colour(element).into()))
-            .collect();
-        taken.push(("coin gold".into(), s.coin_colour.0.into()));
-        for rarity in rarities {
-            let colour = Hsla::from(rarity_colour(rarity));
-            // A colour near grey has no hue to mistake.
-            if colour.saturation < 0.15 {
-                continue;
-            }
-            for (name, other) in &taken {
-                let apart = (colour.hue - other.hue).abs();
-                let apart = apart.min(360.0 - apart);
-                assert!(apart >= 40.0, "{} is {apart} degrees from {name}", rarity.name);
-            }
-        }
     }
 
     #[test]

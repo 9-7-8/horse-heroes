@@ -5,20 +5,26 @@
 // `look` is how its drops are told apart in the loot shower: a colour, how
 // strongly the piece glows in it, its size, and for the tiers that have one a
 // beam of light over it (lengths in world units, `alpha` 0 clear to 1 solid,
-// `rise_secs` the time it takes to rise once the piece is thrown). Rarity
-// colours stay clear of the element colours and of the coins' gold, and get
-// lighter up the tiers, so that they also differ without colour.
+// `rise_secs` the time it takes to rise once the piece is thrown). The tiers
+// and their colours are the owner's (2026-10-10): white, blue, yellow, orange
+// and green. They need not differ from the element colours, because rarity
+// shows on drops and in menus only.
 // No bridles, bits or reins: nobody rides these horses. The Saddle slot seats
 // a pet.
 (
     health_per_point: 5,
     rarities: [
-        (name: "Common",   prefix: "Trail-worn",  weight: 70, win_weight: 45, points: (2, 3),
-         look: (colour: "7d766b", glow: 0.0, size: 1.0)),
-        (name: "Uncommon", prefix: "Fae-touched", weight: 25, win_weight: 40, points: (4, 5),
-         look: (colour: "a884ff", glow: 0.5, size: 1.15)),
-        (name: "Rare",     prefix: "Starlit",     weight: 5,  win_weight: 15, points: (7, 8),
-         look: (colour: "ff8fe0", glow: 1.5, size: 1.35,
+        (name: "Normal",    prefix: "Trail-worn",  weight: 60, win_weight: 35, points: (2, 3),
+         look: (colour: "ffffff", glow: 0.0, size: 1.0)),
+        (name: "Magic",     prefix: "Fae-touched", weight: 27, win_weight: 35, points: (4, 5),
+         look: (colour: "6969ff", glow: 0.4, size: 1.1)),
+        (name: "Rare",      prefix: "Starlit",     weight: 9,  win_weight: 18, points: (7, 8),
+         look: (colour: "ffff00", glow: 0.7, size: 1.2)),
+        (name: "Legendary", prefix: "Sunforged",   weight: 3,  win_weight: 8,  points: (10, 11),
+         look: (colour: "ff8000", glow: 1.5, size: 1.35,
+                beam: Some((height: 7.0, width: 0.16, alpha: 0.45, rise_secs: 0.15)))),
+        (name: "Set",       prefix: "Herd-sworn",  weight: 1,  win_weight: 4,  points: (12, 13),
+         look: (colour: "00ff00", glow: 1.5, size: 1.35,
                 beam: Some((height: 7.0, width: 0.16, alpha: 0.45, rise_secs: 0.15)))),
     ],
     bases: [
