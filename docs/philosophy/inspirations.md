@@ -38,6 +38,7 @@ complementary lens, not a fourth layer ([juice.md](juice.md)).
 | Road-event pacing | Pathfinder First Edition |
 | Idle safety and reporting | Melvor Idle |
 | Caravan shop and locals | Tiny Bookshop |
+| Goods trade between towns, auto-buy and routes | Tiny Rails |
 | Fantasy shop presentation | Teddy's Haven, Loot Shop Simulator |
 | Generations and remembered lives | Wildermyth |
 | Pets and fashion | Warframe |

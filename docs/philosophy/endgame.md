@@ -1,5 +1,13 @@
 # The ending
 
+> **Revised by the owner, 2026-10-10.** A restored road is free of corruption
+> and bosses, and is never free of bandits and predators: there is always a
+> chance of ordinary combat on any road, before and after the dragon, and
+> trading goods between towns is what a finished save is for. Where this file
+> says a cleared region has no combat, or that nothing is fought after the
+> ending, read it as "no corrupted creatures and no boss". The newer
+> statement is in [vision.md](vision.md), "The roads and the trade".
+
 How the game ends, and what "cleared" means on the way there.
 
 > **Success makes combat unnecessary.** You are not farming a world for ever

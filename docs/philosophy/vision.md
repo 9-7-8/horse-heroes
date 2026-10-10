@@ -110,15 +110,19 @@ Confirmed in her document on failure and stakes; the detail is in
 Her endpoint, set out in the endgame note; the detail is in
 [endgame.md](endgame.md).
 
-- **Success makes combat unnecessary.** The world is actually saved, not
-  farmed for ever.
+- **The world is actually saved, not farmed for ever.** The corruption and
+  the dragon are finite and stay defeated.
 - A region is cleared when its corruption source is removed, its town
-  restored and its routes secured. A cleared region has no monsters, and
-  none are brought back for the sake of loot.
-- The game is finite by design. After the dragon there is no combat
-  endgame; a completed save stays open for peaceful play.
-- An open-ended peaceful mode is a possible later expansion, outside the
-  first game's scope.
+  restored and its routes secured. A cleared region has no corrupted
+  creatures and no boss, and none are brought back for the sake of loot.
+- *(Revised by her, 2026-10-10.)* A cleared road is still a road. Horses are
+  prey animals, and bandits and predators are a fact of travel, before and
+  after the dragon. See "The roads and the trade", below. This replaces the
+  earlier lines that success makes combat unnecessary and that there is no
+  combat after the dragon.
+- The campaign is finite by design. After the dragon the save stays open,
+  and trading between towns along roads that are never wholly safe is what
+  the party does there.
 
 ### The caravan shop
 
@@ -293,7 +297,53 @@ recommendation, this section is the newer statement.
   `9-7-8`. Published from this repository, one stable channel, updates
   offered and chosen. Unsigned until a decision before 1.0. The manifest
   signing key is a GitHub Actions secret.
-- No social features and no timed content.
+- No social features. No timed content, with one exception she made the same
+  day: trade prices change each real-world day (below).
+
+## The roads and the trade (owner, 2026-10-10)
+
+Two changes she made after the decisions above, "to keep it interesting and
+to provide the skeleton for the endgame after you kill the dragon". Where
+they disagree with anything earlier in this file, they are newer.
+
+### There is always combat on the roads
+
+- Horses are prey animals, even in this world, and **bandits and predators
+  are out on every road**. Every road has a chance of rolling some kind of
+  combat; a journey may still pass without any.
+- They are **not usually very dangerous**, and much easier than the dragon.
+- **Longer distances between towns have more of them.**
+- This is separate from corruption. Purity still sets how many and how
+  strong the corrupted creatures and the boss are; a restored road has
+  neither, and keeps its bandits and predators.
+- **Drops: coins and trade goods, rarely gear.** Corrupted creatures and
+  bosses remain the source of Rare gear and new looks, so restoring a region
+  still closes its best loot.
+
+### Towns trade in goods
+
+- Towns buy and sell **non-combat materials**, such as wood, iron or apples,
+  **at different prices**. The party buys in one town, loads the caravan,
+  and picks a destination.
+- **Prices change every real-world day, within a trend.** One city might
+  always pay above average for apples; the exact amount fluctuates.
+- The player can set up **automatic buying and a set of routes**, with
+  conditions such as "only buy if their price is less than X".
+- The model is Tiny Rails, taken almost exactly, apart from the daily price
+  change ([inspirations.md](inspirations.md)).
+- **Goods ride in a caravan hold** of their own, counted in units.
+  Saddlebags stay for gear. This replaces "the caravan stores nothing" for
+  trade goods only.
+- **Trading opens at the second town** and is part of the main game; after
+  the dragon it is the main activity.
+- **A failed journey loses a bounded share of the goods aboard**, never all
+  of them, beside the existing gear and coin rule.
+
+What this changes elsewhere: the earlier loop-closing rule that buying and
+reselling makes no money applies to gear at the stall, not to trade goods;
+materials dropped on the road are goods in the hold, not bare counters; and
+daily prices run on the real calendar, the one thing that does not follow
+the world clock.
 
 ## The design priority
 
