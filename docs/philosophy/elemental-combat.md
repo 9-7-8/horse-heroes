@@ -6,6 +6,9 @@
 > Primer, Finisher and Support are tags on abilities. Where this file speaks
 > of a class's role or a horse's attunement, read "the ability's". The newer
 > statement is in [vision.md](vision.md), "Abilities, levels and no classes".
+> Also changed that day, in "Combat rules settled": an enemy holds one Primer
+> of each element; a failed accuracy check glances and never misses; every
+> hit can crit, reactions included; every payoff also deals damage.
 
 Damage types and how they combine are the central combat and build interest
 (confirmed; see [vision.md](vision.md)). The triangle is built. **Everything

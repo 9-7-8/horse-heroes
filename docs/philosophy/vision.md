@@ -461,6 +461,32 @@ Settled by her the same day:
 Primer, Finisher and Support remain, as tags on abilities. The reaction and
 Crescendo rules stand unchanged.
 
+## Combat rules settled (owner, 2026-10-10)
+
+Her answers after the combat review. Newer than everything above, and they
+replace four lines of the morning's "Combat (#80)" section: one Primer per
+enemy, misses, reactions never critting, and flat defence.
+
+- **Armour can protect against a specific element, and gear can add to an
+  element's damage.** Resistance is on **barding only**, capped at **75%**.
+  The damage bonus is on the **mouth weapon and the braid only**.
+- **An enemy's element is fixed by its creature kind.** It attacks with that
+  element. Horses have none of their own; their elemental defence is gear.
+- **Defence is a percentage with diminishing returns**, not a subtraction.
+- **Nothing misses.** A failed accuracy check is a glancing hit for reduced
+  damage; a glancing Finisher still consumes its Primer, for less.
+- **Every hit can crit**, reactions included.
+- **Bonuses of one kind add; different kinds multiply.** The kinds are gear
+  bonus, match-up, crit and Primer charges.
+- **An enemy holds one Primer of each element.** A Finisher consumes exactly
+  one, the best payoff, and leaves the rest.
+- **Every payoff also hits.** Wintergarden's barrier bursts for damage; no
+  reaction is purely defensive.
+- **Reactions are for hard fights.** An easy fight may end before one fires.
+- **Four enemy kinds:** Armoured, Evasive, Swarm, Warded.
+- **Basic attacks are neutral unless the mouth weapon gives them an
+  element.** They never apply or consume a Primer.
+
 ## The design priority
 
 > Complexity through depth, not breadth.
