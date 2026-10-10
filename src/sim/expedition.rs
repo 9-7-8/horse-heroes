@@ -440,6 +440,7 @@ impl Expedition {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sim::data::{Slot, Stats};
 
     const TICK: f32 = 0.1;
 
@@ -448,8 +449,12 @@ mod tests {
     }
 
     fn run(data: &Data, seed: u64, level: u32, element: Element) -> Expedition {
+        run_with(data, seed, level, element, &party(data))
+    }
+
+    fn run_with(data: &Data, seed: u64, level: u32, element: Element, party: &[Horse]) -> Expedition {
         let plan = Plan::generate(data, seed, level);
-        let mut expedition = Expedition::new(data, plan, &party(data), element);
+        let mut expedition = Expedition::new(data, plan, party, element);
         // Ten minutes of game time is far past any real run.
         for _ in 0..6000 {
             expedition.tick(data, TICK);
@@ -458,6 +463,42 @@ mod tests {
             }
         }
         panic!("seed {seed} did not finish");
+    }
+
+    /// A hand-made trail, attuned to Fire, standing in its first encounter.
+    fn fighting(data: &Data, level: u32, encounters: &[&[(&str, Element)]]) -> Expedition {
+        let plan = Plan {
+            seed: 7,
+            level,
+            encounters: encounters
+                .iter()
+                .map(|piece| {
+                    piece
+                        .iter()
+                        .map(|&(id, element)| Spawn {
+                            enemy: data.enemy_index(id),
+                            element,
+                        })
+                        .collect()
+                })
+                .collect(),
+            bonus_after: None,
+        };
+        let mut expedition = Expedition::new(data, plan, &party(data), Element::Fire);
+        expedition.start_encounter(data);
+        expedition
+    }
+
+    /// Keep the party from acting, so only the enemies do anything.
+    fn hold_the_party(expedition: &mut Expedition) {
+        for fighter in &mut expedition.party {
+            fighter.attack_timer = f32::MAX;
+            fighter.ability_timer = f32::MAX;
+        }
+    }
+
+    fn health_lost(expedition: &Expedition) -> i32 {
+        expedition.party.iter().map(|f| f.max_health - f.health).sum()
     }
 
     #[test]
@@ -588,5 +629,266 @@ mod tests {
             }
         }
         assert!(seen > 0);
+    }
+
+    /// A hit is its physical part less the target's defense, plus its
+    /// elemental part scaled by the triangle, and never less than 1.
+    #[test]
+    fn a_hit_is_physical_less_defense_plus_elemental_by_the_triangle() {
+        let data = Data::load();
+        let rules = &data.rules;
+        use Element::*;
+        let mut run = fighting(
+            &data,
+            0,
+            &[&[("corrupted_stag", Plant), ("corrupted_stag", Fire), ("corrupted_stag", Ice)]],
+        );
+        let defense = run.foes[0].defense as f32;
+        assert!(defense > 0.0, "the stag is the enemy with defense");
+        let (physical, elemental) = (defense + 5.0, 4.0);
+
+        let mut dealt = Vec::new();
+        for (target, multiplier) in [rules.strong_multiplier, 1.0, rules.weak_multiplier]
+            .into_iter()
+            .enumerate()
+        {
+            run.strike(rules, 0, target, physical, elemental, "hits");
+            let foe = &run.foes[target];
+            dealt.push(foe.max_health - foe.health);
+            assert_eq!(dealt[target], (5.0 + elemental * multiplier).round() as i32);
+        }
+        assert!(dealt[0] > dealt[1] && dealt[1] > dealt[2], "{dealt:?}");
+        assert_eq!((run.strong_hits, run.resisted_hits), (1, 1));
+
+        // Defense never turns a hit into healing, and a hit with nothing
+        // elemental in it is neither strong nor resisted.
+        let before = run.foes[0].health;
+        run.strike(rules, 0, 0, defense * 0.5, 0.0, "hits");
+        assert_eq!(run.foes[0].health, before - 1);
+        assert_eq!((run.strong_hits, run.resisted_hits), (1, 1));
+    }
+
+    /// Enemies gain health and attack with the trail level, and nothing else.
+    #[test]
+    fn enemies_grow_with_the_trail_level() {
+        let data = Data::load();
+        let trail: &[&[(&str, Element)]] =
+            &[&[("mire_toad", Element::Ice), ("corrupted_stag", Element::Ice)]];
+        let base = fighting(&data, 0, trail);
+        let level = 4;
+        let grown = fighting(&data, level, trail);
+        let scale = 1.0 + data.rules.level_scaling * level as f32;
+        for (foe, at_zero) in grown.foes.iter().zip(&base.foes) {
+            assert_eq!(foe.max_health, (at_zero.max_health as f32 * scale).round() as i32);
+            assert_eq!(foe.attack, (at_zero.attack as f32 * scale).round() as i32);
+            assert!(foe.max_health > at_zero.max_health && foe.attack > at_zero.attack);
+            assert_eq!(foe.health, foe.max_health);
+            assert_eq!(foe.defense, at_zero.defense);
+        }
+    }
+
+    /// Under the Ward a hit lands for less, by `ward_reduction`; the Mage
+    /// raises it without being told, and it runs out.
+    #[test]
+    fn the_ward_reduces_damage_taken_and_runs_out() {
+        let data = Data::load();
+        let rules = &data.rules;
+        let toad: &[&[(&str, Element)]] = &[&[("mire_toad", Element::Ice)]];
+        let mut plain = fighting(&data, 0, toad);
+        hold_the_party(&mut plain);
+        let mut warded = plain.clone();
+        warded.ward = f32::MAX;
+
+        // Long enough for the toad's first hit, too short for its second.
+        let dt = plain.foes[0].attack_interval * 1.5;
+        plain.tick(&data, dt);
+        warded.tick(&data, dt);
+        let (full, less) = (health_lost(&plain), health_lost(&warded));
+        assert!(full > 1, "the toad's hit should be worth reducing");
+        assert_eq!(less, ((full as f32 * (1.0 - rules.ward_reduction)).round() as i32).max(1));
+        assert!(less < full);
+        assert!(warded.log.last().unwrap().ends_with("(Warded)"));
+        assert!(!plain.log.last().unwrap().ends_with("(Warded)"));
+
+        let mut run = fighting(&data, 0, toad);
+        assert_eq!(run.ward, 0.0);
+        let mut raised = false;
+        for _ in 0..(rules.ward_cooldown / TICK) as usize + 1 {
+            run.tick(&data, TICK);
+            assert!(run.ward <= rules.ward_duration);
+            raised |= run.ward > 0.0;
+        }
+        assert!(raised, "the Mage never raised a Ward");
+
+        let mut fading = fighting(&data, 0, toad);
+        hold_the_party(&mut fading);
+        fading.ward = rules.ward_duration;
+        fading.tick(&data, rules.ward_duration * 0.5);
+        assert!(fading.ward > 0.0 && fading.ward < rules.ward_duration);
+        fading.tick(&data, rules.ward_duration);
+        assert_eq!(fading.ward, 0.0);
+    }
+
+    /// The fairy spring heals the horses still standing, by `bonus_heal` of
+    /// their health and not past it, after its own encounter and no other.
+    #[test]
+    fn the_fairy_spring_heals_the_standing_and_no_further() {
+        let data = Data::load();
+        let trail: &[&[(&str, Element)]] = &[
+            &[("mire_toad", Element::Ice)],
+            &[("mire_toad", Element::Ice)],
+            &[("hollow_wolf", Element::Ice)],
+        ];
+        let hurt = |spring: Option<usize>| {
+            let mut run = fighting(&data, 0, trail);
+            run.plan.bonus_after = spring;
+            run.party[0].health = 1;
+            run.party[1].health = 0;
+            run.foes.clear();
+            run.encounter_cleared(&data);
+            run
+        };
+
+        let healed = hurt(Some(0));
+        let first = &healed.party[0];
+        let heal = (first.max_health as f32 * data.rules.bonus_heal).round() as i32;
+        assert!(heal > 0 && 1 + heal < first.max_health);
+        assert_eq!(first.health, 1 + heal);
+        assert_eq!(healed.party[1].health, 0, "a fallen horse is not raised");
+        assert_eq!(healed.party[2].health, healed.party[2].max_health);
+        assert!(healed.log.iter().any(|line| line.contains("fairy spring")));
+        assert_eq!((healed.encounter, healed.phase), (1, Phase::Travelling));
+
+        for spring in [None, Some(1)] {
+            let dry = hurt(spring);
+            assert_eq!(dry.party[0].health, 1);
+            assert!(!dry.log.iter().any(|line| line.contains("fairy spring")));
+            assert_eq!((dry.encounter, dry.phase), (1, Phase::Travelling));
+        }
+    }
+
+    /// A spring is on about `bonus_chance` of trails, and always after an
+    /// ordinary encounter, where there is still a fight ahead to heal for.
+    #[test]
+    fn springs_are_rolled_at_their_chance_and_before_the_final() {
+        let data = Data::load();
+        let seeds = 4000;
+        let mut springs = 0;
+        for seed in 0..seeds {
+            if let Some(after) = Plan::generate(&data, seed, 0).bonus_after {
+                assert!(after < data.rules.ordinary_encounters, "seed {seed}");
+                springs += 1;
+            }
+        }
+        let rate = springs as f32 / seeds as f32;
+        assert!((rate - data.rules.bonus_chance).abs() < 0.03, "spring rate {rate}");
+    }
+
+    /// The trail is the seed's alone: the level and the fight do not move it.
+    #[test]
+    fn the_trail_does_not_change_with_the_level_or_the_fight() {
+        let data = Data::load();
+        for seed in 0..50 {
+            let plan = Plan::generate(&data, seed, 0);
+            let harder = Plan::generate(&data, seed, 5);
+            assert_eq!(plan.encounters, harder.encounters);
+            assert_eq!(plan.bonus_after, harder.bonus_after);
+            for element in Element::ALL {
+                assert_eq!(run(&data, seed, 0, element).plan, plan);
+            }
+        }
+    }
+
+    /// What a horse wears goes onto the trail with it, and a party in good
+    /// gear wins more often than a bare one.
+    #[test]
+    fn worn_gear_is_fought_in_and_wins_more_trails() {
+        let data = Data::load();
+        let mut geared = party(&data);
+        for (fits, horse) in geared.iter_mut().enumerate() {
+            horse.gear[Slot::Body.index()] = Some(Gear {
+                name: "Test Blanket".into(),
+                slot: Slot::Body,
+                rarity: 0,
+                stats: Stats {
+                    health: 20,
+                    attack: 3,
+                    defense: 2,
+                    elemental: 3,
+                },
+                fits,
+            });
+        }
+
+        let plan = Plan::generate(&data, 1, 0);
+        let expedition = Expedition::new(&data, plan, &geared, Element::Fire);
+        for (fighter, horse) in expedition.party.iter().zip(&geared) {
+            let stats = horse.stats();
+            assert_ne!(stats, horse.base);
+            assert_eq!((fighter.health, fighter.max_health), (stats.health, stats.health));
+            assert_eq!(
+                (fighter.attack, fighter.defense, fighter.elemental),
+                (stats.attack, stats.defense, stats.elemental)
+            );
+        }
+
+        let wins = |party: &[Horse]| {
+            (0..100)
+                .filter(|&seed| run_with(&data, seed, 0, Element::Ice, party).outcome.unwrap().won)
+                .count()
+        };
+        let (bare, worn) = (wins(&party(&data)), wins(&geared));
+        assert!(worn > bare, "geared {worn} wins against bare {bare}");
+    }
+
+    /// Tick by tick, for a presenter that takes the kills as they come:
+    /// health stays between nothing and full, a fallen horse stays down, the
+    /// coins only climb and match the kills, and the winning kill still
+    /// carries the gear.
+    #[test]
+    fn a_run_holds_together_tick_by_tick() {
+        let data = Data::load();
+        let mut won = 0;
+        for seed in 0..60 {
+            let plan = Plan::generate(&data, seed, 1);
+            let mut run = Expedition::new(&data, plan, &party(&data), Element::Plant);
+            let mut fallen = vec![false; run.party.len()];
+            let mut taken: Vec<Kill> = Vec::new();
+            let mut coins = 0;
+            for _ in 0..6000 {
+                run.tick(&data, TICK);
+                for (fighter, down) in run.party.iter().zip(fallen.iter_mut()) {
+                    assert!((0..=fighter.max_health).contains(&fighter.health), "seed {seed}");
+                    assert!(!*down || fighter.health == 0, "seed {seed}: {} got up", fighter.name);
+                    *down = fighter.health == 0;
+                }
+                for foe in &run.foes {
+                    assert!((0..=foe.max_health).contains(&foe.health), "seed {seed}");
+                }
+                assert!(run.coins >= coins, "seed {seed}");
+                coins = run.coins;
+                taken.append(&mut run.kills);
+                assert_eq!(taken.iter().map(|k| k.coins).sum::<i32>(), run.coins);
+                if run.phase == Phase::Finished {
+                    break;
+                }
+            }
+            let outcome = run.outcome.clone().expect("the run finished");
+            assert_eq!(outcome.total, run.plan.encounters.len());
+            assert_eq!(outcome.coins, run.coins);
+            assert_eq!(outcome.won, outcome.cleared == outcome.total);
+            assert_eq!(outcome.won, fallen.iter().any(|&down| !down));
+            if outcome.won {
+                assert_eq!(taken.last().unwrap().gear, outcome.drop);
+                assert!(outcome.drop.is_some());
+                won += 1;
+            }
+
+            // A finished run stays as it ended.
+            let log = run.log.len();
+            run.tick(&data, 60.0);
+            assert_eq!((run.log.len(), run.outcome.as_ref()), (log, Some(&outcome)));
+        }
+        assert!(won > 0);
     }
 }
