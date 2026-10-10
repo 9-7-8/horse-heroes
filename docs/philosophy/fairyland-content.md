@@ -23,7 +23,7 @@ and icon, never by colour alone.
   and tack modestly.
 - Constraints: the silhouette reads as a horse at gameplay zoom; head and
   legs stay in readable proportion; hooves meet the ground; saddle and blanket
-  sockets follow body landmarks; head space is reserved for ears, bridle and
+  sockets follow body landmarks; head space is reserved for ears, halter and
   ornaments; two attachments never occupy one socket's volume.
 - **Customisation is directed by the player as well as rolled:** choose a
   palette or style, lock favourite traits and reroll the rest, preview before
@@ -61,6 +61,9 @@ and icon, never by colour alone.
 
 - Generate in this order: slot, base recipe, level, rarity, power budget,
   allowed affixes, appearance, name, validation.
+- No bridles, bits or reins; saddles seat pets; each category of equipment
+  has its own identity ([vision.md](vision.md), Equipment). A generator's
+  affix pool is per category, so two categories cannot roll the same piece.
 - Rules:
   - every piece fits at least one supported horse;
   - rarity limits both affix count and ornament complexity;

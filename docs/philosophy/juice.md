@@ -99,7 +99,7 @@ be stronger than decoration. Provide settings to turn effects down.
 - Camp is where most actions happen and it is text with key presses. Question
   1 (did the game receive it?) is the cheapest gap to close.
 - The horses are boxes. "Animate the state change" still applies with
-  primitives: a new bridle is a coloured band on the head box. Gear shown on
+  primitives: a new halter is a coloured band on the head box. Gear shown on
   the horse must not depend on a model (pillar 3).
 - Juice is the product here (pillar 1), which makes restraint more important,
   not less: the fountain only stays special if nothing else is spending at the

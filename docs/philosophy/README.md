@@ -9,7 +9,9 @@ Read the relevant file before designing or tuning the system it covers.
 
 | File | Covers |
 | --- | --- |
-| [the-loop.md](the-loop.md) | Start here. The four layers, what the player should be able to say, the loop from intention to hypothesis, and the checklist to run before adding content |
+| [vision.md](vision.md) | **Read first.** What the owner wants built: the world, the loop, what the player controls, equipment rules, what is confirmed, proposed and open. Outranks the other files |
+| [elemental-combat.md](elemental-combat.md) | Element identities, setup statuses, pair reactions, class patterns, individual attunement (mostly proposed, see the file) |
+| [the-loop.md](the-loop.md) | The four layers, what the player should be able to say, the loop from intention to hypothesis, and the checklist to run before adding content |
 | [incremental-and-idle.md](incremental-and-idle.md) | Accumulation and reinvestment, the tension every resource needs, respecting absence, bounded offline progress, prestige |
 | [juice.md](juice.md) | Feedback in general: the four questions, three levels of importance, state changes, sound, motion, and not hiding information |
 | [feedback-chain.md](feedback-chain.md) | Why every action must visibly change the world, and the time scales a reward loop runs on |
@@ -27,6 +29,9 @@ Read the relevant file before designing or tuning the system it covers.
   by itself), and **Source**.
 - They are guidance, not a backlog. Work to be done is a GitHub issue; an issue
   cites the philosophy file that justifies it.
+- Keep the owner's decisions apart from advice. What she has confirmed goes in
+  `vision.md` as confirmed; a proposal stays marked as proposed until she
+  decides, and an open question is an issue labelled `decision`.
 - When new source material arrives, fold it into the file that already covers
   the topic. Add a file only for a new topic, and add it to the table above.
 - When a principle is tried in the running game and turns out wrong for this

@@ -24,6 +24,12 @@ STEPS
    every "Depends on" can carry a real number. Link a sub-issue with
    gh api repos/9-7-8/horse-heroes/issues/<epic>/sub_issues -F sub_issue_id=<id>
    where <id> is the child's .id from the API, not its number.
+   When the source is the owner's own design and marks things as confirmed,
+   proposed or open, keep those apart: confirmed goes in vision.md and may be
+   built; a feature resting on a proposal gets the "proposed" label and
+   depends on a "decision" issue; each group of open questions is one
+   "decision" issue under the epic it blocks. Check the game's data and docs
+   for anything a confirmed rule now contradicts, and file it.
 6. Commit the docs. Do not push (end-session.txt does that).
 7. Report: issue numbers by epic, files touched, anything cut off or left out.
 

@@ -15,6 +15,15 @@ Mage) walks right along a side-scrolling isometric fairyland trail, fights
 corrupted creatures by itself, and brings back horse gear. Horse models are to
 be procedurally generated. What is built so far: `docs/expedition.md`.
 
+**Vision (owner, 2026-10-09):** the player organises an autonomous gaggle of
+horses in a solarpunk fairy world threatened by one greedy dragon: party,
+gear, pets, looks, town trade, who stays in which town. Combat is about
+elemental damage types and their combinations; the long game is companions,
+pets and fashion. Complexity through depth, not breadth. No bridles, bits or
+reins (halters); saddles seat pets. The full statement, with what is
+confirmed, proposed and open, is `docs/philosophy/vision.md`; read it before
+any design call and do not build on a proposal as if it were confirmed.
+
 This file is the standing rules. Keep it short: what a session built goes in
 git history, how a system works goes in `docs/`, a routine goes in
 `procedures/`.

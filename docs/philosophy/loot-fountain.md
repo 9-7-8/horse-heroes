@@ -104,6 +104,9 @@ ceremony alone does not last.
 - Appraisal happens in camp and auto-equip exists. Auto-equip must not swallow
   the moment: show what changed.
 - All of it is data (pillar 4): rarity tiers, weights, colours, fountain sizes.
+- Huge drops are a confirmed goal ([vision.md](vision.md)), and so is low
+  management. A fountain should feel generous without forcing an inventory
+  interruption: whatever limits carrying has to resolve itself by a rule.
 
 ## Source
 
