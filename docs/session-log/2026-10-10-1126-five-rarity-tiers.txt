@@ -1,0 +1,50 @@
+SESSION LOG 2026-10-10 11:26 - five rarity tiers in the owner's colours
+======================================================================
+
+ASKED
+  "Use the same rarity tiers and coloring as Diablo 3" - right after the
+  rarity signal (#6) was finished. procedures/record-a-design-change.txt.
+
+DONE
+  - Five tiers in gear.ron, lowest first: Normal (white), Magic (blue),
+    Rare (yellow), Legendary (orange), Set (green). All five drop.
+    Legendary and Set have a beam. The test burst throws 3 Normal, 2 Magic
+    and one each of Rare, Legendary and Set with its 40 coins (84ebb66).
+    No code changed but one test: tiers are data since #6.
+    Tested: cargo test, 42 pass.
+    Seen running: the test burst in screenshots I read at 2.9 and 4.8 s.
+  - Recorded: vision.md (Rarity tiers and their colours), a dated note at
+    the top of cargo.md, items-and-builds.md, loot-shower.md,
+    build-and-run.txt, the gallery pictures retaken.
+  - Comments on #6, #10, #33 and #240 saying how to read them now.
+
+DECIDED
+  Hers:
+  - The five tiers and their colours.
+  - "Rarity tiers don't need to stay distinguished from element colors,
+    because rarity tiers apply on drops and in menus only." This replaces
+    the rule in cargo.md.
+  - "All five drop", though Legendary powers and set bonuses are not built.
+  Made for her, to be corrected:
+  - The hex values: ffffff, 6969ff, ffff00, ff8000, 00ff00.
+  - Drop weights 60/27/9/3/1, and 35/35/18/8/4 on a win. Stat points
+    2-3, 4-5, 7-8, 10-11, 12-13. Set ranks above Legendary.
+  - Prefixes for the two new tiers: "Sunforged" and "Herd-sworn".
+  - Beams on Legendary and Set only.
+
+FOUND
+  - A yellow Rare is hard to pick out among gold coins at rest. Blue,
+    orange and green read clearly. #240 (shape per tier) has a note.
+  - Legendary at 10-11 points and Set at 12-13 are far stronger than
+    anything the balance test has seen; first_trail_balance runs without
+    gear, so nothing checks what a party wearing them does to the trail.
+
+NOT DONE
+  - A real winning kill dropping its gear on the road is still not looked
+    at; only the test burst is.
+  - Nobody has watched it move, and the owner has not looked at it.
+  - #205 still waits on #8. #199 still waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. With no bug filed it lands on #7, the
+  pickup vacuum: drops pause on the ground, then fly to the party.

@@ -30,19 +30,23 @@ A gear piece is a box (`gear_size` in `loot_shower.ron`); a coin is a disc.
 Its rarity is shown four ways, all in the rarity's `look` in
 `assets/data/gear.ron`, beside its weights:
 
-- `colour`: Common a dull grey-brown, Uncommon violet, Rare pink.
-- `glow`: how strongly the piece gives off that colour. Common has none.
+- `colour`: Normal white, Magic blue, Rare yellow, Legendary orange, Set
+  green. The five tiers and their colours are the owner's choice
+  (2026-10-10, [vision.md](philosophy/vision.md)).
+- `glow`: how strongly the piece gives off that colour. Normal has none.
 - `size`: a multiple of `gear_size`. Higher tiers are larger.
 - `beam`: a column of light standing on the ground where the piece is. It
   is hidden with the piece and rises over `rise_secs` from the moment the
-  piece is thrown, so it is up while the piece is still in the air. Only
-  Rare has one today; any tier given a `beam` gets one.
+  piece is thrown, so it is up while the piece is still in the air.
+  Legendary and Set have one; any tier given a `beam` gets one.
 
 A piece names its rarity by its place in the list in `gear.ron`, lowest
 first, and there is no rarity enum, so a new tier is one more line there and
-no code. The colours get lighter up the tiers, so they differ in greyscale
-too, and each is at least 40 degrees of hue from the three element colours
-(`scene::element_colour`) and from the coins' gold; a test holds both.
+no code. A test holds that no two tiers share a colour. Rarity colours do
+not have to differ from the element colours: rarity shows on drops and in
+menus only (owner, 2026-10-10). Blue is close to Ice, orange to Fire and
+green to Plant, and a yellow Rare is hard to pick out among gold coins;
+shape per tier (#240) is what will separate those.
 
 ## The numbers
 
@@ -77,13 +81,14 @@ with the ground.
 ## The test burst
 
 `F3`, or `--burst` one second after launch, throws `burst_pieces` coins and
-the gear named in `burst_gear` (three Common, two Uncommon, one Rare) from
+the gear named in `burst_gear` (three Normal, two Magic, and one each of
+Rare, Legendary and Set) from
 `burst_seed` from where the first enemy stands. It is the same burst every
 time, it stays where it lands, and pressing F3 again replaces it. When its
 pieces are at rest the log has one line:
 
-    test burst: 46 pieces at rest after 2.47 s, mean frame 33.4 ms, worst
-    39.3 ms (with none in the air: mean 33.3 ms, worst 37.2 ms)
+    test burst: 48 pieces at rest after 2.67 s, mean frame 33.4 ms, worst
+    39.1 ms (with none in the air: mean 33.4 ms, worst 34.3 ms)
 
 Compare the two means to see what a burst costs. To tune:
 `procedures/tune-loot-feel.txt`.
@@ -91,8 +96,8 @@ Compare the two means to see what a burst costs. To tune:
     $env:IDLE_SHOT = "screenshots/burst.png"; $env:IDLE_SHOT_AT = "2.2"
     cargo run -- --seed 6 --burst *> run.log
 
-A picture at 2.2 s is the burst in the air; at 2.8 s the Rare is in the air
-under its beam; at 4.5 s it is at rest.
+A picture at 2.2 s is the burst in the air; at 2.9 s the last pieces are in
+the air and both beams are up; at 4.8 s it is at rest.
 
 ## Tests
 
@@ -101,7 +106,7 @@ launches are staggered and within their speeds; a burst is spread over the
 fan; every piece bounces as often as the data says and rests on the trail;
 no piece rests on a standing enemy, whichever of the three died; the test
 burst has gear of every rarity; the seed puts the gear among the coins; the
-rarity colours are lighter up the tiers and clear of the element colours.
+no two rarities share a colour, and the top tier has a beam.
 `src/sim/expedition.rs`: every kill is reported once, and the coins of the
 kills add up to the run's coins; the winning kill carries the run's gear and
 no other kill carries any.

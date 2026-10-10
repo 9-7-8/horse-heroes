@@ -148,7 +148,8 @@ detail is in [cargo.md](cargo.md).
   party home or skips the boss.
 - The player can tune what is kept. The default is highest rarity first.
 - Rare gear is exciting: its own rarity colour, a more distinctive look, a
-  more impressive reveal.
+  more impressive reveal. (The tiers and colours were named on 2026-10-10:
+  see "Rarity tiers and their colours" below.)
 
 ### Travel
 
@@ -507,6 +508,25 @@ the same day. The advice built on them is in [menus.md](menus.md).
 - **Menus are built first.** "The menus should be one of the first things we
   build, so we can tune it throughout. All buttons should be there, even if
   they're not functional, as early as possible."
+
+## Rarity tiers and their colours (owner, 2026-10-10)
+
+"Use the same rarity tiers and coloring as Diablo 3."
+
+- Five tiers, lowest first: **Normal** (white), **Magic** (blue), **Rare**
+  (yellow), **Legendary** (orange), **Set** (green). They replace Common,
+  Uncommon and Rare.
+- "Rarity tiers don't need to stay distinguished from element colors,
+  because rarity tiers apply on drops and in menus only." This replaces the
+  rule in [cargo.md](cargo.md) that rarity colours must be distinguishable
+  from the Fire, Ice and Plant colours.
+- "All five drop" now, though Legendary powers and set bonuses are not
+  built: until they are, those two tiers are more stat points and a beam.
+  Giving each tier its job is #33.
+
+Mine, not hers: the tier names are that game's; the exact hex values, drop
+weights, stat points and name prefixes in `gear.ron`; and that Legendary and
+Set are the tiers with a beam.
 
 ## The design priority
 

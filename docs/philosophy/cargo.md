@@ -1,5 +1,10 @@
 # Cargo and what the party keeps
 
+> 2026-10-10: the owner replaced two things below. The tiers are now Normal,
+> Magic, Rare, Legendary and Set, not Common, Uncommon and Rare; and rarity
+> colours no longer have to be distinguishable from the element colours.
+> See [vision.md](vision.md), "Rarity tiers and their colours".
+
 How loot is carried, what survives the journey, and how it is handled on
 arrival. Five points here are the owner's confirmed decisions and are listed
 first. The rest is a small set of proposed details.

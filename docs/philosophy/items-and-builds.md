@@ -105,7 +105,8 @@ and a reason to return.
 
 ## For Horse Heroes
 
-- There are three tiers (Common, Uncommon, Rare) and they differ only in stat
+- There are five tiers (Normal, Magic, Rare, Legendary, Set; owner,
+  2026-10-10, replacing Common, Uncommon, Rare) and they differ only in stat
   points. By the test above none of them has a job yet. The first tier with a
   job is the one that carries a gear effect.
 - A piece fits one named horse and one of three slots, so there are nine slots
