@@ -4,17 +4,40 @@
 // every time. Lengths are world units (a horse is about 2 long), times are
 // seconds, speeds are units a second. A pair is (least, most), rolled per piece.
 (
-    // Burst. Pieces leave one after another, this far apart, in a fan this
-    // wide that opens towards the party.
-    stagger_secs: 0.035,
-    fan_degrees: 220,
+    // Fountains: how a kill throws its drops, one for each kind of kill. An
+    // enemy names its own in enemies.ron, so a new kind of kill is one more
+    // entry here and its name there. The big one is kept for a trail's last
+    // enemy (docs/philosophy/loot-fountain.md, Scarcity and restraint).
+    //   delay_secs    from the death to the first piece leaving
+    //   stagger_secs  pieces leave one after another, this far apart
+    //   fan_degrees   in a fan this wide, which opens towards the party
+    //   up_speed, out_speed   the arc: how fast up, and along the ground
+    //   spin          tumbling in the air, in turns a second
+    //   most_pieces   one coin piece per coin dropped, up to this many
+    fountains: {
+        // An ordinary enemy: small, quick, low.
+        "small": (
+            delay_secs: 0.0,
+            stagger_secs: 0.02,
+            fan_degrees: 140,
+            up_speed: (6.0, 7.5),
+            out_speed: (0.6, 1.4),
+            spin: (1.5, 3.0),
+            most_pieces: 6,
+        ),
+        // A trail's last enemy: a beat of nothing, then large, staggered, wide.
+        "full": (
+            delay_secs: 0.3,
+            stagger_secs: 0.045,
+            fan_degrees: 220,
+            up_speed: (8.5, 11.5),
+            out_speed: (0.9, 2.4),
+            spin: (1.5, 3.0),
+            most_pieces: 24,
+        ),
+    },
 
-    // Arc.
-    up_speed: (7.0, 10.0),
-    out_speed: (0.8, 2.4),
     gravity: 30.0,
-    // Tumbling in the air, in turns a second.
-    spin: (1.5, 3.0),
 
     // Landing. A piece bounces this many times and rests on the next touch.
     // Each bounce keeps `bounce` of its upward speed and `grip` of its speed
@@ -28,11 +51,10 @@
     // Time to lie down flat once it has stopped.
     settle_secs: 0.2,
 
-    // The pieces. One coin piece per coin a kill drops, up to the most shown.
+    // The pieces.
     coin_radius: 0.17,
     coin_thickness: 0.07,
     coin_colour: "e8c04a",
-    most_pieces: 16,
     // A piece of gear is a box this long, thick and deep, times its rarity's
     // `size`. Its colour, glow and beam are its rarity's, in gear.ron.
     gear_size: (0.46, 0.2, 0.34),
@@ -49,7 +71,8 @@
     pickup_accel: 45.0,
     pickup_shrink: 1.2,
 
-    // The test burst.
+    // The test burst: thrown as this fountain, with this many coins.
+    burst_fountain: "full",
     burst_pieces: 40,
     // Gear thrown with them, by rarity name: a mixed burst to tell them apart in.
     burst_gear: ["Normal", "Normal", "Normal", "Magic", "Magic", "Rare", "Legendary", "Set"],

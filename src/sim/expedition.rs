@@ -88,6 +88,7 @@ pub struct Foe {
     attack_interval: f32,
     attack_timer: f32,
     coins: (i32, i32),
+    fountain: String,
 }
 
 /// An enemy brought down, for the presentation to show: which one, and what
@@ -98,6 +99,8 @@ pub struct Kill {
     pub foe: usize,
     pub max_health: i32,
     pub coins: i32,
+    /// The kind of kill: its enemy's `fountain` in `enemies.ron`.
+    pub fountain: String,
     /// The gear it dropped. Only the enemy whose fall wins the trail drops
     /// any: the run's piece, the same one the outcome carries.
     pub gear: Option<Gear>,
@@ -224,6 +227,7 @@ impl Expedition {
                     attack_interval: def.attack_interval,
                     attack_timer: def.attack_interval,
                     coins: def.coins,
+                    fountain: def.fountain.clone(),
                 }
             })
             .collect();
@@ -431,6 +435,7 @@ impl Expedition {
                 foe: target,
                 max_health: foe.max_health,
                 coins,
+                fountain: foe.fountain.clone(),
                 gear: None,
             });
         }

@@ -48,13 +48,15 @@ impl SceneView {
     }
 }
 
-/// An enemy went down: where its body was, the coins it dropped, the rarity
-/// tier of the gear it dropped if it dropped any, and where the enemies
-/// still standing are. `fx` turns it into drops.
+/// An enemy went down: where its body was, the coins it dropped, the kind of
+/// kill it was (the name of its fountain), the rarity tier of the gear it
+/// dropped if it dropped any, and where the enemies still standing are. `fx`
+/// turns it into drops.
 #[derive(Message)]
 pub struct Killed {
     pub at: Vec3,
     pub coins: i32,
+    pub fountain: String,
     pub gear: Option<usize>,
     pub standing: Vec<Vec3>,
 }
@@ -280,6 +282,7 @@ fn advance(
                         at: scene::enemy_centre(kill.foe, kill.max_health),
                         coins: kill.coins,
                         gear: kill.gear.as_ref().map(|gear| gear.rarity),
+                        fountain: kill.fountain,
                         standing: expedition
                             .foes
                             .iter()

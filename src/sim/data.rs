@@ -138,6 +138,9 @@ pub struct EnemyDef {
     pub defense: i32,
     pub attack_interval: f32,
     pub coins: (i32, i32),
+    /// The kind of kill it is: the name of the fountain its drops leave in,
+    /// one of those in `loot_shower.ron`. The sim only carries the name.
+    pub fountain: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -254,6 +257,7 @@ mod tests {
         for enemy in &data.enemies {
             assert!(enemy.health > 0 && enemy.attack_interval > 0.0, "{}", enemy.id);
             assert!(0 <= enemy.coins.0 && enemy.coins.0 <= enemy.coins.1, "{}", enemy.id);
+            assert!(!enemy.fountain.is_empty(), "{}", enemy.id);
         }
 
         let encounters = &data.encounters;

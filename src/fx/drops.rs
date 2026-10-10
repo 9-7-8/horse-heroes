@@ -1,6 +1,8 @@
 //! Drops as physical objects: a kill's drops leave the body one after
 //! another, fanned out, each on its own arc with spin; they bounce, squash a
 //! little and come to rest. Every number is in `assets/data/loot_shower.ron`.
+//! How big the burst is depends on the kind of kill: each enemy names its
+//! fountain, small for an ordinary one and the full one for a trail's last.
 //! A piece of gear is told apart by its rarity: colour, glow, size, and for
 //! the tiers that have one a beam of light, all in `assets/data/gear.ron`.
 //! A burst lies still for a moment, then its pieces go to the party one after
@@ -9,6 +11,7 @@
 //! The flight is plain arithmetic (`Body`, `plan_burst`), so it is unit-tested;
 //! the systems below it only draw it.
 
+use std::collections::BTreeMap;
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
 use bevy::prelude::*;
@@ -20,8 +23,9 @@ use crate::game::{Game, Killed, Uncollected};
 use crate::sim::data::{BeamDef, GearTable, RarityDef};
 use crate::sim::rng::Rng;
 
-/// Seconds after launch at which `--burst` throws the test burst.
-const BURST_AT: f32 = 1.0;
+/// Seconds after launch at which `--burst` throws the test burst, unless
+/// `--burst-at` says otherwise.
+pub const BURST_AT: f32 = 1.0;
 /// Directions tried for a piece before it is sent straight out sideways.
 const TRIES: u32 = 8;
 /// A drop is forgotten once it is this far left of the party's middle.
@@ -30,12 +34,10 @@ const GONE: f32 = SCENE_WIDTH / 2.0 + 4.0;
 /// The feel numbers in `assets/data/loot_shower.ron`, compiled into the binary.
 #[derive(Resource, Clone, Debug, Deserialize)]
 pub struct Shower {
-    pub stagger_secs: f32,
-    pub fan_degrees: f32,
-    pub up_speed: (f32, f32),
-    pub out_speed: (f32, f32),
+    /// One for each kind of kill, by the name an enemy gives in
+    /// `enemies.ron`. A new kind is one more entry there and no code.
+    pub fountains: BTreeMap<String, Fountain>,
     pub gravity: f32,
-    pub spin: (f32, f32),
     pub bounces: u32,
     pub bounce: f32,
     pub grip: f32,
@@ -45,7 +47,6 @@ pub struct Shower {
     pub coin_radius: f32,
     pub coin_thickness: f32,
     pub coin_colour: Hex,
-    pub most_pieces: usize,
     pub gear_size: (f32, f32, f32),
     pub keep_clear: f32,
     pub pickup_pause_secs: f32,
@@ -53,15 +54,35 @@ pub struct Shower {
     pub pickup_speed: f32,
     pub pickup_accel: f32,
     pub pickup_shrink: f32,
+    pub burst_fountain: String,
     pub burst_pieces: usize,
     pub burst_gear: Vec<String>,
     pub burst_seed: u64,
+}
+
+/// How one kind of kill throws its drops: how long after the death, how far
+/// apart, how wide, how high and how far, and how many coin pieces at most.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Fountain {
+    pub delay_secs: f32,
+    pub stagger_secs: f32,
+    pub fan_degrees: f32,
+    pub up_speed: (f32, f32),
+    pub out_speed: (f32, f32),
+    pub spin: (f32, f32),
+    pub most_pieces: usize,
 }
 
 impl Shower {
     pub fn load() -> Shower {
         ron::from_str(include_str!("../../assets/data/loot_shower.ron"))
             .unwrap_or_else(|e| panic!("assets/data/loot_shower.ron: {e}"))
+    }
+
+    pub fn fountain(&self, name: &str) -> &Fountain {
+        self.fountains
+            .get(name)
+            .unwrap_or_else(|| panic!("loot_shower.ron: no fountain named `{name}`"))
     }
 
     /// The test burst's gear as rarity tiers.
@@ -230,12 +251,13 @@ fn is_clear(point: Vec3, standing: &[Vec3], keep_clear: f32) -> bool {
         .all(|enemy| point.xz().distance(enemy.xz()) > keep_clear)
 }
 
-/// Plan a burst of `count` pieces from `origin`. Everything follows from the
-/// seed. Each piece gets its own slice of the fan, so a burst is spread out
-/// however few pieces it has, and no piece is sent to rest on an enemy still
-/// `standing`.
+/// Plan a burst of `count` pieces from `origin`, thrown the way `fountain`
+/// says. Everything follows from the seed. Each piece gets its own slice of
+/// the fan, so a burst is spread out however few pieces it has, and no piece
+/// is sent to rest on an enemy still `standing`.
 pub fn plan_burst(
     shower: &Shower,
+    fountain: &Fountain,
     seed: u64,
     count: usize,
     origin: Vec3,
@@ -244,19 +266,19 @@ pub fn plan_burst(
     let mut rng = Rng::new(seed);
     let mut order: Vec<usize> = (0..count).collect();
     rng.shuffle(&mut order);
-    let fan = shower.fan_degrees.to_radians();
+    let fan = fountain.fan_degrees.to_radians();
     let between = |rng: &mut Rng, (lo, hi): (f32, f32)| lo + (hi - lo) * rng.unit();
 
     (0..count)
         .map(|i| {
-            let up = between(&mut rng, shower.up_speed);
-            let out = between(&mut rng, shower.out_speed);
+            let up = between(&mut rng, fountain.up_speed);
+            let out = between(&mut rng, fountain.out_speed);
             let tumble = rng.unit() * TAU;
             let mut launch = Launch {
-                delay: order[i] as f32 * shower.stagger_secs,
+                delay: fountain.delay_secs + order[i] as f32 * fountain.stagger_secs,
                 velocity: Vec3::ZERO,
                 axis: Vec3::new(tumble.cos(), 0.0, tumble.sin()),
-                spin: between(&mut rng, shower.spin) * TAU,
+                spin: between(&mut rng, fountain.spin) * TAU,
                 yaw: rng.unit() * TAU,
             };
             // Angle 0 points at the party, which is to the left.
@@ -286,13 +308,14 @@ pub fn plan_burst(
 pub struct DropsPlugin {
     pub burst: bool,
     pub pickup: bool,
+    pub burst_at: f32,
 }
 
 impl Plugin for DropsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Shower::load())
             .insert_resource(TestBurst {
-                due: (self.burst || self.pickup).then_some(BURST_AT),
+                due: (self.burst || self.pickup).then_some(self.burst_at),
                 pickup: self.pickup,
                 watch: None,
                 calm: Watch::default(),
@@ -538,8 +561,8 @@ fn spawn_burst(
     }
 }
 
-/// A kill's drops leave its body: one piece a coin up to the most shown, and
-/// its gear if it dropped any.
+/// A kill's drops leave its body in the fountain its enemy names: one piece
+/// a coin up to the most that fountain shows, and its gear if it dropped any.
 fn launch_kills(
     mut commands: Commands,
     mut killed: MessageReader<Killed>,
@@ -548,10 +571,11 @@ fn launch_kills(
     mut bursts: Local<u64>,
 ) {
     for kill in killed.read() {
-        let coins = (kill.coins.max(0) as usize).min(shower.most_pieces);
+        let fountain = shower.fountain(&kill.fountain);
+        let coins = (kill.coins.max(0) as usize).min(fountain.most_pieces);
         let gear: Vec<usize> = kill.gear.into_iter().collect();
         let kinds = burst_kinds(*bursts, coins, &gear);
-        let launches = plan_burst(&shower, *bursts, kinds.len(), kill.at, &kill.standing);
+        let launches = plan_burst(&shower, fountain, *bursts, kinds.len(), kill.at, &kill.standing);
         *bursts += 1;
         let after = After::Kill(kill.coins);
         spawn_burst(&mut commands, &look, &shower, kill.at, &launches, &kinds, after);
@@ -594,7 +618,8 @@ fn test_burst(
     }
     let origin = Vec3::new(ENEMY_X[0], 0.5, 0.0);
     let kinds = burst_kinds(shower.burst_seed, shower.burst_pieces, &look.burst_gear);
-    let launches = plan_burst(&shower, shower.burst_seed, kinds.len(), origin, &[]);
+    let fountain = shower.fountain(&shower.burst_fountain);
+    let launches = plan_burst(&shower, fountain, shower.burst_seed, kinds.len(), origin, &[]);
     spawn_burst(&mut commands, &look, &shower, origin, &launches, &kinds, after);
     test.watch = Some(Watch::default());
 }
@@ -738,16 +763,19 @@ mod tests {
     #[test]
     fn the_feel_numbers_are_usable() {
         let s = Shower::load();
-        assert!(s.gravity > 0.0 && s.stagger_secs >= 0.0);
-        for (lo, hi) in [s.up_speed, s.out_speed, s.spin] {
-            assert!(0.0 <= lo && lo <= hi);
+        assert!(s.gravity > 0.0 && !s.fountains.is_empty());
+        for (name, f) in &s.fountains {
+            assert!(f.delay_secs >= 0.0 && f.stagger_secs >= 0.0, "{name}");
+            for (lo, hi) in [f.up_speed, f.out_speed, f.spin] {
+                assert!(0.0 <= lo && lo <= hi, "{name}");
+            }
+            assert!(f.up_speed.0 > 0.0 && f.most_pieces > 0, "{name}");
+            assert!(0.0 < f.fan_degrees && f.fan_degrees <= 360.0, "{name}");
         }
-        assert!(s.up_speed.0 > 0.0);
         assert!((0.0..1.0).contains(&s.bounce) && (0.0..=1.0).contains(&s.grip));
         assert!((0.0..1.0).contains(&s.squash));
-        assert!(0.0 < s.fan_degrees && s.fan_degrees <= 360.0);
         assert!(0.0 < s.coin_thickness && s.coin_thickness <= 2.0 * s.coin_radius);
-        assert!(s.most_pieces > 0 && s.burst_pieces > 0);
+        assert!(s.burst_pieces > 0);
         assert!(s.pickup_pause_secs > 0.0 && s.pickup_stagger_secs > 0.0);
         assert!(s.pickup_speed >= 0.0 && s.pickup_accel > 0.0 && s.pickup_shrink > 0.0);
         let (length, thickness, depth) = s.gear_size;
@@ -755,6 +783,45 @@ mod tests {
         // Enemies stand further apart than the room kept round each, or the
         // way out sideways would not be clear.
         assert!(s.keep_clear < ENEMY_X[1] - ENEMY_X[0]);
+    }
+
+    /// Every enemy names a fountain there is, and so does the test burst.
+    #[test]
+    fn every_kind_of_kill_has_its_fountain() {
+        let (s, data) = (Shower::load(), Data::load());
+        for enemy in &data.enemies {
+            assert!(s.fountains.contains_key(&enemy.fountain), "{}: `{}`", enemy.id, enemy.fountain);
+        }
+        s.fountain(&s.burst_fountain);
+    }
+
+    /// An ordinary kill and a trail's last are different events: the last
+    /// enemy's fountain waits longer, shows more pieces, takes longer to
+    /// empty, opens wider, and its lowest arc tops an ordinary kill's highest.
+    #[test]
+    fn a_final_kill_is_a_bigger_event_than_an_ordinary_one() {
+        let (s, data) = (Shower::load(), Data::load());
+        let of = |ids: &Vec<Vec<String>>| -> Vec<&Fountain> {
+            ids.iter()
+                .flatten()
+                .map(|id| s.fountain(&data.enemies[data.enemy_index(id)].fountain))
+                .collect()
+        };
+        let top = |up: f32| up * up / (2.0 * s.gravity);
+        for small in of(&data.encounters.ordinary) {
+            for full in of(&data.encounters.finals) {
+                assert!(full.delay_secs > small.delay_secs);
+                assert!(full.most_pieces >= 2 * small.most_pieces);
+                assert!(full.stagger_secs > small.stagger_secs);
+                assert!(full.fan_degrees > small.fan_degrees);
+                assert!(top(full.up_speed.0) > top(small.up_speed.1));
+                assert!(full.out_speed.1 > small.out_speed.1);
+            }
+        }
+        // The wait before the big one is a release, not a stall.
+        for fountain in s.fountains.values() {
+            assert!(fountain.delay_secs <= 0.6);
+        }
     }
 
     /// The test burst is a mixed one: it throws gear of every rarity.
@@ -810,27 +877,32 @@ mod tests {
     #[test]
     fn same_seed_same_burst() {
         let s = Shower::load();
-        let a = plan_burst(&s, 7, 24, ORIGIN, &[]);
-        assert_eq!(a, plan_burst(&s, 7, 24, ORIGIN, &[]));
-        assert_ne!(a, plan_burst(&s, 8, 24, ORIGIN, &[]));
+        for f in s.fountains.values() {
+            let a = plan_burst(&s, f, 7, 24, ORIGIN, &[]);
+            assert_eq!(a, plan_burst(&s, f, 7, 24, ORIGIN, &[]));
+            assert_ne!(a, plan_burst(&s, f, 8, 24, ORIGIN, &[]));
+        }
     }
 
-    /// No two pieces leave together, and each leaves upwards within the
-    /// speeds the data gives.
+    /// The first piece leaves after the fountain's delay, no two leave
+    /// together, and each leaves upwards within the speeds the data gives.
     #[test]
     fn launches_are_staggered_and_within_their_speeds() {
         let s = Shower::load();
-        let burst = plan_burst(&s, 1, 40, ORIGIN, &[]);
-        let mut delays: Vec<f32> = burst.iter().map(|l| l.delay).collect();
-        delays.sort_by(f32::total_cmp);
-        for (i, delay) in delays.iter().enumerate() {
-            assert!((delay - i as f32 * s.stagger_secs).abs() < 1e-5);
-        }
-        for launch in &burst {
-            let out = launch.velocity.xz().length();
-            assert!((s.up_speed.0..=s.up_speed.1).contains(&launch.velocity.y));
-            assert!((s.out_speed.0 - 1e-4..=s.out_speed.1 + 1e-4).contains(&out));
-            assert!((launch.axis.length() - 1.0).abs() < 1e-4);
+        for (name, f) in &s.fountains {
+            let burst = plan_burst(&s, f, 1, 40, ORIGIN, &[]);
+            let mut delays: Vec<f32> = burst.iter().map(|l| l.delay).collect();
+            delays.sort_by(f32::total_cmp);
+            for (i, delay) in delays.iter().enumerate() {
+                let due = f.delay_secs + i as f32 * f.stagger_secs;
+                assert!((delay - due).abs() < 1e-5, "{name}");
+            }
+            for launch in &burst {
+                let out = launch.velocity.xz().length();
+                assert!((f.up_speed.0..=f.up_speed.1).contains(&launch.velocity.y), "{name}");
+                assert!((f.out_speed.0 - 1e-4..=f.out_speed.1 + 1e-4).contains(&out), "{name}");
+                assert!((launch.axis.length() - 1.0).abs() < 1e-4);
+            }
         }
     }
 
@@ -838,11 +910,13 @@ mod tests {
     #[test]
     fn a_burst_is_spread_over_the_fan() {
         let s = Shower::load();
-        let burst = plan_burst(&s, 2, 40, ORIGIN, &[]);
-        let near = burst.iter().filter(|l| l.velocity.z > 0.0).count();
-        assert!((10..=30).contains(&near), "{near} of 40 towards the camera");
-        let towards_party = burst.iter().filter(|l| l.velocity.x < 0.0).count();
-        assert!(towards_party > 20);
+        for (name, f) in &s.fountains {
+            let burst = plan_burst(&s, f, 2, 40, ORIGIN, &[]);
+            let near = burst.iter().filter(|l| l.velocity.z > 0.0).count();
+            assert!((10..=30).contains(&near), "{name}: {near} of 40 towards the camera");
+            let towards_party = burst.iter().filter(|l| l.velocity.x < 0.0).count();
+            assert!(towards_party > 20, "{name}");
+        }
     }
 
     /// Every piece bounces as often as the data says, then rests on the
@@ -850,20 +924,23 @@ mod tests {
     #[test]
     fn every_piece_bounces_and_settles_on_the_trail() {
         let s = Shower::load();
-        for seed in 0..50 {
-            for launch in plan_burst(&s, seed, 40, ORIGIN, &[]) {
-                let mut body = launch.body(&s, ORIGIN);
-                let (mut touches, mut top) = (0, 0.0f32);
-                for _ in 0..1200 {
-                    touches += body.step(&s, 1.0 / 120.0) as u32;
-                    top = top.max(body.position.y);
+        for (name, f) in &s.fountains {
+            for seed in 0..50 {
+                for launch in plan_burst(&s, f, seed, 40, ORIGIN, &[]) {
+                    let mut body = launch.body(&s, ORIGIN);
+                    let (mut touches, mut top) = (0, 0.0f32);
+                    for _ in 0..1200 {
+                        touches += body.step(&s, 1.0 / 120.0) as u32;
+                        top = top.max(body.position.y);
+                    }
+                    assert!(body.resting, "{name}, seed {seed}: still moving after 10 s");
+                    assert_eq!(touches, s.bounces + 1);
+                    assert!(top > ORIGIN.y + 0.5, "{name}, seed {seed}: no arc");
+                    assert_eq!(body.position.y, s.coin_radius);
+                    let off = body.position.z.abs();
+                    assert!(off < TRAIL_DEPTH / 2.0, "{name}, seed {seed}: off the trail");
+                    assert_eq!(body.position, rest_point(&s, ORIGIN, &launch));
                 }
-                assert!(body.resting, "seed {seed}: still moving after 10 s");
-                assert_eq!(touches, s.bounces + 1);
-                assert!(top > ORIGIN.y + 0.5, "seed {seed}: no arc");
-                assert_eq!(body.position.y, s.coin_radius);
-                assert!(body.position.z.abs() < TRAIL_DEPTH / 2.0, "seed {seed}: off the trail");
-                assert_eq!(body.position, rest_point(&s, ORIGIN, &launch));
             }
         }
     }
@@ -891,8 +968,8 @@ mod tests {
     #[test]
     fn pickup_waits_then_takes_one_piece_at_a_time() {
         let s = Shower::load();
-        for seed in 0..50 {
-            let burst = plan_burst(&s, seed, 24, ORIGIN, &[]);
+        for (f, seed) in s.fountains.values().flat_map(|f| (0..50).map(move |seed| (f, seed))) {
+            let burst = plan_burst(&s, f, seed, 24, ORIGIN, &[]);
             let leaves = plan_pickup(&s, ORIGIN, &burst);
             let at_rest = burst
                 .iter()
@@ -919,7 +996,8 @@ mod tests {
     fn a_collected_piece_speeds_up_and_arrives() {
         let s = Shower::load();
         for dt in [1.0 / 240.0, 1.0 / 60.0, 1.0 / 20.0] {
-            for launch in plan_burst(&s, 3, 40, ORIGIN, &[]) {
+            let full = s.fountain(&s.burst_fountain);
+            for launch in plan_burst(&s, full, 3, 40, ORIGIN, &[]) {
                 let mut position = rest_point(&s, ORIGIN, &launch);
                 let to = nearest_horse(position);
                 let (mut speed, mut secs, mut arrived) = (s.pickup_speed, 0.0, false);
@@ -941,13 +1019,13 @@ mod tests {
     fn no_piece_rests_on_a_standing_enemy() {
         let s = Shower::load();
         let places: Vec<Vec3> = ENEMY_X.iter().map(|&x| Vec3::new(x, 0.5, 0.0)).collect();
-        for seed in 0..200 {
+        for (f, seed) in s.fountains.values().flat_map(|f| (0..200).map(move |seed| (f, seed))) {
             for dead in 0..places.len() {
                 let standing: Vec<Vec3> = (0..places.len())
                     .filter(|&i| i != dead)
                     .map(|i| places[i])
                     .collect();
-                for launch in plan_burst(&s, seed, s.most_pieces, places[dead], &standing) {
+                for launch in plan_burst(&s, f, seed, f.most_pieces, places[dead], &standing) {
                     let rest = rest_point(&s, places[dead], &launch);
                     assert!(
                         is_clear(rest, &standing, s.keep_clear),

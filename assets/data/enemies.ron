@@ -1,8 +1,10 @@
 // Corrupted creatures. Each one's element is rolled per expedition.
+// `fountain` is the kind of kill it is: the name of the fountain its drops
+// leave in, from loot_shower.ron.
 [
-    (id: "thornling",    name: "Thornling",       health: 60,  attack: 4,  attack_interval: 2.2, coins: (1, 3)),
-    (id: "gloom_sprite", name: "Gloom Sprite",    health: 40,  attack: 3,  attack_interval: 1.6, coins: (1, 2)),
-    (id: "mire_toad",    name: "Mire Toad",       health: 95,  attack: 6,  attack_interval: 2.8, coins: (2, 4)),
-    (id: "corrupted_stag", name: "Corrupted Stag", health: 390, attack: 9, defense: 1, attack_interval: 2.0, coins: (10, 15)),
-    (id: "hollow_wolf",  name: "Hollow Wolf",     health: 325, attack: 6,  attack_interval: 1.2, coins: (10, 15)),
+    (id: "thornling",    name: "Thornling",       health: 60,  attack: 4,  attack_interval: 2.2, coins: (1, 3), fountain: "small"),
+    (id: "gloom_sprite", name: "Gloom Sprite",    health: 40,  attack: 3,  attack_interval: 1.6, coins: (1, 2), fountain: "small"),
+    (id: "mire_toad",    name: "Mire Toad",       health: 95,  attack: 6,  attack_interval: 2.8, coins: (2, 4), fountain: "small"),
+    (id: "corrupted_stag", name: "Corrupted Stag", health: 390, attack: 9, defense: 1, attack_interval: 2.0, coins: (10, 15), fountain: "full"),
+    (id: "hollow_wolf",  name: "Hollow Wolf",     health: 325, attack: 6,  attack_interval: 1.2, coins: (10, 15), fountain: "full"),
 ]

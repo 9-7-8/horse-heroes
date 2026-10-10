@@ -11,6 +11,9 @@ pub struct FxPlugin {
     pub burst: bool,
     /// Throw it and let the party collect it (`--pickup`). F4 does the same.
     pub pickup: bool,
+    /// Seconds after launch at which either of them throws it
+    /// (`--burst-at`), for a look at it on the road.
+    pub burst_at: Option<f32>,
 }
 
 impl Plugin for FxPlugin {
@@ -18,6 +21,7 @@ impl Plugin for FxPlugin {
         app.add_plugins(drops::DropsPlugin {
             burst: self.burst,
             pickup: self.pickup,
+            burst_at: self.burst_at.unwrap_or(drops::BURST_AT),
         });
     }
 }

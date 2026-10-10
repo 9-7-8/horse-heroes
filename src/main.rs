@@ -35,6 +35,7 @@ fn main() {
         .add_plugins(fx::FxPlugin {
             burst: std::env::args().any(|arg| arg == "--burst"),
             pickup: std::env::args().any(|arg| arg == "--pickup"),
+            burst_at: burst_at(),
         })
         .add_plugins(dev_screenshot::DevScreenshotPlugin)
         .run();
@@ -55,6 +56,18 @@ fn seed() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |since| since.as_secs())
+}
+
+/// `--burst-at SECONDS` moves the test burst of `--burst` and `--pickup` to
+/// that long after launch. A dev aid, for throwing it on the road.
+fn burst_at() -> Option<f32> {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--burst-at" {
+            return args.next()?.parse().ok();
+        }
+    }
+    None
 }
 
 /// `--window WIDTHxHEIGHT` opens the window at that size, in the logical
