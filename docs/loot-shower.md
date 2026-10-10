@@ -66,15 +66,27 @@ nothing else going on (The calm after the kill, below).
 
 ## Rarity
 
-A gear piece is a box (`gear_size` in `loot_shower.ron`); a coin is a disc.
-Its rarity is shown four ways, all in the rarity's `look` in
-`assets/data/gear.ron`, beside its weights:
+A coin is a disc. A gear piece's rarity is shown five ways, all in the
+rarity's `look` in `assets/data/gear.ron`, beside its weights:
+
+- `shape`: the solids the piece is built of, as it lies flat. Each is a
+  `Box(long, thick, deep)`, `Ball(radius)`, `Ring(radius, tube radius)` or
+  `Prism(sides, radius, thick)`, with `at` (along, up, across from the
+  piece's middle) and `turn` in degrees about the upright axis. Normal is a
+  plain slab, Magic a cross, Rare a ring with a stone in it, Legendary a
+  sun with eight rays, Set three stones for the herd. This is what tells a
+  tier apart with the colour taken out (`docs/philosophy/cargo.md`, "Not
+  colour alone"). The five shapes are a first choice made without the
+  owner. All the solids of a piece share its one material.
+  `RarityLook::reach` and `thickness` (`src/sim/data.rs`) measure the shape,
+  for how high the piece tumbles and what it lies on; `part_mesh`
+  (`src/fx/drops.rs`) makes each solid's mesh.
 
 - `colour`: Normal white, Magic blue, Rare yellow, Legendary orange, Set
   green. The five tiers and their colours are the owner's choice
   (2026-10-10, [vision.md](philosophy/vision.md)).
 - `glow`: how strongly the piece gives off that colour. Normal has none.
-- `size`: a multiple of `gear_size`. Higher tiers are larger.
+- `size`: what the shape is multiplied by. Higher tiers are larger.
 - `beam`: a column of light standing on the ground where the piece is. It
   is hidden with the piece and rises over `rise_secs` from the moment the
   piece is thrown, so it is up while the piece is still in the air.
@@ -82,11 +94,11 @@ Its rarity is shown four ways, all in the rarity's `look` in
 
 A piece names its rarity by its place in the list in `gear.ron`, lowest
 first, and there is no rarity enum, so a new tier is one more line there and
-no code. A test holds that no two tiers share a colour. Rarity colours do
-not have to differ from the element colours: rarity shows on drops and in
-menus only (owner, 2026-10-10). Blue is close to Ice, orange to Fire and
-green to Plant, and a yellow Rare is hard to pick out among gold coins;
-shape per tier (#240) is what will separate those.
+no code. Tests hold that no two tiers share a colour or a shape. Rarity
+colours do not have to differ from the element colours: rarity shows on
+drops and in menus only (owner, 2026-10-10). Blue is close to Ice, orange
+to Fire and green to Plant, and a yellow Rare is hard to pick out among
+gold coins; the shape is what separates those.
 
 ## Pickup
 
@@ -284,7 +296,8 @@ a burst is spread over the fan; every piece bounces as often as the data
 says and rests on the trail; no piece rests on a standing enemy, whichever
 of the three died; the test burst has gear of every rarity; the seed puts
 the gear among the coins; no two rarities share a colour, and the top tier
-has a beam; a kill's coin pieces add up to its coins; the
+has a beam; no two rarities share a shape, and every piece lies flat; a
+kill's coin pieces add up to its coins; the
 burst waits out the pause and then leaves one piece at a time, nearest
 first; a collected piece only gains speed and arrives, at 20, 60 and 240
 frames a second.
@@ -311,6 +324,7 @@ no other kill carries any.
 
 Pictures: [drops](gallery/2026-10-10-drops/README.md),
 [the rarity signal](gallery/2026-10-10-rarity-signal/README.md),
+[rarity by shape](gallery/2026-10-10-rarity-shapes/README.md),
 [the pickup](gallery/2026-10-10-pickup/README.md),
 [fountain sizes](gallery/2026-10-10-fountain-sizes/README.md),
 [screen response](gallery/2026-10-10-screen-response/README.md).

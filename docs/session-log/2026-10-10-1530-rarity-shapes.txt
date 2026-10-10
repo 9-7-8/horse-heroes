@@ -1,0 +1,50 @@
+SESSION LOG 2026-10-10 15:30 - rarity by shape
+==============================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty. Tier 3: #240, closed (01988bc). Each rarity
+    in gear.ron lists the solids its drop is built of: Normal a slab,
+    Magic a cross, Rare a ring with a stone in it, Legendary a sun with
+    eight rays, Set three stones. A new tier is one more entry and no
+    code. gear_size is gone from loot_shower.ron.
+    Tested: cargo check and cargo test green, 102 pass, no warning. Two
+    new tests: a shape is measured over all its parts (src/sim/data.rs),
+    and no two rarities share a shape (src/fx/drops.rs).
+    Seen running, in a still picture read by me: the test burst at rest,
+    --burst --seed 6 at 5.2 s, with the colour taken out and enlarged
+    four times. All five tiers can be told apart in it. Only the GOG
+    overlay's lines in the log.
+  - docs/loot-shower.md, "Rarity"; docs/gallery/2026-10-10-rarity-shapes.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The five shapes. Each is a few lines in gear.ron.
+  - A piece is one material: its ornament is the tier's colour too.
+  - The shapes are in the loot shower only. Menus still show a rarity
+    by its name and colour.
+
+FOUND
+  - Bevy 0.20: Cylinder::new(r, h).mesh().resolution(n) is a prism of n
+    sides, and Torus lies flat by default.
+
+NOT DONE
+  - Nobody has seen the shapes tumble or be picked up; only at rest.
+  - In the test burst one Magic lies under the Legendary and a trail
+    post stands in front of the Set: the seed's layout, not changed.
+  - At the game's own scale a piece is about 30 pixels wide of 2880. The
+    picture that tells the tiers apart is enlarged four times.
+  - Carried over, unchanged: the rest of #229 (the Keys control, arrow
+    keys in lists, a key for List); nobody has pressed a key or a
+    pointer for real, or seen a tab's page scroll; #187 waits on the
+    owner's look at the horse and #10 on her listening (F4); nobody has
+    watched a death or the screen response move; the fountains are not
+    tuned; a place left open on the road still cuts a beam off; a lost
+    trail is not held on the road (#176); in town the horses walk on
+    the spot; #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Tier 1 is empty. 0.2.0 has #241 (a
+  sound for a death) to build, then the rest of #229.
