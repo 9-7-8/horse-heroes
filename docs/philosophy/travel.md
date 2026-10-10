@@ -1,5 +1,14 @@
 # Travel and road encounters
 
+> **Revised by the owner, 2026-10-10.** Her world design is in
+> [vision.md](vision.md), "The generated world": a RimWorld-like hex map on
+> one landmass, towns joined by shortest roads, off-road travel that is
+> slower and more dangerous, and danger from comparing a hex's purity score
+> with its corruption score. Corruption is cleared only by liberating a town
+> through an idle task, not by a boss victory. Where this file says a single
+> purity value sets danger, or that defeating a boss raises purity, the
+> vision is the newer statement.
+
 How the party gets from one town to the next. Eight rules here are the
 owner's, established in discussion and listed first. Everything after them is
 a proposal built on those rules; numbers are examples to test, and the open

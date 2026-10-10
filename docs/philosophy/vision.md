@@ -347,6 +347,58 @@ materials dropped on the road are goods in the hold, not bare counters; and
 daily prices run on the real calendar, the one thing that does not follow
 the world clock.
 
+## The generated world (owner, 2026-10-10)
+
+Her design for the map, given after the decisions above. Where it disagrees
+with anything earlier in this file, it is newer. It replaces two of them:
+"danger is purity alone" and "a boss victory raises purity nearby".
+
+### How the world is made, in order
+
+1. **A finite world of hexes, exactly like RimWorld's, except that it is
+   always one huge landmass**, so horses never have to swim.
+2. **The party starts on a random hex in a far corner. The dragon is on the
+   opposite hex.**
+3. **Biomes** are laid out around the map. Mountains and lakes are obstacles.
+4. **Towns are scattered** around the map, and **roads are built along the
+   shortest distance between them**, going round mountains and lakes.
+5. **The reach of the dragon's corruption** is set. It can be changed when
+   setting up a run. In a **classic run the entire world except the starting
+   town is corrupted**.
+
+### Travelling it
+
+- A hex with no road can be crossed, **slower and more dangerously**.
+- Corruption is **weaker the further it is from the dragon**.
+- **Fighting clears nothing by itself.** Corruption is cleared only when the
+  party reaches a corrupt town and does an idle task there, such as picking
+  up trash or tearing down a factory. That town is then cleared, and the
+  corruption on nearby hexes is weakened.
+
+### Purity against corruption
+
+- The starting town provides a **purity score**; the dragon provides a
+  **corruption score**; every liberated town raises the purity of the hexes
+  around it.
+- **A hex's danger comes from comparing its purity and corruption scores.**
+- **Liberated towns have a pure aura; corrupt towns have a corrupt aura.**
+
+### Settled by her the same day
+
+- **The dragon can be faced only when every town is liberated.**
+- **A journey ends with a boss when it arrives at a corrupt town**: the boss
+  is the fight at its gate. Journeys between liberated towns have ordinary
+  fights only.
+- **A corrupt town offers nothing but the cleansing task**: no stall, market,
+  storage, recruits or retirement until it is free.
+- **The party stays and works** while the task runs on the world clock,
+  longer where corruption is stronger, continuing while the player is away up
+  to the cap. Leaving pauses it and keeps the progress.
+
+"Cleared" therefore now means a town liberated, in place of the earlier
+three-part rule for a region. Not yet stated by her: what a biome changes
+beyond its look and travel cost, and how large the map is.
+
 ## The design priority
 
 > Complexity through depth, not breadth.
