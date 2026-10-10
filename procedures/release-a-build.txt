@@ -1,0 +1,66 @@
+RELEASE-A-BUILD
+===============
+Starts on: "release x.y.z", "build the installer", "publish a build".
+Leaves:    a tag vX.Y.Z, a GitHub Release with HorseHeroes-Setup.exe, and a
+           statement of what was tested and what was not.
+
+The rules behind this are docs/philosophy/distribution.md, "Publishing, in
+order". First carried out 2026-10-10 for 0.2.0 (#197): correct it the second
+time. Steps marked LATER do not exist yet and are skipped, not forgotten.
+
+1. Freeze the version.
+   Cargo.toml's version is the only place it is written. Set it, run
+   cargo test (which also brings Cargo.lock into line), commit.
+
+2. Build, stage and package: one command.
+       pwsh installer/build.ps1 *> target/installer-build.log
+   It builds the release with the lock file, stages target/stage/ (the game,
+   LICENSE.txt, SOURCE.txt, version.txt, THIRD-PARTY-NOTICES.txt), and
+   compiles target/installer/HorseHeroes-Setup.exe with its .sha256.
+   Needs Inno Setup 6: winget install JRSoftware.InnoSetup --scope user
+
+3. Test the staged folder.
+   Start target/stage/horse_heroes.exe from an unrelated directory and read
+   a picture of it (IDLE_SHOT with a full path; build-and-run.txt). This
+   machine has developer tools on it: a clean-machine test is #198 and is
+   not done by this step. Say so.
+
+4. LATER: sign the game and the launcher (decided before 1.0, #189).
+
+5. Test the installer.
+   Install silently into a scratch folder, check the files, uninstall:
+       HorseHeroes-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /DIR="<scratch>"
+       "<scratch>\unins000.exe" /VERYSILENT
+   Use a scratch /DIR only when Horse Heroes is not installed on this
+   machine: the application ID is the same, so it would otherwise move the
+   owner's own installation. The wizard, the shortcuts and the SmartScreen
+   warning need a person: that is the owner's test.
+
+6. LATER: sign the installer with a timestamp, then hash it again (signing
+   changes the bytes), then generate and sign the update manifest (#195).
+
+7. Publish. This pushes: it is done only when the owner asked for the
+   release.
+       git push origin main
+       gh release create vX.Y.Z target/installer/HorseHeroes-Setup.exe
+           target/installer/HorseHeroes-Setup.exe.sha256
+           --target main --title "Horse Heroes X.Y.Z" --notes-file <notes>
+   The asset name is exactly HorseHeroes-Setup.exe, every release. The
+   notes say it is unsigned, what Windows will show, and never tell anyone
+   to turn protection off.
+
+8. Check the published release: download the asset, compare its hash with
+   the one built, and read the release page's names and version.
+
+9. LATER: test the upgrade from the previous release through the launcher
+   (#194, #195).
+
+SECRETS
+  None exist yet. When they do: the manifest signing key is a GitHub Actions
+  secret and is used only by the release workflow; a code-signing
+  certificate is the owner's. Neither is ever in the repository.
+
+DO NOT
+  - Change AppId in installer/horse-heroes.iss. Ever.
+  - Write the version anywhere but Cargo.toml.
+  - Ship a build made with Bevy's dynamic_linking feature.

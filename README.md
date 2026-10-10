@@ -22,7 +22,17 @@ plays itself, and can be nudged. Pictures: [`docs/gallery`](docs/gallery/README.
 - Idle by default: leave it alone and it keeps setting out, equipping upgrades
   as they drop. Win and the trail gets harder.
 
-## Running it
+## Installing it
+
+On Windows 10 or 11 (x64), download `HorseHeroes-Setup.exe` from the
+[latest release](https://github.com/9-7-8/horse-heroes/releases/latest) and
+run it. It installs for your user only and asks for no administrator rights.
+
+The installer is not code-signed yet, so Windows SmartScreen will say it does
+not recognise the app; "More info" shows the choice to run it. Each release
+lists the file's SHA-256 so you can check what you downloaded.
+
+## Building it
 
 You need [Rust](https://rustup.rs) (stable). On Windows you also need the
 Visual Studio C++ build tools; on Linux, the

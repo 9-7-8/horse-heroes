@@ -30,5 +30,9 @@ next-thing.txt        "next thing", "keep going", "build the next part"
                       Pick one thing and start: bugs first, then tests, then
                       the next feature issue of the earliest release.
 
+release-a-build.txt   "release x.y.z", "build the installer"
+                      Freeze the version, build and stage, package with Inno
+                      Setup, test, publish a GitHub Release.
+
 Not written yet (write each the second time the routine comes up):
-  add-an-item-type, add-a-monster, balance-pass, release-a-build
+  add-an-item-type, add-a-monster, balance-pass
