@@ -109,7 +109,12 @@ needs, extensive crafting, town construction, and many more damage types.
 
 - **Road and town as two phases.** Road: automatic action and the occasional
   discovery. Town: concentrated decisions about builds, trade, companions and
-  looks.
+  looks. Developed, with a proposed travelling caravan, in
+  [town.md](town.md).
+- **A screen layout:** the top third a fixed-view 3D scene, the lower
+  two-thirds menus. Three of her documents treat this as established; the document
+  that decided it has not been received, so it is listed here until she
+  confirms it.
 - **Equipment as five categories:** focus (offence), protection (defence),
   halter (coordination and utility), pet saddle (companion), saddlebags
   (carrying). She confirmed halters, pet saddles and saddlebags; the
