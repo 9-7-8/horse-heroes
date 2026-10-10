@@ -3,8 +3,9 @@
 //! little and come to rest. Every number is in `assets/data/loot_shower.ron`.
 //! How big the burst is depends on the kind of kill: each enemy names its
 //! fountain, small for an ordinary one and the full one for a trail's last.
-//! A piece of gear is told apart by its rarity: colour, glow, size, and for
-//! the tiers that have one a beam of light, all in `assets/data/gear.ron`.
+//! A piece of gear is told apart by its rarity: colour, glow, size, a shape of
+//! its own, and for the tiers that have one a beam of light, all in
+//! `assets/data/gear.ron`.
 //! A burst lies still for a moment, then its pieces go to the party one after
 //! another, and the coins counter climbs as each coin arrives.
 //!
@@ -20,7 +21,7 @@ use serde::Deserialize;
 use crate::game::menu::tokens::Hex;
 use crate::game::scene::{ENEMY_X, SCENE_WIDTH, SCROLL_SPEED, nearest_horse};
 use crate::game::{Game, Killed, Uncollected};
-use crate::sim::data::{BeamDef, GearTable, RarityDef};
+use crate::sim::data::{BeamDef, GearTable, PartDef, RarityDef, Solid};
 use crate::sim::rng::Rng;
 
 use super::response::{Erupted, ResponseFeel};
@@ -50,7 +51,6 @@ pub struct Shower {
     pub coin_radius: f32,
     pub coin_thickness: f32,
     pub coin_colour: Hex,
-    pub gear_size: (f32, f32, f32),
     pub keep_clear: f32,
     pub pickup_pause_secs: f32,
     pub pickup_stagger_secs: f32,
@@ -110,6 +110,19 @@ impl Shower {
 pub fn rarity_colour(rarity: &RarityDef) -> Srgba {
     let text = &rarity.look.colour;
     Srgba::hex(text).unwrap_or_else(|e| panic!("gear.ron: {} colour `{text}`: {e}", rarity.name))
+}
+
+/// One solid of a rarity's shape as a mesh, and where it sits in the piece.
+fn part_mesh(part: &PartDef) -> (Mesh, Transform) {
+    let mesh = match part.solid {
+        Solid::Box(long, thick, deep) => Cuboid::new(long, thick, deep).into(),
+        Solid::Ball(radius) => Sphere::new(radius).into(),
+        Solid::Ring(radius, tube) => Torus::new(radius - tube, radius + tube).into(),
+        Solid::Prism(sides, radius, thick) => Cylinder::new(radius, thick).mesh().resolution(sides).into(),
+    };
+    let place = Transform::from_translation(part.at.into())
+        .with_rotation(Quat::from_rotation_y(part.turn.to_radians()));
+    (mesh, place)
 }
 
 /// What a piece is: a coin, or a piece of gear of a rarity tier.
@@ -422,8 +435,6 @@ struct Model;
 struct Look {
     coin: Handle<Mesh>,
     gold: Handle<StandardMaterial>,
-    /// A piece of gear, before its rarity's size.
-    gear: Handle<Mesh>,
     /// A beam one unit wide and one tall.
     beam: Handle<Mesh>,
     /// One for each rarity, in the order of `gear.ron`.
@@ -434,6 +445,11 @@ struct Look {
 struct Tier {
     material: Handle<StandardMaterial>,
     size: f32,
+    /// The solids of its shape, before its size.
+    parts: Vec<(Handle<Mesh>, Transform)>,
+    /// Half its length and its thickness, at its size.
+    radius: f32,
+    thickness: f32,
     beam: Option<(Handle<StandardMaterial>, BeamDef)>,
 }
 
@@ -491,6 +507,17 @@ fn setup(
                     ..default()
                 }),
                 size: rarity.look.size,
+                parts: rarity
+                    .look
+                    .shape
+                    .iter()
+                    .map(|part| {
+                        let (mesh, place) = part_mesh(part);
+                        (meshes.add(mesh), place)
+                    })
+                    .collect(),
+                radius: rarity.look.reach(),
+                thickness: rarity.look.thickness(),
                 beam: rarity.look.beam.map(|beam| {
                     let light = materials.add(StandardMaterial {
                         base_color: colour.with_alpha(beam.alpha).into(),
@@ -503,11 +530,9 @@ fn setup(
             }
         })
         .collect();
-    let (length, thickness, depth) = shower.gear_size;
     commands.insert_resource(Look {
         coin: meshes.add(Cylinder::new(shower.coin_radius, shower.coin_thickness)),
         gold: materials.add(shower.coin_colour.0),
-        gear: meshes.add(Cuboid::new(length, thickness, depth)),
         beam: meshes.add(Cylinder::new(0.5, 1.0)),
         tiers,
         burst_gear: shower.burst_tiers(&game.data.gear),
@@ -535,26 +560,38 @@ fn spawn_burst(
             Kind::Coin => None,
             Kind::Gear(tier) => Some(&look.tiers[*tier]),
         };
-        let (mesh, material, size) = match tier {
-            None => (&look.coin, &look.gold, 1.0),
-            Some(tier) => (&look.gear, &tier.material, tier.size),
-        };
-        let (radius, thickness) = match tier {
-            None => (shower.coin_radius, shower.coin_thickness),
-            Some(tier) => (shower.gear_size.0 / 2.0 * tier.size, shower.gear_size.1 * tier.size),
+        let (size, radius, thickness) = match tier {
+            None => (1.0, shower.coin_radius, shower.coin_thickness),
+            Some(tier) => (tier.size, tier.radius, tier.thickness),
         };
         let mut model = Entity::PLACEHOLDER;
         let mut beam = None;
         let mut piece = commands.spawn((Transform::from_translation(origin), Visibility::Hidden));
         piece.with_children(|piece| {
-            model = piece
-                .spawn((
-                    Model,
-                    Mesh3d(mesh.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::from_scale(Vec3::splat(size)),
-                ))
-                .id();
+            // A coin is one disc; a piece of gear is the solids of its
+            // rarity's shape, which turn together under the model.
+            let mut body = piece.spawn((
+                Model,
+                Transform::from_scale(Vec3::splat(size)),
+                Visibility::Inherited,
+            ));
+            match tier {
+                None => {
+                    body.insert((Mesh3d(look.coin.clone()), MeshMaterial3d(look.gold.clone())));
+                }
+                Some(tier) => {
+                    body.with_children(|body| {
+                        for (mesh, place) in &tier.parts {
+                            body.spawn((
+                                Mesh3d(mesh.clone()),
+                                MeshMaterial3d(tier.material.clone()),
+                                *place,
+                            ));
+                        }
+                    });
+                }
+            }
+            model = body.id();
             // The beam is hidden with the piece, so it appears as the piece
             // is thrown, and rises from nothing.
             if let Some((light, def)) = tier.and_then(|tier| tier.beam.as_ref()) {
@@ -848,8 +885,6 @@ mod tests {
         assert!(s.burst_pieces > 0);
         assert!(s.pickup_pause_secs > 0.0 && s.pickup_stagger_secs > 0.0);
         assert!(s.pickup_speed >= 0.0 && s.pickup_accel > 0.0 && s.pickup_shrink > 0.0);
-        let (length, thickness, depth) = s.gear_size;
-        assert!(0.0 < thickness && thickness <= depth && depth <= length);
         // Enemies stand further apart than the room kept round each, or the
         // way out sideways would not be clear.
         assert!(s.keep_clear < ENEMY_X[1] - ENEMY_X[0]);
@@ -942,6 +977,24 @@ mod tests {
             assert!(pair[1].look.glow >= pair[0].look.glow && pair[1].look.size >= pair[0].look.size);
         }
         assert!(rarities.last().unwrap().look.beam.is_some());
+    }
+
+    /// No two rarities share a shape, so a tier is told apart with no colour
+    /// at all; and every piece lies flat, wider than it is thick, and is not
+    /// so big that it hides its neighbours.
+    #[test]
+    fn rarities_are_told_apart_by_shape() {
+        let rarities = Data::load().gear.rarities;
+        for (i, a) in rarities.iter().enumerate() {
+            for b in &rarities[i + 1..] {
+                assert_ne!(a.look.shape, b.look.shape, "{} and {}", a.name, b.name);
+            }
+        }
+        for rarity in &rarities {
+            let (reach, thickness) = (rarity.look.reach(), rarity.look.thickness());
+            assert!(thickness < 2.0 * reach, "{} does not lie flat", rarity.name);
+            assert!(reach < 0.6, "{} reaches {reach}", rarity.name);
+        }
     }
 
     #[test]

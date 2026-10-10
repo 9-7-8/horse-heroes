@@ -165,8 +165,10 @@ pub struct RarityLook {
     pub colour: String,
     /// How strongly the piece gives off its own colour; 0 is none.
     pub glow: f32,
-    /// The piece's size, as a multiple of `gear_size` in `loot_shower.ron`.
+    /// What the piece multiplies its `shape` by.
     pub size: f32,
+    /// The solids the piece is built of, as it lies flat on the ground.
+    pub shape: Vec<PartDef>,
     /// The column of light over a drop of this tier, if it has one.
     #[serde(default)]
     pub beam: Option<BeamDef>,
@@ -177,6 +179,68 @@ pub struct RarityLook {
     /// `sounds.ron`. Empty is none.
     #[serde(default)]
     pub sound: String,
+}
+
+impl RarityLook {
+    /// How far the piece reaches sideways from its middle, at its `size`.
+    pub fn reach(&self) -> f32 {
+        self.size * self.shape.iter().map(PartDef::reach).fold(0.0, f32::max)
+    }
+
+    /// How thick the piece is as it lies flat, at its `size`.
+    pub fn thickness(&self) -> f32 {
+        2.0 * self.size * self.shape.iter().map(PartDef::rise).fold(0.0, f32::max)
+    }
+}
+
+/// One solid of a tier's shape. Lengths are world units before the tier's
+/// `size`; `fx` makes the meshes.
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub struct PartDef {
+    pub solid: Solid,
+    /// Where its middle is from the piece's middle: along, up and across.
+    #[serde(default)]
+    pub at: (f32, f32, f32),
+    /// Degrees it is turned about the upright axis.
+    #[serde(default)]
+    pub turn: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub enum Solid {
+    /// Long, thick and deep.
+    Box(f32, f32, f32),
+    /// Its radius.
+    Ball(f32),
+    /// A ring lying flat: the radius of the circle its tube follows, and the
+    /// tube's radius.
+    Ring(f32, f32),
+    /// A flat piece with this many sides: its radius to a corner, and its
+    /// thickness. Many sides make a disc.
+    Prism(u32, f32, f32),
+}
+
+impl PartDef {
+    /// How far it reaches sideways from the piece's middle. A box is taken
+    /// by its longer side, not its corners.
+    pub fn reach(&self) -> f32 {
+        let own = match self.solid {
+            Solid::Box(long, _, deep) => long.max(deep) / 2.0,
+            Solid::Ball(radius) | Solid::Prism(_, radius, _) => radius,
+            Solid::Ring(radius, tube) => radius + tube,
+        };
+        self.at.0.hypot(self.at.2) + own
+    }
+
+    /// How far it reaches above or below the piece's middle.
+    pub fn rise(&self) -> f32 {
+        let own = match self.solid {
+            Solid::Box(_, thick, _) | Solid::Prism(_, _, thick) => thick / 2.0,
+            Solid::Ball(radius) => radius,
+            Solid::Ring(_, tube) => tube,
+        };
+        self.at.1.abs() + own
+    }
 }
 
 /// How strongly the screen answers a burst: none of either is 0.
@@ -292,6 +356,16 @@ mod tests {
             assert_eq!(named, 1, "gear.ron: two rarities named `{}`", rarity.name);
             let look = &rarity.look;
             assert!(look.glow >= 0.0 && look.size > 0.0, "{}", rarity.name);
+            assert!(!look.shape.is_empty(), "{}", rarity.name);
+            for part in &look.shape {
+                let sound = match part.solid {
+                    Solid::Box(long, thick, deep) => long > 0.0 && thick > 0.0 && deep > 0.0,
+                    Solid::Ball(radius) => radius > 0.0,
+                    Solid::Ring(radius, tube) => 0.0 < tube && tube < radius,
+                    Solid::Prism(sides, radius, thick) => sides >= 3 && radius > 0.0 && thick > 0.0,
+                };
+                assert!(sound, "{}: {part:?}", rarity.name);
+            }
             if let Some(beam) = look.beam {
                 assert!(beam.height > 0.0 && beam.width > 0.0, "{}", rarity.name);
                 assert!(0.0 < beam.alpha && beam.alpha <= 1.0, "{}", rarity.name);
@@ -318,6 +392,25 @@ mod tests {
         assert!((0.0..=1.0).contains(&rules.bonus_chance));
         assert!((0.0..=1.0).contains(&rules.ward_reduction));
         assert!(rules.weak_multiplier < 1.0 && 1.0 < rules.strong_multiplier);
+    }
+
+    /// A piece's reach and thickness cover every solid in it, wherever the
+    /// solid sits, and grow with the tier's size.
+    #[test]
+    fn a_shape_is_measured_over_all_its_parts() {
+        let part = |solid, at| PartDef { solid, at, turn: 0.0 };
+        let mut look = Data::load().gear.rarities[0].look.clone();
+        look.size = 1.0;
+        look.shape = vec![part(Solid::Box(0.4, 0.2, 0.3), (0.0, 0.0, 0.0))];
+        assert_eq!((look.reach(), look.thickness()), (0.2, 0.2));
+        look.shape.push(part(Solid::Ball(0.1), (0.3, 0.0, 0.4)));
+        assert!((look.reach() - 0.6).abs() < 1e-6 && look.thickness() == 0.2);
+        look.shape.push(part(Solid::Ring(0.2, 0.05), (0.0, 0.25, 0.0)));
+        assert!((look.thickness() - 0.6).abs() < 1e-6);
+        look.shape.push(part(Solid::Prism(3, 0.7, 0.1), (0.0, 0.0, 0.0)));
+        assert!((look.reach() - 0.7).abs() < 1e-6);
+        look.size = 2.0;
+        assert!((look.reach() - 1.4).abs() < 1e-6 && (look.thickness() - 1.2).abs() < 1e-6);
     }
 
     /// Every element beats one other and is beaten by one other.

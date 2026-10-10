@@ -59,9 +59,8 @@
     coin_radius: 0.17,
     coin_thickness: 0.07,
     coin_colour: "e8c04a",
-    // A piece of gear is a box this long, thick and deep, times its rarity's
-    // `size`. Its colour, glow and beam are its rarity's, in gear.ron.
-    gear_size: (0.46, 0.2, 0.34),
+    // A piece of gear has no numbers here: its shape, size, colour, glow and
+    // beam are its rarity's, in gear.ron.
     // No piece comes to rest this close to an enemy still standing.
     keep_clear: 1.0,
 
