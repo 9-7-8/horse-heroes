@@ -27,6 +27,11 @@ Use the cheapest step that can prove the change:
    screenshots/ and *.log are git-ignored. The GOG Galaxy Vulkan-layer ERROR
    line at startup is noise from that overlay, not from the game.
 
+NOTES
+  - cargo is not always on the PATH of the shell this tool starts (found
+    2026-10-10, in both PowerShell and Git Bash). When "cargo" is not
+    recognised, call it by its full path: ~/.cargo/bin/cargo.exe.
+
 REPORT
   State which steps ran. "Compiles" and "works" are different claims - make
   the one the evidence supports.

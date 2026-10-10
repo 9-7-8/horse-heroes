@@ -1,0 +1,66 @@
+SESSION 2026-10-10 08:26 - menus planned and put first
+=====================================================
+
+ASKED
+  "This game is going to live and die on how easy and intuitive the menus
+  are to navigate. Help me plan that out."
+  Then, handing over a research guide on menu design: "The menus should be
+  one of the first things we build, so we can tune it throughout. All
+  buttons should be there, even if they're not functional, as early as
+  possible ... take this in as guidance but don't pull too much of the
+  design guidance other than the menu design."
+
+DONE
+  No code or data changed. cargo check and cargo test both exit 0 (5 tests).
+  Nothing was run or looked at; nothing visible changed.
+  - docs/philosophy/menus.md, new: the map of the menus and the principles.
+    README table row added. A dated note at the top of town.md.
+  - vision.md: a "Menus and navigation" section with her decisions.
+  - Epic #225, menus and navigation, with sub-issues #226 to #239 and a new
+    "menus" label.
+  - #150 rewritten from four places to five. Notes on #11, #47, #98, #106,
+    #123, #132, #151, #205, #222.
+  - Moved to 0.2.0: the shell #226, the two scene layouts #205, keys #229,
+    reasons on unavailable controls #233. New in 0.2.0: menu parts #237, the
+    whole skeleton of buttons #238.
+  - The guide's menu-design sections (3 to 6, 9 to 12, 16, 18, 19) folded
+    into menus.md and onto #228, #230, #235, #236.
+  - build-and-run.txt: a note on calling cargo by its full path.
+
+DECIDED
+  By the owner:
+  - Five places, horse first: Horses, Trade, Map, Town, Journal. Town opens
+    on Horses; gear, abilities, pet and look are tabs on the selected horse.
+  - Mouse first, with a key for everything. No controller target.
+  - On the road, look and plan: gear, ability and pet changes are queued and
+    applied on arrival.
+  - Menus are built first, with every button present before it works.
+  Made for her, to be corrected:
+  - The wardrobe is the Look tab, not a place of its own.
+  - Recruiting, retiring and inviting back are in Town.
+  - A planned piece is protected from the keep rules; if a failed journey
+    loses it, that step is skipped and reported.
+  - The menu spine goes into 0.2.0 beside the loot shower, not a release of
+    its own, and #205 moves there with it. 0.2.0 grows from 8 issues to 14.
+  - The skeleton replaces the slice's text overlay.
+  - Not taken from the guide: its six destinations and collapsible scene
+    (her five places and fixed proportion stand), and its sections on
+    colour, sound, timing and upgrade controls.
+
+FOUND
+  - cargo was not on the PATH in either shell this session; the full path
+    under the user's .cargo/bin worked.
+  - #102 still speaks of a roster and a travelling party chosen from it,
+    which reads oddly beside "a horse is either travelling or retired". Not
+    touched.
+
+NOT DONE
+  - Nothing is built. No Bevy UI code exists beyond the text overlay, and
+    the pinned version's UI docs have not been read.
+  - Open question filed as #239: whether a look can change on the road.
+  - The click budgets in #236 have no numbers; they are hers to set after
+    the first walk.
+
+PICK UP
+  Read the Bevy 0.20 UI docs and examples, then build #237 (the menu parts)
+  on a dev screen that shows every control in every state.
