@@ -360,15 +360,23 @@ with anything earlier in this file, it is newer. It replaces two of them:
 2. **The party starts on a random hex in a far corner. The dragon is on the
    opposite hex.**
 3. **Biomes** are laid out around the map. Mountains and lakes are obstacles.
+   A biome determines **travel speed**, **what goods can be foraged**, and
+   **how many and what kind of predators** there are.
 4. **Towns are scattered** around the map, and **roads are built along the
    shortest distance between them**, going round mountains and lakes.
 5. **The reach of the dragon's corruption** is set. It can be changed when
    setting up a run. In a **classic run the entire world except the starting
    town is corrupted**.
 
+**The size of the world can also be set when starting a run.** Larger worlds
+mean longer runs. **The "classic" setting is the one being created and
+balanced now**; the others exist and are not balance targets yet.
+
 ### Travelling it
 
 - A hex with no road can be crossed, **slower and more dangerously**.
+- **The party forages goods while moving through a hex**, and the biome
+  determines which. Foraged goods are trade goods and ride in the hold.
 - Corruption is **weaker the further it is from the dragon**.
 - **Fighting clears nothing by itself.** Corruption is cleared only when the
   party reaches a corrupt town and does an idle task there, such as picking
@@ -396,8 +404,8 @@ with anything earlier in this file, it is newer. It replaces two of them:
   to the cap. Leaving pauses it and keeps the progress.
 
 "Cleared" therefore now means a town liberated, in place of the earlier
-three-part rule for a region. Not yet stated by her: what a biome changes
-beyond its look and travel cost, and how large the map is.
+three-part rule for a region. Not yet stated by her: how large the classic
+world is.
 
 ## The design priority
 
