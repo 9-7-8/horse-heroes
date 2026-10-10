@@ -19,6 +19,9 @@ STEPS
 5. Issues: one feature each, under an epic as a sub-issue. Body is Why (citing
    the philosophy file), What, Done when, Depends on. Where an existing issue
    already covers the feature, comment on it instead of opening a second one.
+   Where a later document revises an earlier proposal, rewrite the existing
+   issue (gh issue edit, with a dated "Revised" line at the top) and the
+   philosophy file, and list what changed; do not leave two versions open.
    Say in each new epic where it stands against pillar 1.
    Create them in dependency order (an issue after everything it cites), so
    every "Depends on" can carry a real number. Link a sub-issue with
