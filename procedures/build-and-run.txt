@@ -41,6 +41,12 @@ Use the cheapest step that can prove the change:
    small drop is in the air at 21.6, its coins arriving at 23.85) and the
    final one at 64.5 s (its flash at 64.86, its fountain in the air at
    65.9, its coins arriving at 68.6; the party is back in town by 70).
+   A death (docs/death-events.md), --seed 6: the first enemy is in
+   shards at 21.6 and only its mark is left at 22.3; the final one is
+   falling at 64.62, bursts at 64.95, and its shards are going at 66.0,
+   with a horse lying exhausted beside it. --seed 3 at 45.6 is an
+   exhausted horse walking on; --seed 1 at 72.8 is a lost trail, its
+   enemy drawing off.
    The test burst's flash, on the road: --burst --burst-at 14 at 14.36.
    A flash lasts a third of a second, so a picture of one is a matter of
    a few hundredths.

@@ -26,6 +26,9 @@ STEPS
    arc are per fountain there ("small", "full"), so say which one changed.
    The screen's response is `response` there (how long, how fast, and the
    two scales) and each rarity's `response` in assets/data/gear.ron.
+   A death's numbers (the fall, the shards, the mark) are per death in
+   assets/data/deaths.ron ("small", "big"); the test burst has no body,
+   so a death is looked at on a real kill (build-and-run.txt, step 4).
    The sounds are recipes in assets/data/sounds.ron, one voice a line;
    which plays when, the volume, the landing gap and the pickup run are
    `sound` in loot_shower.ron.

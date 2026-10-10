@@ -1,0 +1,73 @@
+SESSION LOG 2026-10-10 13:06 - death events
+===========================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: build green, 73 tests, no open bug.
+  - Tier 3, #17, the one PICK UP named (8ba237e, closes it):
+      - An enemy brought down is thrown back and tips over, breaks into
+        shards that fly out and fall, and leaves a mark in its element's
+        colour. Each enemy names its death in enemies.ron; the numbers
+        are in the new assets/data/deaths.ron; src/fx/death.rs.
+      - A trail's last enemy names the big death: it swells for 0.3 s,
+        bursts into 27 pieces thrown higher, and its mark is wider and
+        stays six seconds. An ordinary one is 8 pieces after 0.1 s.
+      - A horse at no health is no longer hidden. It lies down while the
+        party stands and walks on with its head low (src/game/scene.rs).
+      - Enemies standing when the party is driven back draw off to the
+        right instead of disappearing.
+    Tested: cargo test, 83 pass (ten new: eight in fx/death.rs, one in
+    the sim, one in the scene).
+    Seen running, in still pictures read by me: --seed 6 (an ordinary
+    death, the final one, a horse lying down), --seed 3 (an exhausted
+    horse walking on), --seed 1 (a lost trail). No warning or error in
+    the logs. Seven of the pictures are in
+    docs/gallery/2026-10-10-death-events/.
+  - docs/death-events.md (new); a line each in loot-shower.md,
+    expedition.md, build-and-run.txt and tune-loot-feel.txt.
+  - #241 filed: a sound for a death. A note on #176 of what is left there.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - An exhausted horse gets up and walks with the party, head low,
+    instead of lying on ground that scrolls under it.
+  - Enemies left standing at a lost trail leave to the right. The other
+    readings (they stay, they fade) either walk the party through them
+    or are a vanish.
+  - The final's shards lie for a second, not longer: at 1.5 s they
+    covered the fountain's loot as it came down.
+  - The mark is the element's colour at 0.12 of its brightness; at 0.35
+    it was as bright as the body.
+  - No death sound in this issue; nobody has heard the sounds there are
+    (#10), so more unheard ones went to #241 instead.
+
+FOUND
+  - A long here-document in the Bash tool fails here with "unexpected
+    EOF while looking for matching quote" for no reason found in its
+    text. Twice. Writing the script to a file under target/ and running
+    it worked.
+  - The first numbers threw an ordinary enemy's shards onto the enemy
+    behind it; back_speed went from 2.0 to 1.0.
+  - A swollen body's shards are in the air for up to 0.92 s; the test
+    that every shard lands before it fades caught a linger of 0.9.
+
+NOT DONE
+  - Nobody has watched a death move; it was judged from stills. The
+    numbers in deaths.ron are first guesses.
+  - A lost trail is not held on the road, so the last horse to tire is
+    never seen lying down, only getting up in town. Left to #176.
+  - A hit still shows nothing before the death.
+  - The log still says "falls!" and "driven back"; the words are #176's.
+  - Carried over: nobody has listened to the sounds (#10 waits on the
+    owner, F4); nobody has watched the screen response move; the
+    fountains are not tuned; a place left open on the road still cuts a
+    beam off; #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. #10 waits on the owner listening and is
+  skipped by its "decision" label. Six issues are open in 0.2.0: #187,
+  #229, #233, #238, #240, #241. By the order it should land on #187,
+  build the horse to the base proportions; read docs/death-events.md, An
+  exhausted horse, first, for what the pose needs the model to keep.

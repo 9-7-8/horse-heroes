@@ -26,6 +26,7 @@ first if it is an upgrade.
 | Where the report and the controls are shown | `src/game/menu/shell.rs` ([menu-shell.md](menu-shell.md)) |
 | Camera, trail, box horses, enemy cubes | `src/game/scene.rs` |
 | A kill's coins flying out and landing | `src/fx/drops.rs` ([loot-shower.md](loot-shower.md)) |
+| An enemy's death, an exhausted horse | `src/fx/death.rs`, `src/game/scene.rs` ([death-events.md](death-events.md)) |
 
 ## Rules as built
 

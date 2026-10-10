@@ -11,7 +11,8 @@ collection beats of [the loot fountain](philosophy/loot-fountain.md).
    the coins it dropped, the name of its fountain) in `Expedition::kills`.
 2. `game::advance` takes the kills after each sim tick and writes a `Killed`
    message: where the body was, the coins, the fountain, and where the
-   enemies still standing are.
+   enemies still standing are. The same message starts the body's death
+   ([death-events.md](death-events.md)), which the drops come out of.
 3. `fx::drops` plans a burst (`plan_burst`) the way that fountain says and
    spawns one coin piece per coin, up to the fountain's `most_pieces`, and
    a gear piece if the kill dropped gear. The seed puts the gear somewhere
