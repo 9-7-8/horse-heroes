@@ -1,0 +1,72 @@
+SESSION LOG 2026-10-10 13:46 - the whole menu skeleton
+======================================================
+
+ASKED
+  "Next, then what's left for 0.2.0?" - procedures/next-thing.txt, then
+  the count.
+
+DONE
+  - Tiers 1 and 2 were empty: build green, 88 tests, no open bug.
+  - Tier 3, #238, the one PICK UP pointed at (dc41437, closes it):
+      - assets/data/places.ron is the whole map of the menus: 77
+        controls over the tabs, the cargo column, Settings and the
+        footer, each with what it does, its issue and, where it works,
+        its action and key.
+      - The shell builds a button for each. One that is not built is
+        drawn as unavailable, can be pressed, and says "Not built yet"
+        with what it will do and its issue, in the side panel.
+      - Wired to their real buttons: the three elements (Horses,
+        Abilities), Equip (the cargo column, where the drop now waits)
+        and Set out. Game::can / Game::act are the one check and the
+        one way in. Keys come from the map; game::input is gone, and
+        so are the key hints in the report text.
+      - Settings is a page at the end of the bar, with its controls.
+    Tested: cargo test, 94 pass (six new: five on the map file, one on
+    can/act).
+    Seen running, in still pictures read by me: the menu tour at
+    --seed 6 (34 pictures: every tab, Settings, two controls that are
+    not built pressed, Ice chosen, the road, the drop in the cargo and
+    equipped), and one picture at the smallest window, 1120x640. No
+    warning or error in the logs. Nine pictures are in
+    docs/gallery/2026-10-10-menu-skeleton/.
+  - docs/menu-shell.md: "Every planned control", Keys, the cargo.
+
+DECIDED
+  Made for the owner, hers to overrule; each is a line in places.ron:
+  - Which controls each tab gets, their names and their order. They
+    were drawn from the open issues' "What" paragraphs, not from a
+    list of hers.
+  - Controls from issues labelled "proposed" are there too, and say
+    "A proposal, not decided" when pressed (Wardrobe, Party theme, Buy
+    piece, Use service, Route, Meet).
+  - The elements are on Horses, Abilities; Equip is in the cargo
+    column of Horses, and the dropped piece is shown there.
+  - The panel of a control that is not built shows its issue number.
+  - Only working controls have keys; the rest get theirs with #229.
+
+FOUND
+  - A working control that cannot be used now (Equip with nothing to
+    equip, Set out on the road) looks the same as one that is not
+    built. The reason is already returned by Game::can; showing it in
+    place is #233.
+  - Horse still carries a class and the report prints it ("fits Morrow
+    the Wizard"), though classes were removed on 2026-10-10. Not
+    touched; no issue filed.
+
+NOT DONE
+  - Nobody has pressed anything with a real pointer or the keyboard:
+    the tour sends the same Activate a click does. Tab to a control
+    and Enter, hover, and the keys 1 2 3 E Space are unchecked by
+    hand.
+  - Carried over: #187 waits on the owner's look at the horse and #10
+    on her listening (F4); nobody has watched a death or the screen
+    response move; the fountains are not tuned; a place left open on
+    the road still cuts a beam off; a lost trail is not held on the
+    road (#176); in town the horses walk on the spot; #199 waits on
+    the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Left in 0.2.0: #229, #233, #240, #241
+  to build, and #187 and #10 waiting on the owner. #229 is next, the
+  lowest number: keys for places, tabs and horses, printed on them,
+  from the map file, and Escape going back one level.
