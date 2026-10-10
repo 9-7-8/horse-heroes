@@ -257,8 +257,9 @@ recommendation, this section is the newer statement.
 
 - One automatic signature ability each, and nothing beside it. One collar
   slot specialises it. The pet saddle is seating and looks only.
-- Reassigning is free in town. Pets never own a Finisher, never handle loot,
-  are never captured by defeat, and are not exhausted to begin with.
+- Reassigning is free in town. Pets never own a Finisher, are never captured
+  by defeat, and are not exhausted to begin with. *(Revised the same day:
+  pets do fetch the loot; see "The loop as she tuned it".)*
 
 ### Gear and looks (#81, #128)
 
@@ -333,6 +334,8 @@ they disagree with anything earlier in this file, they are newer.
 - **Goodwill moves market prices**, as it does stall prices.
 - The model is Tiny Rails, taken almost exactly, apart from the daily price
   change ([inspirations.md](inspirations.md)).
+- *(Revised the same day: goods are sold through the stall over time, as
+  gear is, not instantly.)*
 - **Goods ride in a caravan hold** of their own, counted in units.
   Saddlebags stay for gear. This replaces "the caravan stores nothing" for
   trade goods only.
@@ -378,10 +381,12 @@ balanced now**; the others exist and are not balance targets yet.
 - **The party forages goods while moving through a hex**, and the biome
   determines which. Foraged goods are trade goods and ride in the hold.
 - Corruption is **weaker the further it is from the dragon**.
-- **Fighting clears nothing by itself.** Corruption is cleared only when the
-  party reaches a corrupt town and does an idle task there, such as picking
-  up trash or tearing down a factory. That town is then cleared, and the
-  corruption on nearby hexes is weakened.
+- **Fighting on the road clears nothing by itself.** Corruption is cleared
+  only when the party reaches a corrupt town and beats the boss at its gate.
+  That town is then cleared, and the corruption on nearby hexes is weakened.
+  *(She first described an idle task in the town, such as picking up trash
+  or tearing down a factory, and removed it the same day: "killing the boss
+  is cleansing enough".)*
 
 ### Purity against corruption
 
@@ -397,15 +402,38 @@ balanced now**; the others exist and are not balance targets yet.
 - **A journey ends with a boss when it arrives at a corrupt town**: the boss
   is the fight at its gate. Journeys between liberated towns have ordinary
   fights only.
-- **A corrupt town offers nothing but the cleansing task**: no stall, market,
-  storage, recruits or retirement until it is free.
-- **The party stays and works** while the task runs on the world clock,
-  longer where corruption is stronger, continuing while the player is away up
-  to the cap. Leaving pauses it and keeps the progress.
+- **Beating that boss liberates the town at once.** There is no cleansing
+  wait, so a town the party is inside is always open.
 
 "Cleared" therefore now means a town liberated, in place of the earlier
 three-part rule for a region. Not yet stated by her: how large the classic
 world is.
+
+## The loop as she tuned it (owner, 2026-10-10)
+
+Her changes after reading the whole loop back. Newer than everything above.
+
+- **Town is mostly about assigning gear.** The player is meant to really
+  invest in defining and tuning builds for their horses.
+- **The three starting horses are expected to reach the endgame.** Retiring a
+  horse is a very rare event. The party still grows to five; the starters
+  stay throughout and recruits fill the new places.
+- **Health returns to full over time while the party waits in a town.** This
+  replaces instant healing on return.
+- **Town building projects** improve a town's healing rate, its trade prices,
+  or what goods it sells. The party takes part by **delivering goods and
+  coins**; residents do the building.
+- **Pets grab the loot after the shower and put it in the bags.** This is how
+  collection looks; what is kept is still decided by the keep rules and bag
+  space.
+- **Trade goods do not sell instantly. They sell the way gear does**, listed
+  at the stall and bought over time. **A larger town with more residents
+  sells faster, because it gets more visitors.**
+- **No cleansing wait.** Killing the boss is cleansing enough.
+- **Classic is a single finite experience, like completing a story mode.**
+  The classic save stays open to trade afterwards. An **endless mode**, where
+  the dragon's corruption spreads by itself and towns may need liberating
+  again, may be made later and is not classic.
 
 ## The design priority
 
