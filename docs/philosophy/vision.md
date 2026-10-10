@@ -502,6 +502,9 @@ the same day. The advice built on them is in [menus.md](menus.md).
 - **On the road, look and plan.** Every place opens on the road. Gear,
   ability and pet changes made there are queued and applied on arrival, so
   "gear and pets change in town only" still holds.
+- **Menus are built first.** "The menus should be one of the first things we
+  build, so we can tune it throughout. All buttons should be there, even if
+  they're not functional, as early as possible."
 
 ## The design priority
 

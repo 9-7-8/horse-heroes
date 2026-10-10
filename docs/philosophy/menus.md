@@ -42,6 +42,38 @@ an icon at the end of the bar, not a place.
 
 ## Principles
 
+### Built first, with every button in place
+
+The owner, 2026-10-10: "The menus should be one of the first things we
+build, so we can tune it throughout. All buttons should be there, even if
+they're not functional, as early as possible."
+
+So the whole map of the menus exists before most of the game behind it does:
+every place, every tab and every planned control, in its final position. A
+control whose system is not built responds when pressed and says so, as any
+unavailable control does. When the system arrives, the button starts working
+and nothing moves. The map is one data file, so a place, tab or control can
+be renamed or rearranged while tuning without touching code.
+
+This is what makes navigation tunable from the start: the cost of a layout
+shows up while it is still cheap to change, and a new system is fitted to a
+place that has already been walked many times.
+
+### One job to a screen
+
+Each tab has one main job and one primary action. Before a screen is laid
+out, write five lines for it: what the player should feel, the decision that
+produces it, what they must know to decide, the shortest understandable way
+to act, and how they will see what changed. A screen that cannot fill in the
+decision line is a report, and belongs in the Journal.
+
+### One name for one thing
+
+Horses is never also Party, Team or Roster; coins are never also gold. The
+names in the bar, the tabs, the buttons and the messages come from the same
+list. A button says what it will do with what: "List 18 pieces for 240
+coins", never "OK".
+
 ### Town opens on the horse
 
 Town is mostly about assigning gear, so that is where the player lands: the
@@ -59,6 +91,12 @@ are in two words: "Horses, Abilities".
 There is one kind of modal: the confirmation of something that cannot be
 undone.
 
+Back and Cancel are different things: Back returns to where the player was;
+Cancel abandons a change not yet made. Closing a panel puts the focus back on
+the control that opened it. Related things link to each other, so a pet slot
+opens the pets that could go in it and an ingredient of a town project opens
+where it comes from, and the bar remains the plain route to everything.
+
 ### The item is the handle
 
 A piece of gear appears in cargo, on a horse, in the report, in the stall, in
@@ -71,6 +109,14 @@ gets done, the layout is wrong.
 Hover shows the card with the comparison against what the selected horse
 wears. A click pins it with its actions. Dragging to a slot is a shortcut and
 never the only way.
+
+The card has three layers. The **summary** is what it is, its slot, what it
+does and whether it matters now. The **detail**, on selection, is every
+effect, the comparison, and what happens to the piece it displaces. The
+**advanced** layer, behind a Details control, is formulas and assumptions.
+A cost or a consequence is never only in a tooltip. Differences are marked
+by sign or word as well as colour, and a percentage says what it is a
+percentage of.
 
 ### One selected horse, everywhere
 
@@ -86,6 +132,22 @@ Systems that have not opened yet leave their space reserved, and appear there
 when the event that makes them relevant arrives. The primary action of a
 screen is always in the same corner. The same list, with the same filters and
 sorting, is used for every collection of items.
+
+A list holds still while it is being read. New loot arriving does not move a
+row out from under the pointer; it waits in an incoming group or for a
+refresh the player asks for. The filters in force are shown, with one action
+to clear them, and "nothing matches these filters" is a different message
+from "nothing here yet". Numbers that grow do not push the layout about.
+
+### Every control has all its states
+
+Default, hover, focus, pressed, selected and unavailable are each drawn
+differently, on every control, from one shared set of parts. Hover means
+"this can be done"; selected means "this is chosen"; they never look alike.
+Selecting a piece to compare it does not favourite it or add it to a sale.
+A press is acknowledged at once, and the next press is accepted while the
+flourish for the last one is still playing. The place the player is in is
+marked by shape or underline as well as colour.
 
 ### Undo, not "are you sure"
 
@@ -118,6 +180,10 @@ dismissed before the party moves on; it waits in the Journal. Nothing in the
 menus is on a timer, and nothing vanishes while it is being read. This is
 pillar 2 seen from the interface.
 
+The footer says in one line what the party is doing and whether anything is
+in its way, and says so when something that sounds like a blocker is not
+one: "Bags full. The journey continues; keep rules choose what is carried."
+
 ### On the road: look, and plan
 
 Every place opens on the road. Opening one brings the scene back to the top
@@ -149,11 +215,26 @@ budget for each, and walk them in the running game whenever a screen changes:
 Also the questions [town.md](town.md) already asks: accidental sales,
 abandoned comparisons, time to find a useful purchase.
 
+A count is a floor, not the goal. Never cut an action at the cost of the
+player understanding or being safe; time to understand matters more than
+time to click. So watch as well as count: which place a newcomer tries
+first, the wrong turns, the backtracking, whether they can predict what a
+batch action will do before committing, and whether they can say afterwards
+what their change accomplished.
+
 ## For Horse Heroes
 
 - The slice has one text overlay and key presses. The shell (bar, status
-  strip, footer, selected horse, cargo) is the first thing to build, before
-  any single screen is made good, because every later screen hangs on it.
+  strip, footer, selected horse, cargo) and the full skeleton of buttons are
+  built first, in 0.2.0 beside the loot shower, before any single screen is
+  made good, because every later screen hangs on them.
+- The research guide proposes six destinations of its own and a scene the
+  player can collapse. Neither is taken: the owner's five places and her
+  fixed proportion (vision.md) stand. Its sections on colour, sound, timing
+  and upgrade controls are left for when those are worked on.
+- Menu presentation is kept apart from game state: equipping, listing and
+  assigning are decided by `src/sim`, by stable identifiers and never list
+  positions, and an animation is never the transaction.
 - Primitive UI is in keeping with pillar 3. Flat panels and plain text are
   enough to learn whether the map of the menus is right; nothing may depend
   on finished art.
@@ -175,7 +256,12 @@ abandoned comparisons, time to find a useful purchase.
 ## Source
 
 The owner's four decisions of 2026-10-10, made from options put to her in
-chat and recorded in vision.md. The principles are recommendations written
-for this game the same day, drawing on the interface sections of town.md,
-cargo.md and juice.md; they do not come from one of her documents and should
-be corrected by what the running game shows.
+chat and recorded in vision.md, and her instruction the same day that the
+menus are built first with every button in place. The principles are
+recommendations written for this game the same day, drawing on the interface
+sections of town.md, cargo.md and juice.md, and on a research guide she
+commissioned and handed over, "Rules for good menu UX and UI in an
+incremental idle RPG" (sections 3 to 6, 9 to 12, 16, 18 and 19, the menu
+design; she asked that little else be taken from it). Its layouts and
+thresholds are proposals to prototype. All of it should be corrected by what
+the running game shows.
