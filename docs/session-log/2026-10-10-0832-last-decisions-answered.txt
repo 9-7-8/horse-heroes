@@ -1,0 +1,49 @@
+SESSION LOG 2026-10-10 08:32 - the last decisions answered
+==========================================================
+
+ASKED
+  "What open issues do you still need me to decide on? Use your question
+  tool." Then: end session.
+
+DONE
+  - Put the one open decision issue and the four remaining proposals in
+    vision.md to the owner with the question tool; recorded her answers by
+    procedures/record-a-design-change.txt. Docs only, no code.
+  - vision.md and menus.md: looks queue on the road; the four proposals
+    marked confirmed; proposed issues are ruled on per release.
+  - Issues: #239 closed with her answer; #234 body revised to queue looks;
+    #132 comment on how to read it; #109 `proposed` label removed, with a
+    comment.
+  - cargo check and cargo test: both exit 0, 5 tests pass (compiled and
+    tested; nothing run or looked at, nothing visible changed).
+
+DECIDED
+  Hers:
+  - #239: a look changed on the road is queued and applied on arrival, like
+    gear. (The recommendation was "at once"; she chose one rule for every
+    change to a horse.)
+  - Confirmed: loot handling, what a major victory does, stories start
+    small, narration reports what happened.
+  - Issues labelled `proposed` are brought to her per release, when that
+    release is next to be built.
+  Made for her:
+  - Taking `proposed` off #109, since its subject is what she confirmed.
+    Other issues touching the confirmed four kept their labels.
+
+FOUND
+  - About 35 open issues still carry `proposed`. Three are in 0.3.0: #94,
+    #95, #98.
+  - #33, #186, #199 and #219 have no release milestone, against the release
+    rule. Left as they are.
+  - vision.md says what pets do in play is open, while #138 and #139 are
+    filed without `proposed`. Not reconciled.
+
+NOT DONE
+  - Nothing is built. No Bevy UI code exists beyond the text overlay, and
+    the pinned version's UI docs have not been read.
+  - #199: two source files cut off and one image missing; waiting on the
+    owner.
+
+PICK UP
+  Read the Bevy 0.20 UI docs and examples, then build #237 (the menu parts)
+  on a dev screen that shows every control in every state.
