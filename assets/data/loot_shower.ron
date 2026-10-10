@@ -39,6 +39,16 @@
     // No piece comes to rest this close to an enemy still standing.
     keep_clear: 1.0,
 
+    // Pickup. Once the whole burst is at rest it lies there this long, to be
+    // read; then its pieces leave for the party this far apart, the nearest
+    // first. A piece sets off at `pickup_speed`, gains `pickup_accel` every
+    // second, and shrinks over the last `pickup_shrink` of the way.
+    pickup_pause_secs: 0.9,
+    pickup_stagger_secs: 0.06,
+    pickup_speed: 1.0,
+    pickup_accel: 45.0,
+    pickup_shrink: 1.2,
+
     // The test burst.
     burst_pieces: 40,
     // Gear thrown with them, by rarity name: a mixed burst to tell them apart in.

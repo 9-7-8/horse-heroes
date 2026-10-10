@@ -34,6 +34,7 @@ fn main() {
         })
         .add_plugins(fx::FxPlugin {
             burst: std::env::args().any(|arg| arg == "--burst"),
+            pickup: std::env::args().any(|arg| arg == "--pickup"),
         })
         .add_plugins(dev_screenshot::DevScreenshotPlugin)
         .run();

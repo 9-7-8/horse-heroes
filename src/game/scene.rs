@@ -27,6 +27,9 @@ pub const TRAIL_DEPTH: f32 = 5.0;
 /// Scenery wraps around once it is this far left of the origin.
 const WRAP: f32 = 20.0;
 const HORSE_X: [f32; 3] = [-1.5, -4.5, -7.5];
+const HORSE_Z: [f32; 3] = [0.6, -0.6, 0.6];
+/// About how high the middle of a horse's body is.
+const HORSE_MIDDLE: f32 = 1.2;
 pub const ENEMY_X: [f32; 3] = [3.5, 6.0, 8.5];
 
 /// The colour an enemy of each element is drawn in.
@@ -116,13 +119,12 @@ fn setup(
     }
 
     for (i, &x) in HORSE_X.iter().enumerate() {
-        let z = [0.6, -0.6, 0.6][i];
         spawn_horse(
             &mut commands,
             &mut materials,
             &cube,
             i,
-            Vec3::new(x, 0.0, z),
+            Vec3::new(x, 0.0, HORSE_Z[i]),
         );
     }
 
@@ -271,6 +273,19 @@ fn frame(
 /// The side of an enemy's cube. Bigger enemies have more health.
 fn enemy_size(max_health: i32) -> f32 {
     (max_health as f32).cbrt() / 3.5
+}
+
+/// The middle of the body of the horse nearest `point` along the ground:
+/// where a drop goes when the party collects it.
+pub fn nearest_horse(point: Vec3) -> Vec3 {
+    let mut nearest = Vec3::ZERO;
+    for (i, &x) in HORSE_X.iter().enumerate() {
+        let horse = Vec3::new(x, HORSE_MIDDLE, HORSE_Z[i]);
+        if i == 0 || point.xz().distance(horse.xz()) < point.xz().distance(nearest.xz()) {
+            nearest = horse;
+        }
+    }
+    nearest
 }
 
 /// The middle of the body of the enemy standing in place `slot`.

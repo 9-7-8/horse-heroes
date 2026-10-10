@@ -18,7 +18,9 @@ use super::parts::{
     text, title,
 };
 use super::tokens::Tokens;
-use crate::game::{Game, SceneView, Screen, report_side, report_text, stats_line};
+use crate::game::{
+    Game, SceneView, Screen, Uncollected, report_side, report_text, stats_line,
+};
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
 
@@ -724,6 +726,7 @@ fn mark_chosen(
 
 fn show_facts(
     game: Res<Game>,
+    uncollected: Res<Uncollected>,
     shell: Res<Shell>,
     live: Query<(Entity, &Live)>,
     children: Query<&Children>,
@@ -747,17 +750,18 @@ fn show_facts(
         let Some(mut text) = target.and_then(|target| texts.get_mut(target).ok()) else {
             continue;
         };
-        let words = fact(&game, &shell, live.0);
+        let words = fact(&game, &uncollected, &shell, live.0);
         if text.0 != words {
             text.0 = words;
         }
     }
 }
 
-fn fact(game: &Game, shell: &Shell, fact: Fact) -> String {
+fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, fact: Fact) -> String {
     let selected = &game.party[shell.horse().min(game.party.len() - 1)];
     match fact {
-        Fact::Coins => game.coins.to_string(),
+        // A coin counts when it reaches the party, not when it drops.
+        Fact::Coins => (game.coins_earned() - uncollected.coins).to_string(),
         Fact::Health(horse) => match &game.screen {
             Screen::Trail(expedition) => {
                 let fighter = &expedition.party[horse];

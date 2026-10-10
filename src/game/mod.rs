@@ -59,6 +59,15 @@ pub struct Killed {
     pub standing: Vec<Vec3>,
 }
 
+/// Coins that have dropped and not yet reached the party: in the air, on
+/// the ground, or on their way. `advance` adds a kill's coins as it reports
+/// the kill and `fx` takes each piece's share off as it arrives, so the
+/// coins counter climbs one arrival at a time.
+#[derive(Resource, Default)]
+pub struct Uncollected {
+    pub coins: i32,
+}
+
 pub struct GamePlugin {
     pub seed: u64,
 }
@@ -67,6 +76,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Game::new(self.seed))
             .init_resource::<SceneView>()
+            .init_resource::<Uncollected>()
             .add_message::<Killed>()
             .add_plugins(scene::ScenePlugin)
             .add_systems(Update, (input, advance).chain());
@@ -148,6 +158,14 @@ impl Game {
             .as_ref()
             .map_or(Stats::default(), |g| g.stats);
         score(&self.data, gear.stats) > score(&self.data, worn)
+    }
+
+    /// Every coin the party has earned, the current trail's included.
+    pub fn coins_earned(&self) -> i32 {
+        match &self.screen {
+            Screen::Trail(expedition) => self.coins + expedition.coins,
+            Screen::Camp { .. } => self.coins,
+        }
     }
 
     pub fn in_town(&self) -> bool {
@@ -236,7 +254,12 @@ fn input(
     }
 }
 
-fn advance(time: Res<Time>, mut game: ResMut<Game>, mut killed: MessageWriter<Killed>) {
+fn advance(
+    time: Res<Time>,
+    mut game: ResMut<Game>,
+    mut uncollected: ResMut<Uncollected>,
+    mut killed: MessageWriter<Killed>,
+) {
     let game = &mut *game;
     let dt = time.delta_secs();
     match &mut game.screen {
@@ -252,6 +275,7 @@ fn advance(time: Res<Time>, mut game: ResMut<Game>, mut killed: MessageWriter<Ki
                 game.accumulator -= TICK;
                 expedition.tick(&game.data, TICK);
                 for kill in std::mem::take(&mut expedition.kills) {
+                    uncollected.coins += kill.coins.max(0);
                     killed.write(Killed {
                         at: scene::enemy_centre(kill.foe, kill.max_health),
                         coins: kill.coins,

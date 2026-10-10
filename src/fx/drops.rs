@@ -3,6 +3,8 @@
 //! little and come to rest. Every number is in `assets/data/loot_shower.ron`.
 //! A piece of gear is told apart by its rarity: colour, glow, size, and for
 //! the tiers that have one a beam of light, all in `assets/data/gear.ron`.
+//! A burst lies still for a moment, then its pieces go to the party one after
+//! another, and the coins counter climbs as each coin arrives.
 //!
 //! The flight is plain arithmetic (`Body`, `plan_burst`), so it is unit-tested;
 //! the systems below it only draw it.
@@ -13,8 +15,8 @@ use bevy::prelude::*;
 use serde::Deserialize;
 
 use crate::game::menu::tokens::Hex;
-use crate::game::scene::{ENEMY_X, SCENE_WIDTH, SCROLL_SPEED};
-use crate::game::{Game, Killed};
+use crate::game::scene::{ENEMY_X, SCENE_WIDTH, SCROLL_SPEED, nearest_horse};
+use crate::game::{Game, Killed, Uncollected};
 use crate::sim::data::{BeamDef, GearTable, RarityDef};
 use crate::sim::rng::Rng;
 
@@ -46,6 +48,11 @@ pub struct Shower {
     pub most_pieces: usize,
     pub gear_size: (f32, f32, f32),
     pub keep_clear: f32,
+    pub pickup_pause_secs: f32,
+    pub pickup_stagger_secs: f32,
+    pub pickup_speed: f32,
+    pub pickup_accel: f32,
+    pub pickup_shrink: f32,
     pub burst_pieces: usize,
     pub burst_gear: Vec<String>,
     pub burst_seed: u64,
@@ -153,17 +160,68 @@ impl Launch {
     }
 }
 
-/// Where a launch comes to rest, found by flying it.
-pub fn rest_point(shower: &Shower, origin: Vec3, launch: &Launch) -> Vec3 {
+/// Where a launch comes to rest and how long it flies, found by flying it.
+fn flight(shower: &Shower, origin: Vec3, launch: &Launch) -> (Vec3, f32) {
     let mut body = launch.body(shower, origin);
+    let mut steps = 0;
     // A minute of flight is far past any real one.
-    for _ in 0..7200 {
-        if body.resting {
-            break;
-        }
+    while !body.resting && steps < 7200 {
         body.step(shower, 1.0 / 120.0);
+        steps += 1;
     }
-    body.position
+    (body.position, steps as f32 / 120.0)
+}
+
+/// Where a launch comes to rest.
+pub fn rest_point(shower: &Shower, origin: Vec3, launch: &Launch) -> Vec3 {
+    flight(shower, origin, launch).0
+}
+
+/// The coins each coin piece of a burst is worth: `coins` shared out over
+/// `pieces` as evenly as whole coins allow, so they add up to `coins`.
+pub fn coin_values(coins: i32, pieces: usize) -> Vec<i32> {
+    let (coins, count) = (coins.max(0), pieces as i32);
+    (0..count)
+        .map(|i| coins / count + (i < coins % count) as i32)
+        .collect()
+}
+
+/// When each piece of a burst leaves the ground for the party, in seconds
+/// after the kill. The whole burst lies still for the pause, so it can be
+/// read, and then the pieces go one after another, the nearest to the party
+/// first.
+pub fn plan_pickup(shower: &Shower, origin: Vec3, launches: &[Launch]) -> Vec<f32> {
+    let flights: Vec<(Vec3, f32)> = launches
+        .iter()
+        .map(|launch| flight(shower, origin, launch))
+        .collect();
+    let at_rest = launches
+        .iter()
+        .zip(&flights)
+        .map(|(launch, (_, secs))| launch.delay + secs)
+        .fold(0.0, f32::max);
+    let away = |i: usize| flights[i].0.xz().distance(nearest_horse(flights[i].0).xz());
+    let mut order: Vec<usize> = (0..launches.len()).collect();
+    order.sort_by(|&a, &b| away(a).total_cmp(&away(b)));
+    let mut leaves = vec![0.0; launches.len()];
+    for (turn, &i) in order.iter().enumerate() {
+        leaves[i] = at_rest + shower.pickup_pause_secs + turn as f32 * shower.pickup_stagger_secs;
+    }
+    leaves
+}
+
+/// One step of a piece's way to the party: it gains speed all the way to
+/// `to`. True when it has arrived.
+pub fn step_home(shower: &Shower, position: &mut Vec3, speed: &mut f32, to: Vec3, dt: f32) -> bool {
+    *speed += shower.pickup_accel * dt;
+    let left = to - *position;
+    let step = *speed * dt;
+    if left.length() <= step {
+        *position = to;
+        return true;
+    }
+    *position += left.normalize() * step;
+    false
 }
 
 fn is_clear(point: Vec3, standing: &[Vec3], keep_clear: f32) -> bool {
@@ -227,13 +285,15 @@ pub fn plan_burst(
 
 pub struct DropsPlugin {
     pub burst: bool,
+    pub pickup: bool,
 }
 
 impl Plugin for DropsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Shower::load())
             .insert_resource(TestBurst {
-                due: self.burst.then_some(BURST_AT),
+                due: (self.burst || self.pickup).then_some(BURST_AT),
+                pickup: self.pickup,
                 watch: None,
                 calm: Watch::default(),
             })
@@ -259,8 +319,15 @@ struct Piece {
     squash: f32,
     /// 0 when it stops, rising to 1 as it lies down.
     settle: f32,
-    /// Part of the test burst: it stays where it lands, to be looked at.
+    /// Part of the test burst: the ground does not carry it off.
     pinned: bool,
+    /// Seconds until it leaves the ground for the party. A test burst
+    /// thrown to be looked at has none, and stays where it lands.
+    pickup: Option<f32>,
+    /// Its speed on its way to the party, once it has left the ground.
+    homing: Option<f32>,
+    /// The coins the counter gains when it arrives.
+    value: i32,
     /// Half its length, which is how high its middle is while it tumbles,
     /// and its thickness, which it lies on.
     radius: f32,
@@ -275,6 +342,16 @@ struct Beam {
     def: BeamDef,
     /// 0 when the piece is thrown, rising to 1 as the beam reaches its height.
     risen: f32,
+}
+
+/// What becomes of a burst once it has landed.
+#[derive(Clone, Copy)]
+enum After {
+    /// A kill's drops: the party collects them, and they are worth this
+    /// many coins in all.
+    Kill(i32),
+    /// The test burst: collected, or left to be looked at. Worth nothing.
+    Test { pickup: bool },
 }
 
 /// A drawn part of a piece: its body, or its beam.
@@ -304,8 +381,10 @@ struct Tier {
 /// run can be compared with another.
 #[derive(Resource)]
 struct TestBurst {
-    /// Seconds until `--burst` throws it.
+    /// Seconds until `--burst` or `--pickup` throws it.
     due: Option<f32>,
+    /// Whether the one thrown at launch is picked up afterwards.
+    pickup: bool,
     /// Frame times while its pieces are in the air, reported when they rest.
     watch: Option<Watch>,
     /// Frame times with no test burst in the air, to compare them with.
@@ -382,9 +461,16 @@ fn spawn_burst(
     origin: Vec3,
     launches: &[Launch],
     kinds: &[Kind],
-    pinned: bool,
+    after: After,
 ) {
-    for (launch, kind) in launches.iter().zip(kinds) {
+    let (coins, pinned, collected) = match after {
+        After::Kill(coins) => (coins, false, true),
+        After::Test { pickup } => (0, true, pickup),
+    };
+    let coin_pieces = kinds.iter().filter(|&&kind| kind == Kind::Coin).count();
+    let mut values = coin_values(coins, coin_pieces).into_iter();
+    let pickups = plan_pickup(shower, origin, launches);
+    for ((launch, kind), pickup) in launches.iter().zip(kinds).zip(pickups) {
         let tier = match kind {
             Kind::Coin => None,
             Kind::Gear(tier) => Some(&look.tiers[*tier]),
@@ -438,6 +524,12 @@ fn spawn_burst(
             squash: 0.0,
             settle: 0.0,
             pinned,
+            pickup: collected.then_some(pickup),
+            homing: None,
+            value: match kind {
+                Kind::Coin => values.next().unwrap_or(0),
+                Kind::Gear(_) => 0,
+            },
             radius,
             thickness,
             model,
@@ -461,12 +553,14 @@ fn launch_kills(
         let kinds = burst_kinds(*bursts, coins, &gear);
         let launches = plan_burst(&shower, *bursts, kinds.len(), kill.at, &kill.standing);
         *bursts += 1;
-        spawn_burst(&mut commands, &look, &shower, kill.at, &launches, &kinds, false);
+        let after = After::Kill(kill.coins);
+        spawn_burst(&mut commands, &look, &shower, kill.at, &launches, &kinds, after);
     }
 }
 
 /// F3, or `--burst` a moment after launch, throws the test burst from where
-/// the first enemy stands, in place of the last one thrown.
+/// the first enemy stands, in place of the last one thrown. F4 and
+/// `--pickup` throw the same burst and let the party collect it.
 fn test_burst(
     mut commands: Commands,
     time: Res<Time>,
@@ -476,17 +570,23 @@ fn test_burst(
     mut test: ResMut<TestBurst>,
     pieces: Query<(Entity, &Piece)>,
 ) {
-    let mut throw = keys.just_pressed(KeyCode::F3);
+    let mut throw = if keys.just_pressed(KeyCode::F4) {
+        Some(After::Test { pickup: true })
+    } else if keys.just_pressed(KeyCode::F3) {
+        Some(After::Test { pickup: false })
+    } else {
+        None
+    };
     if let Some(due) = &mut test.due {
         *due -= time.delta_secs();
         if *due <= 0.0 {
             test.due = None;
-            throw = true;
+            throw = Some(After::Test { pickup: test.pickup });
         }
     }
-    if !throw {
+    let Some(after) = throw else {
         return;
-    }
+    };
     for (entity, piece) in &pieces {
         if piece.pinned {
             commands.entity(entity).despawn();
@@ -495,7 +595,7 @@ fn test_burst(
     let origin = Vec3::new(ENEMY_X[0], 0.5, 0.0);
     let kinds = burst_kinds(shower.burst_seed, shower.burst_pieces, &look.burst_gear);
     let launches = plan_burst(&shower, shower.burst_seed, kinds.len(), origin, &[]);
-    spawn_burst(&mut commands, &look, &shower, origin, &launches, &kinds, true);
+    spawn_burst(&mut commands, &look, &shower, origin, &launches, &kinds, after);
     test.watch = Some(Watch::default());
 }
 
@@ -504,6 +604,7 @@ fn fly(
     time: Res<Time>,
     game: Res<Game>,
     shower: Res<Shower>,
+    mut uncollected: ResMut<Uncollected>,
     mut test: ResMut<TestBurst>,
     mut pieces: Query<(Entity, &mut Piece, &mut Transform, &mut Visibility), Without<Model>>,
     mut models: Query<&mut Transform, With<Model>>,
@@ -517,6 +618,9 @@ fn fly(
         if piece.pinned {
             pinned += 1;
             pinned_moving += !piece.body.resting as u32;
+        }
+        if let Some(pickup) = &mut piece.pickup {
+            *pickup -= dt;
         }
         if piece.delay > 0.0 {
             piece.delay -= dt;
@@ -544,11 +648,27 @@ fn fly(
         }
         piece.squash = (piece.squash - dt / shower.squash_secs.max(0.001)).max(0.0);
 
-        // The ground moves under the party as it walks, and takes with it
-        // what lies on it and what is falling to it.
-        if !piece.pinned {
+        // Its turn has come: it leaves the ground for the nearest horse.
+        let due = piece.pickup.is_some_and(|pickup| pickup <= 0.0);
+        if piece.homing.is_none() && due && piece.settle >= 1.0 {
+            piece.homing = Some(shower.pickup_speed);
+        }
+        let mut shrink = 1.0;
+        if let Some(speed) = &mut piece.homing {
+            let to = nearest_horse(piece.body.position);
+            if step_home(&shower, &mut piece.body.position, speed, to, dt) {
+                uncollected.coins -= piece.value;
+                commands.entity(entity).despawn();
+                continue;
+            }
+            let left = piece.body.position.distance(to);
+            shrink = (left / shower.pickup_shrink.max(0.001)).clamp(0.2, 1.0);
+        } else if !piece.pinned {
+            // The ground moves under the party as it walks, and takes with
+            // it what lies on it and what is falling to it.
             piece.body.position.x -= drift;
             if piece.body.position.x < -GONE {
+                uncollected.coins -= piece.value;
                 commands.entity(entity).despawn();
                 continue;
             }
@@ -560,15 +680,18 @@ fn fly(
         let height = piece.radius + (piece.thickness / 2.0 - piece.radius) * lying;
         transform.translation = piece.body.position;
         transform.translation.y += height * (1.0 - flattened) - shower.coin_radius;
-        transform.scale = Vec3::new(1.0 + flattened / 2.0, 1.0 - flattened, 1.0 + flattened / 2.0);
+        transform.scale =
+            shrink * Vec3::new(1.0 + flattened / 2.0, 1.0 - flattened, 1.0 + flattened / 2.0);
         if let Ok(mut model) = models.get_mut(piece.model) {
             model.rotation = piece.tumble.slerp(piece.flat, lying);
         }
         // The beam stands on the ground where the piece is, upright and its
         // own size whatever the piece is doing: undo the piece's height and
-        // squash.
+        // squash. It sinks again as the piece leaves.
         if let Some(beam) = &mut piece.beam {
-            beam.risen = (beam.risen + dt / beam.def.rise_secs.max(0.001)).min(1.0);
+            let rise = dt / beam.def.rise_secs.max(0.001);
+            let rise = if piece.homing.is_some() { -rise } else { rise };
+            beam.risen = (beam.risen + rise).clamp(0.0, 1.0);
             if let Ok(mut model) = models.get_mut(beam.model) {
                 let height = beam.def.height * beam.risen;
                 let middle = height / 2.0 - transform.translation.y;
@@ -625,6 +748,8 @@ mod tests {
         assert!(0.0 < s.fan_degrees && s.fan_degrees <= 360.0);
         assert!(0.0 < s.coin_thickness && s.coin_thickness <= 2.0 * s.coin_radius);
         assert!(s.most_pieces > 0 && s.burst_pieces > 0);
+        assert!(s.pickup_pause_secs > 0.0 && s.pickup_stagger_secs > 0.0);
+        assert!(s.pickup_speed >= 0.0 && s.pickup_accel > 0.0 && s.pickup_shrink > 0.0);
         let (length, thickness, depth) = s.gear_size;
         assert!(0.0 < thickness && thickness <= depth && depth <= length);
         // Enemies stand further apart than the room kept round each, or the
@@ -739,6 +864,74 @@ mod tests {
                 assert_eq!(body.position.y, s.coin_radius);
                 assert!(body.position.z.abs() < TRAIL_DEPTH / 2.0, "seed {seed}: off the trail");
                 assert_eq!(body.position, rest_point(&s, ORIGIN, &launch));
+            }
+        }
+    }
+
+    /// A kill's coins are shared over its coin pieces: nothing is lost when
+    /// there are more coins than pieces, and no piece is worth much more
+    /// than another.
+    #[test]
+    fn coin_pieces_add_up_to_the_coins() {
+        for coins in 0..200 {
+            for pieces in 1..=20 {
+                let values = coin_values(coins, pieces);
+                assert_eq!(values.len(), pieces);
+                assert_eq!(values.iter().sum::<i32>(), coins);
+                let (least, most) = (values.iter().min().unwrap(), values.iter().max().unwrap());
+                assert!(most - least <= 1 && *least >= 0);
+            }
+        }
+        assert!(coin_values(5, 0).is_empty());
+    }
+
+    /// The whole burst lies still for the pause before the first piece
+    /// leaves, and the pieces leave one at a time, the nearest to the
+    /// party first.
+    #[test]
+    fn pickup_waits_then_takes_one_piece_at_a_time() {
+        let s = Shower::load();
+        for seed in 0..50 {
+            let burst = plan_burst(&s, seed, 24, ORIGIN, &[]);
+            let leaves = plan_pickup(&s, ORIGIN, &burst);
+            let at_rest = burst
+                .iter()
+                .map(|launch| launch.delay + flight(&s, ORIGIN, launch).1)
+                .fold(0.0, f32::max);
+            let mut order: Vec<usize> = (0..burst.len()).collect();
+            order.sort_by(|&a, &b| leaves[a].total_cmp(&leaves[b]));
+            assert!((leaves[order[0]] - at_rest - s.pickup_pause_secs).abs() < 1e-4);
+            let away = |i: usize| {
+                let rest = rest_point(&s, ORIGIN, &burst[i]);
+                rest.xz().distance(nearest_horse(rest).xz())
+            };
+            for pair in order.windows(2) {
+                let gap = leaves[pair[1]] - leaves[pair[0]];
+                assert!((gap - s.pickup_stagger_secs).abs() < 1e-4, "seed {seed}: {gap} apart");
+                assert!(away(pair[0]) <= away(pair[1]), "seed {seed}: a further piece went first");
+            }
+        }
+    }
+
+    /// A piece on its way to the party only gains speed, and gets there
+    /// soon, at any frame rate.
+    #[test]
+    fn a_collected_piece_speeds_up_and_arrives() {
+        let s = Shower::load();
+        for dt in [1.0 / 240.0, 1.0 / 60.0, 1.0 / 20.0] {
+            for launch in plan_burst(&s, 3, 40, ORIGIN, &[]) {
+                let mut position = rest_point(&s, ORIGIN, &launch);
+                let to = nearest_horse(position);
+                let (mut speed, mut secs, mut arrived) = (s.pickup_speed, 0.0, false);
+                let mut left = position.distance(to);
+                while !arrived && secs < 3.0 {
+                    let before = speed;
+                    arrived = step_home(&s, &mut position, &mut speed, to, dt);
+                    assert!(speed > before && position.distance(to) < left + 1e-4);
+                    left = position.distance(to);
+                    secs += dt;
+                }
+                assert!(arrived && position == to, "not home after {secs} s");
             }
         }
     }
