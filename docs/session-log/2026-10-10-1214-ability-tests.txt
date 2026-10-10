@@ -1,0 +1,45 @@
+SESSION LOG 2026-10-10 12:14 - ability tests
+============================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tier 1 was empty: build green, 55 tests, no open bug.
+  - Tier 2, the gap carried over in the last three logs: Focused Shot and
+    Elemental Burst had no test of their numbers (891a396). Three tests in
+    src/sim/expedition.rs:
+      - the shot is one hit on the current target and no other, the attack
+        times focused_shot_multiplier, the elemental part left as it is;
+      - the burst hits every standing enemy with elemental times
+        burst_multiplier, by the triangle, past defense, with no attack in
+        it, and does not touch an enemy that has already fallen;
+      - each comes round once per cooldown, first after one whole cooldown.
+    Tested: cargo test, 58 pass. Each of the three was also seen to fail
+    when its rule was broken on purpose in the fight code (a different
+    multiplier, attack added to the burst, a longer cooldown), and the
+    code was put back.
+  - docs/expedition.md: every rule listed there now has a test; a line on
+    when an ability is first ready.
+
+DECIDED
+  Nothing of design. Tests before the next feature is the owner's order
+  (next-thing.txt).
+
+FOUND
+  - The last session reported tier 2 as empty while carrying this gap in
+    NOT DONE. A gap named in a log is tier 2 work.
+  - The sim still has classes (Class::Ranger, Wizard, Mage), which the
+    owner removed from the design on 2026-10-10. The tests cover what is
+    built; the classless party is #220 to #222, in 0.6.0.
+
+NOT DONE
+  - Nothing visible changed, so the game was not run.
+  - Carried over: nobody has watched either fountain move; the fountains
+    are not tuned; #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Seven issues are open in 0.2.0: #9, #10,
+  #17, #229, #233, #238, #240. By the order it should land on #9, screen
+  response and the calm after the kill, starting with holding the road
+  view while a final fountain plays.

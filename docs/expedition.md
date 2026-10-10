@@ -49,9 +49,10 @@ first if it is an upgrade.
   drops gain one stat point per level.
 - The sim steps in fixed 0.1 s ticks. Trail, fight and drop each follow from
   the seed (plus party and element for the fight), which the tests check.
-- Each rule above has a test in `src/sim/expedition.rs` or `src/sim/loot.rs`
-  except the Ranger's and Wizard's ability numbers, which only the balance
-  test reaches. A changed rule should fail one of them.
+- Each rule above has a test in `src/sim/expedition.rs` or `src/sim/loot.rs`.
+  A changed rule should fail one of them.
+- An ability is ready for the first time one whole cooldown into the run
+  (the Ward a quarter of one), and its timer runs only while fighting.
 
 ## Balance at trail level 0, no gear (300 seeds)
 
