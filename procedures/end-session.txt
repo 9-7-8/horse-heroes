@@ -51,8 +51,9 @@ STEPS
    concrete action, not a list of themes.
 
 6. Docs commit. Commit steps 4 and 5 separately from the code.
-   There is no git remote as of 2026-10-09, so there is nothing to push. If
-   one has been added since, push both commits and say so.
+   Then push to origin (github.com/9-7-8/horse-heroes, public since
+   2026-10-09) and say so. The repo is public: read the session log once
+   more for anything private before it goes up.
 
 7. Verify clean. git status shows nothing to commit; no process this session
    launched is still alive.

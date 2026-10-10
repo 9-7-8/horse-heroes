@@ -1,0 +1,74 @@
+SESSION 2026-10-09 20:49 - first playable slice, renamed, published
+
+ASKED
+  - Set the project up (Rust was not installed).
+  - "Take these two together, and try to build the smallest slice" - the
+    smallest_slice design note plus a Bevy 0.20 intro guide. "Just build the
+    bare minimum that you can launch: basic black background with white text,
+    basic everything."
+  - "We're going to have procedurally generated 3d horse models on an isometric
+    3d sidescrolling backround, constantly walking right."
+  - "We're gonna call it Horse Heroes." Do not use the old working title
+    anywhere. README, GPL licence, set up a git repo and push.
+
+DONE
+  - Rust 1.99.0 (MSVC) installed with winget; Bevy pinned to =0.20.0.
+    Checked: rustc/cargo versions read back, first build finished.
+  - Expedition sim in src/sim: seeded trail generation, automatic combat, three
+    class abilities, element triangle, gear drop. Data in assets/data/*.ron.
+    Checked: tested (5 unit tests - determinism, trail shape, drops, balance).
+  - Presentation in src/game: camp/trail loop, keys, text HUD, scrolling trail,
+    three box horses with swinging legs, enemy cubes coloured by element.
+    Checked: seen running - screenshots of camp, a fight and the result screen
+    were read by the session. The owner has not looked yet.
+  - IDLE_SHOT / IDLE_SHOT_AT screenshot aid (src/dev_screenshot.rs).
+    Checked: seen running, used for every screenshot above.
+  - Renamed to Horse Heroes (package, window title, HUD, docs), README.md,
+    LICENSE (GPL-3.0-or-later). Checked: compiled, tested, seen running under
+    the new name.
+  - Public repo github.com/9-7-8/horse-heroes, branch main. Checked: gh reports
+    it public with the GPL-3.0 licence detected.
+
+DECIDED
+  By the owner:
+  - Install Rust and run the whole setup.
+  - Name: Horse Heroes. Licence: GPL.
+  - Repo public, commits under her GitHub no-reply address.
+  For her, by the session (say so if any is wrong):
+  - Bevy from crates.io at a pinned release, not a clone of Bevy's source.
+  - GPL "version 3 or later" rather than "version 3 only".
+  - History restarted as one commit so no old commit carries the old title.
+  - Keys instead of buttons; three fixed horses instead of a horse picker.
+  - Camp sets out by itself after 12 s and equips an upgrade first (idle first).
+  - A win raises the trail level (+15% enemy health and attack per level).
+  - Camera at the isometric elevation but facing straight across the trail, so
+    "right" on screen is world +X.
+  - Data files are compiled in with include_str!, not loaded at run time.
+
+FOUND
+  - Bevy 0.20: PointLight's shadow switch is shadow_maps_enabled, not
+    shadows_enabled as the intro guide had it. Font size is
+    TextFont { font_size: FontSize::Px(..) } with FontSize from bevy::text.
+  - The window is 2880x1620 physical pixels on this display, so default-size
+    text covered the scene; the HUD uses 14 px and the scene sits low.
+  - A Vulkan-layer ERROR line from a game-launcher overlay prints at every
+    start. It is not from the game.
+  - First full build: about 16 minutes. Rebuilds: seconds.
+  - Balance is touchy: a 10% change in final-enemy health moved the win rate
+    from 78% to 68%.
+
+NOT DONE
+  - No attack or hit animation, no loot shower, no sound, no saving, nothing to
+    spend coins on, no on-screen buttons, no horse picker.
+  - Horses are boxes with rolled proportions, not real procedural models.
+  - A downed horse just disappears.
+  - Never run or looked at: trail level 1 and above, a win screen, the fairy
+    spring event, pressing any key (only the unattended path was watched),
+    any window size other than the default.
+  - The local folder is still named after the old working title.
+  - CLAUDE.md's opening paragraph still describes a single hero and the loot
+    shower as the product; the owner's later briefs have moved past it.
+
+PICK UP
+  Ask the owner for the flavour she said she would give, then have her play
+  one run with the keys (1/2/3, E, Space) and say what feels wrong first.
