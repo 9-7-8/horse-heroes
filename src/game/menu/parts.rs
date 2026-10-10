@@ -43,6 +43,10 @@ pub struct Mark;
 #[derive(Component)]
 pub struct CounterValue;
 
+/// The value on the right of a `row`.
+#[derive(Component)]
+pub struct RowValue;
+
 #[derive(Component)]
 pub struct ClosePanel;
 
@@ -273,8 +277,9 @@ pub fn tab(t: &Tokens, label: &str, key: Option<&str>) -> impl Bundle + use<> {
     )
 }
 
-/// One line of a list: a name on the left and a value on the right.
-pub fn row(t: &Tokens, name: &str, value: &str) -> impl Bundle + use<> {
+/// One line of a list: a name on the left, with the key that chooses it if
+/// it has one, and a value on the right.
+pub fn row(t: &Tokens, name: &str, key: Option<&str>, value: &str) -> impl Bundle + use<> {
     (
         interactive(t, Part::Row),
         Node {
@@ -288,7 +293,18 @@ pub fn row(t: &Tokens, name: &str, value: &str) -> impl Bundle + use<> {
             flex_shrink: 0.0,
             ..default()
         },
-        children![text(t, name), dim(t, value), mark(t, Part::Row)],
+        children![
+            (
+                Node {
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(t.space.m),
+                    ..default()
+                },
+                children![text(t, name), key_hint(t, key)],
+            ),
+            (dim(t, value), RowValue),
+            mark(t, Part::Row)
+        ],
     )
 }
 

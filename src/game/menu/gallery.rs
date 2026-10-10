@@ -85,7 +85,7 @@ fn sample<'a>(
     match part {
         Part::Button => parent.spawn(button(t, "Set out", Some("Space"))),
         Part::Tab => parent.spawn(tab(t, "Abilities", Some("2"))),
-        Part::Row => parent.spawn(row(t, "Starlit Halter", "Head")),
+        Part::Row => parent.spawn(row(t, "Starlit Halter", None, "Head")),
         Part::Card => {
             let mut card = parent.spawn(card(t, "Starlit Halter", "Rare - Head"));
             card.with_children(|lines| {
@@ -233,7 +233,7 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                             .into_iter()
                             .enumerate()
                             {
-                                let mut row = rows.spawn(row(t, name, slot));
+                                let mut row = rows.spawn(row(t, name, None, slot));
                                 row.observe(choose);
                                 if i == 1 {
                                     row.insert(Selected);

@@ -5,9 +5,12 @@
 //!
 //! `IDLE_TOUR=<folder>` walks the menus instead: it presses its way through
 //! every place and tab, saves a numbered PNG of each into the folder, and
-//! exits. The presses are the same `Activate` a click sends.
+//! exits. The presses are the same `Activate` a click sends. It ends with a
+//! town visit by keys alone, each key put into Bevy's keyboard state as if
+//! it had gone down.
 
 use bevy::{
+    input::InputSystems,
     prelude::*,
     render::view::screenshot::{Screenshot, save_to_disk},
     ui_widgets::Activate,
@@ -43,8 +46,11 @@ impl Plugin for DevScreenshotPlugin {
                 next: 0,
                 wait: 1.5,
                 shots: 0,
+                key: None,
+                held: None,
             })
             .add_systems(Startup, plan_tour)
+            .add_systems(PreUpdate, tour_keys.after(InputSystems))
             .add_systems(Update, tour);
         }
     }
@@ -76,6 +82,8 @@ enum Step {
     Slot(usize),
     /// Press the first control of that name.
     Control(&'static str),
+    /// Press a key, as the keyboard would.
+    Key(KeyCode),
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -93,6 +101,10 @@ struct Tour {
     next: usize,
     wait: f32,
     shots: u32,
+    /// The key to put down at the start of the next frame.
+    key: Option<KeyCode>,
+    /// The key put down last frame, to let go of.
+    held: Option<KeyCode>,
 }
 
 /// Seconds for a press to show before the picture is taken: longer than the
@@ -161,13 +173,46 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Town,
         Step::Wait(SETTLE),
         Step::Shot("back in town with the report".into()),
-        Step::Place(0),
-        Step::Tab(0, 0),
-        Step::Shot("the drop waits in the cargo".into()),
-        Step::Control("Equip"),
-        Step::Shot("the drop equipped".into()),
+        // A town visit by keys alone (#229): the keys are those printed on
+        // the controls in places.ron, so one changed there is changed here.
+        Step::Key(KeyCode::KeyH),
+        Step::Key(KeyCode::Digit1),
+        Step::Shot("by keys the drop waits in the cargo".into()),
+        Step::Key(KeyCode::KeyE),
+        Step::Shot("by keys the drop equipped".into()),
+        Step::Key(KeyCode::KeyC),
+        Step::Key(KeyCode::Digit2),
+        Step::Key(KeyCode::KeyI),
+        Step::Shot("by keys third horse abilities ice".into()),
+        Step::Key(KeyCode::KeyF),
+        Step::Key(KeyCode::KeyT),
+        Step::Key(KeyCode::Digit3),
+        Step::Shot("by keys trade storage".into()),
+        Step::Key(KeyCode::KeyS),
+        Step::Key(KeyCode::Escape),
+        Step::Shot("by keys settings and escape stays in town".into()),
+        Step::Key(KeyCode::Space),
+        Step::Wait(SETTLE),
+        Step::Shot("by keys set out".into()),
+        Step::Key(KeyCode::KeyJ),
+        Step::Key(KeyCode::Digit1),
+        Step::Shot("by keys journal on the road".into()),
+        Step::Key(KeyCode::Escape),
+        Step::Shot("by keys escape closes the place on the road".into()),
     ]);
     tour.steps = steps;
+}
+
+/// Put the tour's key down for one frame, after the real keyboard has been
+/// read and before any system looks at it.
+fn tour_keys(mut tour: ResMut<Tour>, mut keys: ResMut<ButtonInput<KeyCode>>) {
+    if let Some(key) = tour.held.take() {
+        keys.release(key);
+    }
+    if let Some(key) = tour.key.take() {
+        keys.press(key);
+        tour.held = Some(key);
+    }
 }
 
 fn tour(
@@ -199,6 +244,10 @@ fn tour(
         Step::SetOut => game.act(Action::SetOut),
         _ => game.hold_in_town(),
     }
+    let key = match step {
+        Step::Key(key) => Some(*key),
+        _ => None,
+    };
     let pressed = match step {
         Step::Place(p) | Step::PlaceMidway(p) => {
             places.iter().find(|(_, b)| b.0 == *p).map(|(e, _)| e)
@@ -214,7 +263,7 @@ fn tour(
             .filter(|(_, b)| map.control(b.id).name == *name)
             .min_by_key(|(_, b)| b.id)
             .map(|(e, _)| e),
-        Step::Wait(_) | Step::SetOut | Step::Town | Step::Shot(_) => None,
+        Step::Key(_) | Step::Wait(_) | Step::SetOut | Step::Town | Step::Shot(_) => None,
     };
     if let Some(entity) = pressed {
         commands.trigger(Activate { entity });
@@ -237,6 +286,7 @@ fn tour(
         }
         _ => {}
     }
+    tour.key = key;
     tour.wait = wait;
     tour.next += 1;
 }

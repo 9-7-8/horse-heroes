@@ -12,7 +12,12 @@
 //   proposed  the issue is a proposal the owner has not decided.
 //   action    what it does today: Element(Fire), EquipDrop, SetOut.
 //   key       the key that works it, printed on it: a letter, a digit or
-//             Space. Only a control with an action has one for now (#229).
+//             Space. Only a control with an action has one.
+// Every key is in this file (#229). A place's `key` opens it and a control's
+// presses it, wherever the player is. A tab's `key` chooses it while its
+// place is showing, so two places may use the same keys for their tabs and
+// no tab may use a key of the first kind. `horse_keys` select the horses of
+// the party, in order.
 // `cargo` is the controls of the cargo column, `footer` the footer's.
 // Guidance: docs/philosophy/menus.md. How it works: docs/menu-shell.md.
 #![enable(implicit_some)]
@@ -20,12 +25,14 @@
     places: [
         (
             name: "Horses",
+            key: "H",
             // The horses down the left and the shared cargo down the right
             // stay in view on every tab.
             horse_columns: true,
             tabs: [
                 (
                     name: "Gear",
+                    key: "1",
                     job: "What the selected horse wears.",
                     content: Gear,
                     controls: [
@@ -39,12 +46,13 @@
                 ),
                 (
                     name: "Abilities",
+                    key: "2",
                     job: "Which abilities the selected horse carries.",
                     content: Element,
                     controls: [
-                        (name: "Fire", does: "The party fights with Fire on the next trail.", action: Element(Fire), key: "1"),
-                        (name: "Ice", does: "The party fights with Ice on the next trail.", action: Element(Ice), key: "2"),
-                        (name: "Plant", does: "The party fights with Plant on the next trail.", action: Element(Plant), key: "3"),
+                        (name: "Fire", does: "The party fights with Fire on the next trail.", action: Element(Fire), key: "F"),
+                        (name: "Ice", does: "The party fights with Ice on the next trail.", action: Element(Ice), key: "I"),
+                        (name: "Plant", does: "The party fights with Plant on the next trail.", action: Element(Plant), key: "P"),
                         (name: "Equip ability", does: "Puts an ability the selected horse has bought into one of its slots.", issue: 222),
                         (name: "Spend points", does: "Buys an ability from the shared pool with the selected horse's ability points.", issue: 220),
                         (name: "Reassign points", does: "Takes the selected horse's ability points back, to spend again.", issue: 220),
@@ -58,6 +66,7 @@
                 ),
                 (
                     name: "Pet",
+                    key: "3",
                     job: "Which pet rides with the selected horse.",
                     controls: [
                         (name: "Assign pet", does: "Seats a pet from the collection on the selected horse's saddle.", issue: 106),
@@ -67,6 +76,7 @@
                 ),
                 (
                     name: "Look",
+                    key: "4",
                     job: "How the selected horse looks.",
                     controls: [
                         (name: "Wardrobe", does: "Browses the looks, with a preview on the horse beside its current look.", issue: 132, proposed: true),
@@ -93,9 +103,11 @@
         ),
         (
             name: "Trade",
+            key: "T",
             tabs: [
                 (
                     name: "Sell",
+                    key: "1",
                     job: "What is listed at the stall, and at what price.",
                     controls: [
                         (name: "List selected", does: "Makes the selected pieces the stall's stock, after showing their count and what they could earn.", issue: 99),
@@ -107,6 +119,7 @@
                 ),
                 (
                     name: "Buy",
+                    key: "2",
                     job: "Gear and goods this town sells.",
                     controls: [
                         (name: "Buy piece", does: "Buys a piece of gear from the town's shop with coins.", issue: 141, proposed: true),
@@ -116,6 +129,7 @@
                 ),
                 (
                     name: "Storage",
+                    key: "3",
                     job: "What is kept in this town's stash.",
                     controls: [
                         (name: "Store", does: "Moves a piece from the cargo into this town's stash.", issue: 202),
@@ -124,6 +138,7 @@
                 ),
                 (
                     name: "Rules",
+                    key: "4",
                     job: "Keep rules and auto-buy rules.",
                     controls: [
                         (name: "Add keep rule", does: "Adds a rule saying what the party keeps, ignores or protects.", issue: 52),
@@ -137,6 +152,7 @@
         ),
         (
             name: "Map",
+            key: "M",
             job: "Destination, route options, the itinerary, and what is restored.",
             controls: [
                 (name: "Choose destination", does: "Picks a city, and shows the route to it before the party leaves.", issue: 156),
@@ -149,9 +165,11 @@
         ),
         (
             name: "Town",
+            key: "N",
             tabs: [
                 (
                     name: "Projects",
+                    key: "1",
                     job: "Deliveries to this town's projects.",
                     controls: [
                         (name: "Deliver", does: "Hands over goods and coins from the hold to a town project.", issue: 172),
@@ -159,6 +177,7 @@
                 ),
                 (
                     name: "Residents",
+                    key: "2",
                     job: "Recruits, retired horses, invitations back, and retiring.",
                     controls: [
                         (name: "Choose party", does: "Decides who travels and who stays in this town.", issue: 102),
@@ -171,9 +190,11 @@
         ),
         (
             name: "Journal",
+            key: "J",
             tabs: [
                 (
                     name: "Report",
+                    key: "1",
                     job: "The latest loot, trail and stall reports.",
                     content: Report,
                     controls: [
@@ -185,6 +206,7 @@
                 ),
                 (
                     name: "Journal",
+                    key: "2",
                     job: "What happened on the road.",
                     controls: [
                         (name: "One horse", does: "Shows only the selected horse's part of the journal.", issue: 107),
@@ -192,6 +214,7 @@
                 ),
                 (
                     name: "Codex",
+                    key: "3",
                     job: "What has been found.",
                     controls: [
                         (name: "Gear effects", does: "Lists the gear effects found, and the unfound ones in outline.", issue: 30),
@@ -205,6 +228,7 @@
     // At the far end of the bar. Not one of the five places.
     settings: (
         name: "Settings",
+        key: "S",
         job: "How the game feels and how it is worked.",
         controls: [
             (name: "Shake", does: "Turns screen shake down, from full to off.", issue: 45),
@@ -214,6 +238,7 @@
             (name: "Keys", does: "Shows the key for every place, tab and action.", issue: 229),
         ],
     ),
+    horse_keys: ["Z", "X", "C"],
     footer: [
         (name: "Planned changes", does: "Lists the changes planned on the road, to edit or cancel before the party arrives.", issue: 234),
         (name: "Set out", does: "Sends the party off on the next trail.", action: SetOut, key: "Space"),

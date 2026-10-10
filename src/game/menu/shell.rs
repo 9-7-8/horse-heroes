@@ -14,7 +14,7 @@ use bevy::{
 use serde::Deserialize;
 
 use super::parts::{
-    ClosePanel, CounterValue, NotBuilt, PartText, button, counter, dim, panel, reason, row,
+    ClosePanel, CounterValue, NotBuilt, RowValue, button, counter, dim, panel, reason, row,
     side_panel, tab, text, title,
 };
 use super::tokens::Tokens;
@@ -30,6 +30,9 @@ pub struct Places {
     pub places: Vec<Place>,
     /// At the far end of the bar: a page like a place, and not one of them.
     pub settings: Place,
+    /// The keys that select the horses of the party, in order.
+    #[serde(default)]
+    pub horse_keys: Vec<String>,
     #[serde(default)]
     pub footer: Vec<Control>,
     /// Every control of the map, by its `id`.
@@ -40,6 +43,9 @@ pub struct Places {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Place {
     pub name: String,
+    /// The key that opens it, printed on it.
+    #[serde(default)]
+    pub key: Option<String>,
     /// What is decided here, for a place with no tabs.
     #[serde(default)]
     pub job: String,
@@ -59,6 +65,9 @@ pub struct Place {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Tab {
     pub name: String,
+    /// The key that chooses it while its place is showing, printed on it.
+    #[serde(default)]
+    pub key: Option<String>,
     pub job: String,
     #[serde(default)]
     pub content: Content,
@@ -131,6 +140,19 @@ impl Places {
 
     pub fn control(&self, id: usize) -> &Control {
         &self.list[id]
+    }
+
+    /// The key that opens a page: a place, or settings.
+    pub fn page_key(&self, page: usize) -> Option<&str> {
+        self.pages().nth(page)?.key.as_deref()
+    }
+
+    pub fn tab_key(&self, page: usize, tab: usize) -> Option<&str> {
+        self.pages().nth(page)?.tabs.get(tab)?.key.as_deref()
+    }
+
+    pub fn horse_key(&self, horse: usize) -> Option<&str> {
+        self.horse_keys.get(horse).map(String::as_str)
     }
 
     fn controls_mut(&mut self) -> Vec<&mut Control> {
@@ -481,11 +503,11 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
             ))
             .with_children(|bar| {
                 for (p, place) in places.places.iter().enumerate() {
-                    bar.spawn((tab(t, &place.name, None), PlaceButton(p)));
+                    bar.spawn((tab(t, &place.name, place.key.as_deref()), PlaceButton(p)));
                 }
                 bar.spawn(spacer());
                 bar.spawn((
-                    button(t, &places.settings.name, None),
+                    button(t, &places.settings.name, places.settings.key.as_deref()),
                     PlaceButton(places.settings_page()),
                 ));
             });
@@ -507,7 +529,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                             })
                             .with_children(|cell| {
                                 cell.spawn((
-                                    row(t, &horse.name, ""),
+                                    row(t, &horse.name, places.horse_key(h), ""),
                                     HorseButton(h),
                                     Live(Fact::Health(h)),
                                 ));
@@ -564,7 +586,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                             .with_children(|tabs| {
                                 for (i, each) in place.tabs.iter().enumerate() {
                                     tabs.spawn((
-                                        tab(t, &each.name, None),
+                                        tab(t, &each.name, each.key.as_deref()),
                                         TabButton { place: p, tab: i },
                                     ));
                                 }
@@ -586,7 +608,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                         horses.spawn(dim(t, "horses"));
                                         for (h, horse) in game.party.iter().enumerate() {
                                             horses.spawn((
-                                                row(t, &horse.name, ""),
+                                                row(t, &horse.name, places.horse_key(h), ""),
                                                 HorseButton(h),
                                                 Live(Fact::Health(h)),
                                             ));
@@ -693,7 +715,7 @@ fn spawn_content(
             .with_children(|slots| {
                 for slot in Slot::ALL {
                     slots.spawn((
-                        row(t, slot.name(), ""),
+                        row(t, slot.name(), None, ""),
                         SlotRow {
                             place,
                             tab,
@@ -827,19 +849,46 @@ fn on_activate(
     }
 }
 
-/// The key printed on a control presses it, wherever the player is. Space
-/// is the one conflict, since a focused button also answers Space: while a
-/// control shows keyboard focus, Space presses that control and no other.
+/// The key printed on a place, a horse or a control presses it, wherever the
+/// player is; the key printed on a tab chooses it while its place is showing.
+/// Space is the one conflict, since a focused button also answers Space:
+/// while a control shows keyboard focus, Space presses that control and no
+/// other.
 fn keys(
     mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
     focus: Res<InputFocus>,
     focus_visible: Res<InputFocusVisible>,
     map: Res<Places>,
+    shell: Res<Shell>,
+    places: Query<(Entity, &PlaceButton)>,
+    tabs: Query<(Entity, &TabButton)>,
+    horses: Query<(Entity, &HorseButton)>,
     controls: Query<(Entity, &ControlButton)>,
 ) {
     if keys.get_just_pressed().len() == 0 {
         return;
+    }
+    let down =
+        |key: Option<&str>| key.and_then(key_code).is_some_and(|code| keys.just_pressed(code));
+    for (entity, place) in &places {
+        if down(map.page_key(place.0)) {
+            commands.trigger(Activate { entity });
+        }
+    }
+    for (entity, tab) in &tabs {
+        let showing = shell.is_open() && tab.place == shell.place();
+        if showing && down(map.tab_key(tab.place, tab.tab)) {
+            commands.trigger(Activate { entity });
+        }
+    }
+    // A horse is in the strip and in a column: one press, not one for each.
+    for h in 0..map.horse_keys.len() {
+        if down(map.horse_key(h)) {
+            if let Some((entity, _)) = horses.iter().find(|(_, horse)| horse.0 == h) {
+                commands.trigger(Activate { entity });
+            }
+        }
     }
     let on_a_control = focus_visible.0 && focus.get().is_some();
     for (entity, button) in &controls {
@@ -1013,8 +1062,7 @@ fn show_facts(
     map: Res<Places>,
     live: Query<(Entity, &Live)>,
     children: Query<&Children>,
-    counters: Query<(), With<CounterValue>>,
-    kinds: Query<&PartText>,
+    values: Query<(), Or<(With<CounterValue>, With<RowValue>)>>,
     mut texts: Query<&mut Text>,
 ) {
     for (entity, live) in &live {
@@ -1023,12 +1071,7 @@ fn show_facts(
         } else {
             children
                 .iter_descendants(entity)
-                .find(|child| counters.contains(*child))
-                .or_else(|| {
-                    children
-                        .iter_descendants(entity)
-                        .find(|child| matches!(kinds.get(*child), Ok(PartText::Dim)))
-                })
+                .find(|child| values.contains(*child))
         };
         let Some(mut text) = target.and_then(|target| texts.get_mut(target).ok()) else {
             continue;
@@ -1190,7 +1233,8 @@ mod tests {
     }
 
     /// A printed key is one the game can read, works a control that works,
-    /// and works only that control.
+    /// and works only that control. The keys of places, horses and controls
+    /// work everywhere, so no two of them are the same.
     #[test]
     fn every_key_is_a_real_key_and_works_one_control() {
         let places = Places::load();
@@ -1202,6 +1246,45 @@ mod tests {
             assert!(!seen.contains(key), "two controls answer {key}");
             seen.push(key.clone());
         }
+        let pages = places.pages().filter_map(|page| page.key.as_ref());
+        for key in pages.chain(&places.horse_keys) {
+            assert!(key_code(key).is_some(), "no key called {key}");
+            assert!(!seen.contains(key), "two things answer {key}");
+            seen.push(key.clone());
+        }
+    }
+
+    /// "A key for everything" (#229): every place, settings, every tab and
+    /// every horse of the party has a key. A tab's key works in its place
+    /// only: no other tab there has it, and nothing that works everywhere.
+    #[test]
+    fn every_place_tab_and_horse_has_its_key() {
+        let places = Places::load();
+        let mut everywhere: Vec<&str> = places
+            .controls()
+            .iter()
+            .filter_map(|control| control.key.as_deref())
+            .collect();
+        everywhere.extend(places.horse_keys.iter().map(String::as_str));
+        for (p, page) in places.pages().enumerate() {
+            let key = places.page_key(p);
+            assert!(key.is_some(), "{} has no key", page.name);
+            everywhere.extend(key);
+        }
+        for (p, page) in places.pages().enumerate() {
+            let mut seen = Vec::new();
+            for (i, tab) in page.tabs.iter().enumerate() {
+                let Some(key) = places.tab_key(p, i) else {
+                    panic!("{}, {} has no key", page.name, tab.name);
+                };
+                assert!(key_code(key).is_some(), "{}: no key called {key}", tab.name);
+                assert!(!seen.contains(&key), "{}: two tabs answer {key}", page.name);
+                assert!(!everywhere.contains(&key), "{}: {key} is taken", tab.name);
+                seen.push(key);
+            }
+        }
+        let party = crate::sim::data::Data::load().horses.len();
+        assert!(places.horse_keys.len() >= party, "a horse has no key");
     }
 
     /// Everything the text overlay did is done from a control: each element,
