@@ -187,9 +187,8 @@ recommendation, this section is the newer statement.
   element does not overwrite. Pair reactions: Thermal Shock, Wildbloom,
   Wintergarden. Same-element Crescendos: Flare, Deep Frost, Bloom. No
   recursive secondary effects and no permanent boss freeze.
-- **Attunement belongs to the horse.** A weapon modifies it, never overrides.
-- Each class keeps one fixed role at first: Ranger primes, Wizard finishes,
-  Mage supports.
+- *(Replaced the same day; see "Abilities, levels and no classes".)*
+  Attunement belonged to the horse, and each class kept one fixed role.
 - One accuracy system for attacks and spells. Reactions never miss or crit; a
   miss does not consume a Primer.
 - Impairments are a short fixed set: Slowed, Staggered, Rooted.
@@ -197,10 +196,10 @@ recommendation, this section is the newer statement.
 ### The party (#86)
 
 - Starts at three and **grows to five**, a place at a time, by restoration.
-- Duplicate classes are allowed. Class and element never change.
-- A horse's identity: name, appearance, class, one modest signature trait, a
-  record of notable events. Personality is expressive only; a horse always
-  goes where it is sent.
+- *(Replaced the same day: there are no classes and no innate element.)*
+- A horse's identity: name, appearance, a stat lean, one modest signature
+  trait, a record of notable events. Personality is expressive only; a horse
+  always goes where it is sent.
 
 ### The road (#82, #153, #88)
 
@@ -434,6 +433,33 @@ Her changes after reading the whole loop back. Newer than everything above.
   The classic save stays open to trade afterwards. An **endless mode**, where
   the dragon's corruption spreads by itself and towns may need liberating
   again, may be made later and is not classic.
+
+## Abilities, levels and no classes (owner, 2026-10-10)
+
+Her change after reviewing the combat system. Newer than everything above.
+
+- **Horses level up and unlock new abilities by levelling**, as in Diablo III
+  and Path of Exile 2.
+- **The game is classless.** Points buy abilities. Ranger, Wizard and Mage
+  are gone as classes.
+- **Elements are tied to abilities, not to horses.** In her words, tying the
+  element to the horse "might end up hampering my ability to create more
+  abilities to unlock". No horse has an innate element.
+- **Each horse has a range of abilities and uses the one that is a good
+  match-up** against what it is fighting, by itself.
+
+Settled by her the same day:
+
+- **A few loadout slots per horse**, set in town; the best equipped ability
+  fires.
+- **One shared pool of abilities** for every horse. Horses differ by a **base
+  stat lean** and one signature trait.
+- **Points are reassigned freely in town.**
+- **One shared party level.** A horse who joins late has the same points to
+  spend.
+
+Primer, Finisher and Support remain, as tags on abilities. The reaction and
+Crescendo rules stand unchanged.
 
 ## The design priority
 

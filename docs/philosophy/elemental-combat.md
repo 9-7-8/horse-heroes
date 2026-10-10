@@ -1,5 +1,12 @@
 # Elemental combat
 
+> **Revised by the owner, 2026-10-10.** There are no classes and no horse
+> attunements. Elements belong to abilities; horses buy abilities with points
+> from one shared pool, equip a few, and fire whichever suits the enemy.
+> Primer, Finisher and Support are tags on abilities. Where this file speaks
+> of a class's role or a horse's attunement, read "the ability's". The newer
+> statement is in [vision.md](vision.md), "Abilities, levels and no classes".
+
 Damage types and how they combine are the central combat and build interest
 (confirmed; see [vision.md](vision.md)). The triangle is built. **Everything
 else here is a proposal awaiting the owner's confirmation**, with prototype

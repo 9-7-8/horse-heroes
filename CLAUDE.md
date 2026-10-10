@@ -10,9 +10,11 @@ The game is called **Horse Heroes** (owner, 2026-10-09). Do not use the name
 of any existing game for it, in code, docs, commits or anywhere else. It is
 free software under the GPL, version 3 or later (`LICENSE`).
 
-**Premise (owner, 2026-10-09):** a party of three horses (Ranger, Wizard,
-Mage) walks right along a side-scrolling isometric fairyland trail, fights
-corrupted creatures by itself, and brings back horse gear. Horse models are to
+**Premise (owner, 2026-10-09; classes removed 2026-10-10):** a party of three
+horses walks right along a side-scrolling isometric fairyland trail, fights
+corrupted creatures by itself, and brings back horse gear. There are no
+classes: horses share a party level and buy abilities with points, and
+elements belong to abilities, not horses. Horse models are to
 be procedurally generated. What is built so far: `docs/expedition.md`.
 
 **Vision (owner, 2026-10-09):** the player organises an autonomous gaggle of
