@@ -13,6 +13,7 @@ Read the relevant file before designing or tuning the system it covers.
 | [elemental-combat.md](elemental-combat.md) | Element identities, setup statuses, pair reactions, class patterns, individual attunement (mostly proposed, see the file) |
 | [generations.md](generations.md) | Retirement into towns, town states, families and descendants, updating towns on demand, a completable world and optional endless play (her proposal; details are recommendations) |
 | [cosmetics.md](cosmetics.md) | The wardrobe: gear, displayed look and dye kept separate, unlocking looks through play, rider-free equipment, meaning without power, presets, layers, provenance (a proposal) |
+| [pets.md](pets.md) | Pets as companions with one small job: a collar, forgiving assignment, cuteness that is not a stat (a recommendation toward an open decision) |
 | [the-loop.md](the-loop.md) | The four layers, what the player should be able to say, the loop from intention to hypothesis, and the checklist to run before adding content |
 | [incremental-and-idle.md](incremental-and-idle.md) | Accumulation and reinvestment, the tension every resource needs, respecting absence, bounded offline progress, prestige |
 | [juice.md](juice.md) | Feedback in general: the four questions, three levels of importance, state changes, sound, motion, and not hiding information |

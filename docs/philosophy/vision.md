@@ -59,7 +59,9 @@ No avatar and no explanation for the organiser is required.
 - **The world respects horse bodies.** A horse cannot simply be given
   human-style farm work: it has no hands. Either the task suits a horse, or
   the world says how magic, tools, pets or other inhabitants make it possible.
-- Pets are collectible companions assigned to individual horses.
+- Pets are collectible companions assigned to individual horses. What they
+  do in play is open; the recommendation she was given is in
+  [pets.md](pets.md).
 - Selling in towns has a small shop-simulator side. Relationships with a
   town's horses affect selling prices.
 
