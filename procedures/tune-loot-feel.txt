@@ -26,6 +26,9 @@ STEPS
    arc are per fountain there ("small", "full"), so say which one changed.
    The screen's response is `response` there (how long, how fast, and the
    two scales) and each rarity's `response` in assets/data/gear.ron.
+   The sounds are recipes in assets/data/sounds.ron, one voice a line;
+   which plays when, the volume, the landing gap and the pickup run are
+   `sound` in loot_shower.ron.
 2. Make the scene repeatable: a debug key or startup flag that spawns a fixed
    burst from a fixed seed, so two runs can be compared.
    That is F3 in the running game, or --burst at launch; F4 or --pickup

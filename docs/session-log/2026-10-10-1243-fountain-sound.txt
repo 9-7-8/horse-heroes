@@ -1,0 +1,73 @@
+SESSION LOG 2026-10-10 12:43 - sound for the fountain
+=====================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: build green, 64 tests, no open bug.
+  - Tier 3, #10, the one PICK UP named (e9fc9ed). The game had no sound
+    and the repo no sound files, so the sounds are made in code:
+      - assets/data/sounds.ron holds each sound as a recipe of voices
+        (wave, pitch, slide, start, length, attack, level);
+        src/fx/sound.rs makes them into samples at startup and plays them
+        through Bevy as its own audio source.
+      - A launch sound per fountain, a sound per rarity as a piece of gear
+        is thrown, a clink or a thud on landing, and a pickup tick that
+        climbs a scale across a stream of pickups.
+      - Which sound plays for which rarity is `look.sound` in gear.ron; a
+        fountain's is its `sound` in loot_shower.ron; the rest, the
+        volume, the landing gap and the run are `sound` there.
+      - --mute plays nothing.
+    Tested: cargo test, 73 pass (nine new in fx/sound.rs).
+    Run: the test burst with --pickup, 93 sounds played in the order
+    expected (1 launch, 8 rarity sounds, 36 landings of 144 touches, 40
+    ticks, 8 gear pickups), no audio warning or error in the log, frame
+    times unchanged (mean 33.4 ms with the burst and without).
+    NOT heard: see NOT DONE.
+  - docs/loot-shower.md: Sound. build-and-run.txt and tune-loot-feel.txt:
+    how to read what was played, and where the numbers are.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - Synthesised sounds, not recorded ones. Nothing to license, nothing
+    loaded from disk (the worry in #10's first comment), and it fits a
+    game whose models are to be generated. Recorded sounds can replace
+    any of them later.
+  - The rarity sounds grow with the tier: one dull note, two notes up,
+    three bright notes, a boom with a chord, a bell.
+  - A pickup run climbs a five-note scale, two octaves over ten coins,
+    then holds its top note. Gear arriving is not part of the run.
+  - Landings are thinned, not all played: at most one every 0.035 s.
+  - Volume 0.6 of full.
+
+FOUND
+  - Bevy 0.20 decodes only Ogg Vorbis by default; WAV needs a feature.
+    A custom `Decodable` asset needs neither and no new crate: bevy::audio
+    re-exports rodio's Source, Sample, SampleRate and ChannelCount.
+  - A system in another module cannot be ordered `.after(drops::fly)`
+    without making fly's private types public. The sound system runs in
+    PostUpdate instead and reads the frame's messages there.
+  - The test burst has 40 coins and the run tops out after 10, so three
+    quarters of its ticks are the same top note. A real final kill is 10
+    to 15 coins.
+
+NOT DONE
+  - Nobody has listened. The sounds were written from arithmetic and the
+    tests hold that they are distinct in the data, not that a Rare is
+    recognised with eyes closed. #10 is left open, labelled "decision",
+    with a comment: it closes on the owner's ear.
+  - Only the test burst was run. A real kill's sounds on the road were
+    not, though they go through the same code.
+  - No way to hear one sound alone; F3 and F4 play the whole burst.
+  - No settings control for the volume; `sound.volume` is where it will
+    reach.
+  - Carried over: nobody has watched the screen response move; the
+    fountains are not tuned; a place left open on the road still cuts a
+    beam off; #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. #10 waits on the owner listening (press
+  F4 in the running game) and is skipped by its "decision" label. Five
+  other issues are open in 0.2.0: #17, #229, #233, #238, #240. By the
+  order it should land on #17, death events: nothing just vanishes.

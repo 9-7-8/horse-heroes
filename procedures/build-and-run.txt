@@ -47,6 +47,12 @@ Use the cheapest step that can prove the change:
    cargo check and cargo test do not rebuild the game's own binary: a
    picture taken by running target/debug/horse_heroes.exe directly is of
    the last cargo build or cargo run, so build first.
+   Sound cannot be checked by a picture. --mute plays nothing, for a run
+   that is only for a picture. To read what was played, in order:
+       $env:RUST_LOG = "info,horse_heroes::fx::sound=debug"
+   and look for "sound:" in the log; a missing output device is a Bevy
+   warning there. That shows what was played, not how it sounds: only
+   someone listening can say that (F3, F4).
    IDLE_TOUR walks the menus instead (docs/menu-shell.md): it presses
    through every place and tab, then the road view and the move between
    the layouts, saves a numbered PNG of each into the folder it names

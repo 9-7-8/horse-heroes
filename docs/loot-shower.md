@@ -1,10 +1,9 @@
 # The loot shower
 
 What is built of it so far: drops as physical objects (#4), the rarity
-signal (#6), the pickup (#7), fountain sizes (#8), and the screen's response
-with the calm after the final kill (#9). The eruption and collection beats
-of [the loot fountain](philosophy/loot-fountain.md). Sound is its own issue
-(#10) and is not built.
+signal (#6), the pickup (#7), fountain sizes (#8), the screen's response
+with the calm after the final kill (#9), and sound (#10). The eruption and
+collection beats of [the loot fountain](philosophy/loot-fountain.md).
 
 ## What happens
 
@@ -46,6 +45,7 @@ in `fountains` in `loot_shower.ron`:
 | `up_speed` | 6 to 7.5 | 8.5 to 11.5 |
 | `out_speed` | 0.6 to 1.4 | 0.9 to 2.4 |
 | `most_pieces`, coin pieces at most | 6 | 24 |
+| `sound`, as the first piece leaves | `launch_small` | `launch_full` |
 
 An enemy names its fountain in `assets/data/enemies.ron` (`fountain:`), the
 sim carries the name on the `Kill` without reading it, and `fx` looks it up.
@@ -176,10 +176,60 @@ screen, and a final kill is answered by what it dropped.
 
 The test burst answers too (its best piece is the Set), so F3 is how to
 look at a response. All of these numbers are first guesses and nobody has
-tuned them. Sound (#10) is not part of it yet, and there is no single
-low, medium and high scale shared with combat and town, which
-[juice.md](philosophy/juice.md) asks for once those have effects of their
-own.
+tuned them. There is no single low, medium and high scale shared with
+combat and town, which [juice.md](philosophy/juice.md) asks for once those
+have effects of their own.
+
+## Sound
+
+There are no sound files. Every sound is a recipe in
+`assets/data/sounds.ron`: a list of voices, each one tone with a wave
+(`Sine`, `Triangle`, `Square`, or `Noise` for a hiss), a pitch, a slide, a
+start, a length, an attack and a level. `fx::sound::render` makes each into
+samples when the game starts, and Bevy plays them as its own kind of audio
+source (`Clip`). So every sound is ours to give away under the GPL, and
+nothing is read from disk at run time.
+
+What is heard, and where it is named:
+
+| when | sound | named in |
+|---|---|---|
+| a burst's first piece leaves | `launch_small`, a pop; `launch_full`, a rush of air over a rising note | the fountain's `sound`, `loot_shower.ron` |
+| a piece of gear is thrown | one for each rarity, below | the rarity's `look.sound`, `gear.ron` |
+| a piece touches the ground | `land_coin`, a clink; `land_gear`, a thud | `sound.land_coin`, `sound.land_gear` |
+| a piece reaches the party | `pickup_coin`, a tick; `pickup_gear`, a soft note | `sound.pickup_coin`, `sound.pickup_gear` |
+
+The rarity sounds grow with the tier: Normal is one dull note, Magic two
+notes going up, Rare three bright notes up an octave with a glint on the
+last, Legendary a low boom with a major chord climbing out of it, and Set a
+bell of stacked fifths struck at once with a high ring after. A piece's
+sound plays as it leaves the body, so it is heard before the piece lands.
+
+Sound is never one noise per event
+([juice.md](philosophy/juice.md): aggregate repeated events, or vary them):
+
+- **Landings.** Those that come within `land_gap_secs` of another are one
+  sound (`Gate`). Each later bounce of a piece is `land_fade` as loud as the
+  one before, and each landing heard is moved up to `land_vary` semitones
+  either way. The test burst's 144 touches are 36 sounds.
+- **Pickups.** Each coin that arrives is one step further up `pickup_scale`
+  than the last (`Run`, `run_semitones`): the scale's notes, then the same
+  an octave up. The run stops climbing after `pickup_most_steps` and stays
+  on its top note; a pickup more than `pickup_run_secs` after the last
+  starts a new run at the bottom. With today's numbers that is two octaves
+  over ten coins, so an ordinary kill is a few rising notes and a final
+  kill a whole run. Gear arriving has its own sound and is not part of the
+  run.
+
+`sound.volume` in `loot_shower.ron` multiplies every sound; zero turns
+sound off, and it is where a settings control will reach. `--mute` plays
+nothing. To see what was played, in the order it was:
+
+    $env:RUST_LOG = "info,horse_heroes::fx::sound=debug"
+
+Every recipe and every number is a first guess, written without hearing
+it: nobody has listened yet. F3 and F4 are how to. A sound is played
+faster to raise its pitch, so a high tick is also a shorter one.
 
 ## The calm after the kill
 
@@ -243,6 +293,15 @@ not; a better piece is never answered more weakly, and a Rare is answered
 more strongly, both ways, than coins alone or any lower tier; either scale
 at zero turns its half off and leaves the other; a shake stays within its
 strength and ends, and a flash only fades.
+`src/fx/sound.rs`: every recipe makes a sound that can be played, within
+full scale, short, and silent at both ends; a voice is the pitch it says;
+the same recipe gives the same samples; every sound the data names is
+there, and every fountain and rarity names one; no two rarities share a
+sound or its notes, none is used for anything else, a better tier's is
+never shorter and a Rare has more notes than any tier below; a stream of
+pickups only rises until it tops out; a run starts again after a silence
+and not between two pieces of one burst; landings together are one sound
+and a later bounce is quieter.
 `src/game/mod.rs`: the road is held for a won trail's last drops and for
 nothing else.
 `src/sim/expedition.rs`: every kill is reported once, and the coins of the
