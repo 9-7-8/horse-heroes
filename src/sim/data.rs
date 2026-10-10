@@ -54,6 +54,8 @@ pub enum Slot {
 }
 
 impl Slot {
+    pub const ALL: [Slot; 3] = [Slot::Head, Slot::Body, Slot::Saddle];
+
     pub fn index(self) -> usize {
         self as usize
     }

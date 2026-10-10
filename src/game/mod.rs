@@ -1,6 +1,10 @@
-//! Drives the sim and presents it: the camp/trail loop, input and the text HUD.
+//! Drives the sim and presents it: the camp/trail loop and input. What the
+//! player reads and presses is the menu shell (`menu::shell`).
 
-use bevy::{prelude::*, text::FontSize};
+use bevy::{
+    input_focus::{InputFocus, InputFocusVisible},
+    prelude::*,
+};
 
 use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
@@ -14,6 +18,9 @@ const TICK: f32 = 0.1;
 /// Seconds the camp screen waits before setting out by itself.
 const CAMP_SECS: f32 = 12.0;
 const LOG_LINES: usize = 8;
+/// The share of the window's height the 3D scene takes, from the top. The
+/// menu shell has the rest. One layout for now; the road's is #205.
+pub const SCENE_SHARE: f32 = 1.0 / 3.0;
 
 pub struct GamePlugin {
     pub seed: u64,
@@ -23,8 +30,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Game::new(self.seed))
             .add_plugins(scene::ScenePlugin)
-            .add_systems(Startup, spawn_hud)
-            .add_systems(Update, (input, advance, update_hud).chain());
+            .add_systems(Update, (input, advance).chain());
     }
 }
 
@@ -105,6 +111,17 @@ impl Game {
         score(&self.data, gear.stats) > score(&self.data, worn)
     }
 
+    pub fn in_town(&self) -> bool {
+        matches!(self.screen, Screen::Camp { .. })
+    }
+
+    /// The departure action. Does nothing on the road.
+    pub fn set_out(&mut self) {
+        if self.in_town() {
+            self.depart();
+        }
+    }
+
     fn depart(&mut self) {
         // Idle first: an unattended camp still takes the upgrade.
         if self.drop_is_upgrade() {
@@ -133,8 +150,13 @@ impl Game {
     }
 }
 
-fn input(keys: Res<ButtonInput<KeyCode>>, mut game: ResMut<Game>) {
-    if !matches!(game.screen, Screen::Camp { .. }) {
+fn input(
+    keys: Res<ButtonInput<KeyCode>>,
+    focus: Res<InputFocus>,
+    focus_visible: Res<InputFocusVisible>,
+    mut game: ResMut<Game>,
+) {
+    if !game.in_town() {
         return;
     }
     for (key, element) in [
@@ -153,8 +175,11 @@ fn input(keys: Res<ButtonInput<KeyCode>>, mut game: ResMut<Game>) {
             }
         }
     }
-    if keys.just_pressed(KeyCode::Space) {
-        game.depart();
+    // Space sets out, except while a control shows keyboard focus: there
+    // Space presses that control, and must not also send the party off.
+    let on_a_control = focus_visible.0 && focus.get().is_some();
+    if keys.just_pressed(KeyCode::Space) && !on_a_control {
+        game.set_out();
     }
 }
 
@@ -181,34 +206,7 @@ fn advance(time: Res<Time>, mut game: ResMut<Game>) {
     }
 }
 
-#[derive(Component)]
-struct Hud;
-
-fn spawn_hud(mut commands: Commands) {
-    commands.spawn((
-        Hud,
-        Text::new(""),
-        TextFont {
-            font_size: FontSize::Px(14.0),
-            ..default()
-        },
-        Node {
-            position_type: PositionType::Absolute,
-            top: px(10),
-            left: px(14),
-            ..default()
-        },
-    ));
-}
-
-fn update_hud(game: Res<Game>, mut hud: Single<&mut Text, With<Hud>>) {
-    let text = hud_text(&game);
-    if hud.0 != text {
-        hud.0 = text;
-    }
-}
-
-fn stats_line(stats: Stats) -> String {
+pub fn stats_line(stats: Stats) -> String {
     let mut parts = Vec::new();
     for (value, label) in [
         (stats.health, "health"),
@@ -223,97 +221,55 @@ fn stats_line(stats: Stats) -> String {
     parts.join("  ")
 }
 
-fn hud_text(game: &Game) -> String {
+/// The latest report: the last trail and its drop in town, the fight on the
+/// road. Shown in the Journal, beside `report_side`.
+pub fn report_text(game: &Game) -> String {
     let rules = &game.data.rules;
-    let mut out = format!(
-        "HORSE HEROES    seed {}   trail level {}   coins {}\n\
-         Fire beats Plant.  Plant beats Ice.  Ice beats Fire.   (strong x{}, resisted x{})\n\n",
-        game.plan.seed, game.level, game.coins, rules.strong_multiplier, rules.weak_multiplier,
-    );
+    let mut out = String::new();
 
     match &game.screen {
-        Screen::Camp {
-            last,
-            note,
-            countdown,
-        } => {
-            if let Some(outcome) = last {
+        Screen::Camp { last, note, .. } => {
+            let Some(outcome) = last else {
+                return "No trail walked yet.".into();
+            };
+            out += &format!(
+                "{}  cleared {}/{} encounters, +{} coins\n\
+                 {}: {} strong hits, {} resisted\n",
+                if outcome.won { "VICTORY!" } else { "DEFEAT." },
+                outcome.cleared,
+                outcome.total,
+                outcome.coins,
+                outcome.element.name(),
+                outcome.strong_hits,
+                outcome.resisted_hits,
+            );
+            if let Some(gear) = &outcome.drop {
+                let horse = &game.party[gear.fits];
+                let worn = match &horse.gear[gear.slot.index()] {
+                    Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
+                    None => "nothing".into(),
+                };
                 out += &format!(
-                    "{}  cleared {}/{} encounters, +{} coins\n\
-                     {}: {} strong hits, {} resisted\n",
-                    if outcome.won { "VICTORY!" } else { "DEFEAT." },
-                    outcome.cleared,
-                    outcome.total,
-                    outcome.coins,
-                    outcome.element.name(),
-                    outcome.strong_hits,
-                    outcome.resisted_hits,
-                );
-                if let Some(gear) = &outcome.drop {
-                    let horse = &game.party[gear.fits];
-                    let worn = match &horse.gear[gear.slot.index()] {
-                        Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
-                        None => "nothing".into(),
-                    };
-                    out += &format!(
-                        "\nNEW GEAR: {} [{}, {}]  {}\n\
-                         \x20 fits {} the {}, who wears: {}\n\
-                         \x20 [E] equip{}\n",
-                        gear.name,
-                        gear.rarity.name(),
-                        gear.slot.name(),
-                        stats_line(gear.stats),
-                        horse.name,
-                        horse.class.name(),
-                        worn,
-                        if game.drop_is_upgrade() {
-                            "  (an upgrade)"
-                        } else {
-                            ""
-                        },
-                    );
-                }
-                if !note.is_empty() {
-                    out += &format!("\n{note}\n");
-                }
-                out += "\n";
-            }
-
-            out += "PARTY\n";
-            for horse in &game.party {
-                let stats = horse.stats();
-                out += &format!(
-                    "  {:<8} {:<7} health {:<3} attack {:<2} defense {:<2} elemental {}\n",
+                    "\nNEW GEAR: {} [{}, {}]  {}\n\
+                     \x20 fits {} the {}, who wears: {}\n\
+                     \x20 [E] equip{}\n",
+                    gear.name,
+                    gear.rarity.name(),
+                    gear.slot.name(),
+                    stats_line(gear.stats),
                     horse.name,
                     horse.class.name(),
-                    stats.health,
-                    stats.attack,
-                    stats.defense,
-                    stats.elemental,
+                    worn,
+                    if game.drop_is_upgrade() {
+                        "  (an upgrade)"
+                    } else {
+                        ""
+                    },
                 );
             }
-
-            out += "\nNEXT TRAIL\n";
-            for (i, encounter) in game.plan.encounters.iter().enumerate() {
-                let names: Vec<String> = encounter
-                    .iter()
-                    .map(|spawn| {
-                        format!(
-                            "{} ({})",
-                            game.data.enemies[spawn.enemy].name,
-                            spawn.element.name()
-                        )
-                    })
-                    .collect();
-                out += &format!("  {}. {}\n", i + 1, names.join(", "));
+            if !note.is_empty() {
+                out += &format!("\n{note}\n");
             }
-
-            out += &format!(
-                "\nELEMENT: {}    [1] Fire  [2] Ice  [3] Plant\n\
-                 [Space] set out now - leaving in {:.0}s\n",
-                game.element.name(),
-                countdown.max(0.0).ceil(),
-            );
         }
 
         Screen::Trail(expedition) => {
@@ -326,19 +282,9 @@ fn hud_text(game: &Game) -> String {
                     total
                 ),
             };
-            out += &format!("    element: {}\n\nPARTY\n", expedition.element.name());
-            for fighter in &expedition.party {
-                out += &format!(
-                    "  {:<8} {:<7} {:>3}/{}{}\n",
-                    fighter.name,
-                    fighter.class.name(),
-                    fighter.health,
-                    fighter.max_health,
-                    if fighter.health == 0 { "  down" } else { "" },
-                );
-            }
+            out += &format!("    element: {}\n", expedition.element.name());
             if expedition.ward >= 0.05 {
-                out += &format!("  Ward up: damage halved for {:.1}s\n", expedition.ward);
+                out += &format!("Ward up: damage halved for {:.1}s\n", expedition.ward);
             } else {
                 out += "\n";
             }
@@ -362,13 +308,47 @@ fn hud_text(game: &Game) -> String {
                     matchup,
                 );
             }
-
-            out += "\n";
-            let start = expedition.log.len().saturating_sub(LOG_LINES);
-            for line in &expedition.log[start..] {
-                out += &format!("  {line}\n");
-            }
         }
     }
     out
+}
+
+/// Beside the report: the trail ahead and the element to walk it with in
+/// town, the log of the fight on the road.
+pub fn report_side(game: &Game) -> String {
+    let rules = &game.data.rules;
+    match &game.screen {
+        Screen::Camp { .. } => {
+            let mut out = format!(
+                "NEXT TRAIL    level {}   seed {}\n",
+                game.level, game.plan.seed
+            );
+            for (i, encounter) in game.plan.encounters.iter().enumerate() {
+                let names: Vec<String> = encounter
+                    .iter()
+                    .map(|spawn| {
+                        format!(
+                            "{} ({})",
+                            game.data.enemies[spawn.enemy].name,
+                            spawn.element.name()
+                        )
+                    })
+                    .collect();
+                out += &format!("  {}. {}\n", i + 1, names.join(", "));
+            }
+            out += &format!(
+                "\nELEMENT: {}    [1] Fire  [2] Ice  [3] Plant\n\
+                 Fire beats Plant, Plant beats Ice, Ice beats Fire\n\
+                 (strong x{}, resisted x{})\n",
+                game.element.name(),
+                rules.strong_multiplier,
+                rules.weak_multiplier,
+            );
+            out
+        }
+        Screen::Trail(expedition) => {
+            let start = expedition.log.len().saturating_sub(LOG_LINES);
+            expedition.log[start..].join("\n")
+        }
+    }
 }

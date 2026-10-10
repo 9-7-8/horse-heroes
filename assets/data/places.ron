@@ -1,0 +1,50 @@
+// The map of the menus: the places in the bar, in order, and the tabs of
+// each. Rename or rearrange here; no menu code holds a name of its own.
+// `job` is the one line saying what is decided there. `content` names what
+// a tab shows once its system is built; a tab without one says so.
+// Guidance: docs/philosophy/menus.md. How it works: docs/menu-shell.md.
+(
+    settings: "Settings",
+    places: [
+        (
+            name: "Horses",
+            // The horses down the left and the shared cargo down the right
+            // stay in view on every tab.
+            horse_columns: true,
+            tabs: [
+                (name: "Gear", job: "What the selected horse wears.", content: Gear),
+                (name: "Abilities", job: "Which abilities the selected horse carries."),
+                (name: "Pet", job: "Which pet rides with the selected horse."),
+                (name: "Look", job: "How the selected horse looks."),
+            ],
+        ),
+        (
+            name: "Trade",
+            tabs: [
+                (name: "Sell", job: "What is listed at the stall, and at what price."),
+                (name: "Buy", job: "Gear and goods this town sells."),
+                (name: "Storage", job: "What is kept in this town's stash."),
+                (name: "Rules", job: "Keep rules and auto-buy rules."),
+            ],
+        ),
+        (
+            name: "Map",
+            job: "Destination, route options, the itinerary, and what is restored.",
+        ),
+        (
+            name: "Town",
+            tabs: [
+                (name: "Projects", job: "Deliveries to this town's projects."),
+                (name: "Residents", job: "Recruits, retired horses, invitations back, and retiring."),
+            ],
+        ),
+        (
+            name: "Journal",
+            tabs: [
+                (name: "Report", job: "The latest loot, trail and stall reports.", content: Report),
+                (name: "Journal", job: "What happened on the road."),
+                (name: "Codex", job: "What has been found."),
+            ],
+        ),
+    ],
+)

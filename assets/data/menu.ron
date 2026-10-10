@@ -21,6 +21,11 @@
         // Wide enough for the largest number shown, so a growing count never
         // moves what is beside it.
         counter_width: 96,
+        // The shell: a horse in the status strip, and the two columns that
+        // stay beside the tabs of the Horses place.
+        strip_horse_width: 150,
+        horses_width: 200,
+        cargo_width: 260,
     ),
 
     // How long a control takes to settle after the pointer arrives or leaves.

@@ -5,10 +5,12 @@
 
 use bevy::{camera::ScalingMode, prelude::*};
 
-use super::{Game, Screen};
+use super::{Game, SCENE_SHARE, Screen};
 use crate::sim::data::Element;
 use crate::sim::rng::Rng;
 
+/// World units of height visible in the scene.
+const SCENE_HEIGHT: f32 = 7.0;
 const SCROLL_SPEED: f32 = 2.5;
 /// Scenery wraps around once it is this far left of the origin.
 const WRAP: f32 = 20.0;
@@ -52,15 +54,18 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Camera at the isometric elevation (about 35 degrees), looking across
-    // the trail. Aimed above the ground so the trail sits low on screen and
-    // leaves the top for text.
-    let aim = Vec3::new(0.0, 6.5, 0.0);
+    // the trail. The scene is the top `SCENE_SHARE` of the window: the
+    // projection covers the whole window, sized so that share is
+    // `SCENE_HEIGHT` units tall, with the aim point at its middle. The menu
+    // shell covers the rest.
+    let aim = Vec3::new(0.0, 1.6, 0.0);
     commands.spawn((
         Camera3d::default(),
         Projection::from(OrthographicProjection {
             scaling_mode: ScalingMode::FixedVertical {
-                viewport_height: 20.0,
+                viewport_height: SCENE_HEIGHT / SCENE_SHARE,
             },
+            viewport_origin: Vec2::new(0.5, 1.0 - SCENE_SHARE / 2.0),
             ..OrthographicProjection::default_3d()
         }),
         Transform::from_translation(aim + Vec3::new(0.0, 20.0, 28.28)).looking_at(aim, Vec3::Y),

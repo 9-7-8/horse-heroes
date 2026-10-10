@@ -40,6 +40,9 @@ pub struct Sizes {
     pub side_panel_width: f32,
     pub confirm_width: f32,
     pub counter_width: f32,
+    pub strip_horse_width: f32,
+    pub horses_width: f32,
+    pub cargo_width: f32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
