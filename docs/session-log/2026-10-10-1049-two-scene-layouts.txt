@@ -1,0 +1,68 @@
+SESSION LOG 2026-10-10 10:49 - the two scene layouts
+====================================================
+
+ASKED
+  "Next part" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty (build and 28 tests green, no bug filed, no
+    sim change since the last test pass). The part was the feature PICK UP
+    named, #205.
+  - The road layout and the move to and from it (90fb79a). On the road
+    with every place closed the scene has four fifths of the window and
+    shows 12 world units of height instead of 7, with the party low in it.
+    Setting out closes the place; arriving opens it again. On the road a
+    press on the bar opens a place and brings the scene back to the top
+    third; a second press on it, or Escape, closes it. The move is eased
+    over 0.45 s; camera and shell follow one value (SceneView).
+    Tested: cargo test, 31 pass (3 new: the shell's open and closed state,
+    the layout numbers). Seen running: the tour (28 pictures, --seed 6),
+    of which I read the road ones, two of them taken mid-move.
+  - Minimum window size 1120 x 640, from assets/data/menu.ron. Seen
+    running at that size in town and on the road, and at 1024 x 1000.
+  - Dev aids: --window WxH; the tour now decides when the party leaves.
+  - docs/menu-shell.md, "The two layouts"; build-and-run.txt; gallery
+    docs/gallery/2026-10-10-scene-layouts/ (11 pictures).
+  - #205 is left open with a comment: two of its three points are met.
+    The third, a full fountain not clipped or hidden, needs a fountain;
+    #8 carries a note to check it and close #205.
+
+DECIDED
+  Hers: nothing new.
+  Made for her, to be corrected:
+  - The road's scene is four fifths of the height (layout.road_share).
+  - Setting out closes whatever place is open, also when the countdown
+    sends the party off while she is reading it. One press reopens it.
+  - Closing a place on the road is a second press on it in the bar, or
+    Escape. There is no separate close control.
+  - With every place closed, the strip between the status strip and the
+    footer holds one line saying how to open a place.
+  - The minimum window is 1120 x 640: the status strip's width, and the
+    height at which the three bands fit under the road's scene.
+  - A place being closed is covered by the scene, not squeezed.
+
+FOUND
+  - WindowResolution::new is documented as physical pixels but the size
+    asked for came out multiplied by the display's scale (2.25 here), so
+    --window takes logical pixels.
+  - The earlier tour took longer than the 12 s wait in town, so the party
+    left in the middle of it. The tour now holds the party until its own
+    SetOut step.
+  - At 1024 wide the status strip pushed the day counter's value off the
+    edge; that set the minimum width.
+
+NOT DONE
+  - Nobody has dragged the window to try the minimum size by hand, and
+    nobody has used the shell with a real pointer or keyboard: closing by
+    a second click and by Escape were driven by the tour's Activate and
+    by unit tests of Shell, not by hand.
+  - The fountain check of #205 (waits on #8).
+  - The owner has not looked at the shell, the parts screen or the road
+    view.
+  - #199 still waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. With no bug filed it lands on #4, drops
+  as physical objects (burst, arc, bounce, settle): the lowest-numbered
+  0.2.0 issue the other loot-shower issues depend on. #205 is not the
+  pick; it closes with #8.

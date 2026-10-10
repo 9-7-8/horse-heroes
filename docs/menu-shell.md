@@ -12,9 +12,10 @@ that is open. The guidance behind it is
 | File | What it holds |
 | --- | --- |
 | `assets/data/places.ron` | The map of the menus: the places in order, the tabs of each, and the line saying what is decided there |
-| `assets/data/menu.ron` | Sizes of the shell's columns, with the other tokens |
+| `assets/data/menu.ron` | Sizes of the shell's columns, and `layout`: the scene's share of the window in each layout and the minimum window size; `time.layout`: how long the move takes |
 | `src/game/menu/shell.rs` | The shell: its state (`Shell`), its layout, and the systems that keep it showing the game |
-| `src/game/mod.rs` | `SCENE_SHARE`, the share of the window the scene takes; the report text shown in the Journal |
+| `src/game/mod.rs` | `SceneView`, which layout the window is in and how far between them; the report text shown in the Journal |
+| `src/game/scene.rs` | `frame`, which sizes the camera to the layout every frame |
 
 ## The layout
 
@@ -31,10 +32,58 @@ that is open. The guidance behind it is
     +--------------------------------------------------+
 
 The scene is not a separate viewport. The camera's projection covers the
-whole window, sized so the top third is `SCENE_HEIGHT` world units tall with
-the aim point at its middle, and the shell is drawn over the rest. The split
-is a proportion, so it holds at any window size. This is the town layout
-only; the expanded road layout and the move between them are #205.
+whole window, sized so the scene's share is as many world units tall as the
+layout asks, and the shell is drawn over the rest. The split is a proportion
+of the window's height, so it holds at any window size.
+
+## The two layouts
+
+| | Town | Road |
+| --- | --- | --- |
+| When | In town; on the road with a place open | On the road with every place closed |
+| Scene's share of the height | `layout.town_share`, a third | `layout.road_share`, four fifths |
+| World units of height in view | `SCENE_HEIGHT`, 7 | `ROAD_HEIGHT`, 12 |
+| Where the aim point sits in the scene | the middle | about a third of the way up |
+
+    +--------------------------------------------------+
+    |                                                  |
+    |          3D scene (road_share), with the         |
+    |          room above the party for drops          |
+    |                                                  |
+    +--------------------------------------------------+
+    | Horses  Trade  Map  Town  Journal       Settings |  bar
+    | coins  bags  hold    A  B  C                 day |  status strip
+    | one line saying how to open a place              |
+    | what the party is doing              [ Set out ] |  footer
+    +--------------------------------------------------+
+
+On the road the scene is nearer (about 1.4 times) and, more to the point,
+taller: with the aim point low, about ten world units stand clear above
+the trail where a kill happens. That is the room a fountain (#4, #8) is
+sized against.
+
+Which layout is wanted follows one thing, `Shell::is_open`:
+
+- Setting out closes the open place; arriving opens it again, as it was
+  left.
+- On the road, a press on a place in the bar opens it. A press on the place
+  that is open, or Escape with no side panel open, closes it.
+- In town a place is always open.
+
+`SceneView` (in `src/game/mod.rs`) holds how far the window is from the town
+layout (0) to the road's (1). `move_scene` in the shell steps it towards what
+is wanted over `time.layout` seconds and sets the shell's top edge; `frame`
+in the scene sets the camera. Both read the same eased value, so the scene
+and the menus move as one and there is no cut. The place's area is clipped:
+a place is covered and uncovered as the scene moves, not squeezed. With every
+place closed the area holds one line saying how to open one.
+
+The window cannot be made smaller than `layout.min_width` x
+`layout.min_height` (1120 x 640): the width the status strip needs, and the
+height at which the bar, the strip, that one line and the footer fit under
+the road's scene. In a window too narrow for its height the scene shows more
+height, so that `SCENE_WIDTH` world units, the party and its enemies, stay
+in view.
 
 ## What stays put
 
@@ -101,14 +150,19 @@ Keys for places and tabs are #229.
     $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
 
 presses through every place and tab, saves a numbered PNG of each into the
-folder (which must exist), waits for the party to come home, and exits. The
+folder (which must exist), sends the party off, photographs the road view
+and a place being opened and closed there (two of them part of the way
+through the move), waits for the party to come home, and exits. The party
+does not leave by itself during the tour. The
 presses are the `Activate` event a click sends, so the tour goes through the
 same code as the pointer, but it is not the pointer: hover and real clicks
 are checked by hand.
 
 ## Not here yet
 
-- The expanded road layout, the transition and the minimum window size: #205.
+- A fountain to check the road view's room against: #4, #8 (the last part of
+  #205).
+- What is planned on the road, listed in the footer: #234.
 - Every planned button in its place: #238.
 - Controls that say why they are unavailable: #233.
 - Keys printed on the places and tabs: #229.
