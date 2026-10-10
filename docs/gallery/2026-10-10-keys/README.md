@@ -28,3 +28,15 @@ works: [menu-shell.md](../../menu-shell.md), "Keys".
 **6.** Added later the same day: K opened the Keys control in Settings, which lists every key beside what it works. Taken at the smallest window, 1120 x 640, where the list still fits the side panel.
 
 ![K opened the Keys control in Settings, which lists every key beside what it works.](06-every-key-listed.jpg)
+
+**7.** Added later the same day: the arrow keys. With no focus, Down landed on the first slot; Down again moved to Body, which wears the focus ring. Enter then opened it in the side panel, shown here.
+
+![Down landed on the first slot and Down again moved to Body, which wears the focus ring; Enter opened it in the side panel.](07-arrows-down-the-slots.jpg)
+
+**8.** Escape closed the panel and left the focus on Body; Left crossed to the horse beside it.
+
+![Escape closed the panel and left the focus on Body; Left crossed to the horse beside it.](08-arrows-across-to-the-horses.jpg)
+
+**9.** Right went back to the slots, and Right again to the cargo's first control.
+
+![Right went back to the slots, and Right again to the cargo's first control.](09-arrows-across-to-the-cargo.jpg)

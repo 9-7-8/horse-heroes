@@ -1,0 +1,68 @@
+SESSION LOG 2026-10-10 16:30 - the arrow keys
+==============================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty at the start. Tier 3: the last part of #229
+    that can be built in 0.2.0 (77a4e5e), left open. An arrow key moves
+    the keyboard focus to the nearest control that way: down a list,
+    along a row of buttons, across to the next column. With no focus the
+    first press lands on the first control of the page that is showing.
+    The Keys list in Settings says so.
+    Tested: cargo check and cargo test green, 106 pass, no warning. One
+    new test: down and up a list, left and right out of it, and nowhere
+    when nothing lies that way.
+    Seen running, by pictures: the menu tour at --window 1120x640 pressed
+    Down, Down, Enter, Escape, Left, Right, Right on Horses, Gear, and
+    the focus ring was where it should be each time.
+    docs/gallery/2026-10-10-keys, pictures 7 to 9; picture 6 retaken.
+  - Tier 1, met on the way: #244, filed and fixed in the same commit.
+    Tab stopped at every control of every page that was not showing: 77
+    of its 112 stops in town. A page not showing is now hidden as well as
+    out of the layout, and a control that goes out of sight gives up the
+    focus. Checked by the tour, which now counts Tab's stops: 112 with 77
+    out of sight before, 35 with 0 after.
+  - docs/menu-shell.md, the gallery, a note in build-and-run.txt, a
+    comment on #229.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The arrows go by position on the screen, by Bevy's own scoring, and
+    not by a hand-made order. Nothing to keep up as controls are added.
+  - Arrows do not wrap round at an edge, and a held arrow does not
+    repeat.
+  - A focus on a page that is put away is dropped, not kept for the
+    return.
+
+FOUND
+  - Bevy 0.20's Tab navigation passes over a node by InheritedVisibility
+    only; Display::None does not count. Its directional navigation and
+    picking go by size, and a Display::None node has none.
+  - The tour cannot press Enter through the keyboard state: Bevy's
+    button reads Enter from FocusedInput events. The tour sends the
+    Activate that Enter sends instead.
+  - After an arrow or Tab, Space presses what has the focus, by design;
+    the tour lets go of the focus before Space is to set out.
+  - A fourth long here-document failed in the Bash tool on an
+    apostrophe. build-and-run.txt already says to use the Write tool.
+
+NOT DONE
+  - Nobody has pressed an arrow, Tab, or any key on a real keyboard.
+    Enter on a focused control in particular has only Bevy's word.
+  - The rest of #229: a key for List, with its button (#99, 0.4.0). The
+    issue's "done when" names listing, so it stays open until then.
+  - Carried over, unchanged: nobody has listened to the death sounds
+    (#241) or the drop sounds (#10, F4); #187 waits on the owner's look
+    at the horse; nobody has used a pointer for real, or seen a tab's
+    page scroll; nobody has seen the rarity shapes tumble or be picked
+    up, or watched a death or the screen response move; the fountains
+    are not tuned; a place left open on the road still cuts a beam off;
+    a lost trail is not held on the road (#176); in town the horses walk
+    on the spot; #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Tier 1 is empty. Nothing in 0.2.0 is
+  left to build: #10, #187 and #241 wait on the owner's ear and eye, and
+  #229 on #99. Go on to the first 0.3.0 issue by next-thing's order.

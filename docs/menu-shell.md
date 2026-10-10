@@ -101,8 +101,11 @@ in view.
 ## How a place keeps its state
 
 All five places, and every tab of each, are spawned once at startup and only
-shown or hidden (`Display::None`). Nothing is rebuilt on a visit, so a place
-is found as it was left, whatever it comes to hold.
+shown or hidden. Nothing is rebuilt on a visit, so a place is found as it was
+left, whatever it comes to hold. A page that is not showing is both out of
+the layout (`Display::None`) and hidden (`Visibility::Hidden`): the first
+takes its room away, and the second is what Bevy's Tab navigation looks at,
+so Tab passes over its controls (#244).
 
 What is showing is decided by one resource, `Shell`:
 
@@ -254,6 +257,7 @@ in the shell presses the thing when its key goes down, by the same
 | Space | Set out, in town only | `key` of the control |
 | K | Keys: the list of every key, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
+| Arrows | Move the keyboard focus to the nearest control that way | not in the file |
 
 The keys of places, horses and controls work wherever the player is, so no
 two of them are the same. A tab's key works only while its place is showing,
@@ -266,21 +270,35 @@ closes the place. In town it does nothing else: it never sets out, never
 closes the game and never undoes anything.
 
 Space is the one conflict, since a focused button also answers Space: while
-a control shows keyboard focus (after Tab), Space presses that control and
-does not send the party off. Every control, built or not, is reached with
-Tab and pressed with Enter; that is how a gear slot is opened by keyboard.
+a control shows keyboard focus (after Tab or an arrow), Space presses that
+control and does not send the party off. Every control, built or not, is
+reached with Tab or the arrows and pressed with Enter; that is how a gear
+slot is opened by keyboard.
+
+**The arrow keys** move the focus by direction (`arrows`): down a list,
+along a row of buttons, across to the next column. The next control is the
+nearest one that way among the parts of the shell that are laid out, scored
+by Bevy's own rule (`find_best_candidate`, with the default
+`AutoNavigationConfig`), so nothing is wired by hand and a control moved in
+`places.ron` is still reached. Where nothing lies that way the focus stays.
+With no focus in sight, the first press puts it on the first control of the
+page that is showing (the first slot, on Gear), or on the open place in the
+bar when every place is closed. A held arrow does not repeat.
+
+A control that goes out of sight gives up the focus (`lose_hidden_focus`):
+after a tab is changed by its key, Enter and Space cannot press something
+on the page that was left.
 
 **The Keys control** in Settings (K) lists every key in the side panel:
 places, the tabs of a place, horses and actions, each beside the name of
-what it works, then Esc, Tab with Shift+Tab, and Enter. `keys_list` builds
-it from `places.ron`, so a key changed there is changed in the list; only
-the last three lines are written by hand. The lines are kept short enough
+what it works, then Esc, the arrows, Tab with Shift+Tab, and Enter.
+`keys_list` builds it from `places.ron`, so a key changed there is changed
+in the list; only the last four lines are written by hand. The lines are kept short enough
 that the list fits the side panel at the smallest window, which does not
 scroll.
 
-Still to come under #229: moving through lists with the arrow keys, and a
-key for each action as its button is built (List, with #99, is the one a
-town visit lacks).
+Still to come under #229: a key for each action as its button is built
+(List, with #99, is the one a town visit lacks).
 
 ## Looking at it
 
@@ -293,15 +311,17 @@ the road view
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, and then makes a town visit by keys
-alone: H, 1, E to equip the drop, C, 2, I and F on the abilities, T, 3, S,
+alone: H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right twice to the cargo, E to equip the drop, C, 2, I and F on the abilities, T, 3, S,
 K for the list of keys, Escape twice, Space to set out, and J, 1, Escape on the road. Then it exits. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
-they go through `keys` and `escape` as a real press does; they are written
+they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written
 in `plan_tour`, so a key changed in `places.ron` is changed there too. The
 party does not leave by itself during the tour.
 The tour finds the controls it presses by name (Compare, Shake, Ice, Fire,
 Equip), so one of those renamed in `places.ron` is renamed in
-`plan_tour` too, or its press is skipped. The
+`plan_tour` too, or its press is skipped. At its first picture the tour also goes round every stop Tab makes and logs
+the count ("tour: Tab makes 35 stops, 0 of them out of sight"); a stop out of
+sight is #244 come back. The
 presses are the `Activate` event a click sends, so the tour goes through the
 same code as the pointer, but it is not the pointer: hover and real clicks
 are checked by hand.
@@ -311,6 +331,5 @@ are checked by hand.
 - A fountain to check the road view's room against: #4, #8 (the last part of
   #205).
 - What is planned on the road, listed in the footer: #234.
-- The rest of #229: arrow keys in lists, and keys for actions not built
-  yet.
+- The rest of #229: keys for actions not built yet.
 - The Horses place proper, with cargo: #227.
