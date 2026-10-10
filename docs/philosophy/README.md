@@ -1,0 +1,29 @@
+# Philosophy
+
+Advice and guidelines to follow while building Horse Heroes. `CLAUDE.md` holds
+the rules and the four pillars; these files hold the reasoning behind feel and
+design calls, so that a new system can be checked against something more
+specific than "make it satisfying".
+
+Read the relevant file before designing or tuning the system it covers.
+
+| File | Covers |
+| --- | --- |
+| [feedback-chain.md](feedback-chain.md) | Why every action must visibly change the world, and the time scales a reward loop runs on |
+| [loot-fountain.md](loot-fountain.md) | The reward ceremony: its seven beats, what makes it land, and why drops must stay relevant |
+| [combat-rhythm.md](combat-rhythm.md) | Attack phases, keeping timings separate, and response before polish (incomplete, see the file) |
+
+## How these files are kept
+
+- One topic per file. Each has **Principles** (general, stated as things to do),
+  **For Horse Heroes** (what that means in an idle game where the party fights
+  by itself), and **Source**.
+- They are guidance, not a backlog. Work to be done is a GitHub issue; an issue
+  cites the philosophy file that justifies it.
+- When new source material arrives, fold it into the file that already covers
+  the topic. Add a file only for a new topic, and add it to the table above.
+- When a principle is tried in the running game and turns out wrong for this
+  game, change the file and say why. The owner's verdict on feel outranks
+  anything written here.
+- The game is original. These files take principles from studying other games,
+  never names, content, or specific designs.

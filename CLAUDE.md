@@ -51,6 +51,9 @@ git history, how a system works goes in `docs/`, a routine goes in
 - `src/fx/` - the loot shower and every other piece of juice.
 - `assets/data/` - item, affix, monster and drop-table definitions.
 - `docs/` - how each system works, one file per system.
+- `docs/philosophy/` - advice and guidelines for feel and design calls. Read
+  the relevant file before designing or tuning what it covers; keep it current
+  (`docs/philosophy/README.md`).
 
 **Keep the sim deterministic and free of rendering.** Loot rolls take a seeded
 RNG, so a drop table can be tested by rolling it a million times in a test.
@@ -66,6 +69,16 @@ RNG, so a drop table can be tested by rolling it a million times in a test.
    `C:\Users\Isabel\Procedural-Horse-Coats`.
 4. **Questions go through the question tool**, recommendation first (see the
    global CLAUDE.md).
+
+---
+## Planning (owner, 2026-10-09)
+Bugs and future features are tracked as **GitHub issues** on
+`9-7-8/horse-heroes`, not in plan documents. One feature per issue; group
+related ones as sub-issues under an `epic`. Each issue says why (citing a
+`docs/philosophy/` file where one applies), what, and "done when". Source
+material the owner hands over becomes issues for the work and philosophy files
+for the guidance. Check the open issues before starting a feature and close
+the issue in the commit that finishes it.
 
 ---
 ## Procedures
