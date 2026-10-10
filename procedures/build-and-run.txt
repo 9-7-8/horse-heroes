@@ -39,7 +39,14 @@ Use the cheapest step that can prove the change:
    at IDLE_SHOT_AT=5.0 it is at rest in the pause, at 6.3 its coins are on
    their way. Real kills, --seed 6: the first enemy falls at 21.3 s (its
    small drop is in the air at 21.6, its coins arriving at 23.85) and the
-   final one at 64.5 s (its fountain in the air at 65.9).
+   final one at 64.5 s (its flash at 64.86, its fountain in the air at
+   65.9, its coins arriving at 68.6; the party is back in town by 70).
+   The test burst's flash, on the road: --burst --burst-at 14 at 14.36.
+   A flash lasts a third of a second, so a picture of one is a matter of
+   a few hundredths.
+   cargo check and cargo test do not rebuild the game's own binary: a
+   picture taken by running target/debug/horse_heroes.exe directly is of
+   the last cargo build or cargo run, so build first.
    IDLE_TOUR walks the menus instead (docs/menu-shell.md): it presses
    through every place and tab, then the road view and the move between
    the layouts, saves a numbered PNG of each into the folder it names
@@ -49,6 +56,10 @@ Use the cheapest step that can prove the change:
    line at startup is noise from that overlay, not from the game.
 
 NOTES
+  - A throwaway script written outside the repo gets a name nothing else
+    has, and is checked to be absent first. %TEMP% keeps other sessions'
+    hh_*.py; on 2026-10-10 a write to hh_docs.py was refused, the old file
+    of that name ran instead and edited two philosophy files (undone).
   - cargo is not always on the PATH of the shell this tool starts (found
     2026-10-10, in both PowerShell and Git Bash). When "cargo" is not
     recognised, call it by its full path: ~/.cargo/bin/cargo.exe.

@@ -1,9 +1,10 @@
 # The loot shower
 
 What is built of it so far: drops as physical objects (#4), the rarity
-signal (#6), the pickup (#7) and fountain sizes (#8). The eruption and
-collection beats of [the loot fountain](philosophy/loot-fountain.md). Screen
-response and sound are their own issues (#9, #10) and are not built.
+signal (#6), the pickup (#7), fountain sizes (#8), and the screen's response
+with the calm after the final kill (#9). The eruption and collection beats
+of [the loot fountain](philosophy/loot-fountain.md). Sound is its own issue
+(#10) and is not built.
 
 ## What happens
 
@@ -59,9 +60,8 @@ a second, and a final kill is ten to fifteen coins and the run's gear piece
 going up about twice as high over most of a second. All fourteen
 numbers are first guesses and nobody has tuned them.
 
-The final fountain is not yet seen at its best: the kill that wins the trail
-sends the party to town in the same moment (Standing and walking, below), so
-it plays while the scene shrinks. Holding the road for it is #9.
+The final fountain plays in the road view, with the party standing and
+nothing else going on (The calm after the kill, below).
 
 ## Rarity
 
@@ -138,9 +138,64 @@ with it to the left, also the ones still in the air; a piece on its way to
 the party is not carried. One that got well off screen uncollected is
 removed.
 
-The last kill of a trail sends the party back to town in the same moment, so
-its burst is seen, and collected, while the scene shrinks to the town
-layout.
+## Screen response
+
+When a burst erupts, which is when its first piece leaves (the fountain's
+`delay_secs` after the death), the scene shakes and flashes once. How
+strongly depends on the best piece in the burst and not on how many pieces
+there are ([juice.md](philosophy/juice.md): never spend a higher level on a
+lower event). `best_tier` finds the highest rarity among the burst's gear;
+that rarity's `response` in `gear.ron` gives the two strengths, and a burst
+with no gear in it uses `response.coins` in `loot_shower.ron`:
+
+| best piece | `shake`, world units | `flash`, 0 to 1 |
+|---|---|---|
+| coins alone | 0 | 0 |
+| Normal | 0.03 | 0 |
+| Magic | 0.06 | 0.015 |
+| Rare | 0.14 | 0.03 |
+| Legendary | 0.26 | 0.06 |
+| Set | 0.3 | 0.07 |
+
+So an ordinary kill, which drops only coins today, does nothing to the
+screen, and a final kill is answered by what it dropped.
+
+- The shake moves the camera across and up the screen (`shake_offset`),
+  never further than its strength, `shake_hz` times a second, dying away
+  over `shake_secs`.
+- The flash is a sheet of the best piece's rarity colour over the scene's
+  share of the window, never over the menus. It starts at its strength and
+  only fades, over `flash_secs` (`flash_alpha`): one pulse, never a
+  flicker. It is mixed as light, so a small number shows a good deal: 0.07
+  of pure green over the black background is a clear dark green.
+- `shake_scale` and `flash_scale` in `loot_shower.ron` multiply every shake
+  and every flash. Zero turns that one off; they are where a settings
+  control will reach.
+- A burst that erupts while another's response is still playing only takes
+  over if it is stronger than what is left of it.
+
+The test burst answers too (its best piece is the Set), so F3 is how to
+look at a response. All of these numbers are first guesses and nobody has
+tuned them. Sound (#10) is not part of it yet, and there is no single
+low, medium and high scale shared with combat and town, which
+[juice.md](philosophy/juice.md) asks for once those have effects of their
+own.
+
+## The calm after the kill
+
+The burst is legible because of the quiet that follows the kill
+([loot-fountain.md](philosophy/loot-fountain.md), Contrast). When a trail
+is won the party does not go to town in the moment its last enemy falls.
+It stands on the road, the road view stays, and nothing else happens while
+the full fountain goes up, lands, lies still for the pause and is
+collected; the party sets off for town when the last piece has reached it
+(`game::road_is_held`, from `Uncollected::pieces`, which `fx` counts in as
+it throws a kill's pieces and out as each arrives). With today's drops
+that is about four and a half seconds. The footer says the trail is
+cleared meanwhile. A lost trail has no fountain and goes home at once.
+
+A place left open on the road keeps the scene in the top third, and a beam
+still runs off the top of it there; the hold does not close the place.
 
 ## The test burst
 
@@ -182,6 +237,14 @@ has a beam; a kill's coin pieces add up to its coins; the
 burst waits out the pause and then leaves one piece at a time, nearest
 first; a collected piece only gains speed and arrives, at 20, 60 and 240
 frames a second.
+`src/fx/response.rs`: the response numbers are usable, and no flash is
+strong enough to hide the scene; the best piece decides and the count does
+not; a better piece is never answered more weakly, and a Rare is answered
+more strongly, both ways, than coins alone or any lower tier; either scale
+at zero turns its half off and leaves the other; a shake stays within its
+strength and ends, and a flash only fades.
+`src/game/mod.rs`: the road is held for a won trail's last drops and for
+nothing else.
 `src/sim/expedition.rs`: every kill is reported once, and the coins of the
 kills add up to the run's coins; the winning kill carries the run's gear and
 no other kill carries any.
@@ -189,4 +252,5 @@ no other kill carries any.
 Pictures: [drops](gallery/2026-10-10-drops/README.md),
 [the rarity signal](gallery/2026-10-10-rarity-signal/README.md),
 [the pickup](gallery/2026-10-10-pickup/README.md),
-[fountain sizes](gallery/2026-10-10-fountain-sizes/README.md).
+[fountain sizes](gallery/2026-10-10-fountain-sizes/README.md),
+[screen response](gallery/2026-10-10-screen-response/README.md).

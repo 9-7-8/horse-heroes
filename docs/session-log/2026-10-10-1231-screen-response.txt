@@ -1,0 +1,69 @@
+SESSION LOG 2026-10-10 12:31 - screen response and the calm after the kill
+==========================================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: build green, 58 tests, no open bug, no sim
+    rule without a test.
+  - Tier 3, #9, the one PICK UP named (3ccabd3):
+      - Screen response. When a fountain erupts the scene shakes and
+        flashes once, sized to the best piece in the burst and not to the
+        count. Each rarity has a `response` (shake, flash) in gear.ron; a
+        burst of coins alone has its own in loot_shower.ron, where
+        shake_scale and flash_scale turn either down to zero. The flash is
+        the best piece's colour and covers the scene, never the menus.
+        New file src/fx/response.rs.
+      - The calm. A won trail keeps the party standing in the road view
+        until every piece of the last drops has reached it, then goes to
+        town. A lost trail goes home at once, as before.
+    Tested: cargo test, 64 pass (five new in fx/response.rs, one in
+    game/mod.rs).
+    Seen running, by screenshot: the test burst's green flash on the road;
+    the final kill of --seed 6 with its orange flash, its fountain whole
+    in the road view at 65.9 s, the road still held at 68.6 s with the
+    last coins arriving, and the party back in town by 70 s. Pictures:
+    docs/gallery/2026-10-10-screen-response.
+  - docs/loot-shower.md: Screen response, The calm after the kill.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The road is held until the last piece is collected, not only until
+    the drops have landed: about 4.5 s with today's drops. The issue says
+    "a short quiet beat while the drops land"; collection is part of the
+    fountain, and the town report follows it.
+  - An ordinary kill (coins alone) gets no shake and no flash.
+  - The flash is tinted with the best piece's rarity colour.
+  - Every strength and time is a first guess.
+
+FOUND
+  - A flash is mixed as light: 0.28 of pure green was a solid green
+    screen. The strengths were cut to a quarter (Set is 0.07).
+  - cargo check and cargo test do not rebuild the game's binary. The
+    first pictures were of the old build. Now in build-and-run.txt.
+  - A script written to the temp folder under a name an older session had
+    used was refused, and the old script ran instead. It rewrote two lines
+    in docs/philosophy/gear.md and vision.md; both were put back from git
+    before anything was committed. Now in build-and-run.txt, NOTES.
+  - The footer and the Journal said "walking to encounter 4 of 4" during
+    the hold. They now say the trail is cleared.
+
+NOT DONE
+  - Nobody has watched it move. A still shows that the flash and the
+    hold happen, not how the shake feels. The owner's verdict is open on
+    all of #9's numbers (procedures/tune-loot-feel.txt).
+  - "A fountain with a Rare feels different" is held by a test of the
+    numbers and by two pictures, a Set and a Legendary. A Rare's own
+    flash was not looked at.
+  - A place left open on the road still cuts a beam off at the top third.
+  - No shared low, medium and high scale across fountain, town and
+    combat (juice.md); only the fountain has effects so far.
+  - Carried over: the fountains are not tuned; #199 waits on the owner's
+    source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Six issues are open in 0.2.0: #10, #17,
+  #229, #233, #238, #240. By the order it should land on #10, drop and
+  pickup sounds: start by reading how Bevy 0.20 plays audio, and whether
+  any sound files exist to play.
