@@ -65,6 +65,8 @@ and icon, never by colour alone.
 - No bridles, bits or reins; saddles seat pets; each category of equipment
   has its own identity ([vision.md](vision.md), Equipment). A generator's
   affix pool is per category, so two categories cannot roll the same piece.
+  Nothing generated may suggest an unseen rider: no trailing reins, bit,
+  stirrups or human-sized saddle ([cosmetics.md](cosmetics.md)).
 - Rules:
   - every piece fits at least one supported horse;
   - rarity limits both affix count and ornament complexity;

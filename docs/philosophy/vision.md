@@ -119,7 +119,7 @@ needs, extensive crafting, town construction, and many more damage types.
   [elemental-combat.md](elemental-combat.md).
 - **An appearance library:** a piece's look is kept for good once collected,
   so the piece can be sold or replaced without losing the look, and a loved
-  outfit stays viable.
+  outfit stays viable. Developed in [cosmetics.md](cosmetics.md).
 - **Loot handling:** collect routine rewards automatically, aggregate the
   ordinary, spotlight upgrades, rare looks and build-changing pieces, then
   keep, equip or sell. Favourites and gear in saved loadouts are protected
