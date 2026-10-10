@@ -1,0 +1,63 @@
+SESSION LOG 2026-10-10 12:10 - fountain sizes
+=============================================
+
+ASKED
+  "Next" - procedures/next-thing.txt. During it: "Can you also push notify
+  me each time you're done here, and ready for my response?"
+
+DONE
+  - Tiers 1 and 2 were empty: build green, 53 tests, no open bug.
+  - Tier 3, #8, fountain sizes (c4c87aa, closes #8). How a kill throws its
+    drops is a fountain, an entry in loot_shower.ron: delay, stagger, fan,
+    up and out speed, spin, most pieces. An enemy names its fountain in
+    enemies.ron; the sim carries the name on the Kill and fx looks it up.
+    Ordinary enemies get "small", the two final enemies "full".
+    --burst-at N moves the test burst, to throw it on the road.
+    Tested: cargo test, 55 pass (two new: every enemy's fountain exists; a
+    final enemy's is later, bigger, wider and higher than an ordinary
+    one's). The older burst tests now run for every fountain.
+    Seen running, in screenshots read by the session, seed 6: an ordinary
+    kill's coins in the air at 21.6 s; the final kill's fountain at 65.3
+    and 65.9 s; the test burst as the full fountain in town at 3.6 s and on
+    the road at 15.5 and 16.6 s; the pickup of it at 6.3 s.
+  - #205 closed: the full fountain in the road view is not clipped and is
+    nowhere near the bar, both beams at full height (the test burst;
+    gallery picture 3).
+  - docs/loot-shower.md (Fountain sizes), docs/gallery/2026-10-10-fountain-sizes,
+    build-and-run.txt and tune-loot-feel.txt (new picture times, --burst-at).
+  - Memory: push notify when a turn ends and her response is needed.
+
+DECIDED
+  Made for her, to be corrected:
+  - The kind of kill is the enemy's: each enemy names its fountain. A
+    final encounter with helpers would give each its own.
+  - The fourteen fountain numbers (docs/loot-shower.md has the table).
+    First guesses, not tuned. The wait before the full one is 0.3 s.
+  - A fountain covers the burst and the arc only. Gravity, bounce, squash
+    and the pickup are shared by all fountains.
+  - #205 closed on the test burst, not on a real final kill (see FOUND).
+
+FOUND
+  - A real final fountain is never seen in the road view: the kill that
+    wins the trail sends the party to town in the same tick, so it plays
+    while the scene shrinks, and in the top third a beam runs off the top.
+    Holding the road for it is #9's quiet beat; noted on #9.
+  - A Bash heredoc holding a long Python script with quotes and backticks
+    failed to parse twice; writing the script to a file first worked.
+  - Seed 6: the first enemy falls at 21.3 s, the final one at 64.5 s and
+    drops a Legendary.
+
+NOT DONE
+  - Nobody has watched either fountain move; they have been seen in stills.
+    The owner has not looked.
+  - The fountains are not tuned (procedures/tune-loot-feel.txt).
+  - A full fountain is still thin: ten to fifteen coins and one gear piece.
+    More kinds of reward are #5 and #29, in later releases.
+  - Carried over: #199 waits on the owner's source files; Focused Shot and
+    Elemental Burst have no test of their numbers.
+
+PICK UP
+  Run procedures/next-thing.txt. Seven issues are open in 0.2.0: #9, #10,
+  #17, #229, #233, #238, #240. By the order it should land on #9, screen
+  response and the calm after the kill, starting with holding the road
+  view while a final fountain plays.

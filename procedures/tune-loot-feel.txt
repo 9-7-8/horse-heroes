@@ -22,7 +22,8 @@ WHAT MAKES A DROP FEEL GOOD - the parts to keep separately tunable
 STEPS
 1. Keep every feel number in one resource (or one data file) with a name, not
    scattered as literals. If it is not there yet, move it there first.
-   The drop's numbers are in assets/data/loot_shower.ron.
+   The drop's numbers are in assets/data/loot_shower.ron; the burst and
+   arc are per fountain there ("small", "full"), so say which one changed.
 2. Make the scene repeatable: a debug key or startup flag that spawns a fixed
    burst from a fixed seed, so two runs can be compared.
    That is F3 in the running game, or --burst at launch; F4 or --pickup

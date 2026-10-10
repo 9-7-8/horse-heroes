@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-10, fountain sizes](2026-10-10-fountain-sizes/README.md) (#8)
 - [2026-10-10, the pickup](2026-10-10-pickup/README.md) (#7)
 - [2026-10-10, the rarity signal](2026-10-10-rarity-signal/README.md) (#6)
 - [2026-10-10, drops as physical objects](2026-10-10-drops/README.md) (#4)
