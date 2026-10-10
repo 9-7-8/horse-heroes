@@ -1,0 +1,107 @@
+SESSION 2026-10-09 evening to 2026-10-10 morning
+Releases, every open decision, and a reshaped design
+
+ASKED
+  - "We need to organize all of our issues into a set of releases", in
+    x.y.z form, highest priority and smallest footprint first.
+  - "Tag each issue with what release owns it."
+  - "Using your question tool, help me work through all open decisions."
+  - Then a run of design changes, in her words: "there's always combat on
+    the roads"; "towns buy different materials at different prices"; "I want
+    to flesh out the procgen for the world"; "Remove cleansing as a wait
+    loop"; "a classless system where you get points to buy abilities";
+    "elements are tied to abilities".
+  - "Describe the gameplay loop as it stands", and a review of the damage and
+    combat systems: "what's working, and what might be degenerate".
+
+DONE
+  Nothing was built. No code or data changed. cargo check and cargo test
+  were run at the end and pass (5 tests); that proves only that the tree is
+  as the last session left it.
+  - Releases: 13 GitHub milestones, 0.2.0 The loot shower to 1.0.0 Shipping
+    on Windows, and a vX.Y.Z label on every scheduled issue. Checked by
+    listing: every open issue has a milestone and matching label except four
+    left unscheduled on purpose (#33, #186, #199, #219).
+  - Decisions: all 18 decision issues and #200 answered through the question
+    tool, recorded on each issue and closed.
+  - docs/philosophy/vision.md: seven dated sections for 2026-10-10, newest
+    last. CLAUDE.md: pillar 2 reworded, premise made classless, release rule
+    added. Short dated notes at the top of endgame.md, travel.md and
+    elemental-combat.md. The martingale slot renamed breastcollar. The
+    reference action RPG named in the philosophy sources.
+  - 24 new issues, #201 to #224. Rewritten: #93, #97, #154, #155, #163,
+    #172, #209. Closed as overtaken: #27, #35, #46, #48, #105, #125, #142.
+  - New procedure: procedures/record-a-design-change.txt.
+
+DECIDED
+  Hers, through the question tool or stated outright. The full text is in
+  vision.md; these are the ones that changed direction.
+  - The party follows an itinerary; pillar 2 reworded for it. One world clock
+    in days, time away capped at 8 hours.
+  - Listing at the stall is the only way to sell. Trade goods sell the same
+    way. Larger towns sell faster. Each town has storage.
+  - Party starts at three and grows to five. The three starters are expected
+    to reach the endgame; retirement is rare.
+  - Always a chance of bandits and predators on any road, before and after
+    the dragon. Goods trade between towns, with auto-buy, sell floors and
+    saved routes; prices change each real-world day within a trend.
+  - The world: one hex landmass, party and dragon in opposite corners,
+    biomes (speed, forage, predators), towns joined by shortest roads,
+    off-road travel. Danger from purity against corruption. A corrupt town is
+    liberated by beating the boss at its gate; no cleansing wait.
+  - Classic is one finite run and the only setting being balanced. An endless
+    mode may come later (#219).
+  - No classes and no horse elements. A shared party level, points, one
+    shared ability pool, a few loadout slots, free respec in town. Horses
+    differ by a stat lean and a trait.
+  - Combat: resistance on barding (cap 75%), elemental bonus on weapon and
+    braid, element fixed by creature kind, percentage defence, glancing hits
+    in place of misses, every hit can crit, one Primer per element, every
+    payoff also hits, same-kind bonuses add and different kinds multiply.
+  Made for her, and said so at the time:
+  - Which release each issue went into, from titles and labels.
+  - The order a horse picks its ability in (#93), three loadout slots, and
+    the three starters beginning with a Primer, a Finisher and a Support.
+  - Daily prices computed from the world seed and the calendar date.
+  - Buying goods is instant; only selling goes through the stall.
+  - An itinerary waits for full health by default.
+  - Levelling placed in 0.6.0, not in the core loop slice.
+  - Several small shop and wardrobe points, marked as my reading on #84 and
+    #128.
+
+FOUND
+  - Decisions made in the morning were overturned by the afternoon's design
+    changes several times (horse attunement, one Primer per enemy, misses,
+    danger as purity alone, pets never handling loot, instant healing, the
+    cleansing task). vision.md keeps the order; the last section wins.
+  - Assigning milestones to many issues in one gh call failed on eight of
+    them with a server error. One issue at a time with retries worked.
+  - Long shell commands with issue text inline twice failed to parse. A
+    Python script calling gh worked every time; noted in the new procedure.
+  - The combat review found the decided rules safe but thin: reactions rare
+    in easy fights, flat defence breaking at both ends, enemies that ask no
+    questions. Her answers address most of it; two things to watch when
+    numbers go in are on #224 (crit on reactions with multiplying bonuses,
+    and three Primers on one enemy).
+
+NOT DONE
+  - Most issue bodies still carry the wording from before today's decisions.
+    They were given comments, not rewrites. That includes the five slice
+    issues (#110, #126, #143, #152, #164), which I said I would revise, and
+    the core loop issue #185, whose checklist still names classes and
+    attunements in places.
+  - The philosophy files other than vision.md were not rewritten; several
+    still word today's decisions as recommendations, under a dated note.
+  - docs/philosophy/five-link-loop.md has no such note and predates all of
+    it.
+  - Nothing here has been played. Every combat and economy rule is untested.
+  - The Bridle and Browband names in assets/data/gear.ron (#90) are still
+    there.
+  - Not stated by her and left as tuning: how large the classic world is,
+    and whether an ability variant (#23) is bought or comes from gear.
+
+PICK UP
+  Rewrite the body of issue #185 (the five-link core loop) so its checklist
+  and tests match vision.md as it now stands: no classes, abilities carry
+  elements, a gate boss liberates a town, health returns over time in town,
+  goods and gear both sell at the stall. Then start building it at link 1.

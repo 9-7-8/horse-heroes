@@ -93,6 +93,10 @@ material the owner hands over becomes issues for the work and philosophy files
 for the guidance. Check the open issues before starting a feature and close
 the issue in the commit that finishes it.
 
+Releases are GitHub milestones named `x.y.z Theme` (owner, 2026-10-10), built
+in order. Every issue has its release's milestone and the matching `vX.Y.Z`
+label; a new issue gets both when it is filed.
+
 ---
 ## Procedures
 Repeatable routines are plain text in `procedures/`; the list is

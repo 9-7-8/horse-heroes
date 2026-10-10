@@ -1,0 +1,42 @@
+RECORD-A-DESIGN-CHANGE
+======================
+Starts on: the owner states a change to the design in chat ("I want to make
+           these changes", "let's scrap that", "X also does Y").
+Leaves:    the change in docs/philosophy/vision.md, on every issue it
+           touches, and committed. Nothing lives only in chat.
+
+STEPS
+1. Find what it overturns. Read vision.md and the issues it bears on. Say in
+   one or two lines which earlier answers it replaces.
+
+2. Ask only what changes what gets built, with the question tool,
+   recommendation first, at most four questions a round. Do not ask about
+   numbers; those are tuning and go on the implementing issue.
+
+3. vision.md: add or extend a dated section in her words where possible.
+   Mark the older line it replaces as replaced; do not delete her history.
+   Where another philosophy file now disagrees, add a short dated note at its
+   top pointing at vision.md. Do not rewrite the whole file.
+
+4. Issues, on 9-7-8/horse-heroes:
+   - an issue whose whole point changed: rewrite the body, with a dated
+     "Revised" line saying what it was;
+   - an issue that only reads differently: a comment saying how to read it;
+   - new work: a new issue (why, what, done when), with its release
+     milestone, its vX.Y.Z label, and linked under its epic;
+   - an issue made pointless: close it as not planned, saying what replaced
+     it.
+
+5. Commit the docs with a message naming the change. Do not push; end-session
+   pushes.
+
+6. Report in a few lines: what changed, what was assumed without asking, and
+   anything it makes worse.
+
+NOTES
+  - Long shell commands with issue text inline twice failed to parse in this
+    tool (the cause was not found). What worked every time: write a small
+    Python script to the temp folder that calls gh through subprocess, and
+    run that.
+  - Create an issue before anything that cites its number, or pass the number
+    along in the same script.
