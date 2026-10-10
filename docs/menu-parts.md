@@ -68,4 +68,5 @@ tokens are compiled in, so a change needs a rebuild but no code change.
 
 - An unavailable control that answers a press with its reason: #233.
 - Keys that work the controls they are printed on: #229.
-- The screens themselves: #226 (shell), #238 (skeleton).
+- The shell is built: [menu-shell.md](menu-shell.md). The skeleton of every
+  button: #238.

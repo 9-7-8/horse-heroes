@@ -4,8 +4,9 @@ An idle RPG about a party of three horses. They walk a fairyland trail that is
 being corrupted, fight what they meet without being told to, and bring back
 horse gear that helps them get farther next time.
 
-This is an early prototype: boxes for horses, cubes for enemies, white text on
-a black background. It launches, plays itself, and can be nudged.
+This is an early prototype: boxes for horses, cubes for enemies, and flat
+menus under the scene, most of whose places are not built yet. It launches,
+plays itself, and can be nudged. Pictures: [`docs/gallery`](docs/gallery/README.md).
 
 ## What is in it
 
@@ -44,13 +45,18 @@ In camp, between expeditions:
 | `E` | Equip the gear that just dropped |
 | `Space` | Set out now, without waiting for the countdown |
 
+The menus under the scene work with the mouse: five places in a bar, a
+horse to select, and Set out in the footer. The last trail's report is in
+Journal, Report.
+
 ## How it is put together
 
 Built with [Bevy](https://bevy.org) 0.20. The game rules live in `src/sim/` as
 plain Rust with no engine types, so they can be tested by running thousands of
 expeditions in a unit test. `src/game/` draws the result. The numbers - horses,
 enemies, encounters, gear - are in `assets/data/`. More detail is in
-[`docs/expedition.md`](docs/expedition.md).
+[`docs/expedition.md`](docs/expedition.md) and
+[`docs/menu-shell.md`](docs/menu-shell.md).
 
 ## License
 

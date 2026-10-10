@@ -22,7 +22,8 @@ first if it is an upgrade.
 | Trail generation (`Plan`) and the fight (`Expedition`) | `src/sim/expedition.rs` |
 | Horses, gear, drop roll | `src/sim/loot.rs` |
 | Seeded RNG | `src/sim/rng.rs` |
-| Camp/trail loop, input, HUD text | `src/game/mod.rs` |
+| Camp/trail loop, input, report text | `src/game/mod.rs` |
+| Where the report and the controls are shown | `src/game/menu/shell.rs` ([menu-shell.md](menu-shell.md)) |
 | Camera, trail, box horses, enemy cubes | `src/game/scene.rs` |
 
 ## Rules as built

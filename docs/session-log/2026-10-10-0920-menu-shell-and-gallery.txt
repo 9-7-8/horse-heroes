@@ -1,0 +1,65 @@
+SESSION LOG 2026-10-10 09:20 - the menu shell, and a gallery
+============================================================
+
+ASKED
+  "Next part. Also take lots of images for me along the way, and publish
+  them as a gallery that I can view"
+
+DONE
+  - next-thing: no bug open, build green, 21 tests passing at the start, so
+    the part was the feature PICK UP named, #226.
+  - #226 closed: the menu shell. src/game/menu/shell.rs, the map of the
+    menus in assets/data/places.ron, docs/menu-shell.md. The scene is the
+    top third; bar, status strip and footer below it; five places with
+    their tabs, each keeping its tab and side panel; one selected horse.
+    Tested: cargo test, 28 pass (7 new, on the shell's state and the data
+    file). Seen running: 22 pictures from a walk through every place and
+    tab in town and on the road (--seed 6), read by me.
+  - The text overlay is gone. Its report is Journal, Report; the horses'
+    stats and gear slots are Horses, Gear.
+  - IDLE_TOUR: a dev aid that presses through the menus and saves a picture
+    of each step. In build-and-run.txt.
+  - Gallery: docs/gallery/, 28 pictures with a line on each (before, the
+    tries along the way, the walk). Pushed with this log; viewable at
+    github.com/9-7-8/horse-heroes/tree/main/docs/gallery
+
+DECIDED
+  Hers: nothing new.
+  Made for her, to be corrected:
+  - The gallery lives in the repo as JPEGs (1.7 MB) rather than anywhere
+    else, since the repo is where things are published.
+  - The horses in the status strip ("party health") are the horse selector
+    that is in view from every place. The Horses place has its list too.
+  - Bar and status strip are two rows, not the one row of the sketch in
+    menus.md: five counters and three horses do not fit beside the places.
+  - Bags, hold and day show "-" until their systems exist. Settings is
+    there and unavailable.
+  - A side panel belongs to the tab it was opened from.
+  - The list of horses is headed "horses", never "party" (one name for one
+    thing).
+  - The shell keeps the town layout on the road too, until #205.
+  - Space sets out, except while a control shows keyboard focus.
+  - #226 was built before #205, which it names as a dependency: it needed
+    only the top-third split, which is in. #205 keeps the road layout, the
+    transition and the minimum window size.
+
+FOUND
+  - A full-window orthographic camera with viewport_origin moved to the
+    middle of the top third does the split with no second camera.
+  - The report text did not fit the place as one column, and two columns
+    of free width jump as the text changes; two fixed halves hold still.
+  - A screenshot is 2880x1620 (the display is scaled), about 900 KB as PNG.
+
+NOT DONE
+  - Nobody has used the shell with a real pointer or keyboard. The tour
+    sends the same Activate a click does, but hover, clicking, Tab, Escape
+    and the focus returning to the opener are untried by hand.
+  - Hidden places' controls may still be in the Tab order; not looked at
+    (#229).
+  - The owner has not looked at the shell or the parts screen.
+  - #199 still waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. With no bug filed it lands on #205, the
+  two scene layouts: the expanded road view, the move between it and the
+  town layout without a cut, and the minimum window size.

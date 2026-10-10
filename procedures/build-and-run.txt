@@ -26,6 +26,10 @@ Use the cheapest step that can prove the change:
        $env:IDLE_SHOT = "screenshots/name.png"; cargo run *> run.log
    IDLE_SHOT_AT sets the second it is taken (default 3). --seed N fixes the
    run; --parts opens the menu parts screen (docs/menu-parts.md).
+   IDLE_TOUR walks the menus instead (docs/menu-shell.md): it presses
+   through every place and tab, saves a numbered PNG of each into the
+   folder it names (create it first), and exits when the party is home:
+       $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
    screenshots/ and *.log are git-ignored. The GOG Galaxy Vulkan-layer ERROR
    line at startup is noise from that overlay, not from the game.
 
