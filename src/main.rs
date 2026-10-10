@@ -4,6 +4,7 @@ use bevy::{
 };
 
 mod dev_screenshot;
+mod fx;
 mod game;
 mod sim;
 
@@ -30,6 +31,9 @@ fn main() {
         .add_plugins(game::GamePlugin { seed: seed() })
         .add_plugins(game::menu::MenuPlugin {
             show_parts: std::env::args().any(|arg| arg == "--parts"),
+        })
+        .add_plugins(fx::FxPlugin {
+            burst: std::env::args().any(|arg| arg == "--burst"),
         })
         .add_plugins(dev_screenshot::DevScreenshotPlugin)
         .run();

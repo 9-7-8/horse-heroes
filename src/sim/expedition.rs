@@ -90,6 +90,16 @@ pub struct Foe {
     coins: (i32, i32),
 }
 
+/// An enemy brought down, for the presentation to show: which one, and what
+/// it dropped.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Kill {
+    /// Its index among the encounter's enemies, which is where it stood.
+    pub foe: usize,
+    pub max_health: i32,
+    pub coins: i32,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Phase {
     Travelling,
@@ -122,6 +132,8 @@ pub struct Expedition {
     pub ward: f32,
     pub coins: i32,
     pub log: Vec<String>,
+    /// Kills not yet shown, oldest first. Whoever presents the run takes them.
+    pub kills: Vec<Kill>,
     pub outcome: Option<Outcome>,
     travel: f32,
     strong_hits: u32,
@@ -171,6 +183,7 @@ impl Expedition {
                 "The party sets out, attuned to {}.",
                 element.name()
             )],
+            kills: Vec::new(),
             outcome: None,
             travel: rules.travel_secs,
             strong_hits: 0,
@@ -406,6 +419,11 @@ impl Expedition {
             self.coins += coins;
             self.log
                 .push(format!("{} is defeated (+{} coins)", foe.name, coins));
+            self.kills.push(Kill {
+                foe: target,
+                max_health: foe.max_health,
+                coins,
+            });
         }
     }
 }
@@ -499,6 +517,24 @@ mod tests {
         println!("log lines per run: {}", ticks / (seeds as usize * 3));
         assert!((0.25..=0.75).contains(&rate), "win rate {rate}");
         assert!(best - worst >= 0.2, "element choice barely matters");
+    }
+
+    /// Every enemy brought down is reported once, with the coins it dropped.
+    #[test]
+    fn every_kill_is_reported_with_its_coins() {
+        let data = Data::load();
+        for seed in 0..100 {
+            let run = run(&data, seed, 0, Element::Plant);
+            let outcome = run.outcome.clone().unwrap();
+            let defeated = run.log.iter().filter(|line| line.contains("is defeated")).count();
+            assert_eq!(run.kills.len(), defeated);
+            assert_eq!(run.kills.iter().map(|k| k.coins).sum::<i32>(), outcome.coins);
+            let fought: usize = run.plan.encounters[..outcome.cleared].iter().map(Vec::len).sum();
+            assert!(run.kills.len() >= fought);
+            for kill in &run.kills {
+                assert!(kill.foe < 3 && kill.max_health > 0, "{kill:?}");
+            }
+        }
     }
 
     #[test]

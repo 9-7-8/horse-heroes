@@ -11,7 +11,7 @@ use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
 use crate::sim::loot::{Horse, score};
 
 pub mod menu;
-mod scene;
+pub mod scene;
 
 /// Sim step. Fixed, so a run does not depend on the frame rate.
 const TICK: f32 = 0.1;
@@ -48,6 +48,15 @@ impl SceneView {
     }
 }
 
+/// An enemy went down: where its body was, the coins it dropped, and where
+/// the enemies still standing are. `fx` turns it into drops.
+#[derive(Message)]
+pub struct Killed {
+    pub at: Vec3,
+    pub coins: i32,
+    pub standing: Vec<Vec3>,
+}
+
 pub struct GamePlugin {
     pub seed: u64,
 }
@@ -56,6 +65,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Game::new(self.seed))
             .init_resource::<SceneView>()
+            .add_message::<Killed>()
             .add_plugins(scene::ScenePlugin)
             .add_systems(Update, (input, advance).chain());
     }
@@ -142,6 +152,12 @@ impl Game {
         matches!(self.screen, Screen::Camp { .. })
     }
 
+    /// Whether the party is walking. It stands still to fight, and the
+    /// ground and whatever lies on it stand still with it.
+    pub fn party_moving(&self) -> bool {
+        !matches!(&self.screen, Screen::Trail(expedition) if expedition.phase == Phase::Fighting)
+    }
+
     /// Dev aid: start the wait in town again, so the menu tour can finish
     /// its walk round town before the party leaves by itself.
     pub fn hold_in_town(&mut self) {
@@ -218,7 +234,7 @@ fn input(
     }
 }
 
-fn advance(time: Res<Time>, mut game: ResMut<Game>) {
+fn advance(time: Res<Time>, mut game: ResMut<Game>, mut killed: MessageWriter<Killed>) {
     let game = &mut *game;
     let dt = time.delta_secs();
     match &mut game.screen {
@@ -233,6 +249,19 @@ fn advance(time: Res<Time>, mut game: ResMut<Game>) {
             while game.accumulator >= TICK && expedition.phase != Phase::Finished {
                 game.accumulator -= TICK;
                 expedition.tick(&game.data, TICK);
+                for kill in std::mem::take(&mut expedition.kills) {
+                    killed.write(Killed {
+                        at: scene::enemy_centre(kill.foe, kill.max_health),
+                        coins: kill.coins,
+                        standing: expedition
+                            .foes
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, foe)| foe.health > 0)
+                            .map(|(i, foe)| scene::enemy_centre(i, foe.max_health))
+                            .collect(),
+                    });
+                }
             }
             if let Some(outcome) = expedition.outcome.clone() {
                 game.return_to_camp(outcome);

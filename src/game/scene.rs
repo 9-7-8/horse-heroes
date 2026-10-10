@@ -20,12 +20,14 @@ const SCENE_ANCHOR: f32 = 0.5;
 const ROAD_ANCHOR: f32 = 0.32;
 /// World units of width that stay in view however narrow the window is: the
 /// last horse to the furthest enemy, with a margin.
-const SCENE_WIDTH: f32 = 22.0;
-const SCROLL_SPEED: f32 = 2.5;
+pub const SCENE_WIDTH: f32 = 22.0;
+pub const SCROLL_SPEED: f32 = 2.5;
+/// The trail's depth, from its far edge to its near one.
+pub const TRAIL_DEPTH: f32 = 5.0;
 /// Scenery wraps around once it is this far left of the origin.
 const WRAP: f32 = 20.0;
 const HORSE_X: [f32; 3] = [-1.5, -4.5, -7.5];
-const ENEMY_X: [f32; 3] = [3.5, 6.0, 8.5];
+pub const ENEMY_X: [f32; 3] = [3.5, 6.0, 8.5];
 
 pub struct ScenePlugin;
 
@@ -85,7 +87,7 @@ fn setup(
 
     // Trail
     commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(4.0 * WRAP, 5.0))),
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(4.0 * WRAP, TRAIL_DEPTH))),
         MeshMaterial3d(materials.add(Color::srgb(0.10, 0.10, 0.10))),
     ));
 
@@ -257,7 +259,24 @@ fn frame(
     }
 }
 
-fn scroll(time: Res<Time>, mut scenery: Query<&mut Transform, With<Scrolling>>) {
+/// The side of an enemy's cube. Bigger enemies have more health.
+fn enemy_size(max_health: i32) -> f32 {
+    (max_health as f32).cbrt() / 3.5
+}
+
+/// The middle of the body of the enemy standing in place `slot`.
+pub fn enemy_centre(slot: usize, max_health: i32) -> Vec3 {
+    Vec3::new(ENEMY_X[slot], enemy_size(max_health) / 2.0, 0.0)
+}
+
+fn scroll(
+    time: Res<Time>,
+    game: Res<Game>,
+    mut scenery: Query<&mut Transform, With<Scrolling>>,
+) {
+    if !game.party_moving() {
+        return;
+    }
     for mut transform in &mut scenery {
         transform.translation.x -= SCROLL_SPEED * time.delta_secs();
         if transform.translation.x < -WRAP {
@@ -266,10 +285,13 @@ fn scroll(time: Res<Time>, mut scenery: Query<&mut Transform, With<Scrolling>>) 
     }
 }
 
-fn swing_legs(time: Res<Time>, mut legs: Query<(&Leg, &mut Transform)>) {
+fn swing_legs(time: Res<Time>, game: Res<Game>, mut legs: Query<(&Leg, &mut Transform)>) {
+    // Standing to fight, the legs come to rest under the horse.
+    let swing = if game.party_moving() { 0.45 } else { 0.0 };
+    let ease = (time.delta_secs() * 12.0).min(1.0);
     for (leg, mut transform) in &mut legs {
-        let angle = (time.elapsed_secs() * 7.0 + leg.phase).sin() * 0.45;
-        transform.rotation = Quat::from_rotation_z(angle);
+        let angle = (time.elapsed_secs() * 7.0 + leg.phase).sin() * swing;
+        transform.rotation = transform.rotation.slerp(Quat::from_rotation_z(angle), ease);
     }
 }
 
@@ -312,10 +334,8 @@ fn sync_enemies(
             }
             continue;
         };
-        // Bigger enemies have more health.
-        let size = (foe.max_health as f32).cbrt() / 3.5;
-        transform.scale = Vec3::splat(size);
-        transform.translation.y = size / 2.0;
+        transform.scale = Vec3::splat(enemy_size(foe.max_health));
+        transform.translation = enemy_centre(body.0, foe.max_health);
         let wanted = match foe.element {
             Element::Fire => &elements.fire,
             Element::Ice => &elements.ice,

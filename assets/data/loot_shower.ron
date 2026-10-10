@@ -1,0 +1,42 @@
+// The loot shower: every feel number of a drop leaving a body, flying, landing
+// and coming to rest. Change one value at a time and look at it
+// (procedures/tune-loot-feel.txt); F3 or --burst throws the same test burst
+// every time. Lengths are world units (a horse is about 2 long), times are
+// seconds, speeds are units a second. A pair is (least, most), rolled per piece.
+(
+    // Burst. Pieces leave one after another, this far apart, in a fan this
+    // wide that opens towards the party.
+    stagger_secs: 0.035,
+    fan_degrees: 220,
+
+    // Arc.
+    up_speed: (7.0, 10.0),
+    out_speed: (0.8, 2.4),
+    gravity: 30.0,
+    // Tumbling in the air, in turns a second.
+    spin: (1.5, 3.0),
+
+    // Landing. A piece bounces this many times and rests on the next touch.
+    // Each bounce keeps `bounce` of its upward speed and `grip` of its speed
+    // along the ground and of its spin.
+    bounces: 2,
+    bounce: 0.42,
+    grip: 0.55,
+    // How far a landing flattens a piece (0 none, 1 flat), and for how long.
+    squash: 0.4,
+    squash_secs: 0.16,
+    // Time to lie down flat once it has stopped.
+    settle_secs: 0.2,
+
+    // The pieces. One coin piece per coin a kill drops, up to the most shown.
+    coin_radius: 0.17,
+    coin_thickness: 0.07,
+    coin_colour: "e8c04a",
+    most_pieces: 16,
+    // No piece comes to rest this close to an enemy still standing.
+    keep_clear: 1.0,
+
+    // The test burst.
+    burst_pieces: 40,
+    burst_seed: 4,
+)
