@@ -1,0 +1,64 @@
+NEXT-THING
+==========
+Starts on: "next thing", "keep going", "build the next part", "what's next",
+           or a session opened with no particular ask.
+Leaves:    one thing finished, checked, committed and its issue closed - or a
+           plain statement of what stopped it.
+
+Pick one thing, by the order below, and start on it without asking. The order
+is the owner's (2026-10-10): bugs, then tests, then features.
+
+BEFORE PICKING
+  - git status. A dirty tree is finished or set aside first, not built on.
+  - Read PICK UP in the newest docs/session-log/ file.
+  - cargo check and cargo test (build-and-run.txt). Red is tier 1.
+
+THE ORDER
+1. Bugs.
+   a. A red build, a failing test, or a warning nobody has dealt with.
+   b. Open issues labelled "bug":
+          gh issue list --repo 9-7-8/horse-heroes --label bug --state open
+      Earliest release milestone first, then lowest number.
+   c. A bug met on the way that has no issue: file it (label "bug", the
+      current release's milestone and vX.Y.Z label), then fix it.
+   A bug fix comes with the test that would have caught it, when the bug is
+   in src/sim/.
+
+2. Tests. Only when tier 1 is empty.
+   a. Look for sim code no test reaches: a public function in src/sim/ with
+      no test, a data file nothing validates, a rule in docs/ or vision.md
+      the sim is meant to keep and nothing asserts.
+   b. Write the tests and run them. A test that fails has found a bug: back
+      to tier 1.
+   Bound it: cover what exists today, in one sitting. Do not write tests for
+   systems that are not built, and do not test Bevy rendering by unit test -
+   that is checked by running and looking (build-and-run.txt, step 4).
+
+3. Features. Only when tiers 1 and 2 are empty.
+   a. The earliest release milestone with open issues (CLAUDE.md, Planning).
+   b. Within it: what PICK UP names, if it is in that release; otherwise an
+      issue the others in the release depend on; otherwise the lowest number.
+   c. Skip an issue labelled "proposed" or "decision" - those are the
+      owner's to rule on, through the question tool, per release. Skip
+      "epic" and "milestone" issues; they close when their parts do.
+   d. Read the issue, the docs/philosophy/ file it cites, and vision.md where
+      it touches design. For Bevy code, read the pinned version's docs first.
+
+DOING IT
+  - One thing. If it turns out to be several, do the first and file the rest.
+  - Check it by build-and-run.txt, with the cheapest step that proves it;
+    anything visible is run and looked at.
+  - Commit code and data, with "Closes #N" when the issue's "done when" is
+    met in full. If only part is met, say which part in a comment on the
+    issue and leave it open.
+  - docs/<system>.md for a system built or changed.
+
+REPORT
+  Which tier the thing came from, what it was, and how it was checked.
+  If tiers 1 and 2 were empty, say so in a few words; do not list checks.
+
+DO NOT
+  - Start a feature over a red build or a known bug.
+  - Pick by what is most interesting; the order above decides.
+  - Build on an issue labelled "proposed" as if it were confirmed.
+  - Push. Pushing belongs to end-session.txt.
