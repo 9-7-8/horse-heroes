@@ -1,0 +1,58 @@
+SESSION LOG 2026-10-10 11:16 - the rarity signal
+================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty. The part was the feature PICK UP named, #6.
+  - The rarity signal (62130c9, closes #6).
+    Sim: the enemy whose fall wins a trail drops the run's gear piece
+    (Kill::gear). Rarity is no longer an enum; a piece names its tier by
+    its place in gear.ron, so a new tier is a line of data.
+    Fx: a gear piece is a box in its rarity's colour, glowing and larger up
+    the tiers; a tier with a beam gets a column of light that rises as the
+    piece is thrown. Each rarity's look is in gear.ron beside its weights.
+    The test burst now throws 3 Common, 2 Uncommon and 1 Rare with its 40
+    coins.
+    Tested: cargo test, 42 pass (4 new: the winning kill carries the gear
+    and no other does; the test burst has every rarity; the seed puts the
+    gear among the coins; rarity colours get lighter up the tiers and stay
+    40 degrees of hue from the element colours and the coins' gold).
+    Seen running: the test burst, in screenshots I read at 1.6, 2.2, 2.5,
+    2.8 and 4.5 s. The three tiers are told apart at rest, and at 2.8 s
+    the Rare is still tumbling with its beam at full height.
+  - docs/loot-shower.md (Rarity), docs/expedition.md, build-and-run.txt;
+    gallery docs/gallery/2026-10-10-rarity-signal/ (2 pictures).
+
+DECIDED
+  Hers: nothing new.
+  Made for her, to be corrected:
+  - Colours: Common dull grey-brown (7d766b), Uncommon violet (a884ff),
+    Rare pink (ff8fe0). Picked to keep clear of fire red, ice blue, plant
+    green and coin gold. None has had her verdict.
+  - Only Rare has a beam: 7 units tall, 0.16 wide, rising in 0.15 s.
+  - Gear is a plain box, whatever its slot. Silhouette and ornament by
+    rarity (her note on #6) are not built: size and glow stand in.
+  - Gear is thrown like a coin, in a shuffled turn, at coin speeds.
+  - A lost trail's gear piece stays a line in town; nothing drops it.
+
+FOUND
+  - A bash heredoc in this tool fails on apostrophes even with a quoted
+    marker. For a scripted edit, write the script with the file tool.
+  - Common is quiet enough to be hard to pick out in a pile of coins.
+    That fits "Common is modest", but it is the weakest of the three.
+  - Frame time is unchanged: 33.4 ms a frame with 46 pieces and one beam.
+
+NOT DONE
+  - A real winning kill dropping its gear on the road was not looked at:
+    only the test burst was. The path differs by one function
+    (launch_kills) and the sim side is tested.
+  - Nobody has watched it move, and the owner has not looked at it.
+  - Greyscale was checked by the luma test, not by looking at a grey
+    picture.
+  - #205 still waits on #8. #199 still waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. With no bug filed it lands on #7, the
+  pickup vacuum: drops pause on the ground, then fly to the party.

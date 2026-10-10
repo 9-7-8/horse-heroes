@@ -41,7 +41,10 @@ first if it is an upgrade.
   Mage: Ward, halves damage taken for 4 s every 8 s.
 - One gear drop per run if at least one encounter was cleared; a win shifts
   the rarity weights up. Each piece fits one named horse and one of three
-  slots (Head, Body, Saddle).
+  slots (Head, Body, Saddle). On a win the piece comes out of the last
+  enemy to fall (`Kill::gear`); on a loss it is only reported in town.
+- A rarity is a line in `gear.ron`, lowest first, and a piece names its
+  tier by its place in that list. There is no rarity enum in the code.
 - A win raises the trail level: enemies gain 15% health and attack per level,
   drops gain one stat point per level.
 - The sim steps in fixed 0.1 s ticks. Trail, fight and drop each follow from
