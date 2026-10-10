@@ -1,0 +1,80 @@
+SESSION LOG 2026-10-10 13:45 - the horse built to the base proportions
+======================================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: build green, 83 tests, no open bug.
+  - Tier 3, #187, the one PICK UP named (3b17d97; the issue stays open,
+    see NOT DONE):
+      - assets/data/horse_shape.ron: every length of the horse as a
+        ratio of the height at the withers, with the brief's window for
+        each, the landmark heights, and the linked pair (depth at the
+        girth and clearance under the chest make the height).
+      - src/sim/horse_shape.rs turns that into lengths for one height
+        and then into pieces drawn in the side view: trunk, arched neck,
+        tapering head, ears, legs jointed at the landmarks, dock. Mane,
+        forelock, tail hair and feathering are pieces of their own.
+      - src/game/scene.rs makes a mesh for each piece. The box horse and
+        its rolled proportions are gone; the three horses are the base
+        horse in three shades.
+      - --bare starts with the hair hidden; F5 toggles it.
+    Tested: cargo test, 88 pass (five new, in sim/horse_shape.rs).
+    Seen running, in still pictures read by me: --seed 6 at 3 (walking
+    in town), at 17 with and without --bare (standing in a fight) and at
+    66.0 (an exhausted horse lying down); --seed 3 at 45.6 (an exhausted
+    horse walking on). No warning or error in the logs. Six pictures are
+    in docs/gallery/2026-10-10-horse-build/.
+  - docs/horse-model.md (new); a line each in expedition.md,
+    death-events.md and build-and-run.txt.
+  - #187: a comment saying what is met and what waits, and the label
+    "decision" so that next-thing.txt does not land on it again.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - Tapering pieces, not boxes: a piece is the solid between two edges
+    of the side view. A head that tapers and a neck that is broad at the
+    base cannot be had from boxes. Still flat colours and no model file.
+  - The clearance and the tail's length are worked out, not stored, so
+    the links cannot be broken by editing one number.
+  - Every horse is the base horse. Varying inside the windows is #63;
+    the function for it exists and only the tests call it.
+  - Numbers the brief does not give (face angle, head depth, neck width
+    from the front, leg thickness, mane length) are first guesses, in
+    their own block at the end of horse_shape.ron.
+  - Hooves and hair are darker shares of the body's grey. Colour is the
+    genetics' business, not this issue's.
+
+FOUND
+  - The here-document failure of the last log again: a long one with
+    apostrophes in it fails in the Bash tool. A note is now in
+    build-and-run.txt: write the script with the Write tool, under
+    target/, and run it.
+  - The first feathering covered the hooves like boots; it was made
+    smaller once.
+  - In town the horses walk on the spot (their legs swing while the
+    scene stands still). Not new, not looked into, no issue filed.
+
+NOT DONE
+  - #187's second "done when" is the owner's judgment of the picture
+    with the hair hidden and shown. Not given, so the issue is open.
+  - Nobody has watched the new horse move.
+  - At the gameplay camera the trunk reads deep and the legs short: the
+    camera looks down on the back. The numbers are the brief's and were
+    left alone. The hind legs are the roughest part.
+  - The mane hangs from the neck and turns with it, so on a lowered
+    neck it sticks out forward.
+  - Carried over: nobody has listened to the sounds (#10 waits on the
+    owner, F4); nobody has watched a death or the screen response move;
+    the fountains are not tuned; a place left open on the road still
+    cuts a beam off; a lost trail is not held on the road (#176); #199
+    waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. #187 and #10 wait on the owner and are
+  skipped by their "decision" label; if she has looked at the horse,
+  act on what she said first. Five other issues are open in 0.2.0: #229,
+  #233, #238, #240, #241. Read #229 and #233 to see whether they build
+  on #238, the whole menu skeleton; if they do, #238 is next, otherwise
+  #229.

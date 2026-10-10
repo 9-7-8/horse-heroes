@@ -57,8 +57,8 @@ low and a shorter stride. In town every horse is on its feet again. The
 pose's numbers are the `TIRED_` constants at the top of `scene.rs`.
 
 The neck and head hang from one joint at the withers (`Neck`), which is all
-the pose needs of the model; a rebuilt horse (#187) has to keep that joint,
-its leg length and its `Leg`s.
+the pose needs of the model; the rebuilt horse ([horse-model.md](horse-model.md)) keeps that joint,
+its `Leg`s, and a leg length, which is the clearance under its chest.
 
 ## A party driven back
 

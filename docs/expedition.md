@@ -24,7 +24,8 @@ first if it is an upgrade.
 | Seeded RNG | `src/sim/rng.rs` |
 | Camp/trail loop, input, report text | `src/game/mod.rs` |
 | Where the report and the controls are shown | `src/game/menu/shell.rs` ([menu-shell.md](menu-shell.md)) |
-| Camera, trail, box horses, enemy cubes | `src/game/scene.rs` |
+| Camera, trail, enemy cubes | `src/game/scene.rs` |
+| The horses' shape | `assets/data/horse_shape.ron`, `src/sim/horse_shape.rs`, `src/game/scene.rs` ([horse-model.md](horse-model.md)) |
 | A kill's coins flying out and landing | `src/fx/drops.rs` ([loot-shower.md](loot-shower.md)) |
 | An enemy's death, an exhausted horse | `src/fx/death.rs`, `src/game/scene.rs` ([death-events.md](death-events.md)) |
 
@@ -64,5 +65,5 @@ trail, 44% with the worst. `first_trail_balance` fails if this drifts out of
 ## Not built yet
 
 Horse choice per class, buttons (keys only), attack and hit animation, the
-rest of the loot shower (gear in it, rarity, pickup), sound, saving, spending coins, a second trail, real procedural
-horse models (the horses are boxes with rolled proportions).
+rest of the loot shower (gear in it, rarity, pickup), sound, saving, spending coins, a second trail, horses that
+differ in shape (all three are the base horse, [horse-model.md](horse-model.md)).

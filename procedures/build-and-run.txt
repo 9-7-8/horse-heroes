@@ -47,6 +47,9 @@ Use the cheapest step that can prove the change:
    with a horse lying exhausted beside it. --seed 3 at 45.6 is an
    exhausted horse walking on; --seed 1 at 72.8 is a lost trail, its
    enemy drawing off.
+   The horses (docs/horse-model.md): --bare starts with their hair hidden
+   and F5 toggles it. They stand still in a fight (IDLE_SHOT_AT=17) and
+   are walking in town at 3, so a picture of the build is taken at 17.
    The test burst's flash, on the road: --burst --burst-at 14 at 14.36.
    A flash lasts a third of a second, so a picture of one is a matter of
    a few hundredths.
@@ -72,6 +75,10 @@ NOTES
     has, and is checked to be absent first. %TEMP% keeps other sessions'
     hh_*.py; on 2026-10-10 a write to hh_docs.py was refused, the old file
     of that name ran instead and edited two philosophy files (undone).
+  - A long here-document in the Bash tool fails here with "unexpected EOF
+    while looking for matching quote" (three times by 2026-10-10, each
+    with apostrophes in its text). Write the script with the Write tool,
+    under target/, and run that.
   - cargo is not always on the PATH of the shell this tool starts (found
     2026-10-10, in both PowerShell and Git Bash). When "cargo" is not
     recognised, call it by its full path: ~/.cargo/bin/cargo.exe.
