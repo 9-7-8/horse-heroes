@@ -25,6 +25,7 @@ first if it is an upgrade.
 | Camp/trail loop, input, report text | `src/game/mod.rs` |
 | Where the report and the controls are shown | `src/game/menu/shell.rs` ([menu-shell.md](menu-shell.md)) |
 | Camera, trail, box horses, enemy cubes | `src/game/scene.rs` |
+| A kill's coins flying out and landing | `src/fx/drops.rs` ([loot-shower.md](loot-shower.md)) |
 
 ## Rules as built
 
@@ -55,5 +56,5 @@ trail, 44% with the worst. `first_trail_balance` fails if this drifts out of
 ## Not built yet
 
 Horse choice per class, buttons (keys only), attack and hit animation, the
-loot shower, sound, saving, spending coins, a second trail, real procedural
+rest of the loot shower (gear in it, rarity, pickup), sound, saving, spending coins, a second trail, real procedural
 horse models (the horses are boxes with rolled proportions).

@@ -1,0 +1,65 @@
+SESSION LOG 2026-10-10 11:05 - drops as physical objects
+========================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty. The part was the feature PICK UP named, #4.
+  - Drops as physical objects (64befed, closes #4). The sim reports each
+    kill; src/fx/drops.rs throws one coin piece per coin from the body.
+    Pieces leave one after another in a fan open towards the party, arc,
+    tumble, bounce twice with a squash, stop and lie flat.
+    Tested: cargo test, 38 pass (7 new: kills reported with their coins;
+    the feel data; same seed same burst; stagger and speeds; spread over
+    the fan; every piece bounces and rests on the trail; no piece rests on
+    a standing enemy).
+    Seen running: the test burst in the air and at rest, and a real kill
+    on the road (--seed 6, at 23 s), in screenshots I read. Motion itself
+    (the arc, the bounce, the squash) I have only seen as stills and as
+    numbers in tests, never moving.
+  - Every feel number is in assets/data/loot_shower.ron.
+  - The test burst: F3, or --burst. 40 pieces from a fixed seed; logs its
+    frame times beside those with none in the air. Measured here: mean
+    33.4 ms a frame with the burst and 33.4 ms without.
+  - docs/loot-shower.md; build-and-run.txt and tune-loot-feel.txt name the
+    burst; gallery docs/gallery/2026-10-10-drops/ (3 pictures).
+
+DECIDED
+  Hers: nothing new.
+  Made for her, to be corrected:
+  - The party stands still to fight: the ground stops scrolling and the
+    legs stop swinging. Before, both ran through a fight. Without this,
+    coins at rest slid against the marker stones.
+  - Drops are left behind when the party walks on: they move off left
+    with the ground, and are gone off screen. Nothing collects them (#7).
+  - Only coins are in the shower, one piece a coin, at most 16 a kill.
+    The gear piece is still rolled at the trail's end and shown in town.
+  - The fan opens towards the party, 220 degrees wide.
+  - Coins are pale gold (e8c04a). Rarity colours are #6.
+  - Every starting value in loot_shower.ron is my guess. None has had her
+    verdict; tune-loot-feel.txt is how they get one.
+  - F3 is the test burst's key (F2 is the parts screen).
+
+FOUND
+  - The game runs at about 30 frames a second on this machine with or
+    without a burst (33.4 ms a frame). Not looked into: it may be the
+    display or the window being unattended. It means "holds frame rate"
+    was checked as "no slower than without", not against 60.
+  - The first out_speed I wrote sent some pieces past the edge of the
+    trail; the test caught it and the value was lowered.
+  - A bash heredoc swallows a backslash at the end of a line unless its
+    marker is quoted, and a quoted one failed on apostrophes in the tool.
+    Use the edit tool for code.
+
+NOT DONE
+  - Nobody has watched a burst move. The owner has not looked at it.
+  - The last kill of a trail returns the party to town at once, so its
+    burst is seen only while the scene shrinks. The pause after the kill
+    is #9; the full fountain is #8.
+  - #205 still waits on #8. #199 still waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. With no bug filed it lands on #6, the
+  rarity signal. Rarity belongs to gear and gear is not in the shower yet,
+  so its first step is the sim dropping the gear piece from a kill.

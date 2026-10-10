@@ -29,6 +29,9 @@ Use the cheapest step that can prove the change:
    --window WxH opens the window at that size in logical pixels (the
    smallest allowed is 1120x640). The party sets out 12 s after launch,
    so IDLE_SHOT_AT=17 is a picture of the road view in a fight.
+   --burst throws the loot shower's test burst 1 s after launch (F3 throws
+   it at any time) and logs its frame times (docs/loot-shower.md); a
+   picture at IDLE_SHOT_AT=2.2 is the burst in the air, at 4.5 at rest.
    IDLE_TOUR walks the menus instead (docs/menu-shell.md): it presses
    through every place and tab, then the road view and the move between
    the layouts, saves a numbered PNG of each into the folder it names
