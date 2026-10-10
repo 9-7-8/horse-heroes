@@ -14,6 +14,9 @@ fn main() {
             ..default()
         }))
         .add_plugins(game::GamePlugin { seed: seed() })
+        .add_plugins(game::menu::MenuPlugin {
+            show_parts: std::env::args().any(|arg| arg == "--parts"),
+        })
         .add_plugins(dev_screenshot::DevScreenshotPlugin)
         .run();
 }

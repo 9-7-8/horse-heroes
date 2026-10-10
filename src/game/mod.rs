@@ -6,6 +6,7 @@ use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
 use crate::sim::loot::{Horse, score};
 
+pub mod menu;
 mod scene;
 
 /// Sim step. Fixed, so a run does not depend on the frame rate.

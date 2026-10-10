@@ -24,6 +24,8 @@ Use the cheapest step that can prove the change:
    Screenshot (src/dev_screenshot.rs): with IDLE_SHOT set, the game saves one
    PNG at 3 s and exits by itself at 5 s, so it can run in the foreground:
        $env:IDLE_SHOT = "screenshots/name.png"; cargo run *> run.log
+   IDLE_SHOT_AT sets the second it is taken (default 3). --seed N fixes the
+   run; --parts opens the menu parts screen (docs/menu-parts.md).
    screenshots/ and *.log are git-ignored. The GOG Galaxy Vulkan-layer ERROR
    line at startup is noise from that overlay, not from the game.
 
