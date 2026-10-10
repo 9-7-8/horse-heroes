@@ -1,0 +1,39 @@
+BUILD-AND-RUN
+=============
+Starts on: "run the game", "build it", "does it work", and after any change.
+Leaves:    a statement of what was actually checked, and how.
+
+Use the cheapest step that can prove the change:
+
+1. cargo check
+   Seconds. Proves it compiles. Enough for a refactor with no behaviour change.
+
+2. cargo test
+   For anything in src/sim/ - loot rolls, stat maths, offline progress. A drop
+   table is tested by rolling it many times with a fixed seed and asserting on
+   the distribution, not by playing until something drops.
+
+3. cargo run
+   For anything visible. A Bevy window blocks the shell, so run it in the
+   background and read its output from a log file rather than waiting on it.
+   Bevy logs warnings and errors to stderr - read them; a window that opens is
+   not a clean run.
+
+4. Look at it. For a visual change, take a screenshot and read the image, or
+   ask the owner to look. Say which of the two happened.
+   Screenshot (src/dev_screenshot.rs): with IDLE_SHOT set, the game saves one
+   PNG at 3 s and exits by itself at 5 s, so it can run in the foreground:
+       $env:IDLE_SHOT = "screenshots/name.png"; cargo run *> run.log
+   screenshots/ and *.log are git-ignored. The GOG Galaxy Vulkan-layer ERROR
+   line at startup is noise from that overlay, not from the game.
+
+REPORT
+  State which steps ran. "Compiles" and "works" are different claims - make
+  the one the evidence supports.
+
+DO NOT
+  - Pipe a long cargo command through a filter and trust the exit code; the
+    pipe reports the filter's. Log to a file and read the real exit code.
+  - Leave a game window running at the end of a turn without saying so.
+  - Kill anything by name or pattern (CLAUDE.md rule 3). Close the game window
+    you launched by the process ID you recorded when you started it.

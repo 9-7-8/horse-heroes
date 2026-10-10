@@ -1,0 +1,22 @@
+PROCEDURES
+==========
+One routine per file. Read the file and follow it; do not work from memory.
+
+setup-toolchain.txt   "set up the project", "install rust"
+                      Install Rust, create the Bevy project, get a window open.
+                      DONE 2026-10-09 on this machine. Only needed again for a
+                      second machine or a fresh clone.
+
+build-and-run.txt     "run the game", "build it", "does it work"
+                      The working loop: check, test, run, read the output.
+
+tune-loot-feel.txt    "the drops feel off", "tune the loot shower", "more juice"
+                      Change one feel parameter at a time and look at the result.
+
+end-session.txt       "end the session", "wrap up", "we're done for today"
+                      Stop what we started, build green, code commit, update
+                      the record, a new session log, docs commit, verify clean,
+                      summarise.
+
+Not written yet (write each the second time the routine comes up):
+  add-an-item-type, add-a-monster, balance-pass, release-a-build

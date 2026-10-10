@@ -1,0 +1,16 @@
+// Horse gear. A drop spends `points` stat points at random; a point spent on
+// health is worth `health_per_point`. `win_weight` replaces `weight` when the
+// final enemy was defeated.
+(
+    health_per_point: 5,
+    rarities: [
+        (rarity: Common,   prefix: "Trail-worn",  weight: 70, win_weight: 45, points: (2, 3)),
+        (rarity: Uncommon, prefix: "Fae-touched", weight: 25, win_weight: 40, points: (4, 5)),
+        (rarity: Rare,     prefix: "Starlit",     weight: 5,  win_weight: 15, points: (7, 8)),
+    ],
+    bases: [
+        (slot: Head,   names: ["Bridle", "Browband"]),
+        (slot: Body,   names: ["Blanket", "Barding"]),
+        (slot: Saddle, names: ["Saddle", "Saddle Pad"]),
+    ],
+)

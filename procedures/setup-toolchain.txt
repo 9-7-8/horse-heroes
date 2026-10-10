@@ -1,0 +1,54 @@
+SETUP-TOOLCHAIN
+===============
+Starts on: "set up the project", "install rust", or the first session.
+Leaves:    a Bevy project that opens a window, committed to git.
+
+DONE on 2026-10-09 on this machine (SKYFALLER). State now:
+  - Rust 1.99.0 stable-x86_64-pc-windows-msvc, installed with winget/rustup.
+  - Bevy =0.20.0 pinned in Cargo.toml; the project is a git repo.
+  - The window opens and shows the isometric ground and hero cube.
+  - First full build took about 16 minutes; later builds take seconds.
+  - A shell that predates the install needs C:\Users\Isabel\.cargo\bin added
+    to PATH by hand.
+The steps below are kept only for setting up a second machine or a fresh clone.
+
+STEPS
+1. Ask the owner before installing. Installing Rust changes the machine, so it
+   is her call - one question, with the tool.
+
+2. Install Rust:
+       winget install Rustlang.Rustup
+   A shell opened before the install does not see the new PATH. Use a new
+   shell, or call C:\Users\Isabel\.cargo\bin\cargo.exe by full path.
+   Confirm with: rustc --version ; cargo --version
+   The default host must be x86_64-pc-windows-msvc (rustup show).
+
+3. Find the current Bevy release - do not assume one. Read crates.io/crates/bevy
+   and the release notes for that version. Record the version you pin in
+   CLAUDE.md under Stack.
+
+4. Create the project in place:
+       cargo init --name horse_heroes
+       cargo add bevy
+   then git init if cargo did not, and add a .gitignore covering /target.
+
+5. Make iteration fast - the first Bevy build takes minutes, later ones must
+   not. In Cargo.toml:
+       [profile.dev]
+       opt-level = 1
+       [profile.dev.package."*"]
+       opt-level = 3
+   Consider Bevy's dynamic_linking feature for dev builds only; read the
+   pinned version's setup guide for the Windows caveats before turning it on,
+   and never ship a build with it.
+
+6. Write the smallest thing that proves the stack: a window, an isometric
+   (orthographic) camera, a ground plane, one cube, one light. Run it and look
+   at it (build-and-run.txt).
+
+7. Commit. Then update the "State found" block above to what is true now, or
+   delete this procedure and its index line if it will never be needed again.
+
+DO NOT
+  - Install anything without the owner's yes.
+  - Stop a build by killing processes by name or pattern. See CLAUDE.md rule 3.

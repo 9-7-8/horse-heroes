@@ -1,0 +1,30 @@
+// Combat and expedition rules. Times are in seconds.
+(
+    strong_multiplier: 1.5,
+    weak_multiplier: 0.75,
+
+    attack_interval: 1.5,
+
+    // Ranger: bonus hit on the current target.
+    focused_shot_cooldown: 4.0,
+    focused_shot_multiplier: 2.5,
+
+    // Wizard: elemental damage to every enemy.
+    burst_cooldown: 5.0,
+    burst_multiplier: 2.0,
+
+    // Mage: the party takes less damage for a while.
+    ward_cooldown: 8.0,
+    ward_duration: 4.0,
+    ward_reduction: 0.5,
+
+    travel_secs: 4.0,
+    ordinary_encounters: 3,
+
+    // A fairy spring that heals the party after one encounter.
+    bonus_chance: 0.25,
+    bonus_heal: 0.3,
+
+    // Enemy health and attack grow by this fraction per trail level.
+    level_scaling: 0.15,
+)

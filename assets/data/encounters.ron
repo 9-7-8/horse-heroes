@@ -1,0 +1,15 @@
+// Hand-authored encounter pieces. A trail is some ordinary ones in a rolled
+// order, then one final.
+(
+    ordinary: [
+        ["thornling", "thornling"],
+        ["gloom_sprite", "gloom_sprite", "gloom_sprite"],
+        ["mire_toad"],
+        ["thornling", "gloom_sprite"],
+        ["mire_toad", "gloom_sprite"],
+    ],
+    finals: [
+        ["corrupted_stag"],
+        ["hollow_wolf"],
+    ],
+)

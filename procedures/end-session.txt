@@ -1,0 +1,68 @@
+END-SESSION
+===========
+Starts on: "end the session", "wrap up", "we're done for today".
+Leaves:    a building, committed tree; a session log saying where to pick up;
+           nothing of ours still running; a short summary in chat.
+
+Work the steps in order. If a step fails, fix it or say plainly that it is
+being left broken and why - never skip it silently.
+
+STEPS
+1. Stop what this session started.
+   Close any game window or background cargo run by the process ID recorded
+   when it was launched. Never by name or pattern (CLAUDE.md rule 3). If
+   something is running that this session did not start, leave it and tell
+   the owner.
+
+2. Build green.
+       cargo check
+       cargo test
+   Read the real exit codes (build-and-run.txt). If anything visible changed
+   this session and has not been looked at, take one screenshot run now and
+   read the image. Warnings introduced this session are fixed, not left.
+
+3. Code commit.
+   git status, then git diff - read what is actually going in. Commit code and
+   data together with a message saying what changed and why. Nothing from
+   /target, /screenshots or *.log belongs in it; if one shows up, fix
+   .gitignore rather than adding it. If the tree does not build and cannot be
+   fixed now, commit it on a branch named wip-<slug>, not on the main branch.
+
+4. Bring the written record up to date - only what this session made untrue.
+   - docs/<system>.txt for any system built or changed (how it works now).
+   - procedures/: a routine done for the second time gets its file and its
+     INDEX.txt line; a procedure that misled this session gets corrected.
+   - CLAUDE.md: only if a standing rule, the pinned Bevy version or the layout
+     changed. It is not a log.
+   - Memory: save what the owner corrected or asked for as a standing thing;
+     delete any memory that is no longer true.
+
+5. Write the session log: a NEW file
+       docs/session-log/<YYYY-MM-DD>-<HHMM>-<slug>.txt
+   Never append to an older one. Keep it short, with these headings:
+       ASKED       what the owner asked for, in her words where possible
+       DONE        what was built, each with how it was checked
+                   (compiled / tested / seen running / owner looked)
+       DECIDED     design calls she made, and any made for her - say which
+       FOUND       bugs, API quirks, surprises
+       NOT DONE    what was started and left, what was never run or looked at
+       PICK UP     the first thing the next session should do
+   The next session reads PICK UP before anything else, so make it one
+   concrete action, not a list of themes.
+
+6. Docs commit. Commit steps 4 and 5 separately from the code.
+   There is no git remote as of 2026-10-09, so there is nothing to push. If
+   one has been added since, push both commits and say so.
+
+7. Verify clean. git status shows nothing to commit; no process this session
+   launched is still alive.
+
+8. Summarise in chat, result first, a few lines: what works now, what is
+   unverified, what to pick up. The detail is already in the log.
+
+DO NOT
+  - End on a red build without saying so in both the log and the summary.
+  - Write "works" for something that was only compiled.
+  - Tidy, refactor or start anything new during this routine.
+  - Ask the owner anything in prose at the end; a real question goes through
+    the question tool before the summary.

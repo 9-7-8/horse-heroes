@@ -1,0 +1,6 @@
+// The starting party: one horse per class.
+[
+    (name: "Juniper", class: Ranger, stats: (health: 40, attack: 6, defense: 1, elemental: 1)),
+    (name: "Morrow",  class: Wizard, stats: (health: 30, attack: 3, defense: 0, elemental: 5)),
+    (name: "Sable",   class: Mage,   stats: (health: 35, attack: 3, defense: 1, elemental: 2)),
+]

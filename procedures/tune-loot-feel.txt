@@ -1,0 +1,34 @@
+TUNE-LOOT-FEEL
+==============
+Starts on: "the drops feel off", "tune the loot shower", "more juice".
+Leaves:    one changed feel parameter, seen running, with the owner's verdict.
+
+Feel is the product (CLAUDE.md pillar 1) and it cannot be judged from code.
+
+WHAT MAKES A DROP FEEL GOOD - the parts to keep separately tunable
+  - Burst:   items leave the corpse together, fanned out, each on its own arc.
+             Stagger the launches by a few frames; simultaneous reads as one.
+  - Arc:     launch speed, angle spread, gravity, spin while airborne.
+  - Landing: a bounce or two, a settle, a small squash, a sound on contact.
+  - Rarity:  colour, a light beam for the top tiers, a distinct sound per
+             tier. The rare drop must be recognisable before it lands.
+  - Pickup:  a pause on the ground, then a vacuum toward the hero that
+             accelerates; a tick per item, pitch rising across a stream.
+  - Response: screen shake and a flash sized to the best item in the burst,
+             not to the count.
+  - Volume:  a big kill must hold up with dozens of items at once, both in
+             frame time and in legibility.
+
+STEPS
+1. Keep every feel number in one resource (or one data file) with a name, not
+   scattered as literals. If it is not there yet, move it there first.
+2. Make the scene repeatable: a debug key or startup flag that spawns a fixed
+   burst from a fixed seed, so two runs can be compared.
+3. Change ONE parameter. Run it. Look at it (build-and-run.txt step 4).
+4. Show the owner and ask, with the tool, offering the before, the after, and
+   a step further in the same direction.
+5. Write the value she picks into the defaults and commit.
+
+DO NOT
+  - Tune several parameters in one go; nobody can say which one helped.
+  - Call a feel change done on the strength of a build.
