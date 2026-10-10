@@ -406,13 +406,12 @@ pub fn report_text(game: &Game) -> String {
                 };
                 out += &format!(
                     "\nNEW GEAR: {} [{}, {}]  {}\n\
-                     \x20 fits {} the {}, who wears: {}{}\n",
+                     \x20 fits {}, who wears: {}{}\n",
                     gear.name,
                     game.data.gear.rarities[gear.rarity].name,
                     gear.slot.name(),
                     stats_line(gear.stats),
                     horse.name,
-                    horse.class.name(),
                     worn,
                     if game.drop_is_upgrade() {
                         "  (an upgrade)"

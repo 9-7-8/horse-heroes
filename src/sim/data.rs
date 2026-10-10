@@ -29,21 +29,13 @@ impl Element {
     }
 }
 
+/// Which one ability a horse has. Never shown to the player: there are no
+/// classes, and this goes when abilities are bought from a shared pool (#221).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 pub enum Class {
     Ranger,
     Wizard,
     Mage,
-}
-
-impl Class {
-    pub fn name(self) -> &'static str {
-        match self {
-            Class::Ranger => "Ranger",
-            Class::Wizard => "Wizard",
-            Class::Mage => "Mage",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]

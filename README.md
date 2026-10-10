@@ -10,8 +10,9 @@ plays itself, and can be nudged. Pictures: [`docs/gallery`](docs/gallery/README.
 
 ## What is in it
 
-- A party of three: a Ranger (single-target damage), a Wizard (damage to every
-  enemy) and a Mage (a ward that halves damage taken).
+- A party of three, each with one ability for now: Juniper's Focused Shot
+  (single-target damage), Morrow's Elemental Burst (damage to every enemy)
+  and Sable's Ward (halves damage taken).
 - Three elements: Fire beats Plant, Plant beats Ice, Ice beats Fire. You pick
   the party's element before each expedition and can see the trail ahead.
 - Generated expeditions: three encounters and a final enemy, different every

@@ -1,4 +1,5 @@
-// The starting party: one horse per class.
+// The starting party. `class` picks each horse's one ability until abilities
+// are bought from a shared pool (#221); it is never shown to the player.
 [
     (name: "Juniper", class: Ranger, stats: (health: 40, attack: 6, defense: 1, elemental: 1)),
     (name: "Morrow",  class: Wizard, stats: (health: 30, attack: 3, defense: 0, elemental: 5)),
