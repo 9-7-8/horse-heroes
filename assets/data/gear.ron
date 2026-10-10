@@ -1,6 +1,8 @@
 // Horse gear. A drop spends `points` stat points at random; a point spent on
 // health is worth `health_per_point`. `win_weight` replaces `weight` when the
 // final enemy was defeated.
+// No bridles, bits or reins: nobody rides these horses. The Saddle slot seats
+// a pet.
 (
     health_per_point: 5,
     rarities: [
@@ -9,7 +11,7 @@
         (rarity: Rare,     prefix: "Starlit",     weight: 5,  win_weight: 15, points: (7, 8)),
     ],
     bases: [
-        (slot: Head,   names: ["Bridle", "Browband"]),
+        (slot: Head,   names: ["Halter", "Fly Veil"]),
         (slot: Body,   names: ["Blanket", "Barding"]),
         (slot: Saddle, names: ["Saddle", "Saddle Pad"]),
     ],

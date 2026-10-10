@@ -74,3 +74,97 @@ pub fn roll_gear(data: &Data, rng: &mut Rng, won: bool, level: u32, party_size: 
         fits: rng.below(party_size as u32) as usize,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ROLLS: u32 = 100_000;
+
+    fn rarity_def(data: &Data, rarity: Rarity) -> &crate::sim::data::RarityDef {
+        data.gear.rarities.iter().find(|r| r.rarity == rarity).unwrap()
+    }
+
+    /// Roll the table many times and count each rarity.
+    fn rarity_counts(data: &Data, won: bool) -> Vec<u32> {
+        let mut rng = Rng::new(11);
+        let mut counts = vec![0; data.gear.rarities.len()];
+        for _ in 0..ROLLS {
+            let gear = roll_gear(data, &mut rng, won, 0, 3);
+            let i = data.gear.rarities.iter().position(|r| r.rarity == gear.rarity);
+            counts[i.unwrap()] += 1;
+        }
+        counts
+    }
+
+    #[test]
+    fn rarities_follow_their_weights() {
+        let data = Data::load();
+        for won in [false, true] {
+            let weight = |r: &crate::sim::data::RarityDef| if won { r.win_weight } else { r.weight };
+            let total: u32 = data.gear.rarities.iter().map(weight).sum();
+            let counts = rarity_counts(&data, won);
+            for (def, &count) in data.gear.rarities.iter().zip(&counts) {
+                let expected = weight(def) as f32 / total as f32;
+                let got = count as f32 / ROLLS as f32;
+                assert!(
+                    (got - expected).abs() < 0.01,
+                    "{:?} won={won}: {got} against {expected}",
+                    def.rarity
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_win_drops_better_gear() {
+        let data = Data::load();
+        let rare = data.gear.rarities.iter().position(|r| r.rarity == Rarity::Rare).unwrap();
+        assert!(rarity_counts(&data, true)[rare] > rarity_counts(&data, false)[rare]);
+    }
+
+    #[test]
+    fn a_drop_spends_its_rarity_points_plus_the_level() {
+        let data = Data::load();
+        let mut rng = Rng::new(12);
+        for level in [0, 3] {
+            for _ in 0..10_000 {
+                let gear = roll_gear(&data, &mut rng, false, level, 3);
+                let (lo, hi) = rarity_def(&data, gear.rarity).points;
+                let points = score(&data, gear.stats);
+                assert!((lo + level as i32..=hi + level as i32).contains(&points), "{gear:?}");
+                assert_eq!(gear.stats.health % data.gear.health_per_point, 0);
+                assert!(gear.fits < 3);
+                assert!(gear.name.starts_with(&rarity_def(&data, gear.rarity).prefix));
+                let base = data.gear.bases.iter().find(|b| b.slot == gear.slot).unwrap();
+                assert!(base.names.iter().any(|noun| gear.name.ends_with(noun.as_str())));
+            }
+        }
+    }
+
+    #[test]
+    fn every_slot_and_horse_gets_drops() {
+        let data = Data::load();
+        let mut rng = Rng::new(13);
+        let (mut slots, mut horses) = ([false; 3], [false; 3]);
+        for _ in 0..1000 {
+            let gear = roll_gear(&data, &mut rng, false, 0, 3);
+            slots[gear.slot.index()] = true;
+            horses[gear.fits] = true;
+        }
+        assert!(slots.iter().chain(&horses).all(|&seen| seen));
+    }
+
+    #[test]
+    fn worn_gear_adds_to_a_horse() {
+        let data = Data::load();
+        let mut horse = Horse::new(&data.horses[0]);
+        assert_eq!(horse.stats(), horse.base);
+        let mut rng = Rng::new(14);
+        let gear = roll_gear(&data, &mut rng, true, 2, 3);
+        let expected = horse.base.plus(gear.stats);
+        let slot = gear.slot.index();
+        horse.gear[slot] = Some(gear);
+        assert_eq!(horse.stats(), expected);
+    }
+}

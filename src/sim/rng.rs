@@ -57,3 +57,73 @@ impl Rng {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn same_seed_same_rolls() {
+        let (mut a, mut b, mut c) = (Rng::new(7), Rng::new(7), Rng::new(8));
+        let rolls = |rng: &mut Rng| (0..32).map(|_| rng.next_u64()).collect::<Vec<_>>();
+        let first = rolls(&mut a);
+        assert_eq!(first, rolls(&mut b));
+        assert_ne!(first, rolls(&mut c));
+    }
+
+    #[test]
+    fn rolls_stay_in_range() {
+        let mut rng = Rng::new(1);
+        let mut seen = [false; 6];
+        for _ in 0..10_000 {
+            assert!(rng.below(1) == 0);
+            assert!(rng.below(7) < 7);
+            let unit = rng.unit();
+            assert!((0.0..1.0).contains(&unit));
+            let roll = rng.range(-2, 3);
+            assert!((-2..=3).contains(&roll));
+            seen[(roll + 2) as usize] = true;
+        }
+        // Both ends of an inclusive range come up.
+        assert!(seen.iter().all(|&s| s));
+        assert_eq!(rng.range(4, 4), 4);
+    }
+
+    #[test]
+    fn chance_follows_its_probability() {
+        let mut rng = Rng::new(2);
+        assert!(!(0..1000).any(|_| rng.chance(0.0)));
+        assert!((0..1000).all(|_| rng.chance(1.0)));
+        let hits = (0..100_000).filter(|_| rng.chance(0.25)).count();
+        assert!((24_000..26_000).contains(&hits), "{hits}");
+    }
+
+    #[test]
+    fn weighted_follows_the_weights() {
+        let mut rng = Rng::new(3);
+        let weights = [70, 25, 5, 0];
+        let mut counts = [0u32; 4];
+        for _ in 0..100_000 {
+            counts[rng.weighted(&weights)] += 1;
+        }
+        assert!((69_000..71_000).contains(&counts[0]), "{counts:?}");
+        assert!((24_000..26_000).contains(&counts[1]), "{counts:?}");
+        assert!((4_500..5_500).contains(&counts[2]), "{counts:?}");
+        assert_eq!(counts[3], 0);
+    }
+
+    #[test]
+    fn shuffle_keeps_every_item_and_reaches_every_order() {
+        let mut rng = Rng::new(4);
+        let mut orders = std::collections::HashSet::new();
+        for _ in 0..1000 {
+            let mut items = [0, 1, 2];
+            rng.shuffle(&mut items);
+            let mut sorted = items;
+            sorted.sort();
+            assert_eq!(sorted, [0, 1, 2]);
+            orders.insert(items);
+        }
+        assert_eq!(orders.len(), 6);
+    }
+}

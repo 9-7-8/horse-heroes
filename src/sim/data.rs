@@ -217,3 +217,83 @@ impl Data {
 fn parse<T: DeserializeOwned>(file: &str, text: &str) -> T {
     ron::from_str(text).unwrap_or_else(|e| panic!("assets/data/{file}: {e}"))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The data files hold together: every reference resolves and no number
+    /// would make the sim divide by zero, loop or roll an empty table.
+    #[test]
+    fn data_files_are_consistent() {
+        let data = Data::load();
+
+        assert!(!data.horses.is_empty());
+        for horse in &data.horses {
+            assert!(horse.stats.health > 0, "{}", horse.name);
+        }
+
+        let mut ids: Vec<&str> = data.enemies.iter().map(|e| e.id.as_str()).collect();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), data.enemies.len(), "an enemy id is used twice");
+        for enemy in &data.enemies {
+            assert!(enemy.health > 0 && enemy.attack_interval > 0.0, "{}", enemy.id);
+            assert!(0 <= enemy.coins.0 && enemy.coins.0 <= enemy.coins.1, "{}", enemy.id);
+        }
+
+        let encounters = &data.encounters;
+        assert!(!encounters.ordinary.is_empty() && !encounters.finals.is_empty());
+        for encounter in encounters.ordinary.iter().chain(&encounters.finals) {
+            assert!(!encounter.is_empty());
+            for id in encounter {
+                data.enemy_index(id);
+            }
+        }
+
+        let gear = &data.gear;
+        assert!(gear.health_per_point > 0);
+        assert!(gear.rarities.iter().any(|r| r.weight > 0));
+        assert!(gear.rarities.iter().any(|r| r.win_weight > 0));
+        for rarity in &gear.rarities {
+            assert!(0 < rarity.points.0 && rarity.points.0 <= rarity.points.1);
+        }
+        assert!(!gear.bases.is_empty());
+        for base in &gear.bases {
+            assert!(!base.names.is_empty(), "{:?}", base.slot);
+        }
+
+        let rules = &data.rules;
+        assert!(rules.ordinary_encounters > 0);
+        assert!(rules.attack_interval > 0.0 && rules.travel_secs > 0.0);
+        assert!(rules.focused_shot_cooldown > 0.0 && rules.burst_cooldown > 0.0);
+        assert!(rules.ward_cooldown > 0.0);
+        assert!((0.0..=1.0).contains(&rules.bonus_chance));
+        assert!((0.0..=1.0).contains(&rules.ward_reduction));
+        assert!(rules.weak_multiplier < 1.0 && 1.0 < rules.strong_multiplier);
+    }
+
+    /// Every element beats one other and is beaten by one other.
+    #[test]
+    fn the_triangle_is_a_cycle() {
+        for element in Element::ALL {
+            assert_ne!(element.beats(), element);
+            assert_eq!(element.beats().beats().beats(), element);
+        }
+    }
+
+    /// No bridles, bits or reins: horses wear halters (CLAUDE.md, Vision).
+    #[test]
+    fn no_gear_is_a_bridle_bit_or_reins() {
+        let data = Data::load();
+        for name in data.gear.bases.iter().flat_map(|b| &b.names) {
+            let lower = name.to_lowercase();
+            for banned in ["bridle", "bit", "rein"] {
+                assert!(
+                    !lower.split_whitespace().any(|word| word.starts_with(banned)),
+                    "gear.ron: `{name}`"
+                );
+            }
+        }
+    }
+}
