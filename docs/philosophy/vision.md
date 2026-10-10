@@ -114,7 +114,8 @@ needs, extensive crafting, town construction, and many more damage types.
   halter (coordination and utility), pet saddle (companion), saddlebags
   (carrying). She confirmed halters, pet saddles and saddlebags; the
   focus/protection/halter split is a recommendation. Where a piece is drawn
-  need not be its category: a focus may sit on the halter.
+  need not be its category: a focus may sit on the halter. Developed in
+  [gear.md](gear.md).
 - **Utility gear specialises behaviour; it never repairs it.** The baseline
   automation is already competent.
 - **Elements, classes and reactions:** see
