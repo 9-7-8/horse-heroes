@@ -8,7 +8,7 @@ ASKED
 DONE
   - Tiers 1 and 2 were empty: build green, 88 tests, no open bug.
   - Tier 3, #238, the one PICK UP pointed at (dc41437, closes it):
-      - assets/data/places.ron is the whole map of the menus: 77
+      - assets/data/places.ron is the whole map of the menus: 78
         controls over the tabs, the cargo column, Settings and the
         footer, each with what it does, its issue and, where it works,
         its action and key.
