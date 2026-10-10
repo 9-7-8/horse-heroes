@@ -1,0 +1,59 @@
+SESSION LOG 2026-10-10 17:55 - the Keys control
+===============================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+  "Always send me a push notif when you're done" - already a standing
+  rule in memory; a push was sent at the end.
+
+DONE
+  - Tiers 1 and 2 were empty. Tier 3: the next part of #229, built
+    (5fa47b1), left open. The Keys control in Settings (K) lists every
+    key beside what it works, in the side panel. A control in places.ron
+    can now carry `shows: Keys` as well as an `action`; either makes it a
+    control that works. The list is built from the file (keys_list in
+    shell.rs).
+    Tested: cargo check and cargo test green, 105 pass, no warning. One
+    new test: the list holds every place, tab, horse and control key in
+    the file, and a press says it in the side panel of Settings.
+    Seen running, by a picture: the menu tour at --window 1120x640
+    pressed S then K; the list fits the side panel at that smallest
+    size. docs/gallery/2026-10-10-keys, picture 6.
+  - docs/menu-shell.md (Every planned control, Keys), the gallery, a
+    note in build-and-run.txt, a comment on #229.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - K for Keys. One line in places.ron.
+  - The list is grouped lines of words ("Places: H Horses, T Trade"),
+    not a table, and its last three lines are short ("Tab, Shift+Tab:
+    move focus"), so that it fits the side panel, which does not scroll.
+  - Keys shows in the side panel like any control's detail, under the
+    heading "Detail".
+
+FOUND
+  - cargo fmt rewrote twelve files the change did not touch: the tree is
+    not kept to rustfmt's defaults. Put back with git checkout; noted in
+    build-and-run.txt.
+  - Remove-Item on a wildcard under screenshots/ is refused by the
+    harness. A fresh folder name per tour run avoids it.
+  - A here-string piped to "git commit -F -" in PowerShell was taken as a
+    path. Write the message to a file under target/ and pass that.
+
+NOT DONE
+  - Nobody has pressed K, or any key, on a real keyboard.
+  - The rest of #229: arrow keys in lists and slots; a key for List
+    (with #99, a 0.4.0 issue).
+  - Carried over, unchanged: nobody has listened to the death sounds
+    (#241) or the drop sounds (#10, F4); #187 waits on the owner's look
+    at the horse; nobody has used a pointer for real, or seen a tab's
+    page scroll; nobody has seen the rarity shapes tumble or be picked
+    up, or watched a death or the screen response move; the fountains
+    are not tuned; a place left open on the road still cuts a beam off;
+    a lost trail is not held on the road (#176); in town the horses walk
+    on the spot; #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Tier 1 is empty. 0.2.0 has one thing
+  left to build: arrow keys through lists and slots, under #229. #10,
+  #187 and #241 wait on the owner's ear and eye.

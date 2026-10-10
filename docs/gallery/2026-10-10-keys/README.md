@@ -24,3 +24,7 @@ works: [menu-shell.md](../../menu-shell.md), "Keys".
 **5.** On the road, J opened the Journal and Escape put it away again.
 
 ![On the road, J opened the Journal and Escape put it away again.](05-escape-on-the-road.jpg)
+
+**6.** Added later the same day: K opened the Keys control in Settings, which lists every key beside what it works. Taken at the smallest window, 1120 x 640, where the list still fits the side panel.
+
+![K opened the Keys control in Settings, which lists every key beside what it works.](06-every-key-listed.jpg)

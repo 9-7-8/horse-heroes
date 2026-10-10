@@ -143,12 +143,13 @@ A control in the file is:
 | `issue` | The issue that will make it work |
 | `proposed` | That issue is a proposal the owner has not decided |
 | `action` | What it does today: `Element(Fire)`, `EquipDrop`, `SetOut` |
+| `shows` | What a press opens in the side panel of its page: `Keys` |
 | `key` | The key that works it, printed on it: a letter, a digit or `Space` |
 
 A place, Settings and a tab have a `key` too, and `horse_keys` at the end of
 the file are the keys of the party's horses, in order (see Keys).
 
-- **A control with no `action` is not built.** It carries `NotBuilt`, which
+- **A control with no `action` and no `shows` is not built.** It carries `NotBuilt`, which
   draws it as unavailable, and it can still be pressed and reached with Tab.
   A press opens the side panel of the page it is on, with its name, "Not
   built yet.", what it will do and its issue. While that panel is open the
@@ -159,8 +160,12 @@ the file are the keys of the party's horses, in order (see Keys).
   and `can` returns the reason in plain words ("In town only.", "Nothing to
   equip."), which is shown in place (see below). An element's button is
   marked selected while it is the party's element.
-- **When a system lands**, its control gets an `action` and stays where it
-  is.
+- **A control with a `shows` works too.** A press opens the side panel of
+  its page with what it shows, and it carries the selected mark while that
+  panel is open. It can always be used, so no reason line names it. Keys,
+  in Settings, is the one there is (see Keys).
+- **When a system lands**, its control gets an `action` or a `shows` and
+  stays where it is.
 
 ## Why a control cannot be used
 
@@ -188,8 +193,9 @@ page is not built yet."
 Tests in `shell.rs` hold the file to this: in town, in town with a drop and
 on the road, every control that cannot be used has its line, and a working
 one's reason is `can`'s; no control is silent (each has a
-`does`, and an action or an issue); a key is a real key, on a working
-control, and on one only; each thing the slice can do has exactly one
+`does`, and an action, a `shows` or an issue); a key is a real key, on a
+working control, and on one only; the Keys control lists every key in the
+file; each thing the slice can do has exactly one
 control; no two controls of a page share a name; every page has controls;
 every place, tab and horse has a key, and no key means two things at once.
 
@@ -246,6 +252,7 @@ in the shell presses the thing when its key goes down, by the same
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
 | E | Equip the drop, in town only | `key` of the control |
 | Space | Set out, in town only | `key` of the control |
+| K | Keys: the list of every key, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
 
 The keys of places, horses and controls work wherever the player is, so no
@@ -263,9 +270,17 @@ a control shows keyboard focus (after Tab), Space presses that control and
 does not send the party off. Every control, built or not, is reached with
 Tab and pressed with Enter; that is how a gear slot is opened by keyboard.
 
-Still to come under #229: the Keys control in Settings, moving through
-lists with the arrow keys, and a key for each action as its button is built
-(List, with #99, is the one a town visit lacks).
+**The Keys control** in Settings (K) lists every key in the side panel:
+places, the tabs of a place, horses and actions, each beside the name of
+what it works, then Esc, Tab with Shift+Tab, and Enter. `keys_list` builds
+it from `places.ron`, so a key changed there is changed in the list; only
+the last three lines are written by hand. The lines are kept short enough
+that the list fits the side panel at the smallest window, which does not
+scroll.
+
+Still to come under #229: moving through lists with the arrow keys, and a
+key for each action as its button is built (List, with #99, is the one a
+town visit lacks).
 
 ## Looking at it
 
@@ -279,7 +294,7 @@ and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, and then makes a town visit by keys
 alone: H, 1, E to equip the drop, C, 2, I and F on the abilities, T, 3, S,
-Escape, Space to set out, and J, 1, Escape on the road. Then it exits. Those
+K for the list of keys, Escape twice, Space to set out, and J, 1, Escape on the road. Then it exits. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys` and `escape` as a real press does; they are written
 in `plan_tour`, so a key changed in `places.ron` is changed there too. The
@@ -296,6 +311,6 @@ are checked by hand.
 - A fountain to check the road view's room against: #4, #8 (the last part of
   #205).
 - What is planned on the road, listed in the footer: #234.
-- The rest of #229: the Keys control in Settings, arrow keys in lists, and
-  keys for actions not built yet.
+- The rest of #229: arrow keys in lists, and keys for actions not built
+  yet.
 - The Horses place proper, with cargo: #227.

@@ -84,6 +84,10 @@ NOTES
     2026-10-10, in both PowerShell and Git Bash). When "cargo" is not
     recognised, call it by its full path: ~/.cargo/bin/cargo.exe.
 
+  - Do not run cargo fmt on the whole tree: the code is not kept to
+    rustfmt's defaults, and on 2026-10-10 it rewrote twelve files that
+    had nothing to do with the change (put back with git checkout).
+
 REPORT
   State which steps ran. "Compiles" and "works" are different claims - make
   the one the evidence supports.
