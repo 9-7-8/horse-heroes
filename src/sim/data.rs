@@ -69,23 +69,6 @@ impl Slot {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
-pub enum Rarity {
-    Common,
-    Uncommon,
-    Rare,
-}
-
-impl Rarity {
-    pub fn name(self) -> &'static str {
-        match self {
-            Rarity::Common => "Common",
-            Rarity::Uncommon => "Uncommon",
-            Rarity::Rare => "Rare",
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(default)]
 pub struct Stats {
@@ -163,13 +146,42 @@ pub struct Encounters {
     pub finals: Vec<Vec<String>>,
 }
 
+/// One rarity tier. A piece of gear names its tier by its place in
+/// `GearTable::rarities`, which lists them lowest first, so a tier is added
+/// in `gear.ron` alone.
 #[derive(Clone, Debug, Deserialize)]
 pub struct RarityDef {
-    pub rarity: Rarity,
+    pub name: String,
     pub prefix: String,
     pub weight: u32,
     pub win_weight: u32,
     pub points: (i32, i32),
+    pub look: RarityLook,
+}
+
+/// How a tier's drops are told apart in the loot shower. Plain values; `fx`
+/// makes the materials from them.
+#[derive(Clone, Debug, Deserialize)]
+pub struct RarityLook {
+    /// sRGB hex, `"rrggbb"`.
+    pub colour: String,
+    /// How strongly the piece gives off its own colour; 0 is none.
+    pub glow: f32,
+    /// The piece's size, as a multiple of `gear_size` in `loot_shower.ron`.
+    pub size: f32,
+    /// The column of light over a drop of this tier, if it has one.
+    #[serde(default)]
+    pub beam: Option<BeamDef>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub struct BeamDef {
+    pub height: f32,
+    pub width: f32,
+    /// How solid it is: 0 clear, 1 opaque.
+    pub alpha: f32,
+    /// Seconds it takes to rise to its height once the piece is thrown.
+    pub rise_secs: f32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -259,6 +271,20 @@ mod tests {
         assert!(gear.rarities.iter().any(|r| r.win_weight > 0));
         for rarity in &gear.rarities {
             assert!(0 < rarity.points.0 && rarity.points.0 <= rarity.points.1);
+            assert!(!rarity.name.is_empty() && !rarity.prefix.is_empty());
+            let named = gear.rarities.iter().filter(|r| r.name == rarity.name).count();
+            assert_eq!(named, 1, "gear.ron: two rarities named `{}`", rarity.name);
+            let look = &rarity.look;
+            assert!(look.glow >= 0.0 && look.size > 0.0, "{}", rarity.name);
+            if let Some(beam) = look.beam {
+                assert!(beam.height > 0.0 && beam.width > 0.0, "{}", rarity.name);
+                assert!(0.0 < beam.alpha && beam.alpha <= 1.0, "{}", rarity.name);
+                assert!(beam.rise_secs >= 0.0, "{}", rarity.name);
+            }
+        }
+        // Listed lowest first: a higher tier never spends fewer points.
+        for pair in gear.rarities.windows(2) {
+            assert!(pair[0].points.1 <= pair[1].points.0, "{}", pair[1].name);
         }
         assert!(!gear.bases.is_empty());
         for base in &gear.bases {

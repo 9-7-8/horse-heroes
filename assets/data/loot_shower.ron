@@ -33,10 +33,15 @@
     coin_thickness: 0.07,
     coin_colour: "e8c04a",
     most_pieces: 16,
+    // A piece of gear is a box this long, thick and deep, times its rarity's
+    // `size`. Its colour, glow and beam are its rarity's, in gear.ron.
+    gear_size: (0.46, 0.2, 0.34),
     // No piece comes to rest this close to an enemy still standing.
     keep_clear: 1.0,
 
     // The test burst.
     burst_pieces: 40,
+    // Gear thrown with them, by rarity name: a mixed burst to tell them apart in.
+    burst_gear: ["Common", "Common", "Common", "Uncommon", "Uncommon", "Rare"],
     burst_seed: 4,
 )

@@ -1,13 +1,14 @@
 //! Horses, their gear, and rolling a gear drop.
 
-use super::data::{Class, Data, HorseDef, Rarity, Slot, Stats};
+use super::data::{Class, Data, HorseDef, Slot, Stats};
 use super::rng::Rng;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Gear {
     pub name: String,
     pub slot: Slot,
-    pub rarity: Rarity,
+    /// Its tier: the index of its rarity in `gear.ron`, lowest first.
+    pub rarity: usize,
     pub stats: Stats,
     /// Index of the party horse this piece was made for.
     pub fits: usize,
@@ -51,7 +52,8 @@ pub fn roll_gear(data: &Data, rng: &mut Rng, won: bool, level: u32, party_size: 
         .iter()
         .map(|r| if won { r.win_weight } else { r.weight })
         .collect();
-    let rarity = &table.rarities[rng.weighted(&weights)];
+    let tier = rng.weighted(&weights);
+    let rarity = &table.rarities[tier];
     let base = rng.pick(&table.bases);
     let noun = rng.pick(&base.names);
 
@@ -69,7 +71,7 @@ pub fn roll_gear(data: &Data, rng: &mut Rng, won: bool, level: u32, party_size: 
     Gear {
         name: format!("{} {}", rarity.prefix, noun),
         slot: base.slot,
-        rarity: rarity.rarity,
+        rarity: tier,
         stats,
         fits: rng.below(party_size as u32) as usize,
     }
@@ -81,18 +83,12 @@ mod tests {
 
     const ROLLS: u32 = 100_000;
 
-    fn rarity_def(data: &Data, rarity: Rarity) -> &crate::sim::data::RarityDef {
-        data.gear.rarities.iter().find(|r| r.rarity == rarity).unwrap()
-    }
-
     /// Roll the table many times and count each rarity.
     fn rarity_counts(data: &Data, won: bool) -> Vec<u32> {
         let mut rng = Rng::new(11);
         let mut counts = vec![0; data.gear.rarities.len()];
         for _ in 0..ROLLS {
-            let gear = roll_gear(data, &mut rng, won, 0, 3);
-            let i = data.gear.rarities.iter().position(|r| r.rarity == gear.rarity);
-            counts[i.unwrap()] += 1;
+            counts[roll_gear(data, &mut rng, won, 0, 3).rarity] += 1;
         }
         counts
     }
@@ -109,8 +105,8 @@ mod tests {
                 let got = count as f32 / ROLLS as f32;
                 assert!(
                     (got - expected).abs() < 0.01,
-                    "{:?} won={won}: {got} against {expected}",
-                    def.rarity
+                    "{} won={won}: {got} against {expected}",
+                    def.name
                 );
             }
         }
@@ -119,8 +115,8 @@ mod tests {
     #[test]
     fn a_win_drops_better_gear() {
         let data = Data::load();
-        let rare = data.gear.rarities.iter().position(|r| r.rarity == Rarity::Rare).unwrap();
-        assert!(rarity_counts(&data, true)[rare] > rarity_counts(&data, false)[rare]);
+        let top = data.gear.rarities.len() - 1;
+        assert!(rarity_counts(&data, true)[top] > rarity_counts(&data, false)[top]);
     }
 
     #[test]
@@ -130,12 +126,13 @@ mod tests {
         for level in [0, 3] {
             for _ in 0..10_000 {
                 let gear = roll_gear(&data, &mut rng, false, level, 3);
-                let (lo, hi) = rarity_def(&data, gear.rarity).points;
+                let rarity = &data.gear.rarities[gear.rarity];
+                let (lo, hi) = rarity.points;
                 let points = score(&data, gear.stats);
                 assert!((lo + level as i32..=hi + level as i32).contains(&points), "{gear:?}");
                 assert_eq!(gear.stats.health % data.gear.health_per_point, 0);
                 assert!(gear.fits < 3);
-                assert!(gear.name.starts_with(&rarity_def(&data, gear.rarity).prefix));
+                assert!(gear.name.starts_with(&rarity.prefix));
                 let base = data.gear.bases.iter().find(|b| b.slot == gear.slot).unwrap();
                 assert!(base.names.iter().any(|noun| gear.name.ends_with(noun.as_str())));
             }

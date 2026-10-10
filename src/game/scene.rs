@@ -29,6 +29,15 @@ const WRAP: f32 = 20.0;
 const HORSE_X: [f32; 3] = [-1.5, -4.5, -7.5];
 pub const ENEMY_X: [f32; 3] = [3.5, 6.0, 8.5];
 
+/// The colour an enemy of each element is drawn in.
+pub fn element_colour(element: Element) -> Color {
+    match element {
+        Element::Fire => Color::srgb(0.9, 0.25, 0.15),
+        Element::Ice => Color::srgb(0.35, 0.65, 0.95),
+        Element::Plant => Color::srgb(0.3, 0.75, 0.3),
+    }
+}
+
 pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
@@ -118,9 +127,9 @@ fn setup(
     }
 
     let elements = ElementMaterials {
-        fire: materials.add(Color::srgb(0.9, 0.25, 0.15)),
-        ice: materials.add(Color::srgb(0.35, 0.65, 0.95)),
-        plant: materials.add(Color::srgb(0.3, 0.75, 0.3)),
+        fire: materials.add(element_colour(Element::Fire)),
+        ice: materials.add(element_colour(Element::Ice)),
+        plant: materials.add(element_colour(Element::Plant)),
     };
     for (i, &x) in ENEMY_X.iter().enumerate() {
         commands.spawn((

@@ -791,7 +791,7 @@ fn fact(game: &Game, shell: &Shell, fact: Fact) -> String {
                     gear.name,
                     slot.name(),
                     selected.name,
-                    gear.rarity.name(),
+                    game.data.gear.rarities[gear.rarity].name,
                     stats_line(gear.stats),
                 ),
                 None => format!(

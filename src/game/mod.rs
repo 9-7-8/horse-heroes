@@ -48,12 +48,14 @@ impl SceneView {
     }
 }
 
-/// An enemy went down: where its body was, the coins it dropped, and where
-/// the enemies still standing are. `fx` turns it into drops.
+/// An enemy went down: where its body was, the coins it dropped, the rarity
+/// tier of the gear it dropped if it dropped any, and where the enemies
+/// still standing are. `fx` turns it into drops.
 #[derive(Message)]
 pub struct Killed {
     pub at: Vec3,
     pub coins: i32,
+    pub gear: Option<usize>,
     pub standing: Vec<Vec3>,
 }
 
@@ -253,6 +255,7 @@ fn advance(time: Res<Time>, mut game: ResMut<Game>, mut killed: MessageWriter<Ki
                     killed.write(Killed {
                         at: scene::enemy_centre(kill.foe, kill.max_health),
                         coins: kill.coins,
+                        gear: kill.gear.as_ref().map(|gear| gear.rarity),
                         standing: expedition
                             .foes
                             .iter()
@@ -318,7 +321,7 @@ pub fn report_text(game: &Game) -> String {
                      \x20 fits {} the {}, who wears: {}\n\
                      \x20 [E] equip{}\n",
                     gear.name,
-                    gear.rarity.name(),
+                    game.data.gear.rarities[gear.rarity].name,
                     gear.slot.name(),
                     stats_line(gear.stats),
                     horse.name,

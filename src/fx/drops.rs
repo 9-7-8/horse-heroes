@@ -1,6 +1,8 @@
 //! Drops as physical objects: a kill's drops leave the body one after
 //! another, fanned out, each on its own arc with spin; they bounce, squash a
 //! little and come to rest. Every number is in `assets/data/loot_shower.ron`.
+//! A piece of gear is told apart by its rarity: colour, glow, size, and for
+//! the tiers that have one a beam of light, all in `assets/data/gear.ron`.
 //!
 //! The flight is plain arithmetic (`Body`, `plan_burst`), so it is unit-tested;
 //! the systems below it only draw it.
@@ -13,6 +15,7 @@ use serde::Deserialize;
 use crate::game::menu::tokens::Hex;
 use crate::game::scene::{ENEMY_X, SCENE_WIDTH, SCROLL_SPEED};
 use crate::game::{Game, Killed};
+use crate::sim::data::{BeamDef, GearTable, RarityDef};
 use crate::sim::rng::Rng;
 
 /// Seconds after launch at which `--burst` throws the test burst.
@@ -41,8 +44,10 @@ pub struct Shower {
     pub coin_thickness: f32,
     pub coin_colour: Hex,
     pub most_pieces: usize,
+    pub gear_size: (f32, f32, f32),
     pub keep_clear: f32,
     pub burst_pieces: usize,
+    pub burst_gear: Vec<String>,
     pub burst_seed: u64,
 }
 
@@ -51,6 +56,42 @@ impl Shower {
         ron::from_str(include_str!("../../assets/data/loot_shower.ron"))
             .unwrap_or_else(|e| panic!("assets/data/loot_shower.ron: {e}"))
     }
+
+    /// The test burst's gear as rarity tiers.
+    pub fn burst_tiers(&self, gear: &GearTable) -> Vec<usize> {
+        self.burst_gear
+            .iter()
+            .map(|name| {
+                gear.rarities
+                    .iter()
+                    .position(|rarity| &rarity.name == name)
+                    .unwrap_or_else(|| panic!("loot_shower.ron: no rarity named `{name}`"))
+            })
+            .collect()
+    }
+}
+
+/// A rarity's colour. `gear.ron` holds it as text; the sim knows no colours.
+pub fn rarity_colour(rarity: &RarityDef) -> Srgba {
+    let text = &rarity.look.colour;
+    Srgba::hex(text).unwrap_or_else(|e| panic!("gear.ron: {} colour `{text}`: {e}", rarity.name))
+}
+
+/// What a piece is: a coin, or a piece of gear of a rarity tier.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Kind {
+    Coin,
+    Gear(usize),
+}
+
+/// What a burst is made of, one entry for each launch of `plan_burst`. Each
+/// launch has its own slice of the fan, so the seed puts the gear among the
+/// coins and it is not thrown the same way every time.
+pub fn burst_kinds(seed: u64, coins: usize, gear: &[usize]) -> Vec<Kind> {
+    let mut kinds = vec![Kind::Coin; coins];
+    kinds.extend(gear.iter().map(|&tier| Kind::Gear(tier)));
+    Rng::new(seed ^ 0x6EA2_6EA2_6EA2_6EA2).shuffle(&mut kinds);
+    kinds
 }
 
 /// A piece in flight. Its position is its middle; it touches the ground when
@@ -220,9 +261,23 @@ struct Piece {
     settle: f32,
     /// Part of the test burst: it stays where it lands, to be looked at.
     pinned: bool,
+    /// Half its length, which is how high its middle is while it tumbles,
+    /// and its thickness, which it lies on.
+    radius: f32,
+    thickness: f32,
     model: Entity,
+    beam: Option<Beam>,
 }
 
+/// The beam of light over a piece: a child of the piece, like its model.
+struct Beam {
+    model: Entity,
+    def: BeamDef,
+    /// 0 when the piece is thrown, rising to 1 as the beam reaches its height.
+    risen: f32,
+}
+
+/// A drawn part of a piece: its body, or its beam.
 #[derive(Component)]
 struct Model;
 
@@ -230,6 +285,19 @@ struct Model;
 struct Look {
     coin: Handle<Mesh>,
     gold: Handle<StandardMaterial>,
+    /// A piece of gear, before its rarity's size.
+    gear: Handle<Mesh>,
+    /// A beam one unit wide and one tall.
+    beam: Handle<Mesh>,
+    /// One for each rarity, in the order of `gear.ron`.
+    tiers: Vec<Tier>,
+    burst_gear: Vec<usize>,
+}
+
+struct Tier {
+    material: Handle<StandardMaterial>,
+    size: f32,
+    beam: Option<(Handle<StandardMaterial>, BeamDef)>,
 }
 
 /// The test burst: the same pieces from the same seed every time, so one
@@ -265,13 +333,45 @@ impl Watch {
 
 fn setup(
     mut commands: Commands,
+    game: Res<Game>,
     shower: Res<Shower>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let tiers = game
+        .data
+        .gear
+        .rarities
+        .iter()
+        .map(|rarity| {
+            let colour = rarity_colour(rarity);
+            Tier {
+                material: materials.add(StandardMaterial {
+                    base_color: colour.into(),
+                    emissive: LinearRgba::from(colour) * rarity.look.glow,
+                    ..default()
+                }),
+                size: rarity.look.size,
+                beam: rarity.look.beam.map(|beam| {
+                    let light = materials.add(StandardMaterial {
+                        base_color: colour.with_alpha(beam.alpha).into(),
+                        unlit: true,
+                        alpha_mode: AlphaMode::Blend,
+                        ..default()
+                    });
+                    (light, beam)
+                }),
+            }
+        })
+        .collect();
+    let (length, thickness, depth) = shower.gear_size;
     commands.insert_resource(Look {
         coin: meshes.add(Cylinder::new(shower.coin_radius, shower.coin_thickness)),
         gold: materials.add(shower.coin_colour.0),
+        gear: meshes.add(Cuboid::new(length, thickness, depth)),
+        beam: meshes.add(Cylinder::new(0.5, 1.0)),
+        tiers,
+        burst_gear: shower.burst_tiers(&game.data.gear),
     });
 }
 
@@ -281,19 +381,51 @@ fn spawn_burst(
     shower: &Shower,
     origin: Vec3,
     launches: &[Launch],
+    kinds: &[Kind],
     pinned: bool,
 ) {
-    for launch in launches {
+    for (launch, kind) in launches.iter().zip(kinds) {
+        let tier = match kind {
+            Kind::Coin => None,
+            Kind::Gear(tier) => Some(&look.tiers[*tier]),
+        };
+        let (mesh, material, size) = match tier {
+            None => (&look.coin, &look.gold, 1.0),
+            Some(tier) => (&look.gear, &tier.material, tier.size),
+        };
+        let (radius, thickness) = match tier {
+            None => (shower.coin_radius, shower.coin_thickness),
+            Some(tier) => (shower.gear_size.0 / 2.0 * tier.size, shower.gear_size.1 * tier.size),
+        };
         let mut model = Entity::PLACEHOLDER;
+        let mut beam = None;
         let mut piece = commands.spawn((Transform::from_translation(origin), Visibility::Hidden));
         piece.with_children(|piece| {
             model = piece
                 .spawn((
                     Model,
-                    Mesh3d(look.coin.clone()),
-                    MeshMaterial3d(look.gold.clone()),
+                    Mesh3d(mesh.clone()),
+                    MeshMaterial3d(material.clone()),
+                    Transform::from_scale(Vec3::splat(size)),
                 ))
                 .id();
+            // The beam is hidden with the piece, so it appears as the piece
+            // is thrown, and rises from nothing.
+            if let Some((light, def)) = tier.and_then(|tier| tier.beam.as_ref()) {
+                let model = piece
+                    .spawn((
+                        Model,
+                        Mesh3d(look.beam.clone()),
+                        MeshMaterial3d(light.clone()),
+                        Transform::from_scale(Vec3::ZERO),
+                    ))
+                    .id();
+                beam = Some(Beam {
+                    model,
+                    def: *def,
+                    risen: 0.0,
+                });
+            }
         });
         piece.insert(Piece {
             delay: launch.delay,
@@ -306,12 +438,16 @@ fn spawn_burst(
             squash: 0.0,
             settle: 0.0,
             pinned,
+            radius,
+            thickness,
             model,
+            beam,
         });
     }
 }
 
-/// A kill's coins leave its body, one piece a coin up to the most shown.
+/// A kill's drops leave its body: one piece a coin up to the most shown, and
+/// its gear if it dropped any.
 fn launch_kills(
     mut commands: Commands,
     mut killed: MessageReader<Killed>,
@@ -320,10 +456,12 @@ fn launch_kills(
     mut bursts: Local<u64>,
 ) {
     for kill in killed.read() {
-        let count = (kill.coins.max(0) as usize).min(shower.most_pieces);
-        let launches = plan_burst(&shower, *bursts, count, kill.at, &kill.standing);
+        let coins = (kill.coins.max(0) as usize).min(shower.most_pieces);
+        let gear: Vec<usize> = kill.gear.into_iter().collect();
+        let kinds = burst_kinds(*bursts, coins, &gear);
+        let launches = plan_burst(&shower, *bursts, kinds.len(), kill.at, &kill.standing);
         *bursts += 1;
-        spawn_burst(&mut commands, &look, &shower, kill.at, &launches, false);
+        spawn_burst(&mut commands, &look, &shower, kill.at, &launches, &kinds, false);
     }
 }
 
@@ -355,8 +493,9 @@ fn test_burst(
         }
     }
     let origin = Vec3::new(ENEMY_X[0], 0.5, 0.0);
-    let launches = plan_burst(&shower, shower.burst_seed, shower.burst_pieces, origin, &[]);
-    spawn_burst(&mut commands, &look, &shower, origin, &launches, true);
+    let kinds = burst_kinds(shower.burst_seed, shower.burst_pieces, &look.burst_gear);
+    let launches = plan_burst(&shower, shower.burst_seed, kinds.len(), origin, &[]);
+    spawn_burst(&mut commands, &look, &shower, origin, &launches, &kinds, true);
     test.watch = Some(Watch::default());
 }
 
@@ -418,13 +557,24 @@ fn fly(
         // Lying down brings its middle from a radius up to half its thickness.
         let lying = piece.settle * piece.settle * (3.0 - 2.0 * piece.settle);
         let flattened = piece.squash * shower.squash;
-        let height = shower.coin_radius
-            + (shower.coin_thickness / 2.0 - shower.coin_radius) * lying;
+        let height = piece.radius + (piece.thickness / 2.0 - piece.radius) * lying;
         transform.translation = piece.body.position;
         transform.translation.y += height * (1.0 - flattened) - shower.coin_radius;
         transform.scale = Vec3::new(1.0 + flattened / 2.0, 1.0 - flattened, 1.0 + flattened / 2.0);
         if let Ok(mut model) = models.get_mut(piece.model) {
             model.rotation = piece.tumble.slerp(piece.flat, lying);
+        }
+        // The beam stands on the ground where the piece is, upright and its
+        // own size whatever the piece is doing: undo the piece's height and
+        // squash.
+        if let Some(beam) = &mut piece.beam {
+            beam.risen = (beam.risen + dt / beam.def.rise_secs.max(0.001)).min(1.0);
+            if let Ok(mut model) = models.get_mut(beam.model) {
+                let height = beam.def.height * beam.risen;
+                let middle = height / 2.0 - transform.translation.y;
+                model.translation = Vec3::new(0.0, middle / transform.scale.y, 0.0);
+                model.scale = Vec3::new(beam.def.width, height, beam.def.width) / transform.scale;
+            }
         }
     }
 
@@ -456,7 +606,8 @@ fn fly(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::scene::TRAIL_DEPTH;
+    use crate::game::scene::{TRAIL_DEPTH, element_colour};
+    use crate::sim::data::{Data, Element};
 
     const ORIGIN: Vec3 = Vec3::new(ENEMY_X[0], 0.5, 0.0);
 
@@ -474,9 +625,76 @@ mod tests {
         assert!(0.0 < s.fan_degrees && s.fan_degrees <= 360.0);
         assert!(0.0 < s.coin_thickness && s.coin_thickness <= 2.0 * s.coin_radius);
         assert!(s.most_pieces > 0 && s.burst_pieces > 0);
+        let (length, thickness, depth) = s.gear_size;
+        assert!(0.0 < thickness && thickness <= depth && depth <= length);
         // Enemies stand further apart than the room kept round each, or the
         // way out sideways would not be clear.
         assert!(s.keep_clear < ENEMY_X[1] - ENEMY_X[0]);
+    }
+
+    /// The test burst is a mixed one: it throws gear of every rarity.
+    #[test]
+    fn the_test_burst_has_every_rarity() {
+        let (s, data) = (Shower::load(), Data::load());
+        let tiers = s.burst_tiers(&data.gear);
+        for tier in 0..data.gear.rarities.len() {
+            assert!(tiers.contains(&tier), "no {}", data.gear.rarities[tier].name);
+        }
+    }
+
+    /// A burst holds what it was given, and the seed decides where in the
+    /// fan the gear goes.
+    #[test]
+    fn gear_is_put_among_the_coins_by_the_seed() {
+        let gear = [0, 2];
+        let mut places = Vec::new();
+        for seed in 0..50 {
+            let kinds = burst_kinds(seed, 12, &gear);
+            assert_eq!(kinds, burst_kinds(seed, 12, &gear));
+            assert_eq!(kinds.len(), 14);
+            assert_eq!(kinds.iter().filter(|&&kind| kind == Kind::Coin).count(), 12);
+            for tier in gear {
+                assert!(kinds.contains(&Kind::Gear(tier)));
+            }
+            places.push(kinds.iter().position(|&kind| kind == Kind::Gear(2)).unwrap());
+        }
+        places.sort();
+        places.dedup();
+        assert!(places.len() > 7, "the Rare was thrown only {} ways", places.len());
+    }
+
+    /// Rarities are told apart without colour, lighter up the tiers, and
+    /// their colours are not an element's colour or the coins' gold. The top
+    /// tier has a beam.
+    #[test]
+    fn rarity_colours_are_their_own() {
+        let (s, data) = (Shower::load(), Data::load());
+        let rarities = &data.gear.rarities;
+        let luma = |c: Srgba| 0.299 * c.red + 0.587 * c.green + 0.114 * c.blue;
+        for pair in rarities.windows(2) {
+            let step = luma(rarity_colour(&pair[1])) - luma(rarity_colour(&pair[0]));
+            assert!(step >= 0.1, "{} is only {step} lighter", pair[1].name);
+            assert!(pair[1].look.glow >= pair[0].look.glow && pair[1].look.size >= pair[0].look.size);
+        }
+        assert!(rarities.last().unwrap().look.beam.is_some());
+
+        let mut taken: Vec<(String, Hsla)> = Element::ALL
+            .iter()
+            .map(|&element| (element.name().into(), element_colour(element).into()))
+            .collect();
+        taken.push(("coin gold".into(), s.coin_colour.0.into()));
+        for rarity in rarities {
+            let colour = Hsla::from(rarity_colour(rarity));
+            // A colour near grey has no hue to mistake.
+            if colour.saturation < 0.15 {
+                continue;
+            }
+            for (name, other) in &taken {
+                let apart = (colour.hue - other.hue).abs();
+                let apart = apart.min(360.0 - apart);
+                assert!(apart >= 40.0, "{} is {apart} degrees from {name}", rarity.name);
+            }
+        }
     }
 
     #[test]

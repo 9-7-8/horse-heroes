@@ -1,14 +1,25 @@
 // Horse gear. A drop spends `points` stat points at random; a point spent on
 // health is worth `health_per_point`. `win_weight` replaces `weight` when the
 // final enemy was defeated.
+// Rarities are listed lowest first, and a new one is one more line here.
+// `look` is how its drops are told apart in the loot shower: a colour, how
+// strongly the piece glows in it, its size, and for the tiers that have one a
+// beam of light over it (lengths in world units, `alpha` 0 clear to 1 solid,
+// `rise_secs` the time it takes to rise once the piece is thrown). Rarity
+// colours stay clear of the element colours and of the coins' gold, and get
+// lighter up the tiers, so that they also differ without colour.
 // No bridles, bits or reins: nobody rides these horses. The Saddle slot seats
 // a pet.
 (
     health_per_point: 5,
     rarities: [
-        (rarity: Common,   prefix: "Trail-worn",  weight: 70, win_weight: 45, points: (2, 3)),
-        (rarity: Uncommon, prefix: "Fae-touched", weight: 25, win_weight: 40, points: (4, 5)),
-        (rarity: Rare,     prefix: "Starlit",     weight: 5,  win_weight: 15, points: (7, 8)),
+        (name: "Common",   prefix: "Trail-worn",  weight: 70, win_weight: 45, points: (2, 3),
+         look: (colour: "7d766b", glow: 0.0, size: 1.0)),
+        (name: "Uncommon", prefix: "Fae-touched", weight: 25, win_weight: 40, points: (4, 5),
+         look: (colour: "a884ff", glow: 0.5, size: 1.15)),
+        (name: "Rare",     prefix: "Starlit",     weight: 5,  win_weight: 15, points: (7, 8),
+         look: (colour: "ff8fe0", glow: 1.5, size: 1.35,
+                beam: Some((height: 7.0, width: 0.16, alpha: 0.45, rise_secs: 0.15)))),
     ],
     bases: [
         (slot: Head,   names: ["Halter", "Fly Veil"]),

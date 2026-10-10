@@ -98,6 +98,9 @@ pub struct Kill {
     pub foe: usize,
     pub max_health: i32,
     pub coins: i32,
+    /// The gear it dropped. Only the enemy whose fall wins the trail drops
+    /// any: the run's piece, the same one the outcome carries.
+    pub gear: Option<Gear>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -361,6 +364,11 @@ impl Expedition {
             let mut rng = Rng::new(self.plan.seed ^ 0x100F_100F_100F_100F);
             roll_gear(data, &mut rng, won, self.plan.level, self.party.len())
         });
+        // A trail is won in the tick its last enemy falls, so that kill is
+        // still here, not yet taken.
+        if won && let Some(kill) = self.kills.last_mut() {
+            kill.gear = drop.clone();
+        }
         self.phase = Phase::Finished;
         self.outcome = Some(Outcome {
             won,
@@ -423,6 +431,7 @@ impl Expedition {
                 foe: target,
                 max_health: foe.max_health,
                 coins,
+                gear: None,
             });
         }
     }
@@ -535,6 +544,32 @@ mod tests {
                 assert!(kill.foe < 3 && kill.max_health > 0, "{kill:?}");
             }
         }
+    }
+
+    /// The run's gear comes out of the enemy whose fall won the trail, and
+    /// out of no other. A lost trail's piece has no body to come out of.
+    #[test]
+    fn the_winning_kill_drops_the_gear() {
+        let data = Data::load();
+        let (mut won, mut lost) = (0, 0);
+        for seed in 0..100 {
+            let run = run(&data, seed, 0, Element::Fire);
+            let outcome = run.outcome.clone().unwrap();
+            let Some((last, earlier)) = run.kills.split_last() else {
+                assert!(!outcome.won);
+                continue;
+            };
+            assert!(earlier.iter().all(|kill| kill.gear.is_none()));
+            if outcome.won {
+                assert!(last.gear.is_some());
+                assert_eq!(last.gear, outcome.drop);
+                won += 1;
+            } else {
+                assert!(last.gear.is_none());
+                lost += 1;
+            }
+        }
+        assert!(won > 0 && lost > 0);
     }
 
     #[test]
