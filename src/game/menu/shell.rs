@@ -819,6 +819,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, fact: Fact) -> St
                 let at = expedition.encounter + 1;
                 match expedition.phase {
                     Phase::Fighting => format!("On the trail: fighting encounter {at} of {total}."),
+                    Phase::Finished => format!("On the trail: all {total} encounters cleared."),
                     _ => format!("On the trail: walking to encounter {at} of {total}."),
                 }
             }

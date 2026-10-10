@@ -23,6 +23,8 @@ use crate::game::{Game, Killed, Uncollected};
 use crate::sim::data::{BeamDef, GearTable, RarityDef};
 use crate::sim::rng::Rng;
 
+use super::response::{Erupted, ResponseFeel};
+
 /// Seconds after launch at which `--burst` throws the test burst, unless
 /// `--burst-at` says otherwise.
 pub const BURST_AT: f32 = 1.0;
@@ -54,6 +56,7 @@ pub struct Shower {
     pub pickup_speed: f32,
     pub pickup_accel: f32,
     pub pickup_shrink: f32,
+    pub response: ResponseFeel,
     pub burst_fountain: String,
     pub burst_pieces: usize,
     pub burst_gear: Vec<String>,
@@ -120,6 +123,18 @@ pub fn burst_kinds(seed: u64, coins: usize, gear: &[usize]) -> Vec<Kind> {
     kinds.extend(gear.iter().map(|&tier| Kind::Gear(tier)));
     Rng::new(seed ^ 0x6EA2_6EA2_6EA2_6EA2).shuffle(&mut kinds);
     kinds
+}
+
+/// The highest rarity tier among a burst's gear, or none if it is all coins:
+/// what the screen's response is sized to.
+pub fn best_tier(kinds: &[Kind]) -> Option<usize> {
+    kinds
+        .iter()
+        .filter_map(|kind| match kind {
+            Kind::Coin => None,
+            Kind::Gear(tier) => Some(*tier),
+        })
+        .max()
 }
 
 /// A piece in flight. Its position is its middle; it touches the ground when
@@ -321,7 +336,14 @@ impl Plugin for DropsPlugin {
                 calm: Watch::default(),
             })
             .add_systems(Startup, setup)
-            .add_systems(Update, (launch_kills, test_burst, fly).chain());
+            // After the kills are reported, so their pieces are counted in
+            // the frame they fall (`game::road_is_held`).
+            .add_systems(
+                Update,
+                (launch_kills, test_burst, fly)
+                    .chain()
+                    .after(crate::game::advance),
+            );
     }
 }
 
@@ -357,6 +379,16 @@ struct Piece {
     thickness: f32,
     model: Entity,
     beam: Option<Beam>,
+}
+
+impl Uncollected {
+    /// A piece has reached the party, or been left behind.
+    fn take(&mut self, piece: &Piece) {
+        self.coins -= piece.value;
+        if !piece.pinned {
+            self.pieces = self.pieces.saturating_sub(1);
+        }
+    }
 }
 
 /// The beam of light over a piece: a child of the piece, like its model.
@@ -566,6 +598,8 @@ fn spawn_burst(
 fn launch_kills(
     mut commands: Commands,
     mut killed: MessageReader<Killed>,
+    mut erupted: MessageWriter<Erupted>,
+    mut uncollected: ResMut<Uncollected>,
     look: Res<Look>,
     shower: Res<Shower>,
     mut bursts: Local<u64>,
@@ -577,6 +611,11 @@ fn launch_kills(
         let kinds = burst_kinds(*bursts, coins, &gear);
         let launches = plan_burst(&shower, fountain, *bursts, kinds.len(), kill.at, &kill.standing);
         *bursts += 1;
+        uncollected.pieces += kinds.len();
+        erupted.write(Erupted {
+            in_secs: fountain.delay_secs,
+            best: best_tier(&kinds),
+        });
         let after = After::Kill(kill.coins);
         spawn_burst(&mut commands, &look, &shower, kill.at, &launches, &kinds, after);
     }
@@ -591,6 +630,7 @@ fn test_burst(
     keys: Res<ButtonInput<KeyCode>>,
     look: Res<Look>,
     shower: Res<Shower>,
+    mut erupted: MessageWriter<Erupted>,
     mut test: ResMut<TestBurst>,
     pieces: Query<(Entity, &Piece)>,
 ) {
@@ -621,6 +661,10 @@ fn test_burst(
     let fountain = shower.fountain(&shower.burst_fountain);
     let launches = plan_burst(&shower, fountain, shower.burst_seed, kinds.len(), origin, &[]);
     spawn_burst(&mut commands, &look, &shower, origin, &launches, &kinds, after);
+    erupted.write(Erupted {
+        in_secs: fountain.delay_secs,
+        best: best_tier(&kinds),
+    });
     test.watch = Some(Watch::default());
 }
 
@@ -682,7 +726,7 @@ fn fly(
         if let Some(speed) = &mut piece.homing {
             let to = nearest_horse(piece.body.position);
             if step_home(&shower, &mut piece.body.position, speed, to, dt) {
-                uncollected.coins -= piece.value;
+                uncollected.take(piece);
                 commands.entity(entity).despawn();
                 continue;
             }
@@ -693,7 +737,7 @@ fn fly(
             // it what lies on it and what is falling to it.
             piece.body.position.x -= drift;
             if piece.body.position.x < -GONE {
-                uncollected.coins -= piece.value;
+                uncollected.take(piece);
                 commands.entity(entity).despawn();
                 continue;
             }

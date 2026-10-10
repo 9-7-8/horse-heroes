@@ -68,6 +68,17 @@ pub struct Killed {
 #[derive(Resource, Default)]
 pub struct Uncollected {
     pub coins: i32,
+    /// Pieces of kills' drops still in the world, coins and gear alike. `fx`
+    /// counts them in as it throws them and out as they arrive.
+    pub pieces: usize,
+}
+
+/// The calm after the kill: a trail that was won keeps the party standing on
+/// the road, with nothing else going on, from the tick its last enemy `fell`
+/// until every piece of its drops has reached the party. A lost trail has
+/// no fountain to wait for.
+pub fn road_is_held(won: bool, fell: bool, pieces: usize) -> bool {
+    won && (fell || pieces > 0)
 }
 
 pub struct GamePlugin {
@@ -174,10 +185,11 @@ impl Game {
         matches!(self.screen, Screen::Camp { .. })
     }
 
-    /// Whether the party is walking. It stands still to fight, and the
-    /// ground and whatever lies on it stand still with it.
+    /// Whether the party is walking. It stands still to fight, and while
+    /// the last fountain of a won trail plays, and the ground and whatever
+    /// lies on it stand still with it.
     pub fn party_moving(&self) -> bool {
-        !matches!(&self.screen, Screen::Trail(expedition) if expedition.phase == Phase::Fighting)
+        !matches!(&self.screen, Screen::Trail(expedition) if expedition.phase != Phase::Travelling)
     }
 
     /// Dev aid: start the wait in town again, so the menu tour can finish
@@ -256,7 +268,7 @@ fn input(
     }
 }
 
-fn advance(
+pub fn advance(
     time: Res<Time>,
     mut game: ResMut<Game>,
     mut uncollected: ResMut<Uncollected>,
@@ -272,11 +284,13 @@ fn advance(
             }
         }
         Screen::Trail(expedition) => {
+            let mut fell = false;
             game.accumulator += dt;
             while game.accumulator >= TICK && expedition.phase != Phase::Finished {
                 game.accumulator -= TICK;
                 expedition.tick(&game.data, TICK);
                 for kill in std::mem::take(&mut expedition.kills) {
+                    fell = true;
                     uncollected.coins += kill.coins.max(0);
                     killed.write(Killed {
                         at: scene::enemy_centre(kill.foe, kill.max_health),
@@ -293,7 +307,9 @@ fn advance(
                     });
                 }
             }
-            if let Some(outcome) = expedition.outcome.clone() {
+            if let Some(outcome) = expedition.outcome.clone()
+                && !road_is_held(outcome.won, fell, uncollected.pieces)
+            {
                 game.return_to_camp(outcome);
             }
         }
@@ -370,6 +386,7 @@ pub fn report_text(game: &Game) -> String {
             let total = expedition.plan.encounters.len();
             out += &match expedition.phase {
                 Phase::Fighting => format!("ENCOUNTER {}/{}", expedition.encounter + 1, total),
+                Phase::Finished => format!("TRAIL CLEARED {total}/{total}"),
                 _ => format!(
                     "On the trail to encounter {}/{}",
                     expedition.encounter + 1,
@@ -444,5 +461,22 @@ pub fn report_side(game: &Game) -> String {
             let start = expedition.log.len().saturating_sub(LOG_LINES);
             expedition.log[start..].join("\n")
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The road is held for a won trail's last drops and for nothing else.
+    #[test]
+    fn the_road_is_held_until_the_last_drops_are_in() {
+        // The tick the last enemy falls, before `fx` has thrown anything.
+        assert!(road_is_held(true, true, 0));
+        assert!(road_is_held(true, false, 3));
+        assert!(!road_is_held(true, false, 0));
+        // A lost trail goes home at once, whatever still lies on the road.
+        assert!(!road_is_held(false, true, 0));
+        assert!(!road_is_held(false, false, 3));
     }
 }

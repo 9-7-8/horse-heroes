@@ -4,6 +4,7 @@
 use bevy::prelude::*;
 
 pub mod drops;
+pub mod response;
 
 pub struct FxPlugin {
     /// Throw the test burst shortly after launch (`--burst`). F3 throws it
@@ -22,6 +23,7 @@ impl Plugin for FxPlugin {
             burst: self.burst,
             pickup: self.pickup,
             burst_at: self.burst_at.unwrap_or(drops::BURST_AT),
-        });
+        })
+        .add_plugins(response::ResponsePlugin);
     }
 }

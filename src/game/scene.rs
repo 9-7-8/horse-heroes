@@ -83,11 +83,10 @@ fn setup(
     // Camera at the isometric elevation (about 35 degrees), looking across
     // the trail. Its projection covers the whole window and the menu shell
     // is drawn over the lower part; `frame` sizes it every frame.
-    let aim = Vec3::new(0.0, 1.6, 0.0);
     commands.spawn((
         Camera3d::default(),
         Projection::from(OrthographicProjection::default_3d()),
-        Transform::from_translation(aim + Vec3::new(0.0, 20.0, 28.28)).looking_at(aim, Vec3::Y),
+        camera_home(),
     ));
 
     commands.spawn((
@@ -268,6 +267,12 @@ fn frame(
         ortho.scaling_mode = ScalingMode::FixedVertical { viewport_height };
         ortho.viewport_origin = viewport_origin;
     }
+}
+
+/// Where the camera stands when nothing is shaking it.
+pub fn camera_home() -> Transform {
+    let aim = Vec3::new(0.0, 1.6, 0.0);
+    Transform::from_translation(aim + Vec3::new(0.0, 20.0, 28.28)).looking_at(aim, Vec3::Y)
 }
 
 /// The side of an enemy's cube. Bigger enemies have more health.
