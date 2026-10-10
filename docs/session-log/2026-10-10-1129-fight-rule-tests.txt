@@ -1,0 +1,49 @@
+SESSION LOG 2026-10-10 11:29 - tests for the fight's rules
+==========================================================
+
+ASKED
+  "Next" - procedures/next-thing.txt.
+
+DONE
+  - Tier 1 (bugs) was empty: build green, 42 tests passing, no open issue
+    labelled "bug".
+  - Tier 2 (tests) was not. docs/expedition.md states rules of the fight
+    that nothing asserted. Eight tests added in src/sim/expedition.rs
+    (c4e63a2):
+      a hit is physical less defense plus elemental by the triangle, min 1
+      enemies gain health and attack with the trail level, nothing else
+      the Ward reduces damage, the Mage raises it, and it runs out
+      the fairy spring heals the standing only, and not past full
+      springs come at bonus_chance and never after the final
+      the trail does not change with the level or the fight
+      worn gear is fought in, and a geared party wins more trails
+      tick by tick: health in bounds, the fallen stay down, coins match
+        the kills, the winning kill keeps its gear for a presenter that
+        takes kills every tick, and a finished run does not move
+    Tested: cargo test, 50 pass. All eight passed first time, so no bug
+    was found and no sim code changed.
+  - docs/expedition.md says which rules have a test.
+
+DECIDED
+  Made for her, to be corrected:
+  - That tier 2 counted as this session's one thing, so #7 was not started.
+
+FOUND
+  - Nothing broken.
+  - The tests were not checked by breaking the rule and watching them
+    fail; they are trusted on reading.
+
+NOT DONE
+  - The Ranger's Focused Shot and the Wizard's Elemental Burst have no
+    test of their own numbers; only first_trail_balance reaches them.
+  - Nothing checks how strong a party in Legendary or Set gear is against
+    the trail, only that gear helps. That is a balance question for when
+    gear can be worn in the running game.
+  - Carried over: a real winning kill dropping its gear on the road has
+    not been looked at; nobody has watched the shower move; #205 waits on
+    #8; #199 waits on the owner's source files.
+
+PICK UP
+  Run procedures/next-thing.txt. Tiers 1 and 2 should now be empty, so it
+  lands on #7, the pickup vacuum: drops pause on the ground, then fly to
+  the party.
