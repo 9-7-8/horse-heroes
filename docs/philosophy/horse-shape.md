@@ -166,7 +166,7 @@ fine legs from a lighter type.**
   values, like depth and clearance, are constraints the generator must keep.
 - **The landmarks are where the sockets go.** Halter at the head, barding
   over the body, boots between fetlock and knee or hock, shoes at the hoof,
-  the martingale at the chest, the weapon at the muzzle, the braid in the
+  the breastcollar at the chest, the weapon at the muzzle, the braid in the
   mane or tail, the pet saddle on the back, saddlebags at the flanks
   ([gear.md](gear.md)). Heights given as ratios of H let the sockets follow a
   horse of any size.

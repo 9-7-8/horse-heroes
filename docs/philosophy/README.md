@@ -18,7 +18,7 @@ Read the relevant file before designing or tuning the system it covers.
 | [generations.md](generations.md) | Retirement into towns and back, residents building by magic, town states, families and colour genetics, descendants, updating towns on demand |
 | [cosmetics.md](cosmetics.md) | The wardrobe: gear, displayed look and dye kept separate, unlocking looks through play, rider-free equipment, meaning without power, presets, layers, provenance (a proposal) |
 | [pets.md](pets.md) | Pets: what is confirmed (cannot die, assigned to horses, collar and optional armour), one signature ability, supporting reactions without replacing horses, gentle exhaustion, favourites kept viable |
-| [gear.md](gear.md) | The owner's slot mapping (halter, barding, boots, martingale, horseshoes, mouth weapon, braid, plus saddlebags and pet saddle), what each slot owns, accuracy and crit rules, exceptional pieces, how a piece is generated and compared |
+| [gear.md](gear.md) | The owner's slot mapping (halter, barding, boots, breastcollar, horseshoes, mouth weapon, braid, plus saddlebags and pet saddle), what each slot owns, accuracy and crit rules, exceptional pieces, how a piece is generated and compared |
 | [town.md](town.md) | The non-combat half: the owner's six caravan-shop decisions, what makes it cosy, the town session, listing and selling over time, player-set prices and goodwill, buying, recruiting and retiring as social moments, decoration, town juice and interface |
 | [travel.md](travel.md) | Journeys: the owner's eight travel rules, the tile map, purity and danger, routes, travel days, road events, the guaranteed boss, failure, and starting small |
 | [cargo.md](cargo.md) | Shared party cargo: the owner's five decisions, what happens when a drop arrives, protection, keep rules, explanations, rarity shown several ways, selling on arrival, capacity changes |
@@ -53,5 +53,4 @@ Read the relevant file before designing or tuning the system it covers.
 - The game is original. These files take principles from studying other
   games, never content, numbers or specific designs. The games themselves may
   be named as inspirations (owner, 2026-10-09) and are listed in
-  `inspirations.md`; files written before that say "a reference action RPG"
-  and the like.
+  `inspirations.md`.

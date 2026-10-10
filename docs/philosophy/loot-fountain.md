@@ -115,7 +115,7 @@ ceremony alone does not last.
 
 ## Source
 
-Owner's notes on loot fountains and combat feedback in a reference action RPG,
+Owner's notes on loot fountains and combat feedback in Diablo III,
 received 2026-10-09 (section 2). The part on aggregating and spotlighting is
 from her notes on carrying those systems over to an idle game, same date
 (section 2.1). What makes an item worth dropping is in

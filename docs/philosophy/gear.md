@@ -27,7 +27,7 @@ Each slot is the horse-world translation of a familiar RPG slot.
 | Helmet | **Halter** | Accuracy |
 | Breastplate | **Barding** | Defence and damage reduction |
 | Trousers | **Boots** | Defence |
-| Belt | **Martingale** | Varied utility |
+| Belt | **Breastcollar** | Varied utility |
 | Gloves | **Horseshoes** | Critical-hit chance |
 | Weapon hand | **Mouth** | A mouth-held weapon |
 | Trinkets | **Mane or tail braid** | Charms and build interactions |
@@ -55,7 +55,7 @@ Also kept: **saddlebags** for the party's shared carrying capacity, and
 | Barding | How much punishment can this horse take? | A protection rating | More protection on the piece, health, elemental resistance, bounded mitigation of heavy hits | Attack speed, crit, cargo, unrestricted reaction damage |
 | Boots | Can this horse keep acting under pressure? | A smaller defensive rating | Defence, shorter slows and staggers, protection against repeated small hits | Crit, raw damage, cargo |
 | Horseshoes | How often does this horse land an exceptional hit? | Critical-hit chance | Crit and narrow conditions that support it; later, limited crit damage | Accuracy, bulk armour, cargo, travel speed |
-| Martingale | What everyday part of the build runs more smoothly? | One modest property from a named utility family | Resource economy, recovery timing, a situational support benefit | Copies of accuracy, weapon damage, armour, crit or capacity |
+| Breastcollar | What everyday part of the build runs more smoothly? | One modest property from a named utility family | Resource economy, recovery timing, a situational support benefit | Copies of accuracy, weapon damage, armour, crit or capacity |
 | Mouth | What does this horse's action do? | Weapon or ability power, and a weapon family | Local output, elemental expression, a compatible delivery modifier | Bulk armour, cargo, pets, anything about trade |
 | Braid | What distinctive interaction does this build emphasise? | A modest charm property | A named cooperation effect, a class or status interaction, conditional ally support | Large unconditional copies of the weapon's power or another slot's stat |
 | Saddlebags | How much can the gaggle carry home? | Shared cargo slots | Capacity; later, carrying rules that create a choice | Any combat bonus |
@@ -63,7 +63,7 @@ Also kept: **saddlebags** for the party's shared carrying capacity, and
 **Barding reduces damage; boots preserve stability.** Some overlap between
 them is intended, but they must not be two interchangeable armour numbers.
 
-**The martingale improves general operation; the braid changes a named
+**The breastcollar improves general operation; the braid changes a named
 synergy.** Keep those pools apart unless an exceptional piece deliberately
 bridges them.
 
@@ -73,7 +73,7 @@ Some overlap is useful. What matters is who owns the strongest version:
 
     the weapon owns output            the halter owns accuracy
     the shoes own crit chance         barding owns substantial mitigation
-    boots own defensive stability     the martingale owns bounded utility
+    boots own defensive stability     the breastcollar owns bounded utility
     the braid owns named synergy      saddlebags own carrying
 
 A small health roll on boots does not erase barding. A large generic attack
@@ -126,10 +126,12 @@ effects, so additive stacking can never reach near-invulnerability.
   hoof's contact with the ground. **One item equips the whole set** of four;
   no matching chore. World travel speed is a separate matter and is on
   neither to begin with.
-- **Martingale.** "Varied benefits" means a few tested utility families, not
+- **Breastcollar.** "Varied benefits" means a few tested utility families, not
   every statistic in one pool. **Never generate a bonus to a resource that
-  does not exist yet.** The model must not bring reins back: a rein-free chest
-  harness or ornament, or a different name once the model is approved.
+  does not exist yet.** The owner renamed this slot from "martingale" on
+  2026-10-10: a real martingale attaches to reins, and a breastcollar sits on
+  the chest and implies no reins or rider. Its families are timing and
+  recovery: ability timing, potion effect, rest on quiet days.
 - **Mouth.** The weapon replaces the earlier focus. Rods and crystal focuses
   are weapon families beside compact mouth-grip weapons; **no horse is
   required to swing a human-sized sword.** The grip must be safe and
@@ -170,7 +172,7 @@ usable through the wardrobe.
 - Barding: a heavy hit raises a capped emergency shield.
 - Boots: resisting an impairment grants a short recovery.
 - Shoes: a crit empowers one following direct attack.
-- Martingale: changes one resource or recovery loop.
+- Breastcollar: changes one resource or recovery loop.
 - Weapon: changes one skill's delivery.
 - Braid: specialises one cooperation pattern.
 
@@ -207,7 +209,7 @@ damage; no decoration that needs a horn an ordinary horse lacks.
 Two options, for the owner to choose between:
 
 - **Stage the mechanics.** First: mouth weapon, halter, barding, horseshoes,
-  saddlebags. Then boots once impairments matter, the martingale once a
+  saddlebags. Then boots once impairments matter, the breastcollar once a
   utility loop exists, the braid once reactions work, pet gear once pets have
   abilities.
 - **Show every slot from the start.** Give each one simple property and
@@ -238,7 +240,7 @@ Either way: **do not invent a subsystem merely to fill a slot.**
   large step, and the staged order above exists to take it in pieces.
 - **Three slots need mechanics the game does not have.** Nothing can miss, so
   accuracy means nothing yet. There are no critical hits. There are no slows
-  or staggers for boots to resist, and no resources for a martingale to
+  or staggers for boots to resist, and no resources for a breastcollar to
   ease. Each is a real subsystem, to be built because the owner chose the
   slot and not as filler; and the warning above applies to the two that have
   nothing obvious to attach to yet.
@@ -269,7 +271,7 @@ Either way: **do not invent a subsystem merely to fill a slot.**
 - **Focus is gone.** Its job is the mouth weapon's.
 - **Protection is split** into barding (mitigation) and boots (stability).
 - **The halter is accuracy**, not coordination and targeting.
-- **New slots:** horseshoes for crit, the martingale for utility, the braid
+- **New slots:** horseshoes for crit, the breastcollar for utility, the braid
   for build-defining charms.
 - The earlier advice against many slots is overridden by the owner's mapping;
   the reasoning behind it survives as the rule that each slot keeps its own

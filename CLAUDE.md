@@ -33,10 +33,10 @@ git history, how a system works goes in `docs/`, a routine goes in
 1. **Loot feel is the product.** Drop arcs, bounce, rarity beams, pickup
    vacuum, sound and screen response come before content breadth. A new system
    that does not make a drop feel better waits behind one that does.
-2. **Idle first.** The game progresses with no input. Input makes it faster or
-   more interesting, never merely possible. One exception, the owner's
-   (2026-10-09): after a failed journey the party waits in town until she
-   sends it out, and never retries by itself.
+2. **Idle first.** The road runs with no input, and a party with an itinerary
+   keeps travelling by itself. Town is where the player decides. The party
+   waits in town in two cases: after a failed journey, and when its itinerary
+   is empty; the stall sells meanwhile. (Owner, 2026-10-10.)
 3. **Simple 3D.** Primitive meshes and flat colours until the loop is fun. Art
    is replaced late, so nothing may depend on a specific model.
 4. **Numbers are data.** Items, affixes, rarities, monsters and drop tables

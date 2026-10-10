@@ -88,7 +88,7 @@ No avatar and no explanation for the organiser is required.
   feel natural for autonomous horses.
 - **Her slot mapping** (her latest, replacing the five categories proposed
   earlier): halter for accuracy; barding for defence and damage reduction;
-  boots for defence; martingale for varied utility; horseshoes for
+  boots for defence; breastcollar for varied utility; horseshoes for
   critical-hit chance; a mouth-held weapon; a mane or tail braid for charms
   and build interactions. Saddlebags and pet saddles stay. No stirrups
   either. The rules built on it are in [gear.md](gear.md).
@@ -171,6 +171,130 @@ detail built on them is in [travel.md](travel.md).
   characters, procedural situations and remembered consequences, as an idle
   RPG and not a colony simulator.
 
+## Decided on 2026-10-10
+
+Her answers to the `decision` issues, each recorded in full on the issue
+named. Where another philosophy file still words one of these as a
+recommendation, this section is the newer statement.
+
+### Combat (#80)
+
+- Tagged Primer and Finisher skills. One Primer per enemy, which a different
+  element does not overwrite. Pair reactions: Thermal Shock, Wildbloom,
+  Wintergarden. Same-element Crescendos: Flare, Deep Frost, Bloom. No
+  recursive secondary effects and no permanent boss freeze.
+- **Attunement belongs to the horse.** A weapon modifies it, never overrides.
+- Each class keeps one fixed role at first: Ranger primes, Wizard finishes,
+  Mage supports.
+- One accuracy system for attacks and spells. Reactions never miss or crit; a
+  miss does not consume a Primer.
+- Impairments are a short fixed set: Slowed, Staggered, Rooted.
+
+### The party (#86)
+
+- Starts at three and **grows to five**, a place at a time, by restoration.
+- Duplicate classes are allowed. Class and element never change.
+- A horse's identity: name, appearance, class, one modest signature trait, a
+  record of notable events. Personality is expressive only; a horse always
+  goes where it is sent.
+
+### The road (#82, #153, #88)
+
+- A hex tile map holds purity; cities are joined by routes across it. The
+  player picks from a few route options; a custom path exists, and the game
+  is never balanced around it.
+- The route is fixed on departure. Gear and pets change in town only. The
+  party does not stop on the way; discoveries go in the journal.
+- Events come from seeded daily checks. Health carries between fights; quiet
+  days restore part, potions the rest. Danger is purity alone. Nothing about
+  a route is hidden but its particular events.
+- Failure: only gear picked up on that trip can be lost (a tenth, lowest
+  rarity first, at most three); a small capped coin cost; nothing else. A
+  retreat by choice is free. **The stall opens on any return to town.**
+
+### Time and idling (#114, #200)
+
+- **One world clock in days.** It runs while the party travels or has its
+  stall open. Time away continues what the party was doing, up to **8
+  hours**. Towns and families advance by world days, on a visit or when the
+  map opens.
+- **The party follows an itinerary** of destinations the player queues. After
+  a success it sells until sold out or a set time passes, then leaves. With
+  an empty itinerary, or after a failure, it waits.
+
+### Cargo, the stall and the caravan (#83, #84, #144)
+
+- One piece, one slot. Equipped gear, looks and pets take no cargo; coins and
+  materials are counters. Saddlebags carry no combat bonuses.
+- **Each town has storage.** The caravan stores nothing.
+- **Listing is the only way to sell.** Prices from -50% to +50% of baseline.
+  Sales stop at once on departure. No offer needs an answer. Demand is
+  abstract first; named buyers, and townsfolk wearing what they bought, come
+  later.
+- **One standing number per town: goodwill.** Earned on completed sales and
+  by helping; it gently improves prices and unlocks welcome, recruits and
+  looks. Never construction speed or combat power.
+- The caravan rolls on sun-charged wheels, has an exterior only, and its
+  decoration is expression only.
+- **Telekinesis is the answer for hands everywhere.**
+
+### Towns, retirement and families (#112, #85, #113)
+
+- A horse is either travelling or retired; there is no other "left in town".
+  Any uncorrupted town the party has reached will do, with no limit on
+  places. An invitation back is always accepted and costs the town nothing.
+- Residents give construction progress to a few town projects. The party
+  gains from finished projects only; no income accumulates.
+- Partnerships form by themselves; the player only shapes conditions. Shown
+  by journal and presence. Three life stages, advanced by the world clock.
+  Young horses stay in town. The family tree keeps the whole campaign.
+
+### Pets (#87)
+
+- One automatic signature ability each, and nothing beside it. One collar
+  slot specialises it. The pet saddle is seating and looks only.
+- Reassigning is free in town. Pets never own a Finisher, never handle loot,
+  are never captured by defeat, and are not exhausted to begin with.
+
+### Gear and looks (#81, #128)
+
+- The martingale is renamed the **breastcollar**. One braid slot. Slots are
+  staged: mouth weapon, barding and saddlebags first.
+- Gear specialises and never repairs; an item is small; no universal stats;
+  equipment modifies abilities and does not replace them.
+- **The appearance library is confirmed.** A look unlocks when its item is
+  collected, for the whole save. Changing looks is free; gear can be hidden;
+  dyes are reusable; presets are apart from loadouts; no collection bonuses.
+  Look slots: one per gear slot, plus the other braid, a rug and leg wraps.
+
+### Horses (#200)
+
+- The base horse is **built by code** from the brief's proportions: the
+  Friesian build, in whatever colours the genetics give. Foal proportions are
+  derived by code for her approval.
+- The player defines the **genotype of the starting horses**. Every later
+  horse has a rolled look, and there is no other coat customisation.
+- The breeding mod may be read for its natural coat genetics and nothing
+  else, and never changed.
+
+### The world and the ending (#89)
+
+- Extraction and domination against restorative, communal technology.
+- Defeated living creatures are freed and leave restored; the dragon's
+  machines are broken.
+- The dragon can be faced only when every other region is cleared.
+
+### The screen and the release (#145, #189)
+
+- In town the scene is the top third and menus fill the rest. **On the road
+  the scene expands** when there is nothing to decide. Fixed proportion, with
+  a minimum window size.
+- Windows 10 and 11, x64. Application ID `9-7-8.HorseHeroes`, publisher
+  `9-7-8`. Published from this repository, one stable channel, updates
+  offered and chosen. Unsigned until a decision before 1.0. The manifest
+  signing key is a GitHub Actions secret.
+- No social features and no timed content.
+
 ## The design priority
 
 > Complexity through depth, not breadth.
@@ -197,45 +321,20 @@ that.
 
 ## Proposed, awaiting her decision
 
-- **Road and town as two phases.** Road: automatic action and the occasional
-  discovery. Town: concentrated decisions about builds, trade, companions and
-  looks. Developed in [town.md](town.md); the caravan itself is now
-  confirmed, above.
-- **A screen layout:** the top third a fixed-view 3D scene, the lower
-  two-thirds menus. Four of her documents treat this as established; the document
-  that decided it has not been received, so it is listed here until she
-  confirms it.
-- *(Replaced.)* Equipment as five categories, with a focus, a protection
-  slot and a halter for coordination, was proposed here. Her slot mapping,
-  under Confirmed above, supersedes it.
-- **Gear specialises behaviour; it never repairs it.** The baseline
-  automation is already competent, and a horse hits reliably without a rare
-  halter.
-- **Elements, classes and reactions:** see
-  [elemental-combat.md](elemental-combat.md).
-- **An appearance library:** a piece's look is kept for good once collected,
-  so the piece can be sold or replaced without losing the look, and a loved
-  outfit stays viable. Developed in [cosmetics.md](cosmetics.md).
+Most of what stood here was confirmed on 2026-10-10 and is in the section
+above. What remains proposed:
+
 - **Loot handling:** collect routine rewards automatically, aggregate the
   ordinary, spotlight upgrades, rare looks and build-changing pieces, then
   keep, equip or sell. Favourites and gear in saved loadouts are protected
   from automatic disposal.
 - **What a major victory does:** corruption recedes, a town opens or
   recovers, routes become safer, residents offer aid, and horses, pets,
-  styles and equipment become available. *(The summary also proposed patrols
-  in restored places for repeat farming. Her endgame rule, under Confirmed,
-  replaces that: a cleared region has no fights.)*
-- **Harmful extraction and domination against restorative, communal
-  technology** as the line the world draws, in keeping with solarpunk.
+  styles and equipment become available.
 - **Stories start small:** persistent characters, contextual events and
-  remembered consequences, with a journey journal first. Bonds, rivalries and
-  personality systems only after that.
+  remembered consequences, with a journey journal first.
 - **Narration reports what happened.** It never invents an accomplishment the
   simulation did not produce.
-- **A horse's identity:** a name, an appearance, a class, one modest
-  signature trait, and a record of notable events. Class is how it acts,
-  element is what its magic does, personality is who it is: three separate
-  questions.
 
 ## Her proposal: retirement and generations
 
@@ -254,12 +353,9 @@ after the main loop works.
 
 ## Open
 
-Party size and duplicates; whether class or element can change; the shape of
-the map and how routes are picked; the details of the shop and of goodwill;
-what residents yield; the exact reaction rules; what pets do; the numbers
-behind a failure; whether corrupted creatures are killed or cured; how world
-time advances. Each group is a `decision` issue. Several questions that stood
-here have since been answered by her and moved up to Confirmed.
+Every `decision` issue was answered on 2026-10-10. What is left is tuning and
+content, and lives on the implementing issues: reaction timings, journey
+length, purity gained per boss, which pet abilities come first.
 
 ## Against the game as built
 

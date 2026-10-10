@@ -137,9 +137,10 @@ Questions worth asking:
 | Wildermyth | [generations.md](generations.md), [vision.md](vision.md) |
 | Terra Nil | [endgame.md](endgame.md) |
 
-Those files were written before the owner said the references may be named,
-and say "a reference action RPG" or "other shopkeeping games". This table is
-the key.
+Those files were written before the owner said the references may be named.
+The placeholder "a reference action RPG" has since been replaced with the
+game's name (owner, 2026-10-10); where a file still speaks generally, as in
+"other shopkeeping games", this table is the key.
 
 ## For Horse Heroes
 

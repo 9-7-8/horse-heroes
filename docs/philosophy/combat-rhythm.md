@@ -73,5 +73,5 @@ One animation clip must not decide all of these. Each is its own number:
 
 ## Source
 
-Owner's notes on loot fountains and combat feedback in a reference action RPG,
+Owner's notes on loot fountains and combat feedback in Diablo III,
 received 2026-10-09 (sections 3 to 3.2; the file ends mid-sentence in 3.2).

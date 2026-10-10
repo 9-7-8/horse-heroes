@@ -223,5 +223,5 @@ collection is large.
 
 A design proposal on cosmetics, appearance collection and equipment identity
 for this game, received from the owner 2026-10-09 (all sections). Its study of
-how a reference action RPG separates a piece's look from its function is
+how Diablo III separates a piece's look from its function is
 summarised under "Why separate them" and "Do not tax dress-up".

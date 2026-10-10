@@ -55,5 +55,5 @@ in which each step visibly causes the next.
 
 ## Source
 
-Owner's notes on loot fountains and combat feedback in a reference action RPG,
+Owner's notes on loot fountains and combat feedback in Diablo III,
 received 2026-10-09 (section 1).
