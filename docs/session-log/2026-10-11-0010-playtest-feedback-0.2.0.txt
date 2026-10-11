@@ -1,0 +1,43 @@
+ASKED
+  The owner installed 0.2.0 and sent eleven points from playing it:
+  install to Program Files; horses out of step and of different sizes;
+  "installs great, launches great, the juice and sounds all look good";
+  no gear drops; attack indicators for horses and for monsters; walk
+  tuning and gaits; the menu shrinking and expanding at random; floating
+  damage numbers; the gear layout confusing; coloured item text.
+
+DONE
+  - The installer puts the game under Program Files and asks for
+    administrator rights; /CURRENTUSER still installs for one user.
+    vision.md, distribution.md, the README and release-a-build.txt say so.
+    (installer compiled; NOT installed: it needs a person at the prompt)
+  - Filed: #245 no gear dropped (bug), #246 the menus shrink and expand
+    (bug), #247 horses out of step and one size, #248 gaits, #249 floating
+    damage numbers, #250 the gear layout is confusing, #251 coloured item
+    text.
+  - Comments: #15 (attack phases already covers the attack indicators for
+    both sides), #192 and #195 (what Program Files changes for them).
+
+DECIDED (for her)
+  - Program Files means for all users with a rights prompt, and the wizard
+    does not offer a per-user choice.
+  - Milestones: the two bugs in 0.2.0, the horse motion in 0.3.0, damage
+    numbers in 0.5.0, the two gear-screen issues in 0.6.0.
+  - The published 0.2.0 installer was left as it is: the change goes out
+    with the next release.
+
+FOUND
+  - A here-document with apostrophes failed again in the Bash tool; the
+    Write tool and a script under target/ worked.
+
+NOT DONE
+  - #245 was not investigated: by design gear falls only from a won
+    trail's final enemy, which may be all there is to it.
+  - #250 needs the owner to say what confused her before anything is
+    changed.
+  - On her machine the new installer will keep a per-user install where it
+    is unless 0.2.0 is uninstalled first.
+
+PICK UP
+  #245: run unattended trails from several seeds and count how many are
+  won and drop gear in the first five minutes.
