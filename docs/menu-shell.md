@@ -241,8 +241,9 @@ every place, tab and horse has a key, and no key means two things at once.
 
 `content` in `places.ron` says what a tab holds:
 
-- `Gear`: the selected horse's stats and its three slots. Pressing a slot
-  opens the piece in the side panel.
+- `Gear`: the selected horse's stats and its three slots. A slot row names
+  the piece worn and what it adds. Pressing a slot opens the piece in the
+  side panel.
 - `Element`: the party's one element and what beats what, above the three
   element buttons. The slice's stand-in for abilities.
 - `Report`: the latest report, in two halves of fixed width. In town, the
@@ -254,8 +255,12 @@ Under whatever a tab shows come its controls.
 
 A place marked `horse_columns` keeps the horses down its left and the cargo
 down its right on every tab. Until 0.4.0 the cargo holds one thing: the
-piece the last trail dropped, with the horse it fits and what that horse
-wears, until it is equipped or the party leaves. Equip is there.
+piece the last trail dropped, until it is equipped or the party leaves.
+It is compared with the selected horse: what that horse wears in the slot,
+and whether the piece is an upgrade for it, no better or worse, in points
+(`loot::gain`). Selecting another horse changes the comparison. Equip is
+there and puts the piece on the selected horse (#250); before, a piece was
+rolled for one horse and went to it whoever was selected.
 
 ## A tab that does not fit
 

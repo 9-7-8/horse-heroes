@@ -1,0 +1,49 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tier 1 and 2 were empty. The thing was #250, the gear and inventory
+    layout, which PICK UP named.
+  - Asked her what confused her, through the question tool; her answers
+    are on #250 in her words.
+  - Equip puts the drop on the selected horse. A piece no longer belongs
+    to one horse: `Gear::fits` is gone, and the cargo compares the drop
+    with what the selected horse wears ("An upgrade for Sable: +11
+    points."). A slot row now shows what the worn piece adds.
+    Tested (108 pass; new: a piece goes where it does most; Equip lands
+    on each of the three horses when selected). Seen in stills from the
+    menu tour, --seed 6, at full size and at 1120x640 (35 Tab stops, 0
+    out of sight). Not seen moving, and not played by her.
+  - docs/expedition.md, docs/menu-shell.md "What a tab shows", and
+    docs/gallery/2026-10-11-equip-on-selected.
+
+DECIDED
+  Hers:
+  - Equip onto the selected horse comes first, and with it the end of the
+    rule that a drop fits one horse.
+  For her:
+  - A party that leaves town with the drop still in cargo puts it on the
+    horse it does most for, the earlier horse on a tie, and on nobody if
+    it betters nobody. Before, it went to the horse it was rolled for.
+  - The Journal report says which horse the drop does most for.
+  - The comparison is one number, the same "points" the drop table uses.
+
+FOUND
+  - A here-document in the Bash tool failed again on apostrophes
+    (build-and-run.txt, NOTES); the Write tool and a script under target/
+    worked.
+  - Source files are CRLF in the working copy; a Python edit script must
+    read them with that in mind.
+
+NOT DONE
+  - #250 stays open: its second "done when" is the owner equipping,
+    comparing and finding what a horse wears without help.
+  - Her two other points are filed, not built: #285, an overview of all
+    the gear; #286, a stand-in image for gear.
+  - The horses are still listed twice (strip and left panel) and a slot's
+    detail still opens in a side panel that squeezes the tab; both are
+    part of "worn gear is hard to read" on #250.
+
+PICK UP
+  #285, the overview of all the gear: read the issue and menus.md, then
+  lay out on the Gear tab what all three horses wear beside the cargo.

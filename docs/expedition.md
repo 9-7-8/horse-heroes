@@ -49,8 +49,11 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
   Morrow: Elemental Burst, x2 elemental on every enemy every 5 s.
   Sable: Ward, halves damage taken for 4 s every 8 s.
 - One gear drop per run if at least one encounter was cleared; a win shifts
-  the rarity weights up. Each piece fits one named horse and one of three
-  slots (Head, Body, Saddle). On a win the piece comes out of the last
+  the rarity weights up. Each piece fits one of three slots (Head, Body,
+  Saddle) and any horse can wear it (owner, 2026-10-11, #250): Equip puts
+  it on the selected horse. A party that leaves town with the piece still
+  in cargo puts it on the horse it does most for (`loot::best_wearer`), if
+  it betters any of them. On a win the piece comes out of the last
   enemy to fall (`Kill::gear`); on a loss it is only reported in town.
 - A rarity is a line in `gear.ron`, lowest first, and a piece names its
   tier by its place in that list. There is no rarity enum in the code.
