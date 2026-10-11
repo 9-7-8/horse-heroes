@@ -1,0 +1,51 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #286, a stand-in picture for every piece of gear, closed
+    (0eb9844). Picked ahead of the lower numbers because it is the part of
+    what the owner listed on #250 that nothing had met. Tested (121 pass)
+    and seen running, read by this session; the owner has not looked.
+    - A slot of the overview, the cargo and the drop under the report show
+      the piece's picture: the slot's flat shape in the rarity's colour,
+      with the rarity's shape from the loot shower cut out of it. An empty
+      slot is the outline. Menu tour at 1120x640, pictures 04, 34 and 41.
+    - All fifteen pictures and the three outlines are on the parts screen
+      (--parts), where the five marks and three shapes were told apart.
+    - docs/item-card.md has "The picture"; menu-shell.md, menu-parts.md
+      and build-and-run.txt follow.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The picture is under the name, 24 pixels, beside the small lines.
+    Beside the name at 36 it left 18 letters to a slot at the smallest
+    window, and the longest name has 22 (#287).
+  - A worn piece's line in the overview no longer says "Head": the picture
+    and the row say it, and the room goes to the stats. An empty slot
+    still says its name.
+  - The shapes: a shield for the head, a blanket for the body, a dome for
+    the saddle. Numbers in gear.ron.
+  - The pinned card in the side panel has no picture; there it pushed the
+    comparison out of sight.
+
+FOUND
+  - screenshots/tour holds pictures from before the gear overview; this
+    session's are in screenshots/tour286.
+  - Remove-Item on a folder under screenshots/ is refused by the tool; a
+    tour run overwrites its pictures by name anyway.
+
+NOT DONE
+  - Only a Legendary Head piece was seen in the running menus (seed 6);
+    the other fourteen were seen on the parts screen only.
+  - A slot with a piece that adds to four stats is a few pixels taller
+    than an empty one, as before this change.
+  - At 24 pixels the marks are small on a display at scale 1; they were
+    looked at at this machine's scale only.
+  - Still not filed from two logs ago: no key scrolls the card.
+
+PICK UP
+  The next "menus" feature of 0.2.1 by next-thing.txt: #229, keys for
+  everything, the lowest number not waiting on the owner or on lists that
+  do not exist (#228, #250, #285, #253 wait).

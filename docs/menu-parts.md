@@ -27,6 +27,9 @@ Each is a function that takes the tokens and returns a bundle to spawn.
   ahead, and whether it is the boss),
   `confirmation` on a `scrim` (the one modal).
 - Text: `text`, `dim`, `title`.
+- The stand-in picture of a piece of gear is not in `parts.rs` but in
+  `picture.rs` (item-card.md, "The picture"). The parts screen shows every
+  one: a line per slot, the empty outline and then each rarity.
 
 A screen never sets a colour or a size on a control. It spawns a part and
 marks its state with Bevy's own components: `Selected` for chosen,

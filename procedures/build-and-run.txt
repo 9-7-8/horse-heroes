@@ -25,7 +25,8 @@ Use the cheapest step that can prove the change:
    PNG at 3 s and exits by itself at 5 s, so it can run in the foreground:
        $env:IDLE_SHOT = "screenshots/name.png"; cargo run *> run.log
    IDLE_SHOT_AT sets the second it is taken (default 3). --seed N fixes the
-   run; --parts opens the menu parts screen (docs/menu-parts.md);
+   run; --parts opens the menu parts screen (docs/menu-parts.md), which
+   has every gear picture, slot by rarity, at IDLE_SHOT_AT=3;
    --window WxH opens the window at that size in logical pixels (the
    smallest allowed is 1120x640). The party sets out 12 s after launch,
    so IDLE_SHOT_AT=17 is a picture of the road view in a fight.

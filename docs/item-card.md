@@ -12,6 +12,8 @@ It hangs on the shell's side panel: [menu-shell.md](menu-shell.md).
 | `src/game/menu/card.rs` | What the card says: `kind`, `verdict`, `compare`, `consequence`, `pinned`. Plain text from the game, tested without Bevy |
 | `assets/data/places.ron`, `card` | The card's actions, in order: Equip, List, Store, Lock, Favourite, Look |
 | `src/game/mod.rs` | `Piece`, where a piece is; `Action::Equip`; `Game::piece` and `Game::equipped_at` |
+| `src/game/menu/picture.rs` | The stand-in picture: `stamp`, `picture`, `draw`, `show_pictures` |
+| `assets/data/gear.ron` | A slot's flat shape (`bases`, `picture`) and a rarity's colour and `shape` |
 | `src/game/menu/shell.rs` | `Item::Carried` and `Item::Worn`, the details that are pieces; `CarriedCell`; `Page::Card`, the actions under the card |
 
 ## The three layers
@@ -24,8 +26,8 @@ slot and what it adds (`kind`), then whether it matters to the selected
 horse now (`verdict`: "Upgrade for Sable: +11", "No better for Sable",
 "Worse for Sable: -3"; a word and a sign, never colour alone). The carried
 piece is shown this way in the cargo column and under the report. A slot of
-the gear overview shows the shorter form its width allows: name, slot and
-what the piece adds.
+the gear overview shows the shorter form its width allows: the name and
+what the piece adds. Its picture says which slot and which rarity.
 
 **The pinned card** is what a press opens in the side panel of the place the
 piece was pressed in:
@@ -57,6 +59,37 @@ piece was pressed in:
   comes from.
 
 **Formulas behind a Details control** are not built.
+
+## The picture
+
+A stand-in for every piece until there is art (#286; the owner: "gear badly
+needs some kind of stand-in image"). It is drawn from `gear.ron` alone, of
+flat UI nodes, so nothing depends on it.
+
+- **The slot is the outline.** Each base in `gear.ron` has a `picture`: one
+  flat shape, as shares of the picture's square, with each corner rounded
+  by its own amount. A tall shield for the head, a wide blanket for the
+  body, a low dome for the saddle.
+- **The rarity is the colour and the mark.** The shape is filled with the
+  rarity's colour, and the rarity's `shape` from the loot shower, seen from
+  above, is cut out of it (`stamp`): a slab, a cross, a ringed stone, a sun
+  with rays, three stones. So the piece on the ground and the piece in the
+  menu carry the same sign, and it is told with the colour taken away. A
+  prism is drawn as a disc.
+- **An empty slot** is the outline alone, unfilled.
+
+It is in every cell that shows a piece: the slots of the overview, the
+cargo and the drop under the report. It sits under the name, beside the
+small lines, because the longest name needs a slot's whole width at the
+smallest window (menu-shell.md). Its size is `size.picture` in `menu.ron`
+(24), with `picture_inset` and `picture_stamp`. `show_pictures` draws a
+square again only when its slot or rarity has changed. The pinned card in
+the side panel has no picture: the cell that opened it is marked beside it,
+and the panel has no height to spare.
+
+A new slot or rarity needs a line of `gear.ron` and no code. Tests hold
+that no two slots share an outline (`data.rs`) and no two rarities a mark
+(`picture.rs`). To see all of them: `--parts`.
 
 ## The actions
 

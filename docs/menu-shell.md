@@ -257,8 +257,9 @@ every place, tab and horse has a key, and no key means two things at once.
 - `Gear`: the overview (#285). The selected horse's stats, then a column
   for each horse with its three slots under its name, so everything worn
   is seen at once beside the cargo and no horse has to be selected to look.
-  A slot is a `cell`: the piece and, under it, the slot and what the piece
-  adds, or "nothing worn". The selected horse's column is outlined and its
+  A slot is a `cell`: the piece's name and, under it, its picture (#286,
+  item-card.md) beside what the piece adds; or "nothing worn" over the
+  slot's outline and its name. The selected horse's column is outlined and its
   heading says "selected". Pressing a slot opens its card in the side panel
   and does not change the selected horse. Another horse's piece is compared
   on the selected horse, as the cargo's piece is, with what Equip would do.
@@ -331,9 +332,11 @@ with one to spare: the longest name the data can make today ("Fae-touched
 Saddle Pad"). A test in `sim/loot.rs` holds `gear.ron` to that, so a longer
 prefix or noun fails there and not on screen. The room comes from
 `size.horses_width` (164, as narrow as a horse's row reads),
-`size.cargo_width` (248) and the padding of a `cell`. A piece's stats may
-still take two lines. The three horses' slots are in view without
-scrolling; the tab's controls are partly a scroll away.
+`size.cargo_width` (248) and the padding of a `cell`. That is why a piece's
+picture is under its name and not beside it: beside it, 18 letters fit. A
+piece's stats may still take two lines, which makes its slot a few pixels
+taller than an empty one. The three horses' slots are in view without
+scrolling; the tab's controls are a scroll away.
 
 ## Keys
 
