@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-11, the Journal keeps reports](2026-10-11-journal/README.md) (#231)
 - [2026-10-11, undo](2026-10-11-undo/README.md) (#230)
 - [2026-10-11, equip onto the selected horse](2026-10-11-equip-on-selected/README.md) (#250)
 - [2026-10-11, the trail tracker](2026-10-11-trail-tracker/README.md) (#253)

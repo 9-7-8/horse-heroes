@@ -1,0 +1,55 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #231, the Journal place (3a70123). Closed. Tested (125 pass)
+    and seen running, read by this session; the owner has not looked.
+    - Every trail's report is kept, the newest 20 (rules.ron). The party
+      still leaves by itself; nothing has to be read or dismissed. A test
+      walks trail after trail with no input and opens each report after.
+    - Earlier ([) and Later (]) on Journal, Report step through them, in
+      town and on the road. Each says why it cannot be used.
+    - A report shows the piece its trail dropped where it is now, and a
+      press opens its card there. Tested: found in the cargo, on a horse,
+      on another horse after Equip, and said to be gone when it is.
+    - Menu tour at 1120x640, pictures 52 to 55; three of them are
+      docs/gallery/2026-10-11-journal.
+    - docs/menu-shell.md has "The Journal's reports".
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The keys are [ and ]. Every letter that reads as Earlier or Later is
+    taken or wanted (L for List or Lock).
+  - [ or ] pressed anywhere opens the Journal on Report, on the road too.
+  - 20 reports are kept.
+  - The report being read stays the same report when the party leaves or
+    arrives; it does not follow the newest.
+  - The latest report keeps showing its piece once it is worn (before, the
+    piece left the report when it was equipped).
+  - #231 is closed with the Report tab only. Its Journal and Codex tabs
+    are #107 and #30; the stall report is #170.
+
+FOUND
+  - A piece has no identity: an earlier report finds "its" piece by name,
+    slot, rarity and stats, so an identical later roll counts as it.
+  - Almost nothing survives to be found: an unequipped drop is left behind
+    and an equipped-over piece is thrown away (#227). An earlier report's
+    piece is with the party only while it is worn.
+
+NOT DONE
+  - [ and ] were not pressed on a real keyboard, and not on a keyboard
+    that is not laid out as a US one.
+  - An earlier report in town, and "The party no longer has it.", were
+    tested, not seen in a picture: the tour has one earlier report, on
+    the road.
+  - The list of reports kept was seen with one line. With 20 it is taller
+    than the tab at the smallest window and scrolls; not looked at.
+  - Still not filed from four logs ago: no key scrolls the card.
+
+PICK UP
+  The next "menus" feature of 0.2.1 by next-thing.txt: #232, a place says
+  when it wants attention (the Journal, when a new report is in). #228,
+  #229, #230, #250, #253 and #285 wait on the owner or on systems not
+  built; #236 and #251 come after #232 by number.

@@ -182,9 +182,9 @@ A control in the file is:
 | `does` | What it does, or will do, in one sentence |
 | `issue` | The issue that will make it work |
 | `proposed` | That issue is a proposal the owner has not decided |
-| `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut` |
+| `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut`, `Undo`, `Earlier`, `Later` |
 | `shows` | What a press opens in the side panel of its page: `Keys` |
-| `key` | The key that works it, printed on it: a letter, a digit or `Space` |
+| `key` | The key that works it, printed on it: a letter, a digit, `[`, `]` or `Space` |
 
 A place, Settings and a tab have a `key` too, and `horse_keys` at the end of
 the file are the keys of the party's horses, in order (see Keys).
@@ -265,12 +265,13 @@ every place, tab and horse has a key, and no key means two things at once.
   on the selected horse, as the cargo's piece is, with what Equip would do.
 - `Element`: the party's one element and what beats what, above the three
   element buttons. The slice's stand-in for abilities.
-- `Report`: the latest report, in two halves of fixed width. In town, the
-  last trail and the next trail; on the road, the fight and its log. Under
-  the last trail is what becomes of its drop at setting out
-  (item-card.md, "The appraisal in camp"), then the drop as the cargo shows it, and a press opens its
-  card in the Journal's side panel, where Equip works without going to the
-  Horses place.
+- `Report`: the report the Journal is open at, in two halves of fixed
+  width. The latest: in town, the last trail and the next trail; on the
+  road, the fight and its log. Under the last trail is what becomes of its
+  drop at setting out (item-card.md, "The appraisal in camp"), then the
+  drop as the cargo shows it, and a press opens its card in the Journal's
+  side panel, where Equip works without going to the Horses place. An
+  earlier one: see "The Journal's reports".
 - none: the tab says what will be decided there and that it is not built.
 
 Under whatever a tab shows come its controls.
@@ -353,6 +354,7 @@ in the shell presses the thing when its key goes down, by the same
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
 | E | Equip the piece whose card is open, or the drop when none is, in town only | `key` of the control |
 | U | Undo the last change of this town visit, in town only | `key` of the control |
+| [, ] | Earlier and Later: the report before, and after, the one the Journal shows | `key` of the control |
 | Space | Set out, in town only | `key` of the control |
 | K | Keys: the list of every key, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
@@ -434,6 +436,45 @@ where the map had it. In the footer it would be in sight from every place,
 but at the smallest window it made the footer's sentence wrap to a second
 line.
 
+## The Journal's reports
+
+No report holds the party up, and none is lost by not being read (#231,
+`docs/philosophy/menus.md`, No menu ever holds the game up). The countdown
+sends the party off whether the report was looked at or not, and
+`Game::return_to_camp` keeps the report of every trail (`Kept`: the trail's
+number, its level, and how it ended, with its drop as it was). The newest
+`reports_kept` of them are kept (`rules.ron`, 20).
+
+- **Earlier ([) and Later (])**, on Journal, Report, step through them, in
+  town and on the road. The latest is the last trail in town and the fight
+  on the road; `Game::earlier` is what lies behind it. Each control says
+  why it cannot be used: "No earlier report.", "This is the earliest
+  report kept.", "This is the latest report."
+- **The key opens what it turned.** `[` or `]` from another place, or from
+  the road with every place closed, opens the Journal on Report.
+- **The report being read stays put.** It is held by its trail's number
+  (`Game::reading`), not by how far back it is, so it does not change when
+  the party leaves or arrives. One that is no longer kept gives way to the
+  latest.
+- **An earlier report** says which it is of how many, the trail and its
+  level, how it ended and what it dropped. Beside it is the list of the
+  reports kept, newest first, with `>` on the one that is open.
+- **Its piece is found where it is now.** While the party has the piece a
+  report's trail dropped, the report shows it as a cell (`ReportedCell`):
+  what it is and whether it is in the cargo or which horse wears it. A
+  press opens its card there, so Equip works on it as from anywhere
+  (`Game::reported_piece`). When the party no longer has it the report
+  says so. The latest report does the same, so its piece stays in the
+  report once it is worn.
+- A card open on a report's piece is put away when the page is turned.
+- Turning the pages is not a change, and Undo does not count it.
+
+A piece has no identity of its own yet: one exactly like the piece a
+report dropped (same name, slot, rarity and stats) counts as it.
+
+Still to come: the loot, trail and stall reports as separate reports (#32,
+#51, #170), the Journal tab (#107) and the Codex (#30).
+
 ## Looking at it
 
     $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
@@ -446,7 +487,7 @@ and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, and then makes a town visit by keys
 alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, C, 2, I and F on the abilities, T, 3, S,
-K for the list of keys, Escape twice, Space to set out, and J, 1, Escape on the road. Then it exits. Those
+K for the list of keys, Escape twice, Space to set out, and on the road J, 1, [ for the report of the trail before, a press on its piece, Escape, ] back to the latest, and Escape. Then it exits. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written
 in `plan_tour`, so a key changed in `places.ron` is changed there too. The
