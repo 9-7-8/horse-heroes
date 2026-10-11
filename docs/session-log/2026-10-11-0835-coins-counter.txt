@@ -1,0 +1,22 @@
+ASKED
+  With a picture of the status strip: "this looks like its saying I have
+  163 bags, not 163 coins". Then: "gear does drop, that was me not being
+  patient enough".
+
+DONE
+  - A counter's number sits beside its own label; the box keeps its fixed
+    width (#252). (106 tests pass; seen running: picture read at 24.5 s,
+    --seed 6, "coins 4" with "bags -" well clear of it)
+  - #245 closed as not planned, with her words.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - The parts gallery picture was taken and not read.
+  - The published 0.2.0 installer has neither this fix nor the Program
+    Files change; both wait for the next release.
+
+PICK UP
+  #246: list every moment the menu layout changes in an unattended run
+  (--seed 6) and find which of them surprised the owner.
