@@ -32,8 +32,12 @@
         // The shell: a horse in the status strip, and the two columns that
         // stay beside the tabs of the Horses place.
         strip_horse_width: 150,
-        horses_width: 200,
-        cargo_width: 260,
+        // The horses column is as narrow as a horse's row reads at, and the
+        // detail opens in the cargo's room, so that a slot of the overview
+        // holds the longest name a piece can have on one line at the
+        // smallest window (#287).
+        horses_width: 164,
+        cargo_width: 248,
         // The trail tracker in the footer: the side of one fight's mark, and
         // of the boss's, which is also turned to stand on a corner.
         trail_mark: 14,

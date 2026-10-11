@@ -401,6 +401,13 @@ impl Shell {
         }
     }
 
+    /// Put away whatever detail a place has open, on any of its tabs.
+    pub fn drop_detail(&mut self, place: usize) {
+        if place < self.details.len() {
+            self.details[place] = None;
+        }
+    }
+
     /// Close the detail showing in the open place. Returns what opened it.
     pub fn close_detail(&mut self) -> Option<Entity> {
         let detail = self.detail(self.place)?;
@@ -456,6 +463,8 @@ enum Page {
     Place(usize),
     Tab(usize, usize),
     Detail(usize),
+    /// The cargo column of a place. The detail opens in its room (#287).
+    Cargo(usize),
     /// What is left between the strip and the footer with every place closed.
     RoadView,
 }
@@ -762,7 +771,10 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                             });
 
                             if place.horse_columns {
-                                body.spawn(panel(t))
+                                // The detail opens in the cargo's room and
+                                // at its width, so opening one moves nothing
+                                // on the tab beside it (#287).
+                                body.spawn((panel(t), Page::Cargo(p)))
                                     .insert(column(t.size.cargo_width))
                                     .with_children(|cargo| {
                                         cargo.spawn(dim(t, "cargo"));
@@ -771,7 +783,12 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                     });
                             }
 
-                            body.spawn((side_panel(t, "Detail"), Page::Detail(p)))
+                            let side = if place.horse_columns {
+                                t.size.cargo_width
+                            } else {
+                                t.size.side_panel_width
+                            };
+                            body.spawn((side_panel(t, "Detail", side), Page::Detail(p)))
                                 .with_children(|side| {
                                     side.spawn((text(t, ""), Live(Fact::Detail(p))));
                                 });
@@ -914,7 +931,7 @@ fn spawn_content(
                                 min_width: Val::Px(0.0),
                                 flex_direction: FlexDirection::Column,
                                 row_gap: Val::Px(t.space.s),
-                                padding: UiRect::all(Val::Px(t.space.s)),
+                                padding: UiRect::all(Val::Px(t.space.xs)),
                                 border: UiRect::all(Val::Px(t.size.border)),
                                 border_radius: BorderRadius::all(Val::Px(t.size.radius)),
                                 ..default()
@@ -1258,12 +1275,24 @@ fn escape(
 
 /// Setting out puts the place away, so the road starts with the scene
 /// expanded; arriving opens it again, as it was left. Town is where the
-/// player decides.
-fn follow_the_party(game: Res<Game>, mut shell: ResMut<Shell>, mut was_in_town: Local<bool>) {
+/// player decides. A detail left open over a cargo column is put away on
+/// arriving, since it stands where the cargo is and the party has come
+/// back with something to look at there (#287).
+fn follow_the_party(
+    game: Res<Game>,
+    map: Res<Places>,
+    mut shell: ResMut<Shell>,
+    mut was_in_town: Local<bool>,
+) {
     let in_town = game.in_town();
     if in_town != *was_in_town {
         *was_in_town = in_town;
         if in_town {
+            for (p, place) in map.pages().enumerate() {
+                if place.horse_columns {
+                    shell.drop_detail(p);
+                }
+            }
             let place = shell.place();
             shell.open(place);
         } else {
@@ -1303,6 +1332,7 @@ fn show_place(
             Page::Place(place) => place == shell.place() && place_in_view,
             Page::Tab(place, tab) => tab == shell.tab(place),
             Page::Detail(place) => shell.detail(place).is_some(),
+            Page::Cargo(place) => shell.detail(place).is_none(),
             Page::RoadView => !place_in_view,
         };
         let wanted = if shown { Display::Flex } else { Display::None };

@@ -178,6 +178,19 @@ mod tests {
         }
     }
 
+    /// A slot of the gear overview holds 22 letters on one line at the
+    /// smallest window (#287). A longer name needs a wider slot first.
+    #[test]
+    fn every_name_fits_a_slot_of_the_overview() {
+        let data = Data::load();
+        for rarity in &data.gear.rarities {
+            for noun in data.gear.bases.iter().flat_map(|base| &base.names) {
+                let name = format!("{} {}", rarity.prefix, noun);
+                assert!(name.chars().count() <= 22, "{name}");
+            }
+        }
+    }
+
     #[test]
     fn every_slot_gets_drops() {
         let data = Data::load();

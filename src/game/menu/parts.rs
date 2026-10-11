@@ -338,7 +338,13 @@ pub fn cell(t: &Tokens) -> impl Bundle + use<> {
             min_height: Val::Px(t.size.cell_height),
             flex_direction: FlexDirection::Column,
             justify_content: JustifyContent::Center,
-            padding: UiRect::axes(Val::Px(t.space.m + t.size.mark), Val::Px(t.space.s)),
+            // The mark is on the left only, so only that side makes room.
+            padding: UiRect {
+                left: Val::Px(t.space.m + t.size.mark),
+                right: Val::Px(t.space.s),
+                top: Val::Px(t.space.s),
+                bottom: Val::Px(t.space.s),
+            },
             row_gap: Val::Px(t.space.xs),
             border: UiRect::all(Val::Px(t.size.border)),
             border_radius: BorderRadius::all(Val::Px(t.size.radius)),
@@ -367,10 +373,10 @@ pub fn panel(t: &Tokens) -> impl Bundle + use<> {
 
 /// Detail about one thing, beside the list it came from. Opens with its
 /// title and the control that closes it; the detail is added as children.
-pub fn side_panel(t: &Tokens, heading: &str) -> impl Bundle + use<> {
+pub fn side_panel(t: &Tokens, heading: &str, width: f32) -> impl Bundle + use<> {
     (
         Node {
-            width: Val::Px(t.size.side_panel_width),
+            width: Val::Px(width),
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(t.space.m)),
             row_gap: Val::Px(t.space.s),

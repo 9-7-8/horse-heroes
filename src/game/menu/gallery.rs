@@ -184,7 +184,7 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                 });
 
                 lower
-                    .spawn(side_panel(t, "Side panel"))
+                    .spawn(side_panel(t, "Side panel", t.size.side_panel_width))
                     .with_children(|side| {
                         side.spawn(text(t, "Detail about one thing,"));
                         side.spawn(text(t, "beside its list."));
