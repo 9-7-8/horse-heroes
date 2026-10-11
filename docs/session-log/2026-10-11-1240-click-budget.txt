@@ -1,0 +1,61 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #236, a click budget for the common jobs (9589e2f). Left
+    open: two of its six jobs cannot be done yet.
+    Tested (132 pass) and walked in the running game, its counts and
+    pictures read by this session; the owner has not looked.
+    - assets/data/jobs.ron: the jobs, where each count starts, and the
+      budget by mouse and by keys.
+    - IDLE_WALK: the game does each job that can be done, by the presses
+      a pointer makes and by keys, checks in the game that it was done,
+      and writes counts.txt. A pointer's press must be on something in
+      sight.
+    - First walk, seed 6, 1120x640, mouse / keys:
+        equip the upgrade the report showed   2 / 1
+        a different ability (the element)     2 / 1
+        set out                               1 / 1
+        why a piece is left behind            1 / 1
+        list everything not wanted            waits on #99
+        why something did not sell            waits on #170
+      Nothing is over.
+    - docs/click-budget.md has the table; the routine is
+      procedures/walk-the-click-budget.txt; three pictures are
+      docs/gallery/2026-10-11-click-budget.
+
+DECIDED
+  By the owner, through the question tool:
+  - The budgets, mouse / keys: equip 2 / 2, list everything 3 / 3, a
+    different ability 3 / 3, set out 1 / 1, why left behind 2 / 2, why
+    not sold 2 / 2.
+  Made for the owner, hers to overrule:
+  - Where each count starts (in jobs.ron): equip from the report; the
+    others from Horses on Gear.
+  - "A different ability" is counted on the element, the slice's
+    stand-in, and is to be counted again when abilities exist.
+  - "Why a piece was left behind" is counted as reaching the report's
+    appraisal, which says what becomes of the drop before it happens.
+
+FOUND
+  - A here-document with apostrophes failed in the Bash tool again
+    (build-and-run.txt, NOTES); the script went under target/ instead.
+  - Remove-Item on screenshots\walk\* was refused as a protected path; a
+    new folder was used.
+
+NOT DONE
+  - No hand on a mouse: the presses are the Activate a click sends, so
+    hover, aim and target size are not measured.
+  - No newcomer was watched doing the six tasks of the owner's guide.
+  - Seed 6's first drop is an upgrade, so the report was seen saying why
+    a piece is kept, not why one is left behind.
+  - With the party gone, the earlier report says the piece is no longer
+    with the party; whether it says why was not looked at.
+  - Still not filed from six logs ago: no key scrolls the card.
+
+PICK UP
+  The next "menus" feature of 0.2.1 by next-thing.txt: #251, coloured
+  text on an item, a colour per element and per trait. #228, #229, #230,
+  #236, #250, #253 and #285 wait on the owner or on systems not built.

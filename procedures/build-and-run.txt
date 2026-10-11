@@ -72,6 +72,8 @@ Use the cheapest step that can prove the change:
        $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
    The tour logs "tour: Tab makes N stops, M of them out of sight"; M is
    0, and anything else is a hidden page taking the focus (#244).
+   IDLE_WALK counts the presses of the common jobs instead
+   (walk-the-click-budget.txt, docs/click-budget.md).
    screenshots/ and *.log are git-ignored. The GOG Galaxy Vulkan-layer ERROR
    line at startup is noise from that overlay, not from the game.
 

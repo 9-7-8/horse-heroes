@@ -550,6 +550,9 @@ presses are the `Activate` event a click sends, so the tour goes through the
 same code as the pointer, but it is not the pointer: hover and real clicks
 are checked by hand.
 
+`IDLE_WALK` is the same machinery counting the presses of the common jobs:
+[click-budget.md](click-budget.md).
+
 ## Not here yet
 
 - A fountain to check the road view's room against: #4, #8 (the last part of

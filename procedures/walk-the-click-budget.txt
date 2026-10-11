@@ -1,0 +1,52 @@
+WALK-THE-CLICK-BUDGET
+=====================
+Starts on: "walk the click budget", "count the clicks", and whenever a place
+           or tab is added, a control is moved in places.ron, or a system
+           behind one of the common jobs is built.
+Leaves:    docs/click-budget.md with today's counts beside the budgets, and
+           a plain statement of any job that is over or not done.
+
+The jobs and their budgets are assets/data/jobs.ron. How the walk works is
+docs/click-budget.md. The budgets are the owner's: do not change one to
+make a job fit.
+
+STEPS
+1. If a job's system has been built since the last walk: take its waits_on
+   out of jobs.ron and give it its steps in walk_steps
+   (src/dev_screenshot.rs), by pointer and by keys. cargo test fails until
+   both are there.
+
+2. Walk. The folder must exist; the run ends by itself after about two
+   minutes, on the road.
+       New-Item -ItemType Directory -Force screenshots/walk
+       $env:IDLE_WALK = "screenshots/walk"
+       cargo run -- --seed 6 --mute --window 1120x640 *> run.log
+   (cargo by its full path if it is not found: build-and-run.txt.)
+
+3. Read screenshots/walk/counts.txt. For every job, by mouse and by keys:
+       took N                   within its budget
+       took N, OVER             more presses than its budget
+       took N and NOT DONE      the game did not show the job done, or a
+                                pointer's press found nothing in sight
+       cannot be done yet, #N   it waits on that issue
+       NOT WALKED               it is in jobs.ron and not in walk_steps
+   Read the pictures beside it: they are where the jobs ended.
+
+4. NOT DONE is a bug or a control that was renamed or given another key:
+   find which, and fix it or file it (next-thing.txt, tier 1).
+
+5. OVER is the owner's to rule on, through the question tool: accept it,
+   or the screen changes. Until she has, say so in the table.
+
+6. Put the counts and the date in the table of docs/click-budget.md.
+
+REPORT
+  The counts that changed since the last walk, and anything over or not
+  done. Say that the walk is the game pressing its own controls, not a hand
+  on a mouse.
+
+DO NOT
+  - Cut a press to meet a number at the cost of the player understanding
+    what will happen, or of being able to take it back.
+  - Count by reading the code or places.ron. The count is what the running
+    game took.
