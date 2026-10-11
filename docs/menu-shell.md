@@ -180,7 +180,7 @@ A control in the file is:
 | `does` | What it does, or will do, in one sentence |
 | `issue` | The issue that will make it work |
 | `proposed` | That issue is a proposal the owner has not decided |
-| `action` | What it does today: `Element(Fire)`, `EquipDrop`, `SetOut` |
+| `action` | What it does today: `Element(Fire)`, `EquipDrop`, `Swap`, `SetOut` |
 | `shows` | What a press opens in the side panel of its page: `Keys` |
 | `key` | The key that works it, printed on it: a letter, a digit or `Space` |
 
@@ -224,6 +224,19 @@ puts up to two `reason` lines:
 
 A new reason is a new `Err` in `Game::can`; nothing in the shell changes.
 
+`can` and `act` take a `Hand`: the selected horse and, when a worn piece is
+open in the side panel, whose it is and which slot (`Shell::hand`). That is
+all an action knows of the menus.
+
+**Swap** (W, on Gear) is how a worn piece is equipped on the selected horse
+from the overview: the piece that is open and what the selected horse wears
+in that slot change places (`loot::swap_worn`), an empty slot like a piece,
+so nothing is lost and a second press puts it back. It is refused, with
+its reason, on the road, with no slot of another horse open, and when
+neither horse wears anything there. The displaced piece goes to the other
+horse and not to the cargo because the cargo holds one thing until 0.4.0
+(#227).
+
 An empty list says what belongs in it: the cargo, an empty slot's side
 panel, and the report before any trail. A tab with no content says "This
 page is not built yet."
@@ -241,9 +254,14 @@ every place, tab and horse has a key, and no key means two things at once.
 
 `content` in `places.ron` says what a tab holds:
 
-- `Gear`: the selected horse's stats and its three slots. A slot row names
-  the piece worn and what it adds. Pressing a slot opens the piece in the
-  side panel.
+- `Gear`: the overview (#285). The selected horse's stats, then a column
+  for each horse with its three slots under its name, so everything worn
+  is seen at once beside the cargo and no horse has to be selected to look.
+  A slot is a `cell`: the piece and, under it, the slot and what the piece
+  adds, or "nothing worn". The selected horse's column is outlined and its
+  heading says "selected". Pressing a slot opens it in the side panel and
+  does not change the selected horse. Another horse's slot is shown against
+  the selected horse, as the cargo's piece is, with what Swap would do.
 - `Element`: the party's one element and what beats what, above the three
   element buttons. The slice's stand-in for abilities.
 - `Report`: the latest report, in two halves of fixed width. In town, the
@@ -280,6 +298,10 @@ whose plugins come with `DefaultPlugins`:
 The horses and cargo columns and the side panel do not scroll; they fit at
 the smallest window today.
 
+At the smallest window the overview fits with the side panel closed and its
+controls are a scroll away. With the side panel open its columns are too
+narrow: names and stats wrap to several lines (#287).
+
 ## Keys
 
 Every key is in `places.ron` and is printed on what it works (#229). `keys`
@@ -294,6 +316,7 @@ in the shell presses the thing when its key goes down, by the same
 | Z, X, C | The first, second and third horse | `horse_keys` |
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
 | E | Equip the drop, in town only | `key` of the control |
+| W | Swap the open piece onto the selected horse, in town only | `key` of the control |
 | Space | Set out, in town only | `key` of the control |
 | K | Keys: the list of every key, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
@@ -351,7 +374,7 @@ the road view
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, and then makes a town visit by keys
-alone: H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right twice to the cargo, E to equip the drop, C, 2, I and F on the abilities, T, 3, S,
+alone: H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, W to swap it over, Escape, C, 2, I and F on the abilities, T, 3, S,
 K for the list of keys, Escape twice, Space to set out, and J, 1, Escape on the road. Then it exits. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written

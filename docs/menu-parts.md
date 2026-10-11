@@ -18,7 +18,9 @@ all its states" and "Things stay where they are".
 Each is a function that takes the tokens and returns a bundle to spawn.
 
 - Interactive, with all six states: `button`, `tab`, `row` (a list row),
-  `card` (the item card frame; its lines are added as children).
+  `card` (the item card frame; its lines are added as children), `cell`
+  (one square of a grid, such as a slot of the gear overview: as wide as
+  its column, at least `size.cell_height` tall, drawn as a card).
 - Without states: `panel`, `side_panel` (title and Close), `counter`,
   `reason` (the line that says why a control is unavailable),
   `trail_mark` (one fight in the footer's trail tracker: behind, here or

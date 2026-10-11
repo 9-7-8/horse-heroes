@@ -1,0 +1,50 @@
+ASKED
+  "next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green (111 pass), and #246
+    waits on the owner.
+  - Tier 3, #285, the overview of all the gear. Tested (113 pass) and seen
+    running: pictures of the menu tour at 1120x640 and at the default
+    window, read by this session. The owner has not looked.
+    - The Gear tab has a column for each horse with its three slots,
+      beside the cargo. The selected horse's column is outlined and its
+      heading says "selected".
+    - A slot opens in the side panel without changing the selected horse,
+      against what the selected horse wears.
+    - Swap (W): the open piece and what the selected horse wears in that
+      slot change places. Refused, with its reason, on the road, with no
+      slot of another horse open, and when neither wears anything there.
+    - Game::can and Game::act take a Hand (the selected horse and the worn
+      piece open), in place of a horse's number.
+    - The tour swaps a piece and photographs it.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The overview is the Gear tab itself, not a view beside it.
+  - A piece another horse wears is equipped by a swap: what the selected
+    horse wore goes to the other horse, not to the cargo, which holds one
+    thing until 0.4.0 (#227).
+  - A slot is 46 pixels tall at least, and a piece with many stats takes
+    a second line; at 62, room for two always, the three slots did not
+    fit under the scene at the smallest window.
+
+FOUND
+  - #287 (filed, bug): with a slot open at the smallest window each
+    column is about 95 pixels wide, and names and stats wrap to several
+    lines.
+  - The horses are now named three times in the Horses place: the strip,
+    the left column and the overview's headings. The owner had counted
+    two as one too many (#250). Named in #287 as one way out.
+  - This log is named 1050, written at 10:10, to stay in order after the
+    earlier logs of the day.
+
+NOT DONE
+  - #285 stays open for its last line: the owner finding what each horse
+    wears without help.
+  - Hover and real clicks on the overview were not tried; the tour sends
+    the press a click sends.
+
+PICK UP
+  #287, a bug in the menus: at --window 1120x640 open a slot on the Gear
+  tab and try the detail in the cargo column's room first.
