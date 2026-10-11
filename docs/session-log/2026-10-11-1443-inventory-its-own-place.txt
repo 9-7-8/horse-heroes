@@ -1,0 +1,45 @@
+ASKED
+  "you didn't implement the inventory right. Inventory should be its own
+  tab with a grid view with comparisons when you hover an item"
+
+DONE
+  - #308, part (edb0f93). The Inventory is a place in the bar, after
+    Horses, key B, and no longer the fifth tab of Horses. Its grid is
+    tiles: the piece's picture, large, and the wearer's name or "Carried".
+    The pointer resting on a tile shows the comparison beside it; a press
+    pins it at the right with Equip.
+    Tested (146 pass, one extended, two rewritten). Seen running: the menu
+    tour at seed 6 at 1120x640, its pictures of the place with the drop
+    carried, with the pointer on it, pinned, and worn, read by this
+    session. Four are in docs/gallery/2026-10-11-inventory.
+  - docs/menu-shell.md, "The Inventory"; docs/item-card.md;
+    docs/philosophy/inventory.md and vision.md; mechanics-for-tutorial.md.
+
+DECIDED
+  The owner's: its own tab, a grid view, comparisons on hover.
+  Made for her, hers to overrule:
+  - "Its own tab" was read as a place in the bar. That makes six places
+    where her ruling of 2026-10-10 was five; vision.md now says so.
+  - It is second in the bar, beside Horses, and its key is B. I is Ice.
+  - A tile does not print the piece's name: the picture's colour and mark
+    say the rarity, and the name is under the pointer.
+  - The room at the right stays for the pinned comparison, so the grid
+    does not move when a piece is pressed.
+  - A carried piece in view in the Inventory counts as seen (#232).
+
+FOUND
+  - A here-document with apostrophes failed in the Bash tool again; the
+    edits were scripts under target/.
+
+NOT DONE
+  - #308 stays open for "The owner finds a given piece without help."
+  - Not seen: two or more tiles in one group, a group that wraps, a swap
+    between horses made from the grid, the comparison of a piece against
+    one already worn, and a real hand on a mouse.
+  - Outside the Inventory the pointer still shows the older card (#312).
+  - No lesson for the Inventory (rule 5 applies once 0.2.2 has shipped).
+
+PICK UP
+  Ask the owner to open the Inventory (B) in a running game, point at a
+  piece, and say whether this is the screen she meant; close #308 on her
+  word. Then #307.

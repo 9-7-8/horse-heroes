@@ -72,8 +72,8 @@ picker, buttons for most actions.
 
 - **Scene on top, menus below.** In town the scene is the top third. On the
   road it grows to four fifths when no place is open.
-- **A bar of five places, always visible:** Horses (H), Trade (T), Map (M),
-  Town (N), Journal (J), and Settings (S) at the end.
+- **A bar of six places, always visible:** Horses (H), Inventory (B),
+  Trade (T), Map (M), Town (N), Journal (J), and Settings (S) at the end.
 - **Tabs per place** (keys 1 to 4): Horses has Gear, Abilities, Pet, Look.
   Trade has Sell, Buy, Storage, Rules. Town has Projects, Residents. Journal
   has Report, Journal, Codex. Map has none.

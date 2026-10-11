@@ -62,10 +62,12 @@ piece was pressed in:
 
 ## The comparison
 
-What a press on a piece opens in the Inventory (#308;
-`docs/philosophy/inventory.md`, "The comparison answers three questions at
-once"; `card::comparison`). Everywhere else a press still pins the card
-above; making them one is #312.
+What the pointer shows on a piece in the Inventory, and what a press pins
+there (#308; `docs/philosophy/inventory.md`, "The comparison answers three
+questions at once"). Under the pointer (`card::pointed_comparison`) it ends
+with "A press pins it, with its actions."; pinned (`card::comparison`) it
+ends with what Equip would do, beside Equip. Everywhere else the pointer
+and a press still show the card above; making them one is #312.
 
     For Sable, Head
     Equipped: Plain Halter (Normal)
@@ -130,6 +132,8 @@ overview, the cargo and the report (`card::hovered`; `point`,
 
     A press pins it, with its actions.
 
+- In the Inventory it is the comparison instead, at the comparison's
+  width (see "The comparison").
 - It is the pinned card's own lines (`face`), so the two cannot differ. What
   Equip would do is not on it: a consequence is said beside the action,
   never only under the pointer (menus.md).

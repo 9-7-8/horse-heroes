@@ -1,19 +1,23 @@
 # The Inventory, 2026-10-11
 
-Every piece the party has, in a grid by type, and the comparison beside it
-(#308). Stills from the menu tour at `--seed 6`, at the smallest window
-(1120x640), read by the session. How it works:
-[menu-shell.md](../../menu-shell.md), "The Inventory", and
+Every piece the party has, in a grid of tiles by type, in a place of its
+own, with the comparison under the pointer (#308). Stills from the menu
+tour at `--seed 6`, at the smallest window (1120x640), read by the session.
+How it works: [menu-shell.md](../../menu-shell.md), "The Inventory", and
 [item-card.md](../../item-card.md), "The comparison".
 
-**1.** Back from the first trail: the drop is in the Head group, carried; the other types say they are empty. The grid has the place's width and the comparison keeps its room.
+**1.** Back from the first trail: Inventory is in the bar after Horses. The drop is a tile in the Head group, carried; the other types say they are empty.
 
-![The Inventory with one piece carried and two empty types.](01-every-piece-by-type.png)
+![The Inventory with one tile, carried, and two empty types.](01-every-piece-by-type.png)
 
-**2.** A press on the piece (here Down, then Enter) opens the comparison: for Sable, nothing equipped, the piece selected, and what changes. The table and what Equip would do are a scroll below at this size.
+**2.** The pointer resting on the tile: the comparison for Sable, nothing equipped, the piece under the pointer, what changes, and the table.
 
-![The piece opened in the comparison, with the card's actions under it.](02-a-piece-compared.png)
+![The comparison beside the tile the pointer is on.](02-a-piece-compared.png)
 
-**3.** Equipped: the same cell now says who wears it.
+**3.** Equipped: the same tile now names who wears it.
 
-![The piece in its group, worn by Sable.](03-worn.png)
+![The tile in its group, named Sable.](03-worn.png)
+
+**4.** A press (here Down, then Enter) pins the comparison at the right, with Equip.
+
+![The piece pinned in the side panel, with the card's actions under it.](04-pinned.png)

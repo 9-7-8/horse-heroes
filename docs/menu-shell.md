@@ -1,6 +1,7 @@
 # The menu shell
 
-The frame every menu screen hangs on (#226): the bar of five places, the
+The frame every menu screen hangs on (#226): the bar of places (the
+owner's five, and the Inventory she gave a place of its own), the
 status strip and the footer, which never move, and between them the place
 that is open. The guidance behind it is
 [philosophy/menus.md](philosophy/menus.md), "The map of the menus" and
@@ -23,7 +24,7 @@ that is open. The guidance behind it is
     +--------------------------------------------------+
     |        3D scene (top third, SCENE_SHARE)         |
     +--------------------------------------------------+
-    | Horses  Trade  Map  Town  Journal       Settings |  bar
+    | Horses Inventory Trade Map Town Journal Settings |  bar
     | coins  bags  hold    A  B  C                 day |  status strip
     +--------------------------------------------------+
     | tabs of the open place                           |
@@ -136,7 +137,7 @@ does, and with both the sentence wrapped at the smallest window.
 
 ## How a place keeps its state
 
-All five places, and every tab of each, are spawned once at startup and only
+All the places, and every tab of each, are spawned once at startup and only
 shown or hidden. Nothing is rebuilt on a visit, so a place is found as it was
 left, whatever it comes to hold. A page that is not showing is both out of
 the layout (`Display::None`) and hidden (`Visibility::Hidden`): the first
@@ -273,7 +274,8 @@ every place, tab and horse has a key, and no key means two things at once.
   side panel, where Equip works without going to the Horses place. An
   earlier one: see "The Journal's reports".
 - `Inventory`: every piece the party has, worn or carried, in a grid by
-  type (#308): see "The Inventory" below.
+  type (#308): see "The Inventory" below. It is the `content` of a place
+  without tabs, which a place may have as a tab does.
 - none: the tab says what will be decided there and that it is not built.
 
 Under whatever a tab shows come its controls.
@@ -289,15 +291,18 @@ The cargo's own controls are those of a list: Filter, Sort, Search.
 
 ## The Inventory
 
-The fifth tab of Horses (key 5): all the items, not divided by horse (the
-owner, 2026-10-11; `docs/philosophy/inventory.md`).
+A place of its own in the bar, after Horses (key B): all the items, not
+divided by horse (the owner, 2026-10-11; `docs/philosophy/inventory.md`).
+It was first built as the fifth tab of Horses, with the comparison on a
+press; she asked the same day for "its own tab with a grid view with
+comparisons when you hover an item".
 
     | Head                                    | compare            |
-    | [piece] [piece] [piece]                 | For Sable, Head    |
-    | Body                                    | Equipped: ...      |
-    | No body piece is worn or carried yet.   | Selected: ...      |
-    | Saddle                                  | ...                |
-    | [piece]                                 | [Equip] [List] ... |
+    | [tile] [tile] [tile] [tile]             | Point at a piece   |
+    | Body                                    | to compare it ...  |
+    | No body piece is worn or carried yet.   |                    |
+    | Saddle                                  |                    |
+    | [tile]                                  |                    |
 
 - **A headed group for each type**, in the order of `Slot::ALL`, so a new
   slot gets its group with no menu code. In a group: what each horse wears
@@ -305,28 +310,34 @@ owner, 2026-10-11; `docs/philosophy/inventory.md`).
   is of that type (`held` in the shell; a test holds that every piece is
   there once, under its type). An empty type says so in a line
   (`card::none_held`) and keeps its heading.
-- **A cell** is the piece's name in its rarity's colour, its picture, what
-  it adds, and "Worn by Sable" or "Carried in the cargo". It is the same
-  control as a slot of the overview (`SlotRow`) or the cargo's piece
-  (`CarriedCell`), on this tab, so the pointer's card, the arrow keys and
-  the selected mark come with it.
+- **A tile** is the piece's picture, large (`size.inventory_picture`, 56),
+  and under it whose it is: the horse's name, or "Carried". Its name and
+  what it adds are under the pointer. It is the same control as a slot of
+  the overview (`SlotRow`) or the cargo's piece (`CarriedCell`), so the
+  arrow keys and the selected mark come with it.
+- **The pointer on a tile compares it** (`card::pointed_comparison`, in
+  the hover card of [item-card.md](item-card.md), at `size.compare_width`):
+  for the selected horse, the piece equipped and the piece under the
+  pointer, what changes, and the table. A press pins the same comparison
+  at the right, with Equip and the card's other actions; Enter does that
+  for the keyboard.
 - **Every cell a group can hold is spawned once** and shows while its piece
   is held (`When::Held`, `When::NoneHeld`, in `show_carried`), as the rest
   of the shell is shown and hidden and never rebuilt. When the cargo holds
   more than one piece (#227) this is the part that changes.
-- **The grid** is a CSS grid of as many equal columns as fit, each at least
-  `size.inventory_cell` wide (208, the longest name on one line): three at
-  the smallest window.
-- **It has the place's width.** On this tab the horses column
-  (`Page::Horses`) and the cargo column are away. The horse a piece is
-  compared on, and equipped on, is the one selected in the status strip,
-  which is always in view.
-- **The comparison keeps its room** at the right, `size.compare_width`
-  (420), whether or not a piece is open: `Page::Compare` says how to use it
-  while none is, and the detail opens at that same width, so the grid
-  never moves. What it says is in [item-card.md](item-card.md), "The
+- **The grid** is a CSS grid of as many columns as fit, each
+  `size.inventory_cell` wide (104): six at the smallest window.
+- **It has the place's width.** The place has no horses column and no
+  cargo column. The horse a piece is compared on, and equipped on, is the
+  one selected in the status strip, which is always in view.
+- **The pinned comparison keeps its room** at the right,
+  `size.compare_width` (420), whether or not a piece is pinned:
+  `Page::Compare` says how to use it while none is, and the detail opens at
+  that same width, so the grid never moves. What it says is in [item-card.md](item-card.md), "The
   comparison".
-- The tab has no controls of its own: its cells are its controls. Filter,
+- A carried piece in view here has been seen, as in the cargo column
+  (Marks).
+- The place has no controls of its own: its tiles are its controls. Filter,
   Sort and Search are #235.
 
 ## A tab that does not fit
@@ -391,9 +402,9 @@ in the shell presses the thing when its key goes down, by the same
 
 | Key | What it works | Where it is in the file |
 | --- | --- | --- |
-| H, T, M, N, J | Horses, Trade, Map, Town, Journal | `key` of the place |
+| H, B, T, M, N, J | Horses, Inventory, Trade, Map, Town, Journal | `key` of the place |
 | S | Settings | `key` of `settings` |
-| 1 to 5 | The tabs of the place that is showing | `key` of the tab |
+| 1 to 4 | The tabs of the place that is showing | `key` of the tab |
 | Z, X, C | The first, second and third horse | `horse_keys` |
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
 | E | Equip the piece whose card is open, or the drop when none is, in town only | `key` of the control |
@@ -541,7 +552,7 @@ marks, and the `tab` when the thing is on one.
 
 | `raise` | There is a mark while | It is seen when |
 | --- | --- | --- |
-| `Upgrade` | the piece in the cargo betters what some horse wears | the cargo column shows, or the piece's card, or the report that shows the piece |
+| `Upgrade` | the piece in the cargo betters what some horse wears | the cargo column shows, or the Inventory, or the piece's card, or the report that shows the piece |
 | `Report(lost, rarity)` | the newest report kept is of a trail that was lost (`lost`), or that dropped a piece of at least `rarity` | that report shows, on its tab |
 
 Today: an upgrade marks Horses, and a lost trail or a Legendary piece or

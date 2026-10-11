@@ -14,6 +14,11 @@ carried and kept is [cargo.md](cargo.md).
   A piece says who wears it; the screen is not arranged by who does.
 - It is a grid split by item type, of every piece the horses and the
   caravan hold (#308).
+- **It is its own tab, a grid, and compares under the pointer**
+  (2026-10-11, on seeing it as a tab of Horses that compared on a press:
+  "Inventory should be its own tab with a grid view with comparisons when
+  you hover an item"). Read as a place of its own in the bar; this makes
+  the bar six places, where vision.md had five.
 
 ## Principles
 
@@ -150,12 +155,12 @@ horse's build?
 Checked against the game as built on 2026-10-11 (`docs/item-card.md`,
 `docs/menu-shell.md`, `assets/data/gear.ron`).
 
-- **Built.** The Inventory tab of Horses (#308): every piece worn or
-  carried, in a grid by type, with the place's whole width; each cell names
-  its piece in its rarity's colour, pictures it, says what it adds and who
-  wears it or that it is carried. Beside it the comparison: the recipient
-  and slot, equipped and selected, what changes for the horse, one aligned
-  table with new, lost and same in words, and what Equip would do. The
+- **Built.** The Inventory, a place in the bar (#308): every piece worn or
+  carried, in a grid of tiles by type; a tile is the piece's picture and
+  who wears it or that it is carried. The pointer on a tile shows the
+  comparison: the recipient and slot, equipped and selected, what changes
+  for the horse, and one aligned table with new, lost and same in words. A
+  press pins it beside the grid with what Equip would do. The
   recipient is the selected horse in the strip, which stays in view, and a
   horse's key compares the same piece there.
 - **Already in line.** One selected horse everywhere, undo over

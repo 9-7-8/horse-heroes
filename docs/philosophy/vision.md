@@ -509,7 +509,8 @@ the same day. The advice built on them is in [menus.md](menus.md).
 - **Five places, horse first:** Horses, Trade, Map, Town, Journal, in one bar
   that is always visible. Town opens on Horses. Gear, abilities, pet and look
   are tabs on the selected horse. This replaces the four places (Party,
-  Trade, Wardrobe, Town) proposed in town.md.
+  Trade, Wardrobe, Town) proposed in town.md. On 2026-10-11 she gave the
+  Inventory a place of its own, after Horses ([inventory.md](inventory.md)).
 - **Mouse first, with a key for everything.** The whole game can be played
   without the mouse. A controller is not a design target.
 - **On the road, look and plan.** Every place opens on the road. Gear,
