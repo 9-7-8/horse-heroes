@@ -240,6 +240,99 @@ fn face(game: &Game, gear: &Gear, wearer: Option<&Horse>, selected: &Horse) -> S
     out
 }
 
+/// What the comparison's room says in the Inventory while no piece is open.
+pub fn compare_hint(selected: &Horse) -> String {
+    format!(
+        "Press a piece to compare it with what {} wears there. Another horse's key compares it on that horse.",
+        selected.name
+    )
+}
+
+/// One row of the comparison's table: a label, then what the equipped
+/// piece and the selected piece add, right-aligned, then the change.
+fn table_row(label: &str, equipped: &str, selected: &str, change: &str) -> String {
+    format!("{label:<9}{equipped:>10}{selected:>10}  {change}").trim_end().to_string()
+}
+
+/// The comparison's table (docs/philosophy/inventory.md): each stat either
+/// piece adds to on one line, in one order, what each adds, and the change.
+/// A stat only the selected piece has is new, and one only the equipped
+/// piece has is lost. The sign and the word say it, not a colour.
+fn table(equipped: Stats, selected: Stats) -> String {
+    let mut out = table_row("Piece", "Equipped", "Selected", "Change");
+    let amount = |value: i32| if value == 0 { "-".to_string() } else { format!("+{value}") };
+    for (label, off, on) in [
+        ("health", equipped.health, selected.health),
+        ("attack", equipped.attack, selected.attack),
+        ("defense", equipped.defense, selected.defense),
+        ("elemental", equipped.elemental, selected.elemental),
+    ] {
+        let change = match (off, on) {
+            (0, 0) => continue,
+            (0, on) => format!("{on:+} new"),
+            (off, 0) => format!("{:+} lost", -off),
+            (off, on) if off == on => "same".to_string(),
+            (off, on) => format!("{:+}", on - off),
+        };
+        out += &format!("\n{}", table_row(label, &amount(off), &amount(on), &change));
+    }
+    out
+}
+
+/// The comparison the Inventory opens on a piece (#308): whose it would be
+/// and in which slot, the piece equipped there and the piece selected, what
+/// equipping changes for that horse, the two pieces stat by stat, and what
+/// Equip would do. The horse is the selected one; another horse's key
+/// compares the same piece there, and nothing else on the panel moves.
+pub fn comparison(game: &Game, piece: Piece, hand: Hand) -> String {
+    let Some(gear) = game.piece(piece) else {
+        return pinned(game, piece, hand);
+    };
+    let selected = &game.party[hand.horse.min(game.party.len() - 1)];
+    let rarity = |gear: &Gear| game.data.gear.rarities[gear.rarity].name.clone();
+    let worn = selected.gear[gear.slot.index()].as_ref();
+    let mut out = format!("For {}, {}", selected.name, gear.slot.name());
+    if worn.is_some_and(|worn| std::ptr::eq(worn, gear)) {
+        out += &format!(
+            "\nEquipped: {} ({})\n{} wears it. Another horse's key compares it there.\n\n{}",
+            gear.name,
+            rarity(gear),
+            selected.name,
+            table_row("Piece", "Equipped", "", ""),
+        );
+        for (label, value) in [
+            ("health", gear.stats.health),
+            ("attack", gear.stats.attack),
+            ("defense", gear.stats.defense),
+            ("elemental", gear.stats.elemental),
+        ] {
+            if value != 0 {
+                out += &format!("\n{}", table_row(label, &format!("+{value}"), "", ""));
+            }
+        }
+        return out;
+    }
+    out += &match worn {
+        Some(worn) => format!("\nEquipped: {} ({})", worn.name, rarity(worn)),
+        None => "\nEquipped: nothing".to_string(),
+    };
+    out += &format!("\nSelected: {} ({})", gear.name, rarity(gear));
+    out += &match piece {
+        Piece::Worn { horse, .. } => format!("\nWorn by {}.", game.party[horse].name),
+        Piece::Carried => "\nCarried in the cargo.".to_string(),
+    };
+    out += &format!("\n\nAFTER EQUIPPING, {}:{}", selected.name, changes(game, selected, gear));
+    out += &format!(
+        "\n\n{}",
+        table(worn.map_or(Stats::default(), |worn| worn.stats), gear.stats)
+    );
+    let does = consequence(game, hand);
+    if !does.is_empty() {
+        out += &format!("\n\n{does}");
+    }
+    out
+}
+
 /// Under the card the pointer shows: how to get the rest of it.
 pub const PRESS_PINS: &str = "A press pins it, with its actions.";
 
@@ -268,6 +361,66 @@ mod tests {
             .map(Game::back_from_a_trail)
             .find(|game| game.pending_drop().is_some())
             .expect("no seed under 50 brings a drop home")
+    }
+
+    /// The comparison's table (#308) keeps a stat on one line with what each
+    /// piece adds in the same columns, and says new, lost and same in words.
+    #[test]
+    fn the_comparison_lines_its_stats_up() {
+        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
+        let table = table(stats(5, 0, 4, 2), stats(15, 2, 0, 2));
+        let rows: Vec<&str> = table.lines().collect();
+        assert_eq!(rows.len(), 5);
+        assert!(rows[0].starts_with("Piece") && rows[0].ends_with("Change"));
+        for (row, (label, change)) in rows[1..].iter().zip([
+            ("health", "+10"),
+            ("attack", "+2 new"),
+            ("defense", "-4 lost"),
+            ("elemental", "same"),
+        ]) {
+            assert!(row.starts_with(label), "{row}");
+            assert_eq!(&row[31..], change, "{row}");
+            // Right-aligned: each amount ends where its heading ends.
+            assert_ne!(&row[18..19], " ", "{row}");
+            assert_ne!(&row[28..29], " ", "{row}");
+        }
+        // A stat neither piece adds to has no row.
+        assert_eq!(super::table(stats(0, 1, 0, 0), stats(0, 3, 0, 0)).lines().count(), 2);
+    }
+
+    /// What the Inventory opens on a piece (#308): whose it would be and
+    /// where, what is equipped there and what is selected, what changes,
+    /// and what Equip would do; and a horse's own piece is not compared
+    /// with itself.
+    #[test]
+    fn the_comparison_names_the_horse_and_both_pieces() {
+        let mut game = home();
+        let gear = game.pending_drop().unwrap().clone();
+        let slot = gear.slot.index();
+        let hand = Hand { horse: 0, open: Some(Piece::Carried) };
+        let horse = game.party[0].name.clone();
+        let said = comparison(&game, Piece::Carried, hand);
+        assert!(said.starts_with(&format!("For {horse}, {}\nEquipped: ", gear.slot.name())), "{said}");
+        assert!(said.contains(&format!("\nSelected: {} (", gear.name)), "{said}");
+        assert!(said.contains("\nCarried in the cargo."));
+        assert!(said.contains(&format!("AFTER EQUIPPING, {horse}:")));
+        assert!(said.contains(&table(
+            game.party[0].gear[slot].as_ref().map_or(Stats::default(), |worn| worn.stats),
+            gear.stats
+        )));
+        assert!(said.ends_with(&consequence(&game, hand)) && !consequence(&game, hand).is_empty());
+
+        // On another horse it is the same piece against that horse.
+        let other = comparison(&game, Piece::Carried, Hand { horse: 1, ..hand });
+        assert!(other.starts_with(&format!("For {}, ", game.party[1].name)));
+
+        game.act(Action::Equip, hand);
+        let worn = Piece::Worn { horse: 0, slot };
+        let own = comparison(&game, worn, Hand { horse: 0, open: Some(worn) });
+        assert!(own.contains(&format!("{horse} wears it.")), "{own}");
+        assert!(!own.contains("Selected:") && !own.contains("AFTER EQUIPPING"));
+        let swap = comparison(&game, worn, Hand { horse: 1, open: Some(worn) });
+        assert!(swap.contains(&format!("\nWorn by {horse}.")), "{swap}");
     }
 
     /// The card is the same wherever the piece is (#228): carried or worn,

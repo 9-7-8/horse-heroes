@@ -101,7 +101,7 @@
                 (
                     name: "Inventory",
                     key: "5",
-                    job: "Every piece the horses wear and the caravan carries, by type.",
+                    job: "Every piece the party has, worn or carried, by type. Press one to compare it.",
                     content: Inventory,
                 ),
             ],

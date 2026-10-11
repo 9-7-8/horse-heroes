@@ -219,6 +219,14 @@ impl Places {
         self.pages().nth(page)?.tabs.get(tab)?.key.as_deref()
     }
 
+    /// What a tab of a page shows.
+    pub fn content(&self, page: usize, tab: usize) -> Content {
+        self.pages()
+            .nth(page)
+            .and_then(|page| page.tabs.get(tab))
+            .map_or(Content::Planned, |tab| tab.content)
+    }
+
     pub fn horse_key(&self, horse: usize) -> Option<&str> {
         self.horse_keys.get(horse).map(String::as_str)
     }
@@ -617,8 +625,14 @@ enum Page {
     Place(usize),
     Tab(usize, usize),
     Detail(usize),
+    /// The horses column of a place. Away on the Inventory, which is of
+    /// every piece and not of one horse (#308).
+    Horses(usize),
     /// The cargo column of a place. The detail opens in its room (#287).
     Cargo(usize),
+    /// The room of the comparison beside the Inventory, while no piece is
+    /// open in it: the grid keeps its width (#308).
+    Compare(usize),
     /// The actions of the item card, in a place's side panel: there while
     /// the detail is a piece of gear (#228).
     Card(usize),
@@ -658,6 +672,8 @@ enum Fact {
     Detail(usize),
     /// The card of the piece the pointer rests on.
     Hovered,
+    /// What the comparison's room says while no piece is open in it.
+    CompareHint,
     /// The carried piece as a list shows it: its name, what it is, and
     /// whether it matters to the selected horse.
     CarriedName,
@@ -877,7 +893,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                         })
                         .with_children(|body| {
                             if place.horse_columns {
-                                body.spawn(panel(t))
+                                body.spawn((panel(t), Page::Horses(p)))
                                     .insert(column(t.size.horses_width))
                                     .with_children(|horses| {
                                         horses.spawn(dim(t, "horses"));
@@ -967,6 +983,15 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                         ));
                                         spawn_carried(cargo, t, p, None);
                                         spawn_controls(cargo, t, &place.cargo, Some(p), true);
+                                    });
+                            }
+
+                            if place.tabs.iter().any(|tab| tab.content == Content::Inventory) {
+                                body.spawn((panel(t), Page::Compare(p)))
+                                    .insert(column(t.size.compare_width))
+                                    .with_children(|compare| {
+                                        compare.spawn(dim(t, "compare"));
+                                        compare.spawn((text(t, ""), Live(Fact::CompareHint)));
                                     });
                             }
 
@@ -1885,16 +1910,22 @@ fn move_scene(
 fn show_place(
     shell: Res<Shell>,
     view: Res<SceneView>,
+    map: Res<Places>,
+    tokens: Res<Tokens>,
     mut pages: Query<(&Page, &mut Node, &mut Visibility), Without<ShellRoot>>,
 ) {
     // A place that is being put away stays in view until it is covered.
     let place_in_view = shell.is_open() || view.progress < 1.0;
+    // The Inventory has the place's whole width but for the comparison.
+    let inventory = |place: usize| map.content(place, shell.tab(place)) == Content::Inventory;
     for (page, mut node, mut visibility) in &mut pages {
         let shown = match *page {
             Page::Place(place) => place == shell.place() && place_in_view,
             Page::Tab(place, tab) => tab == shell.tab(place),
             Page::Detail(place) => shell.detail(place).is_some(),
-            Page::Cargo(place) => shell.detail(place).is_none(),
+            Page::Horses(place) => !inventory(place),
+            Page::Cargo(place) => shell.detail(place).is_none() && !inventory(place),
+            Page::Compare(place) => shell.detail(place).is_none() && inventory(place),
             Page::Card(place) => shell
                 .detail(place)
                 .is_some_and(|detail| detail.item.piece().is_some()),
@@ -1903,6 +1934,18 @@ fn show_place(
         let wanted = if shown { Display::Flex } else { Display::None };
         if node.display != wanted {
             node.display = wanted;
+        }
+        // A detail opened in the Inventory has the comparison's width.
+        if let Page::Detail(place) = *page {
+            let columns = map.pages().nth(place).is_some_and(|page| page.horse_columns);
+            let width = Val::Px(match (inventory(place), columns) {
+                (true, _) => tokens.size.compare_width,
+                (false, true) => tokens.size.cargo_width,
+                (false, false) => tokens.size.side_panel_width,
+            });
+            if node.width != width {
+                node.width = width;
+            }
         }
         // Hidden as well as out of the layout: Tab passes over what is
         // hidden, and stops at what is only out of the layout (#244).
@@ -2315,6 +2358,10 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 return String::new();
             };
             match detail.item.piece() {
+                // In the Inventory a piece is opened to be compared.
+                Some(piece) if map.content(place, detail.tab) == Content::Inventory => {
+                    card::comparison(game, piece, shell.hand())
+                }
                 Some(piece) => card::pinned(game, piece, shell.hand()),
                 None => {
                     let Item::Control(id) = detail.item else {
@@ -2335,6 +2382,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::Hovered => shell.pointed().map_or(String::new(), |(_, piece)| {
             card::hovered(game, piece, shell.horse())
         }),
+        Fact::CompareHint => card::compare_hint(selected),
         // Against the selected horse, the one Equip puts it on.
         Fact::CarriedName => game
             .pending_drop()
