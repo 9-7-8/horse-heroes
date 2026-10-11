@@ -44,6 +44,7 @@ pub struct Sizes {
     pub card_width: f32,
     pub hover_card_width: f32,
     pub cell_height: f32,
+    pub inventory_cell: f32,
     pub picture: f32,
     pub picture_inset: f32,
     pub picture_stamp: f32,

@@ -11,6 +11,18 @@ use crate::sim::loot::{Gear, Horse, gain};
 /// What a list says where the cargo is empty.
 pub const NOTHING_CARRIED: &str = "Nothing here yet.\nGear the horses bring back is carried here.";
 
+/// What the Inventory says of a piece in the cargo, where a worn piece says
+/// who wears it.
+pub const CARRIED: &str = "Carried in the cargo";
+
+/// What the Inventory says under a type the party has no piece of.
+pub fn none_held(kind: &str) -> String {
+    format!(
+        "No {} piece is worn or carried yet. Gear comes from the trail.",
+        kind.to_lowercase()
+    )
+}
+
 /// Under a piece's name in a list: its rarity, its slot and what it adds.
 pub fn kind(game: &Game, gear: &Gear) -> String {
     format!(

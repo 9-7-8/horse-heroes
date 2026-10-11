@@ -24,6 +24,10 @@
         // 62, room for two always, the three slots no longer fit under the
         // scene at the smallest window.
         cell_height: 46,
+        // The least width of a cell of the Inventory's grid: the longest
+        // name a piece can have, on one line. The grid has as many columns
+        // of that as fit, all the same width.
+        inventory_cell: 208,
         // The stand-in picture of a piece of gear: the side of its square
         // and the room left around the shape in it. It sits under the
         // piece's name, beside the small lines, because the longest name

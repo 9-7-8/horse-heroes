@@ -318,6 +318,17 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyH),
         Step::Key(KeyCode::Digit1),
         Step::Shot("by keys the drop waits in the cargo".into()),
+        // The Inventory (#308): the drop is in its type's group, carried,
+        // beside what the horses wear; its card is pinned from the grid.
+        Step::Key(KeyCode::Digit5),
+        Step::Shot("inventory with the drop carried".into()),
+        Step::Key(KeyCode::ArrowDown),
+        Step::Shot("inventory by arrows onto the grid".into()),
+        Step::Enter,
+        Step::Shot("inventory a piece's card from the grid".into()),
+        Step::Key(KeyCode::Escape),
+        Step::Focus(None),
+        Step::Key(KeyCode::Digit1),
         // The card under the pointer (#228): resting on a piece shows its
         // card beside it, and nothing is pinned.
         Step::Point,
@@ -351,6 +362,10 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Focus(None),
         Step::Key(KeyCode::KeyE),
         Step::Shot("by keys the drop equipped".into()),
+        // Worn, it is still in its group of the Inventory, under its horse.
+        Step::Key(KeyCode::Digit5),
+        Step::Shot("inventory with the drop worn".into()),
+        Step::Key(KeyCode::Digit1),
         // The overview (#285): with the first horse selected, open what
         // the third wears on its head and equip it: the two change places.
         Step::Key(KeyCode::KeyZ),
@@ -592,11 +607,18 @@ fn tour(
             .find(|(_, b)| b.place == *p && b.tab == *t)
             .map(|(e, _)| e),
         Step::Horse(h) => horses.iter().find(|(_, b)| b.0 == *h).map(|(e, _)| e),
+        // The one in sight: the Inventory shows the same pieces as the
+        // overview and the cargo.
         Step::Slot(h, s) => slots
             .iter()
-            .find(|(_, b)| b.horse == *h && b.slot == *s)
+            .filter(|(_, b)| b.horse == *h && b.slot == *s)
+            .min_by_key(|(e, _)| !seen(*e))
             .map(|(e, _)| e),
-        Step::Carried(p) => carried.iter().find(|(_, b)| b.place == *p).map(|(e, _)| e),
+        Step::Carried(p) => carried
+            .iter()
+            .filter(|(_, b)| b.place == *p)
+            .min_by_key(|(e, b)| (!seen(*e), b.tab.is_some()))
+            .map(|(e, _)| e),
         Step::Reported => reported.iter().map(|(e, _)| e).min_by_key(|e| !seen(*e)),
         // The one in sight, where a control is in more than one place.
         Step::Control(name) => controls

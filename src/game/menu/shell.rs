@@ -155,6 +155,8 @@ pub enum Content {
     /// The party's one element, the slice's stand-in for abilities.
     Element,
     Report,
+    /// Every piece the party has, worn or carried, in a grid by type (#308).
+    Inventory,
 }
 
 impl Places {
@@ -330,6 +332,16 @@ impl Place {
             })
             .collect()
     }
+}
+
+/// Every piece the party has of one type, in the order the Inventory shows
+/// them (#308): what each horse wears in that slot, in the party's order,
+/// and then the piece in the cargo when it is of that type.
+pub fn held(game: &Game, slot: usize) -> Vec<Piece> {
+    let worn = (0..game.party.len()).map(|horse| Piece::Worn { horse, slot });
+    worn.chain([Piece::Carried])
+        .filter(|piece| game.piece(*piece).is_some_and(|gear| gear.slot.index() == slot))
+        .collect()
 }
 
 /// What a side panel is about.
@@ -570,11 +582,14 @@ pub struct ReportedCell {
 
 /// Something shown only while a piece is carried (true), or only while
 /// none is (false); or only while the party has the piece of the report
-/// that is showing.
+/// that is showing; or, in the Inventory, only while the party has that
+/// piece of that type, or has none of the type.
 #[derive(Component)]
 enum When {
     Carried(bool),
     Reported,
+    Held(Piece, usize),
+    NoneHeld(usize),
 }
 
 /// A horse's column of the gear overview, outlined while it is the selected
@@ -648,6 +663,10 @@ enum Fact {
     CarriedName,
     CarriedKind,
     CarriedVerdict,
+    /// In the Inventory: what the carried piece adds, and whose a worn
+    /// piece is.
+    CarriedLine,
+    WornBy(usize),
     /// The piece of the report that is showing: its name, what it is, and
     /// where it is now.
     ReportedName,
@@ -1196,6 +1215,61 @@ fn spawn_content(
                         });
                 }
             });
+        }
+        Content::Inventory => {
+            // A headed group for each type (#308). Every cell a group can
+            // come to hold is here, and shows while its piece is held, so
+            // the grid follows the game with nothing rebuilt.
+            for slot in Slot::ALL {
+                let name = slot.name();
+                let slot = slot.index();
+                page.spawn(text(t, name)).insert(Node {
+                    margin: UiRect::top(Val::Px(t.space.s)),
+                    ..default()
+                });
+                page.spawn((dim(t, &card::none_held(name)), When::NoneHeld(slot)));
+                page.spawn(Node {
+                    display: Display::Grid,
+                    grid_template_columns: RepeatedGridTrack::minmax(
+                        GridTrackRepetition::AutoFill,
+                        MinTrackSizingFunction::Px(t.size.inventory_cell),
+                        MaxTrackSizingFunction::Fraction(1.0),
+                    ),
+                    column_gap: Val::Px(t.space.s),
+                    row_gap: Val::Px(t.space.s),
+                    flex_shrink: 0.0,
+                    ..default()
+                })
+                .with_children(|grid| {
+                    for horse in 0..horses {
+                        let piece = Piece::Worn { horse, slot };
+                        grid.spawn((
+                            cell(t),
+                            SlotRow { place, tab, horse, slot },
+                            When::Held(piece, slot),
+                        ))
+                        .with_children(|cell| {
+                            cell.spawn((text(t, ""), Live(Fact::Worn(horse, slot))));
+                            spawn_pictured(cell, t, piece, |lines| {
+                                lines.spawn((dim(t, ""), Live(Fact::WornLine(horse, slot))));
+                                lines.spawn((dim(t, ""), Live(Fact::WornBy(horse))));
+                            });
+                        });
+                    }
+                    grid.spawn((
+                        cell(t),
+                        CarriedCell { place, tab: Some(tab) },
+                        When::Held(Piece::Carried, slot),
+                    ))
+                    .with_children(|cell| {
+                        cell.spawn((text(t, ""), Live(Fact::CarriedName)));
+                        spawn_pictured(cell, t, Piece::Carried, |lines| {
+                            lines.spawn((dim(t, ""), Live(Fact::CarriedLine)));
+                            lines.spawn(dim(t, card::CARRIED));
+                        });
+                    });
+                });
+            }
         }
         Content::Report => {
             page.spawn(Node {
@@ -2020,14 +2094,18 @@ fn mark_wearer(
 
 /// The carried piece is in its lists while there is one, and what an empty
 /// list says is there while there is none. A report's piece is in the
-/// report while the party has it.
+/// report while the party has it. A cell of the Inventory is in its type's
+/// group while its piece is held, and the group says so while it is empty.
 fn show_carried(game: Res<Game>, mut parts: Query<(&When, &mut Node, &mut Visibility)>) {
     let carried = game.pending_drop().is_some();
     let reported = game.reported_piece().is_some();
+    let held: Vec<Vec<Piece>> = (0..Slot::ALL.len()).map(|slot| held(&game, slot)).collect();
     for (when, mut node, mut visibility) in &mut parts {
         let shown = match *when {
             When::Carried(when) => when == carried,
             When::Reported => reported,
+            When::Held(piece, slot) => held[slot].contains(&piece),
+            When::NoneHeld(slot) => held[slot].is_empty(),
         };
         let wanted = if shown { Display::Flex } else { Display::None };
         if node.display != wanted {
@@ -2267,6 +2345,10 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::CarriedVerdict => game
             .pending_drop()
             .map_or(String::new(), |gear| card::verdict(game, selected, gear)),
+        Fact::CarriedLine => game
+            .pending_drop()
+            .map_or(String::new(), |gear| stats_line(gear.stats)),
+        Fact::WornBy(horse) => format!("Worn by {}", game.party[horse].name),
         Fact::ReportedName | Fact::ReportedKind | Fact::ReportedWhere => {
             let Some(at) = game.reported_piece() else {
                 return String::new();
@@ -2883,14 +2965,79 @@ mod tests {
         }
     }
 
-    /// Every page has at least one control planned for it.
+    /// Every page has at least one control planned for it. The Inventory's
+    /// controls are its cells (#308).
     #[test]
     fn every_page_has_its_controls() {
         for place in Places::load().pages() {
-            for (heading, _, _, controls) in place.pages() {
-                assert!(!controls.is_empty(), "{heading} has no controls");
+            for (heading, _, content, controls) in place.pages() {
+                assert!(
+                    !controls.is_empty() || content == Content::Inventory,
+                    "{heading} has no controls"
+                );
             }
         }
+    }
+
+    /// The Inventory (#308) has every piece the party holds, worn and
+    /// carried, each once and under its own type, and follows a piece from
+    /// the cargo onto a horse.
+    #[test]
+    fn the_inventory_has_every_piece_once_under_its_type() {
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let everything = |game: &Game| {
+            let mut all = vec![Piece::Carried];
+            for horse in 0..game.party.len() {
+                all.extend((0..Slot::ALL.len()).map(|slot| Piece::Worn { horse, slot }));
+            }
+            all.retain(|piece| game.piece(*piece).is_some());
+            all
+        };
+        let check = |game: &Game| {
+            let mut shown = Vec::new();
+            for slot in 0..Slot::ALL.len() {
+                for piece in held(game, slot) {
+                    let gear = game.piece(piece).expect("an empty cell is shown");
+                    assert_eq!(gear.slot.index(), slot, "{} is under the wrong type", gear.name);
+                    assert!(!shown.contains(&piece), "{} is shown twice", gear.name);
+                    shown.push(piece);
+                }
+            }
+            let all = everything(game);
+            assert_eq!(shown.len(), all.len());
+            assert!(all.iter().all(|piece| shown.contains(piece)));
+            shown.len()
+        };
+        let slot = game.pending_drop().unwrap().slot.index();
+        assert_eq!(held(&game, slot).last(), Some(&Piece::Carried));
+        let before = check(&game);
+        let replaced = game.party[0].gear[slot].is_some();
+        game.act(Action::Equip, Hand::horse(0));
+        assert!(held(&game, slot).contains(&Piece::Worn { horse: 0, slot }));
+        assert!(!held(&game, slot).contains(&Piece::Carried));
+        assert_eq!(check(&game), before - usize::from(replaced));
+
+        // A type nobody has a piece of is an empty group that says so.
+        let mut bare = Game::new(6);
+        for horse in &mut bare.party {
+            horse.gear[0] = None;
+        }
+        assert!(held(&bare, 0).is_empty());
+        assert!(card::none_held(Slot::ALL[0].name()).contains("head"));
+
+        // It is one tab, with a key the game can read.
+        let places = Places::load();
+        let tabs: Vec<_> = places
+            .places
+            .iter()
+            .flat_map(|place| &place.tabs)
+            .filter(|tab| tab.content == Content::Inventory)
+            .collect();
+        assert_eq!(tabs.len(), 1);
+        assert!(tabs[0].key.as_deref().and_then(key_code).is_some());
     }
 
     /// "It must stay five places" (epic #225), in the owner's order.

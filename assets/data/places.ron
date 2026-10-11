@@ -96,6 +96,14 @@
                         (name: "Party theme", does: "Applies one palette or emblem across the whole party.", issue: 134, proposed: true),
                     ],
                 ),
+                // Every piece the party has, by type (#308). Its cells are
+                // its controls: a press on one pins the piece's card.
+                (
+                    name: "Inventory",
+                    key: "5",
+                    job: "Every piece the horses wear and the caravan carries, by type.",
+                    content: Inventory,
+                ),
             ],
             cargo: [
                 (name: "Filter", does: "Shows only some of the cargo: by slot, rarity, new, favourite or usable by the selected horse.", issue: 235),
