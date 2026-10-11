@@ -403,6 +403,7 @@ in the shell presses the thing when its key goes down, by the same
 | K | Keys: the list of every key, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
 | Arrows | Move the keyboard focus to the nearest control that way | not in the file |
+| PageUp, PageDown | Scroll what the side panel says, or the tab's page when no panel is open | `scroll_keys` |
 
 The keys of places, horses and controls work wherever the player is, so no
 two of them are the same. A tab's key works only while its place is showing,
@@ -436,11 +437,19 @@ on the page that was left.
 
 **The Keys control** in Settings (K) lists every key in the side panel:
 places, the tabs of a place, horses and actions, each beside the name of
-what it works, then Esc, the arrows, Tab with Shift+Tab, and Enter.
-`keys_list` builds it from `places.ron`, so a key changed there is changed
-in the list; only the last four lines are written by hand. The lines are kept short enough
-that the list fits the side panel at the smallest window, which does not
-scroll.
+what it works, then Esc, the arrows, the scroll keys, Tab with Shift+Tab,
+and Enter. `keys_list` builds it from `places.ron`, so a key changed there
+is changed in the list; only the words of the last five lines are written
+by hand. With the scroll keys' line the list is two lines longer than the
+side panel at the smallest window, and is read to its end by those keys.
+
+**The scroll keys** (#304, `scroll`) move what the side panel says while
+one is open, and otherwise the page of the tab that is showing, by
+`size.scroll_page` of what is in view. They do nothing with every place
+closed. A side panel names them under its words while the words do not
+fit (`ScrollHint`, shown by `show_scrollbars`); a tab's page does not, as
+the focus already brings its controls into view. `docs/item-card.md`,
+Fitting.
 
 Still to come under #229: a key for each action as its button is built
 (List, with #99, is the one a town visit lacks).

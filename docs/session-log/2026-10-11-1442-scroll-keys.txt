@@ -1,0 +1,50 @@
+ASKED
+  "next"
+
+DONE
+  - #304, closed (ca85eff): PageUp and PageDown scroll what a side panel
+    says, and the tab's page when no panel is open. The keys are data
+    (scroll_keys in places.ron), are listed under Keys in Settings, and
+    are named in a line under a side panel's words while those do not
+    fit.
+    Tested (146 pass, one new: a press passes over no line, enough
+    presses reach the end, it stops at both ends). Seen running: the menu
+    tour at seed 6 at 1120x640, its pictures of the card in the Gear tab
+    before a press, after one and at its end, of the comparison in the
+    Inventory after one, and of the Keys list, read by this session.
+    Four are in docs/gallery/2026-10-11-scroll-keys.
+    docs/item-card.md, "Fitting"; docs/menu-shell.md, "Keys".
+  - Picked by next-thing.txt: the build was green; the one open bug,
+    #246, waits only for the owner to watch a release; #304 was the one
+    issue of 0.2.1 that could be built without her or another system.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The keys are PageUp and PageDown, one line in places.ron.
+  - A press moves by four fifths of what is in view (size.scroll_page).
+  - The line that names the keys is under a side panel only, not under a
+    tab's page.
+  - With no side panel open the keys scroll the tab's page.
+
+FOUND
+  - A chain of systems takes twenty at most; keys and scroll are a pair
+    inside the shell's chain.
+  - The Keys list in Settings fitted the side panel at the smallest
+    window; with the new line it is two lines over, and scrolls.
+  - In the Gear tab at 1120x640 the card has room for five lines, so a
+    legendary piece's card is six presses long.
+  - A long here-document failed in the Bash tool once more.
+  - This log was written at 14:25 and is named 1442 so that it sorts
+    after the one before it.
+
+NOT DONE
+  - Nobody has pressed PageUp or PageDown on a real keyboard.
+  - A held key does not repeat.
+  - A card opened after another stays where the last was scrolled to; the
+    wheel has always done the same.
+  - #308's last line, and #307, as the log before this one says.
+
+PICK UP
+  Ask the owner to find a piece in the Inventory of a running game
+  (Horses, 5) and close #308 on her word. Then build #307, a press on the
+  road scene closes the open place; after it #312, #313, #306, #311.

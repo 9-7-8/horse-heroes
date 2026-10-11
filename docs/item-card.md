@@ -105,7 +105,8 @@ above; making them one is #312.
 - The stat's word takes its colour (#251); the amounts in the table are
   plain. Gain and loss are said by sign and word and have no colour yet:
   #313.
-- At the smallest window the table is a scroll of the wheel away (#304).
+- At the smallest window the table is a press of PageDown, or a scroll of
+  the wheel, away (see Fitting).
 
 Tests in `card.rs`: the table's columns line up and say new, lost and
 same; the comparison names the horse and both pieces, ends with what Equip
@@ -292,7 +293,16 @@ under it do not, so Equip is always in view. At the smallest window
 (1120 x 640) the Horses place shows the name, what the piece is and where,
 and the comparison is a scroll of the wheel away; the summary in the list
 has the verdict meanwhile. The Journal's panel is wider and shows the start
-of the comparison. There is no key that scrolls the card.
+of the comparison.
+
+PageUp and PageDown scroll the card (#304; `scroll` in the shell, the keys
+in `places.ron`, `scroll_keys`). A press moves by `size.scroll_page`, four
+fifths, of what is in view, so the last line read is still there, and it
+stops at either end. While the words do not fit, a line under them says
+"PageUp, PageDown: read the rest"; it goes when they fit. In the Gear tab
+at the smallest window the room is five lines, and six presses read the
+whole card of a legendary piece. A held key does not repeat, and a card
+opened after another keeps the place the last was scrolled to.
 
 Tests in `card.rs` hold: a piece has the same opening lines carried and
 worn; the comparison names each stat that changes and no other; the
