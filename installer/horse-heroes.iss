@@ -29,9 +29,13 @@ AppSupportURL={#AppUrl}/issues
 AppUpdatesURL={#AppUrl}/releases
 VersionInfoVersion={#AppVersion}
 
-; Per user, no administrator rights: {autopf} is the user's local programs
-; folder when the privileges are the lowest.
-PrivilegesRequired=lowest
+; For all users, under Program Files, which asks for administrator rights
+; (owner, 2026-10-11; it was per user before). {autopf} is Program Files
+; when the install is for all users. /CURRENTUSER on the command line
+; installs for one user with no rights asked, under their local programs
+; folder; the wizard does not offer it.
+PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=commandline
 DefaultDirName={autopf}\{#AppName}
 DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\{#AppExe}

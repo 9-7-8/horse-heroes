@@ -29,12 +29,15 @@ time. Steps marked LATER do not exist yet and are skipped, not forgotten.
 
 5. Test the installer.
    Install silently into a scratch folder, check the files, uninstall:
-       HorseHeroes-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /DIR="<scratch>"
+       HorseHeroes-Setup.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES
+           /DIR="<scratch>"
        "<scratch>\unins000.exe" /VERYSILENT
    Use a scratch /DIR only when Horse Heroes is not installed on this
    machine: the application ID is the same, so it would otherwise move the
-   owner's own installation. The wizard, the shortcuts and the SmartScreen
-   warning need a person: that is the owner's test.
+   owner's own installation. /CURRENTUSER keeps the test from asking for
+   administrator rights; the default install, under Program Files, does
+   ask, and so needs a person. The wizard, the shortcuts and the
+   SmartScreen warning need one too: that is the owner's test.
 
 6. LATER: sign the installer with a timestamp, then hash it again (signing
    changes the bytes), then generate and sign the update manifest (#195).

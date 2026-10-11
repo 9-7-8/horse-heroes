@@ -1,5 +1,9 @@
 # Distribution: installer and updater
 
+> **2026-10-11:** the owner chose an install under Program Files, for all
+> users, over this guide's "per user, no administrator rights". Where the
+> two disagree, `vision.md` (The screen and the release) is right.
+
 How the game reaches a player's machine and stays current. This is an
 implementation guide the owner handed over, turned into the rules to follow
 when the work is done. **None of it has been run**: its scripts and commands

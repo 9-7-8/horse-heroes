@@ -26,7 +26,8 @@ plays itself, and can be nudged. Pictures: [`docs/gallery`](docs/gallery/README.
 
 On Windows 10 or 11 (x64), download `HorseHeroes-Setup.exe` from the
 [latest release](https://github.com/9-7-8/horse-heroes/releases/latest) and
-run it. It installs for your user only and asks for no administrator rights.
+run it. It installs under Program Files, so Windows asks for administrator
+rights.
 
 The installer is not code-signed yet, so Windows SmartScreen will say it does
 not recognise the app; "More info" shows the choice to run it. Each release

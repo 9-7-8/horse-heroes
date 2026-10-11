@@ -294,6 +294,11 @@ recommendation, this section is the newer statement.
 - In town the scene is the top third and menus fill the rest. **On the road
   the scene expands** when there is nothing to decide. Fixed proportion, with
   a minimum window size.
+- **It installs to Program Files by default, not the user's application
+  data (owner, 2026-10-11, after installing 0.2.0).** That replaces "per
+  user, no administrator rights" from the installer guide: Windows asks for
+  administrator rights at each install and each update. Saves and settings
+  still live under the user's local application data.
 - Windows 10 and 11, x64. Application ID `9-7-8.HorseHeroes`, publisher
   `9-7-8`. Published from this repository, one stable channel, updates
   offered and chosen. Unsigned until a decision before 1.0. The manifest
