@@ -66,6 +66,13 @@
         // The dot in the corner of a place or tab that has something not
         // yet seen.
         attention: 9,
+        // The fight log over the road scene (#306), at its top left, above
+        // the party and clear of where an enemy falls: its width, how many
+        // of the latest lines it shows, and how faint the oldest of them is
+        // (the newest is 1).
+        fight_log_width: 440,
+        fight_log_lines: 6,
+        fight_log_fade: 0.3,
     ),
 
     // The split of the window between the 3D scene, at the top, and the

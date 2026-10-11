@@ -32,8 +32,8 @@ use super::parts::{
 };
 use super::tokens::Tokens;
 use crate::game::{
-    Action, Game, Hand, Piece, Raise, SceneView, Screen, Uncollected, report_side, report_text,
-    stats_line,
+    Action, Game, Hand, Piece, Raise, SceneView, Screen, Uncollected, fight_log, report_side,
+    report_text, stats_line,
 };
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
@@ -49,6 +49,8 @@ pub struct Places {
     pub horse_keys: Vec<String>,
     /// The keys that scroll what does not fit, up and then down (#304).
     pub scroll_keys: (String, String),
+    /// The key that hides and shows the fight log over the road (#306).
+    pub log_key: String,
     #[serde(default)]
     pub footer: Vec<Control>,
     /// What can be done with a piece of gear, on its card (#228): the same
@@ -417,6 +419,8 @@ pub struct Shell {
     /// The piece the pointer rests on and the cell it is in, while its card
     /// shows beside it (#228).
     pointed: Option<(Entity, Piece)>,
+    /// The fight log over the road scene has been put away by its key (#306).
+    log_hidden: bool,
 }
 
 impl Shell {
@@ -428,6 +432,26 @@ impl Shell {
             tabs: vec![0; places],
             details: vec![None; places],
             pointed: None,
+            log_hidden: false,
+        }
+    }
+
+    /// Whether the fight log is over the scene (#306): on the road, with
+    /// every place closed. Its lines can be hidden; its heading stays, with
+    /// the key that brings them back.
+    pub fn log_in_view(&self, game: &Game) -> bool {
+        !game.in_town() && !self.showing
+    }
+
+    pub fn log_hidden(&self) -> bool {
+        self.log_hidden
+    }
+
+    /// A press of the fight log's key. It does nothing while the log is not
+    /// in view, where it would change something the player cannot see.
+    pub fn press_log_key(&mut self, game: &Game) {
+        if self.log_in_view(game) {
+            self.log_hidden = !self.log_hidden;
         }
     }
 
@@ -723,8 +747,20 @@ enum Fact {
     Element,
     Report,
     ReportSide,
+    /// The heading of the fight log over the road, with its key.
+    LogHeading,
     Footer,
 }
+
+/// The fight log over the road scene (#306). It is out of the shell's
+/// layout and the pointer passes through it.
+#[derive(Component)]
+struct FightLog;
+
+/// A line of the fight log, counted from the top, and what it says now
+/// with how faint it is.
+#[derive(Component)]
+struct LogLine(usize, String, f32);
 
 pub struct ShellPlugin;
 
@@ -740,7 +776,7 @@ impl Plugin for ShellPlugin {
                     lose_hidden_focus,
                     arrows,
                     // Twenty is as many as one chain takes.
-                    (keys, scroll).chain(),
+                    (keys, scroll, log_key).chain(),
                     escape,
                     follow_the_party,
                     point,
@@ -755,7 +791,7 @@ impl Plugin for ShellPlugin {
                     picture::show_pictures,
                     show_reasons,
                     show_facts,
-                    show_trail,
+                    (show_trail, show_log).chain(),
                     show_scrollbars,
                     follow_focus,
                 )
@@ -1147,6 +1183,31 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
         border: UiRect::all(Val::Px(t.size.border)),
         ..default()
     });
+
+    // The fight log (#306): at the top left of the scene, above the party
+    // and away from where an enemy falls. The newest line is the lowest.
+    commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                display: Display::None,
+                top: Val::Px(t.space.l),
+                left: Val::Px(t.space.l),
+                width: Val::Px(t.size.fight_log_width),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(t.space.xs),
+                ..default()
+            },
+            FightLog,
+            Pickable::IGNORE,
+            Visibility::Hidden,
+        ))
+        .with_children(|log| {
+            log.spawn((dim(t, ""), Live(Fact::LogHeading), Pickable::IGNORE));
+            for line in 0..t.size.fight_log_lines {
+                log.spawn((text(t, ""), LogLine(line, String::new(), 1.0), Pickable::IGNORE));
+            }
+        });
 }
 
 /// The bar beside a page that scrolls. It keeps its width whether or not it
@@ -1737,6 +1798,93 @@ fn scroll(
         );
         if at.y != to {
             at.y = to;
+        }
+    }
+}
+
+/// The fight log's key (#306) hides its lines and shows them again.
+fn log_key(
+    keys: Res<ButtonInput<KeyCode>>,
+    map: Res<Places>,
+    game: Res<Game>,
+    mut shell: ResMut<Shell>,
+) {
+    if key_code(&map.log_key).is_some_and(|code| keys.just_pressed(code)) {
+        shell.press_log_key(&game);
+    }
+}
+
+/// How faint a line of the fight log is: the newest is 1, and each one
+/// older is a step nearer `fade`, which the oldest of a full log has.
+fn log_alpha(age: usize, lines: usize, fade: f32) -> f32 {
+    if lines < 2 {
+        return 1.0;
+    }
+    1.0 - (1.0 - fade) * age.min(lines - 1) as f32 / (lines - 1) as f32
+}
+
+/// Keep the fight log over the scene (#306): there on the road with every
+/// place closed, its latest lines the lowest and the older ones fainter,
+/// elements and stats in their colours as everywhere (#251).
+fn show_log(
+    mut commands: Commands,
+    tokens: Res<Tokens>,
+    game: Res<Game>,
+    shell: Res<Shell>,
+    mut log: Single<(&mut Node, &mut Visibility), With<FightLog>>,
+    mut lines: Query<(Entity, &mut LogLine, &mut Text, &mut TextColor, &TextFont)>,
+    children: Query<&Children>,
+    runs: Query<(), With<Run>>,
+) {
+    let shown = shell.log_in_view(&game);
+    let (display, visibility) = match shown {
+        true => (Display::Flex, Visibility::Inherited),
+        false => (Display::None, Visibility::Hidden),
+    };
+    if log.0.display != display {
+        log.0.display = display;
+    }
+    if *log.1 != visibility {
+        *log.1 = visibility;
+    }
+    if !shown {
+        return;
+    }
+    let room = tokens.size.fight_log_lines;
+    let latest = match shell.log_hidden() {
+        true => Vec::new(),
+        false => fight_log(&game, room),
+    };
+    let names = ink::Names::of(&game.data.gear);
+    for (entity, mut line, mut text, mut colour, font) in &mut lines {
+        let words = latest.get(line.0).copied().unwrap_or("");
+        let age = latest.len().saturating_sub(line.0 + 1);
+        let alpha = log_alpha(age, room, tokens.size.fight_log_fade);
+        if line.1 == words && line.2 == alpha {
+            continue;
+        }
+        (line.1, line.2) = (words.to_string(), alpha);
+        let plain = tokens.colour.text.0.with_alpha(alpha);
+        colour.0 = plain;
+        // As `show_facts` does it: the text is what comes before the first
+        // colour, and each run after that a span under it.
+        let mut rest = ink::runs(words, &names);
+        let first = match rest.first() {
+            Some((_, None)) => rest.remove(0).0,
+            _ => "",
+        };
+        text.0 = first.into();
+        for child in children.get(entity).into_iter().flatten() {
+            if runs.contains(*child) {
+                commands.entity(*child).despawn();
+            }
+        }
+        for (run, ink) in rest {
+            let colour = match ink {
+                Some(ink) => tokens.colour.ink(ink, &game.data.gear).with_alpha(alpha),
+                None => plain,
+            };
+            commands.spawn((Run, TextSpan::new(run), font.clone(), TextColor(colour), ChildOf(entity)));
         }
     }
 }
@@ -2540,6 +2688,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         // No blank line at the end: it would push the controls down.
         Fact::Report => report_text(game).trim_end().into(),
         Fact::ReportSide => report_side(game).trim_end().into(),
+        Fact::LogHeading => log_heading(map, shell.log_hidden()),
         Fact::Footer => match &game.screen {
             Screen::Camp { countdown, .. } => format!(
                 // The tracker beside it shows the trail's fights.
@@ -2674,6 +2823,15 @@ fn not_built(control: &Control) -> String {
     out
 }
 
+/// The heading of the fight log (#306), with its key printed on it; it
+/// stays when the lines are hidden, so the key that brings them back does.
+fn log_heading(map: &Places, hidden: bool) -> String {
+    match hidden {
+        false => format!("FIGHT LOG  [{}] hides it", map.log_key),
+        true => format!("FIGHT LOG hidden  [{}] shows it", map.log_key),
+    }
+}
+
 /// The line that names the scroll keys, under words that do not fit.
 fn scroll_hint(map: &Places) -> String {
     format!("{}, {}: read the rest", map.scroll_keys.0, map.scroll_keys.1)
@@ -2718,6 +2876,7 @@ fn keys_list(map: &Places, horses: &[&str]) -> String {
         "Esc: back one level".into(),
         "Arrows: move focus that way".into(),
         format!("{}, {}: scroll", map.scroll_keys.0, map.scroll_keys.1),
+        format!("{}: hide or show the fight log, on the road", map.log_key),
         "Tab, Shift+Tab: move focus".into(),
         "Enter: press what has focus".into(),
     ]
@@ -2953,7 +3112,7 @@ mod tests {
             seen.push(key.clone());
         }
         let pages = places.pages().filter_map(|page| page.key.as_ref());
-        let scroll = [&places.scroll_keys.0, &places.scroll_keys.1];
+        let scroll = [&places.scroll_keys.0, &places.scroll_keys.1, &places.log_key];
         for key in pages.chain(&places.horse_keys).chain(scroll) {
             assert!(key_code(key).is_some(), "no key called {key}");
             assert!(!seen.contains(key), "two things answer {key}");
@@ -3076,6 +3235,62 @@ mod tests {
         let (up, down) = &places.scroll_keys;
         assert!(said.contains(&format!("{up}, {down}: scroll")), "{said}");
         assert!(scroll_hint(&places).starts_with(&format!("{up}, {down}")));
+        assert!(said.contains(&format!("{}: hide or show the fight log", places.log_key)), "{said}");
+    }
+
+    /// The fight log (#306) is over the scene on the road with every place
+    /// closed and nowhere else; its key hides and shows its lines only while
+    /// it is there, and is printed on its heading either way. The Journal's
+    /// report does not carry the log any more.
+    #[test]
+    fn the_fight_log_is_over_the_road_and_its_key_hides_it() {
+        let places = Places::load();
+        let lines = Tokens::load().size.fight_log_lines;
+        let mut game = Game::new(6);
+        let mut shell = Shell::new(places.pages().count());
+        let heading = |shell: &Shell| log_heading(&places, shell.log_hidden());
+
+        assert!(!shell.log_in_view(&game), "not in town");
+        assert!(fight_log(&game, lines).is_empty());
+        shell.press_log_key(&game);
+        assert!(!shell.log_hidden(), "the key does nothing out of sight");
+
+        game.act(Action::SetOut, Hand::horse(0));
+        assert!(!shell.log_in_view(&game), "not under an open place");
+        shell.close();
+        assert!(shell.log_in_view(&game));
+        assert!(heading(&shell).contains(&format!("[{}] hides", places.log_key)));
+        shell.press_log_key(&game);
+        assert!(shell.log_hidden() && shell.log_in_view(&game));
+        assert!(heading(&shell).contains(&format!("[{}] shows", places.log_key)));
+        shell.press_log_key(&game);
+        assert!(!shell.log_hidden());
+
+        // A fight under way: the latest lines, the newest last.
+        let data = crate::sim::data::Data::load();
+        let Screen::Trail(expedition) = &mut game.screen else {
+            panic!("the party has set out");
+        };
+        while expedition.log.len() <= lines && expedition.outcome.is_none() {
+            expedition.tick(&data, 0.1);
+        }
+        let Screen::Trail(expedition) = &game.screen else {
+            unreachable!();
+        };
+        assert!(expedition.log.len() > lines);
+        let latest = fight_log(&game, lines);
+        assert_eq!(latest.len(), lines);
+        assert_eq!(latest.last().copied(), expedition.log.last().map(String::as_str));
+        let side = report_side(&game);
+        for line in &expedition.log {
+            assert!(!side.contains(line.as_str()), "the report still carries: {line}");
+        }
+
+        // The newest line is whole and the oldest of a full log the faintest.
+        let fade = 0.3;
+        assert_eq!(log_alpha(0, lines, fade), 1.0);
+        assert!((log_alpha(lines - 1, lines, fade) - fade).abs() < 1e-6);
+        assert!(log_alpha(1, lines, fade) > log_alpha(2, lines, fade));
     }
 
     /// The scroll keys (#304): a press moves by most of what is in view, so

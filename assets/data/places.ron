@@ -23,6 +23,7 @@
 // no tab may use a key of the first kind. `horse_keys` select the horses of
 // the party, in order. `scroll_keys` move what a side panel says, or the
 // page when no panel is open, up and down where it does not fit (#304).
+// `log_key` hides and shows the fight log over the road scene (#306).
 // `marks` says what puts a mark on a place (#232).
 // `cargo` is the controls of the cargo column, `footer` the footer's.
 // `card` is what can be done with a piece of gear (#228). Those controls are
@@ -254,6 +255,7 @@
     ),
     horse_keys: ["Z", "X", "C"],
     scroll_keys: ("PageUp", "PageDown"),
+    log_key: "L",
     // What puts a mark on a place, and on the tab of it the thing is on
     // (#232): something there not yet seen. It goes when the thing has been
     // in view and does not come back for the same thing. Nothing routine is

@@ -60,6 +60,9 @@ pub struct Sizes {
     pub trail_mark: f32,
     pub trail_boss: f32,
     pub attention: f32,
+    pub fight_log_width: f32,
+    pub fight_log_lines: usize,
+    pub fight_log_fade: f32,
 }
 
 /// The split of the window between the scene and the menus.

@@ -15,7 +15,6 @@ pub mod scene;
 const TICK: f32 = 0.1;
 /// Seconds the camp screen waits before setting out by itself.
 const CAMP_SECS: f32 = 12.0;
-const LOG_LINES: usize = 8;
 
 /// Which of the two layouts the window is in, and how far between them: 0 is
 /// the town layout, with the scene in the top third, and 1 the road's, with
@@ -922,8 +921,8 @@ fn reports_list(game: &Game, open: &Kept) -> String {
 }
 
 /// Beside the report: the trail ahead and the element to walk it with in
-/// town, the log of the fight on the road; beside an earlier report, the
-/// list of those kept.
+/// town, where the log of the fight is on the road; beside an earlier
+/// report, the list of those kept.
 pub fn report_side(game: &Game) -> String {
     let rules = &game.data.rules;
     if let Some(open) = game.reading() {
@@ -958,9 +957,21 @@ pub fn report_side(game: &Game) -> String {
             );
             out
         }
+        // The log of the fight is where the fight is watched (#306).
+        Screen::Trail(_) => "THE FIGHT'S LOG\n\
+                             It lies over the road, on the left, while every place is closed."
+            .into(),
+    }
+}
+
+/// The latest `lines` of the fight's log, the newest last: what lies over
+/// the road scene (#306). Nothing in town.
+pub fn fight_log(game: &Game, lines: usize) -> Vec<&str> {
+    match &game.screen {
+        Screen::Camp { .. } => Vec::new(),
         Screen::Trail(expedition) => {
-            let start = expedition.log.len().saturating_sub(LOG_LINES);
-            expedition.log[start..].join("\n")
+            let start = expedition.log.len().saturating_sub(lines);
+            expedition.log[start..].iter().map(String::as_str).collect()
         }
     }
 }
