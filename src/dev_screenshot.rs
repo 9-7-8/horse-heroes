@@ -8,6 +8,12 @@
 //! exits. The presses are the same `Activate` a click sends. It ends with a
 //! town visit by keys alone, each key put into Bevy's keyboard state as if
 //! it had gone down.
+//!
+//! `IDLE_WALK=<folder>` walks the click budget (#236): it does each of the
+//! common jobs of `assets/data/jobs.ron` that can be done, once with the
+//! presses a pointer makes and once by keys, counts the presses, checks in
+//! the game that the job was done, and writes the counts to `counts.txt` in
+//! the folder (procedures/walk-the-click-budget.txt).
 
 use bevy::{
     input::InputSystems,
@@ -19,12 +25,14 @@ use bevy::{
     render::view::screenshot::{Screenshot, save_to_disk},
     ui_widgets::Activate,
 };
+use serde::Deserialize;
 
 use crate::game::menu::shell::{
-    CarriedCell, ControlButton, HorseButton, PlaceButton, Places, ReportedCell, SlotRow,
-    TabButton,
+    CarriedCell, Content, ControlButton, HorseButton, PlaceButton, Places, ReportedCell, Shell,
+    SlotRow, TabButton,
 };
 use crate::game::{Action, Game, Hand};
+use crate::sim::data::Element;
 
 #[derive(Resource)]
 struct Shot {
@@ -45,18 +53,15 @@ impl Plugin for DevScreenshotPlugin {
                 .add_systems(Update, shoot_then_exit);
         }
         if let Ok(folder) = std::env::var("IDLE_TOUR") {
-            app.insert_resource(Tour {
-                folder,
-                steps: Vec::new(),
-                next: 0,
-                wait: 1.5,
-                shots: 0,
-                key: None,
-                held: None,
-            })
-            .add_systems(Startup, plan_tour)
-            .add_systems(PreUpdate, tour_keys.after(InputSystems))
-            .add_systems(Update, tour);
+            app.insert_resource(Tour::new(folder))
+                .add_systems(Startup, plan_tour)
+                .add_systems(PreUpdate, tour_keys.after(InputSystems))
+                .add_systems(Update, tour);
+        } else if let Ok(folder) = std::env::var("IDLE_WALK") {
+            app.insert_resource(Tour::new(folder))
+                .add_systems(Startup, plan_walk)
+                .add_systems(PreUpdate, tour_keys.after(InputSystems))
+                .add_systems(Update, tour);
         }
     }
 }
@@ -110,6 +115,67 @@ enum Step {
     /// Wait for the party to come back to town.
     Town,
     Shot(String),
+    /// Start counting the presses of a job of `jobs.ron`, done this way.
+    Job(&'static str, By),
+    /// The job is over: stop counting, and check in the game that it was
+    /// done.
+    Done(Check),
+}
+
+/// One of the common jobs, and the most presses it may take (#236), from
+/// `assets/data/jobs.ron`.
+#[derive(Clone, Debug, Deserialize)]
+struct Job {
+    name: String,
+    /// Where the player is when the count starts.
+    from: String,
+    mouse: u32,
+    keys: u32,
+    /// The issue that will make the job possible; it cannot be walked yet.
+    #[serde(default)]
+    waits_on: Option<u32>,
+}
+
+#[derive(Deserialize)]
+struct Jobs {
+    jobs: Vec<Job>,
+}
+
+impl Jobs {
+    fn load() -> Vec<Job> {
+        let jobs: Jobs = ron::from_str(include_str!("../assets/data/jobs.ron"))
+            .unwrap_or_else(|e| panic!("assets/data/jobs.ron: {e}"));
+        jobs.jobs
+    }
+}
+
+/// How a job is walked: with the presses a pointer makes, or by keys.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum By {
+    Mouse,
+    Keys,
+}
+
+/// What the game must show for a job to count as done.
+#[derive(Clone, Copy, Debug)]
+enum Check {
+    /// The party fights with this element.
+    Element(Element),
+    /// The party has left town.
+    OnTheRoad,
+    /// The piece that was in the cargo when the job began is worn.
+    Equipped,
+    /// This place is open on this tab, at the latest report.
+    Reading(usize, usize),
+}
+
+/// A job walked: its name, how, the presses it took, and whether the game
+/// showed it done.
+struct Walked {
+    name: &'static str,
+    by: By,
+    presses: u32,
+    done: bool,
 }
 
 #[derive(Resource)]
@@ -123,6 +189,34 @@ struct Tour {
     key: Option<KeyCode>,
     /// The key put down last frame, to let go of.
     held: Option<KeyCode>,
+    /// The job being walked, and how.
+    job: Option<(&'static str, By)>,
+    /// The presses it has taken so far.
+    presses: u32,
+    /// A press of the job found nothing in sight to press.
+    missed: bool,
+    /// Whether a piece was in the cargo when the job began.
+    carrying: bool,
+    walked: Vec<Walked>,
+}
+
+impl Tour {
+    fn new(folder: String) -> Tour {
+        Tour {
+            folder,
+            steps: Vec::new(),
+            next: 0,
+            wait: 1.5,
+            shots: 0,
+            key: None,
+            held: None,
+            job: None,
+            presses: 0,
+            missed: false,
+            carrying: false,
+            walked: Vec::new(),
+        }
+    }
 }
 
 /// Seconds for a press to show before the picture is taken: longer than the
@@ -297,6 +391,101 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
     tour.steps = steps;
 }
 
+const EQUIP: &str = "Equip an upgrade the report just showed";
+const ABILITY: &str = "Give a horse a different ability";
+const SET_OUT: &str = "Set out for the next town";
+const LEFT_BEHIND: &str = "Find out why a piece was left behind";
+
+fn plan_walk(mut tour: ResMut<Tour>, places: Res<Places>) {
+    tour.steps = walk_steps(&places);
+}
+
+/// The walk of the click budget (#236): each job of `jobs.ron` that can be
+/// done, by pointer and by keys. Only the presses between `Job` and `Done`
+/// are counted; those around them put the menus where the job starts from
+/// and take back what it changed. The keys are those printed on the
+/// controls in `places.ron`: one changed there is changed here, or its job
+/// comes out as not done.
+fn walk_steps(places: &Places) -> Vec<Step> {
+    let (journal, report) = places
+        .places
+        .iter()
+        .enumerate()
+        .find_map(|(p, place)| {
+            let tab = place.tabs.iter().position(|tab| tab.content == Content::Report)?;
+            Some((p, tab))
+        })
+        .expect("a place has the report");
+    vec![
+        // A new game: in town, Horses open on Gear.
+        Step::Job(ABILITY, By::Mouse),
+        Step::Tab(0, 1),
+        Step::Control("Ice"),
+        Step::Done(Check::Element(Element::Ice)),
+        Step::Shot("a different ability by pointer".into()),
+        Step::Key(KeyCode::KeyU),
+        Step::Tab(0, 0),
+        Step::Job(ABILITY, By::Keys),
+        Step::Key(KeyCode::KeyI),
+        Step::Done(Check::Element(Element::Ice)),
+        Step::Key(KeyCode::KeyU),
+        Step::Job(SET_OUT, By::Mouse),
+        Step::Control("Set out"),
+        Step::Done(Check::OnTheRoad),
+        // Home from the first trail with its drop, the report showing.
+        Step::Town,
+        Step::Wait(SETTLE),
+        Step::Place(journal),
+        Step::Tab(journal, report),
+        Step::Shot("the report just showed a drop".into()),
+        Step::Job(EQUIP, By::Mouse),
+        Step::Reported,
+        Step::Control("Equip"),
+        Step::Done(Check::Equipped),
+        Step::Shot("equipped from the report by pointer".into()),
+        Step::Key(KeyCode::KeyU),
+        Step::Key(KeyCode::Escape),
+        Step::Job(EQUIP, By::Keys),
+        Step::Key(KeyCode::KeyE),
+        Step::Done(Check::Equipped),
+        Step::Key(KeyCode::KeyU),
+        Step::Place(0),
+        Step::Job(LEFT_BEHIND, By::Mouse),
+        Step::Place(journal),
+        Step::Done(Check::Reading(journal, report)),
+        Step::Shot("what becomes of the drop and why".into()),
+        Step::Place(0),
+        Step::Job(LEFT_BEHIND, By::Keys),
+        Step::Key(KeyCode::KeyJ),
+        Step::Done(Check::Reading(journal, report)),
+        Step::Key(KeyCode::KeyH),
+        Step::Job(SET_OUT, By::Keys),
+        Step::Key(KeyCode::Space),
+        Step::Done(Check::OnTheRoad),
+    ]
+}
+
+/// What the walk found, as `counts.txt` says it: every job of the file, in
+/// its order, with its budget beside what it took.
+fn counts(jobs: &[Job], walked: &[Walked]) -> String {
+    let mut text = String::new();
+    for job in jobs {
+        text += &format!("{}\n  from: {}\n", job.name, job.from);
+        for (by, word, budget) in [(By::Mouse, "mouse", job.mouse), (By::Keys, "keys", job.keys)] {
+            let took = walked.iter().find(|w| w.name == job.name && w.by == by);
+            let found = match (took, job.waits_on) {
+                (Some(w), _) if !w.done => format!("{} and NOT DONE", w.presses),
+                (Some(w), _) if w.presses > budget => format!("{}, OVER", w.presses),
+                (Some(w), _) => format!("{}", w.presses),
+                (None, Some(issue)) => format!("cannot be done yet, #{issue}"),
+                (None, None) => "NOT WALKED".into(),
+            };
+            text += &format!("  {word}: budget {budget}, took {found}\n");
+        }
+    }
+    text
+}
+
 /// Put the tour's key down for one frame, after the real keyboard has been
 /// read and before any system looks at it.
 fn tour_keys(mut tour: ResMut<Tour>, mut keys: ResMut<ButtonInput<KeyCode>>) {
@@ -323,7 +512,7 @@ fn tour(
         Query<(Entity, &ReportedCell)>,
     ),
     controls: Query<(Entity, &ControlButton)>,
-    map: Res<Places>,
+    menus: (Res<Places>, Res<Shell>),
     mut focus: ResMut<InputFocus>,
     mut focus_visible: ResMut<InputFocusVisible>,
     tab_stops: TabNavigation,
@@ -331,14 +520,27 @@ fn tour(
     mut exit: MessageWriter<AppExit>,
 ) {
     let (carried, reported) = cells;
+    let (map, shell) = menus;
+    // Its fields one by one: the step is read while the counts are kept.
+    let tour = &mut *tour;
     tour.wait -= time.delta_secs();
     if tour.wait > 0.0 {
         return;
     }
     let Some(step) = tour.steps.get(tour.next) else {
+        if !tour.walked.is_empty() {
+            let text = counts(&Jobs::load(), &tour.walked);
+            info!("walk:\n{text}");
+            if let Err(e) = std::fs::write(format!("{}/counts.txt", tour.folder), text) {
+                error!("walk: counts.txt was not written: {e}");
+            }
+            tour.walked.clear();
+        }
         exit.write(AppExit::Success);
         return;
     };
+    // What is laid out and so can be pressed with a pointer.
+    let seen = |entity: Entity| nodes.get(entity).is_ok_and(|node| !node.is_empty());
     if matches!(step, Step::Town) && !game.in_town() {
         return;
     }
@@ -365,11 +567,12 @@ fn tour(
             .find(|(_, b)| b.horse == *h && b.slot == *s)
             .map(|(e, _)| e),
         Step::Carried(p) => carried.iter().find(|(_, b)| b.place == *p).map(|(e, _)| e),
-        Step::Reported => reported.iter().next().map(|(e, _)| e),
+        Step::Reported => reported.iter().map(|(e, _)| e).min_by_key(|e| !seen(*e)),
+        // The one in sight, where a control is in more than one place.
         Step::Control(name) => controls
             .iter()
             .filter(|(_, b)| map.control(b.id).name == *name)
-            .min_by_key(|(_, b)| b.id)
+            .min_by_key(|(e, b)| (!seen(*e), b.id))
             .map(|(e, _)| e),
         Step::Enter => focus.get(),
         Step::Key(_)
@@ -378,8 +581,61 @@ fn tour(
         | Step::Wait(_)
         | Step::SetOut
         | Step::Town
-        | Step::Shot(_) => None,
+        | Step::Shot(_)
+        | Step::Job(..)
+        | Step::Done(_) => None,
     };
+    match step {
+        Step::Job(name, by) => {
+            tour.job = Some((*name, *by));
+            tour.presses = 0;
+            tour.missed = false;
+            tour.carrying = game.pending_drop().is_some();
+        }
+        Step::Done(check) => {
+            if let Some((name, by)) = tour.job.take() {
+                let done = !tour.missed
+                    && match *check {
+                        Check::Element(element) => game.element == element,
+                        Check::OnTheRoad => !game.in_town(),
+                        Check::Equipped => {
+                            tour.carrying && game.in_town() && game.pending_drop().is_none()
+                        }
+                        Check::Reading(place, tab) => {
+                            shell.is_open()
+                                && shell.place() == place
+                                && shell.tab(place) == tab
+                                && game.reading().is_none()
+                        }
+                    };
+                tour.walked.push(Walked {
+                    name,
+                    by,
+                    presses: tour.presses,
+                    done,
+                });
+            }
+        }
+        Step::Place(_)
+        | Step::PlaceMidway(_)
+        | Step::Tab(..)
+        | Step::Horse(_)
+        | Step::Slot(..)
+        | Step::Carried(_)
+        | Step::Reported
+        | Step::Control(_)
+        | Step::Enter
+        | Step::Key(_)
+            if tour.job.is_some() =>
+        {
+            tour.presses += 1;
+            // A pointer presses only what is in sight.
+            if key.is_none() && !pressed.is_some_and(seen) {
+                tour.missed = true;
+            }
+        }
+        _ => {}
+    }
     if let Step::Focus(name) = step {
         let control = name.and_then(|name| {
             controls
@@ -435,4 +691,75 @@ fn tour(
     tour.key = key;
     tour.wait = wait;
     tour.next += 1;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The walk and the file name the same jobs (#236): a job that can be
+    /// done is walked by pointer and by keys, and one that waits on an issue
+    /// is not walked.
+    #[test]
+    fn the_walk_does_every_job_that_can_be_done_both_ways() {
+        let jobs = Jobs::load();
+        let steps = walk_steps(&Places::load());
+        let walks: Vec<(&str, By)> = steps
+            .iter()
+            .filter_map(|step| match step {
+                Step::Job(name, by) => Some((*name, *by)),
+                _ => None,
+            })
+            .collect();
+        for job in &jobs {
+            for by in [By::Mouse, By::Keys] {
+                let times = walks.iter().filter(|w| **w == (job.name.as_str(), by)).count();
+                let wanted = usize::from(job.waits_on.is_none());
+                assert_eq!(times, wanted, "{} by {by:?}", job.name);
+            }
+        }
+        for (name, _) in &walks {
+            assert!(jobs.iter().any(|job| job.name == *name), "{name} is not in jobs.ron");
+        }
+    }
+
+    /// A count is of one job: every `Job` is closed by its `Done` before
+    /// the next begins, and a job by keys is made of keys alone.
+    #[test]
+    fn every_job_of_the_walk_is_closed_and_keys_are_keys() {
+        let mut open: Option<By> = None;
+        for step in walk_steps(&Places::load()) {
+            match step {
+                Step::Job(name, by) => {
+                    assert!(open.is_none(), "{name} begins inside another job");
+                    open = Some(by);
+                }
+                Step::Done(_) => assert!(open.take().is_some(), "a Done with no job"),
+                Step::Key(_) => assert_ne!(open, Some(By::Mouse), "a key in a pointer's job"),
+                Step::Shot(_) | Step::Wait(_) | Step::Town => {}
+                _ => assert_ne!(open, Some(By::Keys), "a pointer's press in a job by keys"),
+            }
+        }
+        assert!(open.is_none(), "the last job is not closed");
+    }
+
+    #[test]
+    fn the_counts_say_what_is_over_not_done_and_not_yet_possible() {
+        let job = |name: &str, waits_on| Job {
+            name: name.into(),
+            from: "In town.".into(),
+            mouse: 2,
+            keys: 1,
+            waits_on,
+        };
+        let jobs = [job("Equip", None), job("List", Some(99))];
+        let walked = [
+            Walked { name: "Equip", by: By::Mouse, presses: 3, done: true },
+            Walked { name: "Equip", by: By::Keys, presses: 1, done: false },
+        ];
+        let text = counts(&jobs, &walked);
+        assert!(text.contains("mouse: budget 2, took 3, OVER"), "{text}");
+        assert!(text.contains("keys: budget 1, took 1 and NOT DONE"), "{text}");
+        assert!(text.contains("mouse: budget 2, took cannot be done yet, #99"), "{text}");
+    }
 }

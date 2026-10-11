@@ -1,0 +1,58 @@
+// The jobs done most often in the menus, and the most actions each may take
+// (#236). An action is one press: a click, or a key going down. A budget is
+// a ceiling, not a target: never cut an action at the cost of the player
+// understanding or being safe (docs/philosophy/menus.md, Count the clicks).
+//
+//   name      the job, as docs/click-budget.md names it.
+//   from      where the player is when the count starts.
+//   mouse     the most presses with the pointer.
+//   keys      the most presses with the keyboard.
+//   waits_on  the issue that will make the job possible. A job with one
+//             cannot be walked yet and has no measured count.
+//
+// The walk (procedures/walk-the-click-budget.txt) does each job that can be
+// done in the running game, both ways, and says which are over.
+// The budgets are the owner's to set.
+#![enable(implicit_some)]
+(
+    jobs: [
+        (
+            name: "Equip an upgrade the report just showed",
+            from: "In town, the Journal open on the report.",
+            mouse: 2,
+            keys: 2,
+        ),
+        (
+            name: "List everything not wanted",
+            from: "In town, Horses open on Gear.",
+            mouse: 3,
+            keys: 3,
+            waits_on: 99,
+        ),
+        (
+            name: "Give a horse a different ability",
+            from: "In town, Horses open on Gear.",
+            mouse: 3,
+            keys: 3,
+        ),
+        (
+            name: "Set out for the next town",
+            from: "In town, any place open.",
+            mouse: 1,
+            keys: 1,
+        ),
+        (
+            name: "Find out why a piece was left behind",
+            from: "In town, Horses open on Gear.",
+            mouse: 2,
+            keys: 2,
+        ),
+        (
+            name: "Find out why something did not sell",
+            from: "In town, Horses open on Gear.",
+            mouse: 2,
+            keys: 2,
+            waits_on: 170,
+        ),
+    ],
+)
