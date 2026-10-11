@@ -236,6 +236,14 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("another horse's piece open".into()),
         Step::Key(KeyCode::KeyE),
         Step::Shot("swapped onto the selected horse".into()),
+        // Undo (#230): the swap is taken back, then the equip, and the
+        // card goes back to the cargo with its piece.
+        Step::Key(KeyCode::KeyU),
+        Step::Shot("by keys the swap undone".into()),
+        Step::Key(KeyCode::KeyU),
+        Step::Shot("by keys the equip undone".into()),
+        Step::Key(KeyCode::KeyU),
+        Step::Shot("nothing left to undo".into()),
         Step::Key(KeyCode::Escape),
         Step::Key(KeyCode::KeyC),
         Step::Key(KeyCode::Digit2),

@@ -123,6 +123,8 @@ pub enum Action {
     /// horse wears in that slot.
     Equip,
     SetOut,
+    /// Take back the last change made during this town visit (#230).
+    Undo,
 }
 
 /// Where a piece of gear is. One card shows it wherever that is (#228).
@@ -147,6 +149,18 @@ impl Hand {
     pub fn horse(horse: usize) -> Hand {
         Hand { horse, open: None }
     }
+}
+
+/// A change made in town, kept so that it can be taken back (#230): what it
+/// was, and everything it could touch as it was before it.
+struct Change {
+    /// What was done, as Undo says it: "Ice for the next trail".
+    what: String,
+    party: Vec<Horse>,
+    drop: Option<Gear>,
+    element: Element,
+    /// Where the change took a piece from and to, when it moved one.
+    moved: Option<(Piece, Piece)>,
 }
 
 pub enum Screen {
@@ -174,6 +188,10 @@ pub struct Game {
     /// The trail is over and town has not begun: the menus stay as they are
     /// until the party is seen to arrive (#246).
     arriving: Option<f32>,
+    /// The changes made during this town visit, oldest first. Undo takes
+    /// back the last; setting out empties it, so nothing reaches back past
+    /// a departure (#230).
+    changes: Vec<Change>,
 }
 
 impl Game {
@@ -192,8 +210,59 @@ impl Game {
             },
             accumulator: 0.0,
             arriving: None,
+            changes: Vec::new(),
             data,
         }
+    }
+
+    /// The party, the cargo and the element as they are now, to go back to
+    /// if what is about to be done is undone.
+    fn before(&self, what: String, moved: Option<(Piece, Piece)>) -> Change {
+        Change {
+            what,
+            party: self.party.clone(),
+            drop: self.pending_drop().cloned(),
+            element: self.element,
+            moved,
+        }
+    }
+
+    /// What Equip would do, as Undo says it afterwards.
+    fn equip_label(&self, hand: Hand) -> String {
+        let name = |horse: usize| self.party.get(horse).map_or("", |horse| horse.name.as_str());
+        match hand.open {
+            Some(Piece::Worn { horse, .. }) => {
+                format!("the swap between {} and {}", name(hand.horse), name(horse))
+            }
+            _ => format!(
+                "{} on {}",
+                self.pending_drop().map_or("", |gear| gear.name.as_str()),
+                name(hand.horse),
+            ),
+        }
+    }
+
+    /// Take back the last change of this town visit: the horses, the cargo
+    /// and the element are exactly what they were before it.
+    fn undo(&mut self) {
+        let Some(change) = self.changes.pop() else {
+            return;
+        };
+        self.party = change.party;
+        self.element = change.element;
+        if let Screen::Camp { last, note, .. } = &mut self.screen {
+            if let Some(outcome) = last {
+                outcome.drop = change.drop;
+            }
+            *note = format!("Taken back: {}.", change.what);
+        }
+    }
+
+    /// Where Undo would take a piece from and to: the last change's move,
+    /// the other way. A card that is open on the piece goes with it.
+    pub fn undone_move(&self) -> Option<(Piece, Piece)> {
+        let (from, to) = self.changes.last()?.moved?;
+        Some((to, from))
     }
 
     /// Put the last run's drop on a horse. Any horse can wear any piece
@@ -293,6 +362,8 @@ impl Game {
         };
         match action {
             Action::Element(_) | Action::SetOut => Ok(()),
+            Action::Undo if self.changes.is_empty() => Err("Nothing changed this visit."),
+            Action::Undo => Ok(()),
             Action::Equip => {
                 let worn = |horse: usize, slot: usize| {
                     self.party
@@ -360,19 +431,30 @@ impl Game {
             return;
         }
         match action {
-            Action::Element(element) => self.element = element,
+            // Choosing the element it already has is no change to undo.
+            Action::Element(element) if element == self.element => {}
+            Action::Element(element) => {
+                let before = self.before(format!("{} for the next trail", element.name()), None);
+                self.changes.push(before);
+                self.element = element;
+            }
             Action::Equip => {
+                let from = hand.open.unwrap_or(Piece::Carried);
+                let moved = self.equipped_at(hand).map(|to| (from, to));
+                let before = self.before(self.equip_label(hand), moved);
                 let done = match hand.open {
                     Some(Piece::Worn { .. }) => self.swap(hand),
                     _ => self.equip_drop(hand.horse),
                 };
-                if let Some(text) = done
-                    && let Screen::Camp { note, .. } = &mut self.screen
-                {
-                    *note = text;
+                if let Some(text) = done {
+                    self.changes.push(before);
+                    if let Screen::Camp { note, .. } = &mut self.screen {
+                        *note = text;
+                    }
                 }
             }
             Action::SetOut => self.depart(),
+            Action::Undo => self.undo(),
         }
     }
 
@@ -394,6 +476,8 @@ impl Game {
             .drop_best_wearer()
             .and_then(|horse| self.equip_drop(horse));
         self.accumulator = 0.0;
+        // The visit is over: nothing done in it can be taken back now.
+        self.changes.clear();
         let mut expedition =
             Expedition::new(&self.data, self.plan.clone(), &self.party, self.element);
         // What was put on at the gate opens the road's log, so the report
@@ -668,6 +752,7 @@ mod tests {
             Action::Element(Element::Fire),
             Action::Equip,
             Action::SetOut,
+            Action::Undo,
         ] {
             assert_eq!(game.can(action, Hand::default()), Err("In town only."));
         }
@@ -769,6 +854,106 @@ mod tests {
 
         game.act(Action::SetOut, Hand::horse(0));
         assert_eq!(game.can(Action::Equip, open(2, 1)), Err("In town only."));
+    }
+
+    /// Undo (#230) steps back through the changes of a town visit, one at
+    /// a time, and the horses, the cargo and the element are exactly what
+    /// they were. It never reaches back past a departure.
+    #[test]
+    fn undo_steps_back_through_the_town_visit() {
+        type Seen = (Vec<[Option<Gear>; 3]>, Option<Gear>, Element);
+        let seen = |game: &Game| -> Seen {
+            (
+                game.party.iter().map(|horse| horse.gear.clone()).collect(),
+                game.pending_drop().cloned(),
+                game.element,
+            )
+        };
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let slot = game.pending_drop().unwrap().slot.index();
+        let nothing = Err("Nothing changed this visit.");
+        assert_eq!(game.can(Action::Undo, Hand::default()), nothing);
+        assert_eq!(game.undone_move(), None);
+
+        let mut states = vec![seen(&game)];
+        let other = match game.element {
+            Element::Ice => Element::Plant,
+            _ => Element::Ice,
+        };
+        let swap = Hand {
+            horse: 1,
+            open: Some(Piece::Worn { horse: 0, slot }),
+        };
+        for (action, hand) in [
+            (Action::Equip, Hand::horse(0)),
+            (Action::Element(other), Hand::horse(0)),
+            (Action::Equip, swap),
+        ] {
+            game.act(action, hand);
+            assert_ne!(Some(&seen(&game)), states.last(), "{action:?} changed nothing");
+            states.push(seen(&game));
+        }
+        // What changes nothing leaves nothing to undo: the element it has
+        // already, and an Equip that is refused.
+        game.act(Action::Element(other), Hand::horse(0));
+        game.act(Action::Equip, Hand::horse(2));
+        assert_eq!(seen(&game), states[3]);
+
+        // The swap took the card from the first horse's slot to the second's.
+        let (first, second) = (Piece::Worn { horse: 0, slot }, Piece::Worn { horse: 1, slot });
+        assert_eq!(game.undone_move(), Some((second, first)));
+        for step in (0..3).rev() {
+            assert_eq!(game.can(Action::Undo, Hand::default()), Ok(()));
+            if step == 0 {
+                assert_eq!(game.undone_move(), Some((first, Piece::Carried)));
+            }
+            game.act(Action::Undo, Hand::default());
+            assert_eq!(seen(&game), states[step], "step {step}");
+            let Screen::Camp { note, .. } = &game.screen else {
+                unreachable!("still in town");
+            };
+            assert!(note.starts_with("Taken back: "), "{note}");
+        }
+        assert_eq!(game.can(Action::Undo, Hand::default()), nothing);
+        game.act(Action::Undo, Hand::default());
+        assert_eq!(seen(&game), states[0], "a press too many does nothing");
+
+        // A piece put on over another is not lost: undo brings the one
+        // under it back. And a visit that is over is out of reach.
+        game.act(Action::Equip, Hand::horse(0));
+        let over = loop {
+            game.act(Action::SetOut, Hand::horse(0));
+            assert_eq!(game.can(Action::Undo, Hand::default()), Err("In town only."));
+            let outcome = loop {
+                let Screen::Trail(expedition) = &mut game.screen else {
+                    unreachable!("the party set out");
+                };
+                expedition.tick(&game.data, TICK);
+                if let Some(outcome) = expedition.outcome.clone() {
+                    break outcome;
+                }
+            };
+            game.return_to_camp(outcome);
+            assert_eq!(game.can(Action::Undo, Hand::default()), nothing);
+            assert!(game.plan.seed < 500, "no later trail drops a piece for that slot");
+            match game.pending_drop() {
+                Some(gear) if gear.slot.index() == slot => break gear.clone(),
+                _ => {}
+            }
+        };
+        // Whichever horse wears a piece there: at least the first did.
+        let wearer = (0..game.party.len())
+            .find(|&horse| game.party[horse].gear[slot].is_some())
+            .expect("the first drop is still worn");
+        let under = game.party[wearer].gear[slot].clone();
+        game.act(Action::Equip, Hand::horse(wearer));
+        assert_eq!(game.party[wearer].gear[slot], Some(over.clone()));
+        game.act(Action::Undo, Hand::default());
+        assert_eq!(game.party[wearer].gear[slot], under);
+        assert_eq!(game.pending_drop(), Some(&over));
     }
 
     /// The road is held for a won trail's last drops and for nothing else.

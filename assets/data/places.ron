@@ -10,7 +10,7 @@
 //             no action or shows is not built: it is drawn as unavailable, and a
 //             press says so and says what it will do.
 //   proposed  the issue is a proposal the owner has not decided.
-//   action    what it does today: Element(Fire), Equip, SetOut.
+//   action    what it does today: Element(Fire), Equip, SetOut, Undo.
 //   shows     what a press opens in the side panel of its page: Keys.
 //   key       the key that works it, printed on it: a letter, a digit or
 //             Space. Only a control with an action or a shows has one.
@@ -42,7 +42,7 @@
                     controls: [
                         (name: "Take off", does: "Takes the piece in the open slot off the selected horse and puts it in the cargo.", issue: 227),
                         (name: "Compare", does: "Shows a piece beside the one it would replace, with the difference in each stat.", issue: 11),
-                        (name: "Undo", does: "Steps back through the changes made during this town visit.", issue: 230),
+                        (name: "Undo", does: "Takes back the last change made during this town visit: gear and the element, one step a press. Setting out ends the visit, and nothing before it can be taken back.", action: Undo, key: "U"),
                         (name: "Save loadout", does: "Saves the party's gear and abilities under a name.", issue: 50),
                         (name: "Restore loadout", does: "Puts a saved loadout back on the party in one action.", issue: 50),
                         (name: "Sets", does: "Shows the party sets these pieces belong to, and how many pieces of each are worn.", issue: 36),

@@ -1291,14 +1291,18 @@ fn on_activate(
             Some(action) => {
                 let hand = shell.hand();
                 // A card that is open stays on its piece when the piece
-                // is moved, so the piece is still the handle (#228).
+                // is moved, so the piece is still the handle (#228), and
+                // goes back with it when the move is undone (#230).
                 let moved = match action {
-                    Action::Equip => game.equipped_at(hand),
+                    Action::Equip => game
+                        .equipped_at(hand)
+                        .map(|to| (hand.open.unwrap_or(Piece::Carried), to)),
+                    Action::Undo => game.can(action, hand).ok().and(game.undone_move()),
                     _ => None,
                 };
                 game.act(action, hand);
-                if let Some(to) = moved {
-                    shell.piece_moved(hand.open.unwrap_or(Piece::Carried), to);
+                if let Some((from, to)) = moved {
+                    shell.piece_moved(from, to);
                 }
             }
             // It shows something, or is not built and says so: either way
@@ -2198,8 +2202,17 @@ mod tests {
             reason_line(&["Fire", "Ice"], "In town only."),
             "Fire, Ice: in town only."
         );
-        let game = Game::new(6);
-        assert_eq!(blocked_line(&Places::load().footer, &game, Hand::default()), "");
+        let mut game = Game::new(6);
+        let places = Places::load();
+        assert_eq!(blocked_line(&places.footer, &game, Hand::default()), "");
+        // Undo (#230) says why it has nothing to do, until something is done.
+        let gear = &places.places[0].tabs[0].controls;
+        assert_eq!(
+            blocked_line(gear, &game, Hand::default()),
+            "Undo: nothing changed this visit."
+        );
+        game.act(Action::Element(crate::sim::data::Element::Ice), Hand::horse(0));
+        assert_eq!(blocked_line(gear, &game, Hand::default()), "");
     }
 
     /// The line about controls that are not built names whichever is the
@@ -2446,7 +2459,7 @@ mod tests {
             .into_iter()
             .map(Action::Element)
             .collect();
-        actions.extend([Action::Equip, Action::SetOut]);
+        actions.extend([Action::Equip, Action::SetOut, Action::Undo]);
         for action in actions {
             let controls = places
                 .controls()
