@@ -131,6 +131,24 @@ pub enum Action {
     Later,
 }
 
+/// What raises a mark on a place (#232): something there the player has not
+/// seen. Which place it marks is `marks` in `assets/data/places.ron`.
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+pub enum Raise {
+    /// The piece in the cargo is an upgrade for some horse.
+    Upgrade,
+    /// The newest report kept is worth opening: its trail was lost (`lost`),
+    /// or dropped a piece of at least this rarity, by its name in `gear.ron`.
+    /// Only the newest, so a long absence leaves one thing to read, and it is
+    /// never more than a press of Earlier away.
+    Report {
+        #[serde(default)]
+        lost: bool,
+        #[serde(default)]
+        rarity: Option<String>,
+    },
+}
+
 /// A trail's report, kept for the Journal after the party has moved on
 /// (#231): which trail it was, and how it ended, with what it dropped.
 #[derive(Clone, Debug, PartialEq)]
@@ -214,6 +232,10 @@ pub struct Game {
     /// The number of the earlier report the Journal is open at. None is the
     /// latest: the last trail in town, the fight on the road.
     reading: Option<u32>,
+    /// The trail whose drop the player has had in view, and the newest
+    /// report read. Neither raises a mark again (#232).
+    seen_drop: u32,
+    seen_report: u32,
 }
 
 impl Game {
@@ -236,6 +258,8 @@ impl Game {
             trails: 0,
             reports: Vec::new(),
             reading: None,
+            seen_drop: 0,
+            seen_report: 0,
             data,
         }
     }
@@ -419,12 +443,55 @@ impl Game {
     /// it is now, if the party still has it (#231). None on the road while
     /// the report is the fight's.
     pub fn reported_piece(&self) -> Option<Piece> {
-        let kept = match self.reading() {
-            Some(kept) => kept,
-            None if self.in_town() => self.reports.last()?,
-            None => return None,
-        };
-        self.find(kept.outcome.drop.as_ref()?)
+        self.find(self.open_report()?.outcome.drop.as_ref()?)
+    }
+
+    /// The kept report the Journal is open at: an earlier one, or in town
+    /// the last trail's. None on the road while the report is the fight's.
+    fn open_report(&self) -> Option<&Kept> {
+        match self.reading() {
+            Some(kept) => Some(kept),
+            None if self.in_town() => self.reports.last(),
+            None => None,
+        }
+    }
+
+    /// Whether there is something of this kind the player has not seen
+    /// (#232). It stops when the thing is seen, and does not come back for
+    /// the same thing.
+    pub fn wants(&self, raise: &Raise) -> bool {
+        match raise {
+            Raise::Upgrade => self.trails > self.seen_drop && self.drop_best_wearer().is_some(),
+            Raise::Report { lost, rarity } => {
+                let Some(kept) = self.reports.last() else {
+                    return false;
+                };
+                if kept.number <= self.seen_report {
+                    return false;
+                }
+                let tiers = &self.data.gear.rarities;
+                let tier = rarity
+                    .as_ref()
+                    .and_then(|name| tiers.iter().position(|tier| tier.name == *name));
+                let dropped = kept.outcome.drop.as_ref().map(|gear| gear.rarity);
+                (*lost && !kept.outcome.won)
+                    || tier.is_some_and(|tier| dropped.is_some_and(|dropped| dropped >= tier))
+            }
+        }
+    }
+
+    /// The piece in the cargo has been in view.
+    pub fn see_drop(&mut self) {
+        if self.pending_drop().is_some() {
+            self.seen_drop = self.trails;
+        }
+    }
+
+    /// The report the Journal is open at has been in view.
+    pub fn see_report(&mut self) {
+        if let Some(number) = self.open_report().map(|kept| kept.number) {
+            self.seen_report = self.seen_report.max(number);
+        }
     }
 
     /// Whether an action can be done now, and if not, why not in plain
@@ -1215,6 +1282,77 @@ mod tests {
         assert_eq!(game.reports.len(), limit);
         assert_eq!(game.reports.first().map(|kept| kept.number), Some(5));
         assert!(game.reading().is_none());
+    }
+
+    /// A mark (#232) is raised by something not yet seen, stops when it is
+    /// seen, and does not come back for the same thing. Only the newest
+    /// report raises one, so a long absence leaves one thing to read.
+    #[test]
+    fn a_mark_is_raised_until_its_thing_is_seen() {
+        let upgrade = Raise::Upgrade;
+        let lost = Raise::Report { lost: true, rarity: None };
+        let any_drop = Raise::Report { lost: false, rarity: Some("Normal".into()) };
+        let unknown = Raise::Report { lost: false, rarity: Some("No such".into()) };
+        let none = Hand::default();
+
+        let mut game = Game::new(6);
+        game.see_drop();
+        game.see_report();
+        for raise in [&upgrade, &lost, &any_drop] {
+            assert!(!game.wants(raise), "{raise:?} before any trail");
+        }
+
+        // The first drop home is an upgrade: nothing is worn yet.
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        assert!(game.wants(&upgrade) && game.wants(&any_drop));
+        assert!(!game.wants(&unknown));
+        assert_eq!(game.wants(&lost), !game.reports[0].outcome.won);
+        game.see_drop();
+        assert!(!game.wants(&upgrade));
+        assert!(game.wants(&any_drop), "the report is another thing");
+        // Equipped and taken back it is the same piece: no mark again.
+        game.act(Action::Equip, Hand::horse(0));
+        game.act(Action::Undo, none);
+        assert!(game.pending_drop().is_some() && !game.wants(&upgrade));
+        game.see_report();
+        assert!(!game.wants(&any_drop));
+        game.depart();
+        assert!(!game.wants(&any_drop) && !game.wants(&upgrade));
+
+        // A report not read in town still wants reading on the road. The
+        // fight's report is not it; Earlier opens it.
+        for trail in 0.. {
+            assert!(trail < 100, "no later trail drops a piece");
+            walk_home(&mut game);
+            let dropped = game.pending_drop().is_some();
+            game.depart();
+            if dropped {
+                break;
+            }
+        }
+        assert!(game.wants(&any_drop));
+        game.see_report();
+        assert!(game.wants(&any_drop), "the fight was in view, not the report");
+        game.act(Action::Earlier, none);
+        game.see_report();
+        assert!(!game.wants(&any_drop));
+        game.act(Action::Later, none);
+
+        // A long absence: trail after trail with nobody looking. A lost
+        // trail that another has followed raises nothing.
+        let mut followed = false;
+        for _ in 0..300 {
+            walk_home(&mut game);
+            let newest = game.reports.len() - 1;
+            let lost_now = !game.reports[newest].outcome.won;
+            assert_eq!(game.wants(&lost), lost_now);
+            followed |= !lost_now && newest > 0 && !game.reports[newest - 1].outcome.won;
+            game.depart();
+        }
+        assert!(followed, "no lost trail was followed by a won one");
     }
 
     /// A piece an earlier report shows is found where it is now and acted

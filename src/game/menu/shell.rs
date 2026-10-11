@@ -24,12 +24,12 @@ use serde::Deserialize;
 use super::card;
 use super::picture::{self, picture, reported_picture};
 use super::parts::{
-    ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, button, cell, counter, dim, panel,
-    reason, row, side_panel, tab, text, title, trail_mark,
+    ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, Unseen, button, cell, counter, dim,
+    panel, reason, row, side_panel, tab, text, title, trail_mark,
 };
 use super::tokens::Tokens;
 use crate::game::{
-    Action, Game, Hand, Piece, SceneView, Screen, Uncollected, report_side, report_text,
+    Action, Game, Hand, Piece, Raise, SceneView, Screen, Uncollected, report_side, report_text,
     stats_line,
 };
 use crate::sim::data::Slot;
@@ -50,6 +50,9 @@ pub struct Places {
     /// controls wherever the piece is.
     #[serde(default)]
     pub card: Vec<Control>,
+    /// What puts a mark on a place (#232).
+    #[serde(default)]
+    pub marks: Vec<MarkRule>,
     /// Every control of the map, by its `id`.
     #[serde(skip)]
     list: Vec<Control>,
@@ -121,6 +124,16 @@ impl Control {
     pub fn built(&self) -> bool {
         self.action.is_some() || self.shows.is_some()
     }
+}
+
+/// What raises a mark, and where: on a place, and on the tab of it the
+/// thing is on when it is on one. Both are named as the map names them.
+#[derive(Clone, Debug, Deserialize)]
+pub struct MarkRule {
+    pub raise: Raise,
+    pub place: String,
+    #[serde(default)]
+    pub tab: Option<String>,
 }
 
 /// What a control shows in the side panel when it is pressed.
@@ -203,6 +216,26 @@ impl Places {
 
     pub fn horse_key(&self, horse: usize) -> Option<&str> {
         self.horse_keys.get(horse).map(String::as_str)
+    }
+
+    /// Where a mark's rule puts it: the place, and the tab if it names one.
+    fn mark_at(&self, rule: &MarkRule) -> Option<(usize, Option<usize>)> {
+        let place = self.places.iter().position(|place| place.name == rule.place)?;
+        let tab = match &rule.tab {
+            Some(name) => Some(self.places[place].tabs.iter().position(|tab| tab.name == *name)?),
+            None => None,
+        };
+        Some((place, tab))
+    }
+
+    /// Whether a place has something the player has not seen (#232), or,
+    /// with a tab, whether that tab of it has.
+    pub fn wants(&self, game: &Game, place: usize, tab: Option<usize>) -> bool {
+        self.marks.iter().any(|rule| {
+            self.mark_at(rule)
+                .is_some_and(|(p, t)| p == place && (tab.is_none() || t == tab))
+                && game.wants(&rule.raise)
+        })
     }
 
     fn controls_mut(&mut self) -> Vec<&mut Control> {
@@ -616,7 +649,9 @@ impl Plugin for ShellPlugin {
                     follow_the_party,
                     move_scene,
                     show_place,
+                    see,
                     mark_chosen,
+                    mark_unseen,
                     mark_wearer,
                     show_carried,
                     picture::show_pictures,
@@ -1752,6 +1787,68 @@ fn mark_chosen(
     }
 }
 
+/// Which of the things a mark is raised for are in view: the report the
+/// Journal is open at, and the piece in the cargo. The report is, while its
+/// tab shows. The piece is, while the cargo column shows, or its own card
+/// does, or the report that shows it does.
+fn in_view(shell: &Shell, map: &Places, game: &Game) -> (bool, bool) {
+    let place = shell.place();
+    let Some(page) = map.pages().nth(place).filter(|_| shell.is_open()) else {
+        return (false, false);
+    };
+    let report = page
+        .tabs
+        .get(shell.tab(place))
+        .is_some_and(|tab| tab.content == Content::Report);
+    let carried = match shell.detail(place) {
+        Some(detail) => detail.item == Item::Carried,
+        // With no detail over it, the cargo is beside every tab.
+        None => page.horse_columns,
+    };
+    let reported = report && game.reported_piece() == Some(Piece::Carried);
+    (report, carried || reported)
+}
+
+/// What is in view has been seen, and raises no mark again (#232).
+fn look(shell: &Shell, map: &Places, game: &mut Game) {
+    let (report, carried) = in_view(shell, map, game);
+    if report {
+        game.see_report();
+    }
+    if carried {
+        game.see_drop();
+    }
+}
+
+fn see(shell: Res<Shell>, map: Res<Places>, mut game: ResMut<Game>) {
+    look(&shell, &map, &mut game);
+}
+
+/// Put the attention mark on every place and tab that has something the
+/// player has not seen (#232).
+fn mark_unseen(
+    mut commands: Commands,
+    game: Res<Game>,
+    map: Res<Places>,
+    parts: Query<
+        (Entity, Option<&PlaceButton>, Option<&TabButton>, Has<Unseen>),
+        Or<(With<PlaceButton>, With<TabButton>)>,
+    >,
+) {
+    for (entity, place, tab, marked) in &parts {
+        let wanted = match (place, tab) {
+            (Some(place), _) => map.wants(&game, place.0, None),
+            (_, Some(tab)) => map.wants(&game, tab.place, Some(tab.tab)),
+            _ => false,
+        };
+        if wanted && !marked {
+            commands.entity(entity).insert(Unseen);
+        } else if !wanted && marked {
+            commands.entity(entity).remove::<Unseen>();
+        }
+    }
+}
+
 /// Outline the selected horse's column of the overview: the horse a piece
 /// would go onto.
 fn mark_wearer(
@@ -2657,6 +2754,121 @@ mod tests {
         assert_eq!(say(&game, Fact::ReportedName), name);
         assert!(say(&game, Fact::Report).starts_with("EARLIER REPORT 1 of 1"));
         assert!(say(&game, Fact::ReportSide).starts_with("REPORTS KEPT"));
+    }
+
+    /// The marks of the map (#232) are on places that show their thing: an
+    /// upgrade where the cargo is, a report on the tab that shows reports,
+    /// and a rarity is one `gear.ron` has.
+    #[test]
+    fn every_mark_is_on_a_place_that_shows_its_thing() {
+        let places = Places::load();
+        let rarities = crate::sim::data::Data::load().gear.rarities;
+        assert!(!places.marks.is_empty());
+        for rule in &places.marks {
+            let Some((place, tab)) = places.mark_at(rule) else {
+                panic!("{rule:?} is on no place of the map");
+            };
+            let page = &places.places[place];
+            match &rule.raise {
+                Raise::Upgrade => assert!(page.horse_columns && tab.is_none(), "{rule:?}"),
+                Raise::Report { rarity, .. } => {
+                    let content = tab.map(|tab| page.tabs[tab].content);
+                    assert_eq!(content, Some(Content::Report), "{rule:?}");
+                    if let Some(name) = rarity {
+                        assert!(rarities.iter().any(|tier| tier.name == *name), "{rule:?}");
+                    }
+                }
+            }
+        }
+    }
+
+    /// A mark (#232) leads to its thing in at most two actions, seeing the
+    /// thing clears it, and it does not come back for the same thing.
+    #[test]
+    fn a_mark_leads_to_its_thing_and_seeing_it_clears_it() {
+        let places = Places::load();
+        let pages = places.pages().count();
+        let at = |name: &str| places.places.iter().position(|p| p.name == name).unwrap();
+        let (horses, trade, journal) = (at("Horses"), at("Trade"), at("Journal"));
+        let marked = |game: &Game| -> Vec<usize> {
+            (0..pages).filter(|&p| places.wants(game, p, None)).collect()
+        };
+        let quiet = Raise::Report { lost: false, rarity: None };
+
+        // Home with an upgrade and a report of no note, the player in Trade.
+        let home = || {
+            (0..50)
+                .map(Game::back_from_a_trail)
+                .find(|game| game.pending_drop().is_some() && !places.wants(game, journal, None))
+                .expect("no seed under 50 brings home a drop and a plain report")
+        };
+        let mut game = home();
+        assert!(!game.wants(&quiet), "a rule that names nothing raises nothing");
+        let mut shell = Shell::new(pages);
+        shell.open(trade);
+        look(&shell, &places, &mut game);
+        assert_eq!(marked(&game), [horses]);
+        assert!(!places.wants(&game, horses, Some(0)), "the cargo is on no tab");
+        // A slot's card stands where the cargo is: the place opened onto
+        // it shows nothing of the cargo. Closing it does: two actions.
+        shell.show_detail(
+            horses,
+            Detail {
+                tab: 0,
+                item: Item::Worn { horse: 0, slot: 0 },
+                opener: None,
+            },
+        );
+        shell.open(horses);
+        look(&shell, &places, &mut game);
+        assert_eq!(marked(&game), [horses]);
+        shell.close_detail();
+        look(&shell, &places, &mut game);
+        assert!(marked(&game).is_empty());
+        shell.open(trade);
+        look(&shell, &places, &mut game);
+        assert!(marked(&game).is_empty(), "it does not come back");
+
+        // The report that shows the drop shows it too.
+        let mut game = home();
+        shell.open(journal);
+        shell.choose_tab(journal, 0);
+        look(&shell, &places, &mut game);
+        assert!(marked(&game).is_empty());
+
+        // Home from a trail the map's rules call a highlight.
+        let seed = (0..200)
+            .find(|&seed| places.wants(&Game::back_from_a_trail(seed), journal, None))
+            .expect("no seed under 200 brings home a report worth a mark");
+        let mut game = Game::back_from_a_trail(seed);
+        shell.open(trade);
+        look(&shell, &places, &mut game);
+        assert!(marked(&game).contains(&journal));
+        assert!(places.wants(&game, journal, Some(0)));
+        assert!(!places.wants(&game, journal, Some(1)), "only the tab it is on");
+        // In town the place opens on it: one action, or two from another tab.
+        shell.choose_tab(journal, 1);
+        shell.open(journal);
+        look(&shell, &places, &mut game);
+        assert!(places.wants(&game, journal, Some(0)));
+        shell.choose_tab(journal, 0);
+        look(&shell, &places, &mut game);
+        assert!(!marked(&game).contains(&journal));
+
+        // Not read in town, it is still wanted on the road, where the place
+        // opens on the fight. Earlier, by its key from anywhere, is on it.
+        let mut game = Game::back_from_a_trail(seed);
+        shell.open(trade);
+        game.act(Action::SetOut, Hand::horse(0));
+        shell.close();
+        look(&shell, &places, &mut game);
+        assert!(marked(&game).contains(&journal));
+        shell.open(journal);
+        look(&shell, &places, &mut game);
+        assert!(marked(&game).contains(&journal), "the fight is not the report");
+        game.act(Action::Earlier, Hand::default());
+        look(&shell, &places, &mut game);
+        assert!(marked(&game).is_empty());
     }
 
     #[test]

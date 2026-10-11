@@ -192,8 +192,14 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("closing it midway".into()),
         Step::Wait(SETTLE),
         Step::Shot("closed and the scene expanded again".into()),
+        // The marks (#232): the party comes home to a place that shows
+        // neither the cargo nor the report, so both are still unseen; the
+        // report shows both, and both marks go.
+        Step::Place(1),
         Step::Town,
         Step::Wait(SETTLE),
+        Step::Shot("back in town two places are marked".into()),
+        Step::Place(places.places.len() - 1),
         Step::Shot("back in town with the report".into()),
         // The item card (#228): the drop is opened from the report, and
         // then from the cargo, and it is the same card.
@@ -279,6 +285,14 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("by keys back to the latest report".into()),
         Step::Key(KeyCode::Escape),
         Step::Shot("by keys escape closes the place on the road".into()),
+        // Home a second time, with an upgrade and a report of no note: the
+        // one mark, and it goes when the cargo is in view.
+        Step::Key(KeyCode::KeyT),
+        Step::Town,
+        Step::Wait(SETTLE),
+        Step::Shot("a plain report raises no mark".into()),
+        Step::Key(KeyCode::KeyH),
+        Step::Shot("seen and the mark is gone".into()),
     ]);
     tour.steps = steps;
 }

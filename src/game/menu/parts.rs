@@ -39,6 +39,15 @@ pub enum PartText {
 #[derive(Component)]
 pub struct Mark;
 
+/// On a tab that has something the player has not seen (#232). It shows the
+/// tab's `Attention` mark.
+#[derive(Component)]
+pub struct Unseen;
+
+/// The dot that shows a tab has something not yet seen.
+#[derive(Component)]
+pub struct Attention;
+
 /// The number inside a `counter`.
 #[derive(Component)]
 pub struct CounterValue;
@@ -220,6 +229,29 @@ fn mark(t: &Tokens, part: Part) -> impl Bundle + use<> {
     )
 }
 
+/// The attention mark: a round dot in the top corner of a tab, there while
+/// the tab carries `Unseen`. Round where the selected mark is a bar, so the
+/// two are told apart by shape, and out of the layout, so it moves nothing.
+fn attention(t: &Tokens) -> impl Bundle + use<> {
+    (
+        Attention,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(t.space.xs),
+            right: Val::Px(t.space.xs),
+            width: Val::Px(t.size.attention),
+            height: Val::Px(t.size.attention),
+            border: UiRect::all(Val::Px(t.size.border)),
+            border_radius: BorderRadius::MAX,
+            ..default()
+        },
+        BackgroundColor(t.colour.attention.0),
+        // Edged in the screen's colour, so it stands off any fill.
+        BorderColor::all(t.colour.screen.0),
+        Visibility::Hidden,
+    )
+}
+
 /// The key that works a control, printed on it. Takes no room when absent.
 fn key_hint(t: &Tokens, key: Option<&str>) -> impl Bundle + use<> {
     (
@@ -259,7 +291,8 @@ pub fn button(t: &Tokens, label: &str, key: Option<&str>) -> impl Bundle + use<>
 }
 
 /// A place in the bar or a tab in a place: a label on a line, underlined
-/// when it is the current one.
+/// when it is the current one, with a dot in its corner while it carries
+/// `Unseen`.
 pub fn tab(t: &Tokens, label: &str, key: Option<&str>) -> impl Bundle + use<> {
     (
         interactive(t, Part::Tab),
@@ -273,7 +306,12 @@ pub fn tab(t: &Tokens, label: &str, key: Option<&str>) -> impl Bundle + use<> {
             flex_shrink: 0.0,
             ..default()
         },
-        children![text(t, label), key_hint(t, key), mark(t, Part::Tab)],
+        children![
+            text(t, label),
+            key_hint(t, key),
+            mark(t, Part::Tab),
+            attention(t)
+        ],
     )
 }
 
@@ -576,6 +614,7 @@ pub fn style_parts(
             Has<Selected>,
             Has<InteractionDisabled>,
             Has<NotBuilt>,
+            Has<Unseen>,
             Option<&ShowLook>,
             &mut BackgroundColor,
             &mut BorderColor,
@@ -587,6 +626,7 @@ pub fn style_parts(
     children: Query<&Children>,
     mut texts: Query<(&PartText, &mut TextColor)>,
     mut marks: Query<&mut BackgroundColor, (With<Mark>, Without<Part>)>,
+    mut attentions: Query<&mut Visibility, With<Attention>>,
 ) {
     let ease = if tokens.time.hover > 0.0 {
         (time.delta_secs() / tokens.time.hover).min(1.0)
@@ -602,6 +642,7 @@ pub fn style_parts(
         selected,
         disabled,
         not_built,
+        unseen,
         shown,
         mut fill,
         mut border,
@@ -660,6 +701,16 @@ pub fn style_parts(
             if let Ok(mut mark) = marks.get_mut(child) {
                 if mark.0 != paint.mark {
                     mark.0 = paint.mark;
+                }
+            }
+            if let Ok(mut attention) = attentions.get_mut(child) {
+                let wanted = if unseen {
+                    Visibility::Inherited
+                } else {
+                    Visibility::Hidden
+                };
+                if *attention != wanted {
+                    *attention = wanted;
                 }
             }
             stack.extend(children.get(child).into_iter().flatten());
@@ -768,6 +819,18 @@ mod tests {
         );
         assert_eq!(both.fill, selected.fill);
         assert_eq!(both.mark, selected.mark);
+    }
+
+    /// The attention mark (#232) is found with the colour taken away: it
+    /// stands off every fill a tab can have.
+    #[test]
+    fn the_attention_mark_stands_off_every_fill() {
+        let colours = Tokens::load().colour;
+        for (name, look) in six() {
+            let fill = paint(&colours, look).fill;
+            let fill = if grey(fill).is_some() { fill } else { colours.panel.0 };
+            assert!(differ(colours.attention.0, fill), "{name}");
+        }
     }
 
     /// Text stays readable against its fill in every state that can be used.

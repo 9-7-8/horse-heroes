@@ -51,6 +51,9 @@
         // of the boss's, which is also turned to stand on a corner.
         trail_mark: 14,
         trail_boss: 16,
+        // The dot in the corner of a place or tab that has something not
+        // yet seen.
+        attention: 9,
     ),
 
     // The split of the window between the 3D scene, at the top, and the
@@ -95,6 +98,9 @@
         text: "e6e9ec",
         text_dim: "9aa7b4",
         reason: "d9b96e",
+        // Attention: "something here has not been seen". A round dot, where
+        // the accent's mark is a bar.
+        attention: "5cc8ff",
         scrim: "000000b0",
     ),
 )

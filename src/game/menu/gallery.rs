@@ -10,8 +10,8 @@ use bevy::{
 };
 
 use super::parts::{
-    self, ConfirmAction, ConfirmCancel, CounterValue, Part, ShowLook, Stop, button, card,
-    confirmation, counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
+    self, ConfirmAction, ConfirmCancel, CounterValue, Look, Part, ShowLook, Stop, Unseen, button,
+    card, confirmation, counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
     trail_mark,
 };
 use super::picture;
@@ -183,6 +183,21 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                             trail.spawn(trail_mark(t, Stop::Here, true));
                             trail.spawn(trail_mark(t, Stop::Behind, true));
                         });
+                    // The attention mark (#232), beside and with the selected
+                    // mark: a dot and a bar.
+                    panel.spawn(dim(t, "attention mark: plain, unseen, unseen and selected"));
+                    panel.spawn(line(0.0)).with_children(|tabs| {
+                        let selected = Look {
+                            selected: true,
+                            ..default()
+                        };
+                        tabs.spawn((tab(t, "Trade", Some("T")), ShowLook(Look::default())))
+                            .remove::<TabIndex>();
+                        tabs.spawn((tab(t, "Journal", Some("J")), ShowLook(Look::default()), Unseen))
+                            .remove::<TabIndex>();
+                        tabs.spawn((tab(t, "Report", Some("1")), ShowLook(selected), Unseen))
+                            .remove::<TabIndex>();
+                    });
                     // Every picture a piece of gear can have (#286).
                     panel.spawn(dim(t, "gear pictures: empty, then each rarity"));
                     let gear = Data::load().gear;

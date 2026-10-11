@@ -21,6 +21,7 @@
 // place is showing, so two places may use the same keys for their tabs and
 // no tab may use a key of the first kind. `horse_keys` select the horses of
 // the party, in order.
+// `marks` says what puts a mark on a place (#232).
 // `cargo` is the controls of the cargo column, `footer` the footer's.
 // `card` is what can be done with a piece of gear (#228). Those controls are
 // on the piece's card, in the side panel of whichever place it is opened in,
@@ -241,6 +242,18 @@
         ],
     ),
     horse_keys: ["Z", "X", "C"],
+    // What puts a mark on a place, and on the tab of it the thing is on
+    // (#232): something there not yet seen. It goes when the thing has been
+    // in view and does not come back for the same thing. Nothing routine is
+    // here: a sale, a common drop and a trail that was simply won raise none.
+    //   Upgrade  the piece in the cargo betters what some horse wears. The
+    //            cargo is beside every tab, so no tab is named.
+    //   Report   the newest report kept: `lost`, its trail was lost;
+    //            `rarity`, it dropped a piece of at least that rarity.
+    marks: [
+        (raise: Upgrade, place: "Horses"),
+        (raise: Report(lost: true, rarity: "Legendary"), place: "Journal", tab: "Report"),
+    ],
     footer: [
         (name: "Planned changes", does: "Lists the changes planned on the road, to edit or cancel before the party arrives.", issue: 234),
         (name: "Set out", does: "Sends the party off on the next trail.", action: SetOut, key: "Space"),

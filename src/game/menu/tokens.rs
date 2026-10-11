@@ -51,6 +51,7 @@ pub struct Sizes {
     pub cargo_width: f32,
     pub trail_mark: f32,
     pub trail_boss: f32,
+    pub attention: f32,
 }
 
 /// The split of the window between the scene and the menus.
@@ -95,6 +96,7 @@ pub struct Colours {
     pub text: Hex,
     pub text_dim: Hex,
     pub reason: Hex,
+    pub attention: Hex,
     pub scrim: Hex,
 }
 
