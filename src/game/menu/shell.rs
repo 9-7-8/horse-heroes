@@ -21,17 +21,18 @@ use bevy::{
 };
 use serde::Deserialize;
 
+use super::card;
 use super::parts::{
     ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, button, cell, counter, dim, panel,
     reason, row, side_panel, tab, text, title, trail_mark,
 };
 use super::tokens::Tokens;
 use crate::game::{
-    Action, Game, Hand, SceneView, Screen, Uncollected, report_side, report_text, stats_line,
+    Action, Game, Hand, Piece, SceneView, Screen, Uncollected, report_side, report_text,
+    stats_line,
 };
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
-use crate::sim::loot::{Gear, Horse, gain};
 
 /// The map of the menus, from `assets/data/places.ron`.
 #[derive(Resource, Clone, Debug, Deserialize)]
@@ -44,6 +45,10 @@ pub struct Places {
     pub horse_keys: Vec<String>,
     #[serde(default)]
     pub footer: Vec<Control>,
+    /// What can be done with a piece of gear, on its card (#228): the same
+    /// controls wherever the piece is.
+    #[serde(default)]
+    pub card: Vec<Control>,
     /// Every control of the map, by its `id`.
     #[serde(skip)]
     list: Vec<Control>,
@@ -169,7 +174,8 @@ impl Places {
     }
 
     /// The controls of the map in the groups they are drawn in: those of a
-    /// tab, of a place without tabs, of a cargo column, and of the footer.
+    /// tab, of a place without tabs, of a cargo column, of the footer, and
+    /// of the item card.
     /// A group says under itself why any of its controls cannot be used.
     #[cfg(test)]
     pub fn groups(&self) -> Vec<&[Control]> {
@@ -180,6 +186,7 @@ impl Places {
             groups.push(&place.cargo);
         }
         groups.push(&self.footer);
+        groups.push(&self.card);
         groups.retain(|group| !group.is_empty());
         groups
     }
@@ -211,6 +218,7 @@ impl Places {
             all.extend(place.cargo.iter_mut());
         }
         all.extend(self.footer.iter_mut());
+        all.extend(self.card.iter_mut());
         all
     }
 }
@@ -289,9 +297,31 @@ impl Place {
 pub enum Item {
     /// A gear slot of a horse, and the piece worn in it.
     Worn { horse: usize, slot: usize },
+    /// The piece carried in the cargo.
+    Carried,
     /// A control, by its `id`: what it shows, or, for one that is not
     /// built, what it will do.
     Control(usize),
+}
+
+impl Item {
+    /// The piece of gear this is, when it is one: its card is what shows.
+    pub fn piece(self) -> Option<Piece> {
+        match self {
+            Item::Worn { horse, slot } => Some(Piece::Worn { horse, slot }),
+            Item::Carried => Some(Piece::Carried),
+            Item::Control(_) => None,
+        }
+    }
+}
+
+impl From<Piece> for Item {
+    fn from(piece: Piece) -> Item {
+        match piece {
+            Piece::Worn { horse, slot } => Item::Worn { horse, slot },
+            Piece::Carried => Item::Carried,
+        }
+    }
 }
 
 /// Detail about one thing, open in a place's side panel.
@@ -341,14 +371,14 @@ impl Shell {
     }
 
     /// What an action would be done to now: the selected horse, and the
-    /// worn piece open in the side panel that is showing.
+    /// piece whose card is open in the side panel that is showing.
     pub fn hand(&self) -> Hand {
         Hand {
             horse: self.horse,
-            open: match self.detail(self.place).map(|detail| detail.item) {
-                Some(Item::Worn { horse, slot }) if self.showing => Some((horse, slot)),
-                _ => None,
-            },
+            open: self
+                .detail(self.place)
+                .filter(|_| self.showing)
+                .and_then(|detail| detail.item.piece()),
         }
     }
 
@@ -408,6 +438,30 @@ impl Shell {
         }
     }
 
+    /// A piece has moved: every card that was open on it stays on it, in
+    /// whichever place it is open.
+    pub fn piece_moved(&mut self, from: Piece, to: Piece) {
+        for detail in self.details.iter_mut().flatten() {
+            if detail.item == Item::from(from) {
+                detail.item = to.into();
+            }
+        }
+    }
+
+    /// Whether a card is open on this, in any place.
+    pub fn shows(&self, item: Item) -> bool {
+        self.details.iter().flatten().any(|detail| detail.item == item)
+    }
+
+    /// Put away every detail about this, in every place.
+    pub fn forget(&mut self, item: Item) {
+        for detail in &mut self.details {
+            if detail.is_some_and(|detail| detail.item == item) {
+                *detail = None;
+            }
+        }
+    }
+
     /// Close the detail showing in the open place. Returns what opened it.
     pub fn close_detail(&mut self) -> Option<Entity> {
         let detail = self.detail(self.place)?;
@@ -438,6 +492,20 @@ pub struct SlotRow {
     pub slot: usize,
 }
 
+/// The carried piece, where a list shows it: in the cargo column, which is
+/// beside every tab of its place, and in the report, which is on one. A
+/// press pins its card in the side panel, as a press on a slot does.
+#[derive(Component)]
+pub struct CarriedCell {
+    pub place: usize,
+    pub tab: Option<usize>,
+}
+
+/// Something shown only while a piece is carried (true), or only while
+/// none is (false).
+#[derive(Component)]
+struct WhenCarried(bool);
+
 /// A horse's column of the gear overview, outlined while it is the selected
 /// horse's.
 #[derive(Component)]
@@ -465,6 +533,9 @@ enum Page {
     Detail(usize),
     /// The cargo column of a place. The detail opens in its room (#287).
     Cargo(usize),
+    /// The actions of the item card, in a place's side panel: there while
+    /// the detail is a piece of gear (#228).
+    Card(usize),
     /// What is left between the strip and the footer with every place closed.
     RoadView,
 }
@@ -494,7 +565,11 @@ enum Fact {
     Worn(usize, usize),
     WornLine(usize, usize),
     Detail(usize),
-    Cargo,
+    /// The carried piece as a list shows it: its name, what it is, and
+    /// whether it matters to the selected horse.
+    CarriedName,
+    CarriedKind,
+    CarriedVerdict,
     Element,
     Report,
     ReportSide,
@@ -521,6 +596,7 @@ impl Plugin for ShellPlugin {
                     show_place,
                     mark_chosen,
                     mark_wearer,
+                    show_carried,
                     show_reasons,
                     show_facts,
                     show_trail,
@@ -765,7 +841,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                                 ));
                                             }
                                             spawn_content(tab_page, t, p, i, content, game.party.len());
-                                            spawn_controls(tab_page, t, controls, Some(p));
+                                            spawn_controls(tab_page, t, controls, Some(p), true);
                                         });
                                 }
                             });
@@ -778,8 +854,12 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                     .insert(column(t.size.cargo_width))
                                     .with_children(|cargo| {
                                         cargo.spawn(dim(t, "cargo"));
-                                        cargo.spawn((dim(t, ""), Live(Fact::Cargo)));
-                                        spawn_controls(cargo, t, &place.cargo, Some(p));
+                                        cargo.spawn((
+                                            dim(t, card::NOTHING_CARRIED),
+                                            WhenCarried(false),
+                                        ));
+                                        spawn_carried(cargo, t, p, None);
+                                        spawn_controls(cargo, t, &place.cargo, Some(p), true);
                                     });
                             }
 
@@ -790,7 +870,55 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                             };
                             body.spawn((side_panel(t, "Detail", side), Page::Detail(p)))
                                 .with_children(|side| {
-                                    side.spawn((text(t, ""), Live(Fact::Detail(p))));
+                                    // What the detail says scrolls where it
+                                    // does not fit, so that the card's
+                                    // actions under it are always in view.
+                                    let mut scrolls = Entity::PLACEHOLDER;
+                                    side.spawn(Node {
+                                        flex_grow: 1.0,
+                                        min_height: Val::Px(0.0),
+                                        ..default()
+                                    })
+                                    .with_children(|frame| {
+                                        scrolls = frame
+                                            .spawn((
+                                                ScrollArea,
+                                                Node {
+                                                    flex_grow: 1.0,
+                                                    min_width: Val::Px(0.0),
+                                                    flex_direction: FlexDirection::Column,
+                                                    overflow: Overflow {
+                                                        x: OverflowAxis::Clip,
+                                                        y: OverflowAxis::Scroll,
+                                                    },
+                                                    ..default()
+                                                },
+                                            ))
+                                            .with_children(|words| {
+                                                words.spawn((
+                                                    text(t, ""),
+                                                    Live(Fact::Detail(p)),
+                                                ));
+                                            })
+                                            .id();
+                                        frame.spawn(scrollbar(t, scrolls));
+                                    });
+                                    // The card's actions, the same in every
+                                    // place a piece can be opened in (#228).
+                                    if p != places.settings_page() {
+                                        side.spawn((
+                                            Node {
+                                                flex_direction: FlexDirection::Column,
+                                                row_gap: Val::Px(t.space.s),
+                                                flex_shrink: 0.0,
+                                                ..default()
+                                            },
+                                            Page::Card(p),
+                                        ))
+                                        .with_children(|actions| {
+                                            spawn_controls(actions, t, &places.card, Some(p), false);
+                                        });
+                                    }
                                 });
                         });
                     });
@@ -969,15 +1097,39 @@ fn spawn_content(
                     columns
                         .spawn(Node {
                             width: Val::Percent(50.0),
+                            flex_direction: FlexDirection::Column,
+                            row_gap: Val::Px(t.space.s),
                             ..default()
                         })
                         .with_children(|half| {
                             half.spawn((text(t, ""), Live(fact)));
+                            // The drop, under the report of the trail that
+                            // dropped it: the card the cargo shows (#228).
+                            if matches!(fact, Fact::Report) {
+                                spawn_carried(half, t, place, Some(tab));
+                            }
                         });
                 }
             });
         }
     }
+}
+
+/// The carried piece as a list shows it: the summary of its card. There
+/// only while something is carried.
+fn spawn_carried(
+    parent: &mut ChildSpawnerCommands,
+    t: &Tokens,
+    place: usize,
+    tab: Option<usize>,
+) {
+    parent
+        .spawn((cell(t), CarriedCell { place, tab }, WhenCarried(true)))
+        .with_children(|lines| {
+            lines.spawn((text(t, ""), Live(Fact::CarriedName)));
+            lines.spawn((dim(t, ""), Live(Fact::CarriedKind)));
+            lines.spawn((dim(t, ""), Live(Fact::CarriedVerdict)));
+        });
 }
 
 /// A control of the map, with the key that works it printed on it. One that
@@ -1001,11 +1153,14 @@ fn spawn_control(
 }
 
 /// The controls of a page, in the order of the map, wrapping as they must.
+/// `hint` is whether the line about those not built says that a press says
+/// more, where there is room for it.
 fn spawn_controls(
     parent: &mut ChildSpawnerCommands,
     t: &Tokens,
     controls: &[Control],
     place: Option<usize>,
+    hint: bool,
 ) {
     if controls.is_empty() {
         return;
@@ -1024,7 +1179,7 @@ fn spawn_controls(
                 spawn_control(row, t, control, place);
             }
         });
-    spawn_reasons(parent, t, controls, true);
+    spawn_reasons(parent, t, controls, hint);
 }
 
 /// Under a group of controls, why any of them cannot be used (#233): a line
@@ -1057,6 +1212,7 @@ fn on_activate(
     tabs: Query<&TabButton>,
     horses: Query<&HorseButton>,
     slots: Query<&SlotRow>,
+    carried: Query<&CarriedCell>,
     closes: Query<(), With<ClosePanel>>,
     controls: Query<&ControlButton>,
 ) {
@@ -1079,11 +1235,33 @@ fn on_activate(
                 opener: Some(entity),
             },
         );
+    } else if let Ok(cell) = carried.get(entity) {
+        let tab = cell.tab.unwrap_or(shell.tab(cell.place));
+        shell.show_detail(
+            cell.place,
+            Detail {
+                tab,
+                item: Item::Carried,
+                opener: Some(entity),
+            },
+        );
     } else if closes.contains(entity) {
         close_detail(&mut shell, &mut focus);
     } else if let Ok(button) = controls.get(entity) {
         match map.control(button.id).action {
-            Some(action) => game.act(action, shell.hand()),
+            Some(action) => {
+                let hand = shell.hand();
+                // A card that is open stays on its piece when the piece
+                // is moved, so the piece is still the handle (#228).
+                let moved = match action {
+                    Action::Equip => game.equipped_at(hand),
+                    _ => None,
+                };
+                game.act(action, hand);
+                if let Some(to) = moved {
+                    shell.piece_moved(hand.open.unwrap_or(Piece::Carried), to);
+                }
+            }
             // It shows something, or is not built and says so: either way
             // in the side panel of the page it is on.
             None => {
@@ -1147,12 +1325,19 @@ fn keys(
         }
     }
     let on_a_control = focus_visible.0 && focus.get().is_some();
+    // A control of the card is in every place's side panel: one press, not
+    // one for each.
+    let mut pressed: Vec<usize> = Vec::new();
     for (entity, button) in &controls {
         let key = map.control(button.id).key.as_deref();
         let Some(code) = key.and_then(key_code) else {
             continue;
         };
-        if keys.just_pressed(code) && !(code == KeyCode::Space && on_a_control) {
+        if keys.just_pressed(code)
+            && !(code == KeyCode::Space && on_a_control)
+            && !pressed.contains(&button.id)
+        {
+            pressed.push(button.id);
             commands.trigger(Activate { entity });
         }
     }
@@ -1299,6 +1484,11 @@ fn follow_the_party(
             shell.close();
         }
     }
+    // A card open on the carried piece goes when the piece does: the party
+    // has left with it or without it.
+    if game.pending_drop().is_none() && shell.shows(Item::Carried) {
+        shell.forget(Item::Carried);
+    }
 }
 
 /// Move the scene towards the layout the shell asks for, and the shell's
@@ -1333,6 +1523,9 @@ fn show_place(
             Page::Tab(place, tab) => tab == shell.tab(place),
             Page::Detail(place) => shell.detail(place).is_some(),
             Page::Cargo(place) => shell.detail(place).is_none(),
+            Page::Card(place) => shell
+                .detail(place)
+                .is_some_and(|detail| detail.item.piece().is_some()),
             Page::RoadView => !place_in_view,
         };
         let wanted = if shown { Display::Flex } else { Display::None };
@@ -1364,6 +1557,7 @@ fn mark_chosen(
             Option<&TabButton>,
             Option<&HorseButton>,
             Option<&SlotRow>,
+            Option<&CarriedCell>,
             Has<Selected>,
         ),
         Or<(
@@ -1371,6 +1565,7 @@ fn mark_chosen(
             With<TabButton>,
             With<HorseButton>,
             With<SlotRow>,
+            With<CarriedCell>,
         )>,
     >,
     map: Res<Places>,
@@ -1381,7 +1576,7 @@ fn mark_chosen(
         Has<InteractionDisabled>,
     )>,
 ) {
-    for (entity, place, tab, horse, slot, selected) in &controls {
+    for (entity, place, tab, horse, slot, carried, selected) in &controls {
         let wanted = place.is_some_and(|place| place.0 == shell.place() && shell.is_open())
             || tab.is_some_and(|tab| tab.tab == shell.tab(tab.place))
             || horse.is_some_and(|horse| horse.0 == shell.horse())
@@ -1393,6 +1588,11 @@ fn mark_chosen(
                                 horse: row.horse,
                                 slot: row.slot,
                             }
+                })
+            })
+            || carried.is_some_and(|cell| {
+                shell.detail(cell.place).is_some_and(|detail| {
+                    detail.item == Item::Carried && cell.tab.is_none_or(|tab| tab == detail.tab)
                 })
             });
         if wanted && !selected {
@@ -1445,6 +1645,31 @@ fn mark_wearer(
         });
         if *border != wanted {
             *border = wanted;
+        }
+    }
+}
+
+/// The carried piece is in its lists while there is one, and what an empty
+/// list says is there while there is none.
+fn show_carried(
+    game: Res<Game>,
+    mut parts: Query<(&WhenCarried, &mut Node, &mut Visibility)>,
+) {
+    let carried = game.pending_drop().is_some();
+    for (when, mut node, mut visibility) in &mut parts {
+        let shown = when.0 == carried;
+        let wanted = if shown { Display::Flex } else { Display::None };
+        if node.display != wanted {
+            node.display = wanted;
+        }
+        // Hidden too, so that Tab passes over it (#244).
+        let wanted = if shown {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+        if *visibility != wanted {
+            *visibility = wanted;
         }
     }
 }
@@ -1597,66 +1822,34 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             let Some(detail) = shell.detail(place) else {
                 return String::new();
             };
-            let (wearer, item) = match detail.item {
-                Item::Worn { horse, slot } => (&game.party[horse], slot),
-                Item::Control(id) => {
+            match detail.item.piece() {
+                Some(piece) => card::pinned(game, piece, shell.hand()),
+                None => {
+                    let Item::Control(id) = detail.item else {
+                        return String::new();
+                    };
                     let control = map.control(id);
-                    return match control.shows {
+                    match control.shows {
                         Some(Shows::Keys) => {
                             let horses: Vec<&str> =
                                 game.party.iter().map(|horse| horse.name.as_str()).collect();
                             format!("{}\n{}", control.name, keys_list(map, &horses))
                         }
                         None => not_built(control),
-                    };
-                }
-            };
-            let slot = Slot::ALL[item];
-            let mut words = match &wearer.gear[item] {
-                Some(gear) => format!(
-                    "{}\n{} slot, worn by {}\n{}\n{}",
-                    gear.name,
-                    slot.name(),
-                    wearer.name,
-                    game.data.gear.rarities[gear.rarity].name,
-                    stats_line(gear.stats),
-                ),
-                None => format!(
-                    "{} slot of {}\nNothing worn.\nGear comes from the trail.",
-                    slot.name(),
-                    wearer.name,
-                ),
-            };
-            // Another horse's slot: against the selected horse, the one
-            // Swap would change it with.
-            if !std::ptr::eq(wearer, selected) {
-                if let Some(gear) = &wearer.gear[item] {
-                    words += &format!("\n\n{}", against(game, selected, gear));
-                }
-                if game.can(Action::Swap, shell.hand()).is_ok() {
-                    words += &format!(
-                        "\nSwap puts {} on {}, and {} on {}.",
-                        worn_name(wearer, item),
-                        selected.name,
-                        worn_name(selected, item),
-                        wearer.name,
-                    );
+                    }
                 }
             }
-            words
         }
-        Fact::Cargo => match game.pending_drop() {
-            // Against the selected horse, the one Equip puts it on.
-            Some(gear) => format!(
-                "{}\n{}, {}\n{}\n{}",
-                gear.name,
-                game.data.gear.rarities[gear.rarity].name,
-                gear.slot.name(),
-                stats_line(gear.stats),
-                against(game, selected, gear),
-            ),
-            None => "Nothing here yet.\nGear the horses bring back is carried here.".into(),
-        },
+        // Against the selected horse, the one Equip puts it on.
+        Fact::CarriedName => game
+            .pending_drop()
+            .map_or(String::new(), |gear| gear.name.clone()),
+        Fact::CarriedKind => game
+            .pending_drop()
+            .map_or(String::new(), |gear| card::kind(game, gear)),
+        Fact::CarriedVerdict => game
+            .pending_drop()
+            .map_or(String::new(), |gear| card::verdict(game, selected, gear)),
         Fact::Element => {
             let rules = &game.data.rules;
             format!(
@@ -1689,33 +1882,6 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             }
         },
     }
-}
-
-/// What a horse wears in a slot, by name.
-fn worn_name(horse: &Horse, slot: usize) -> &str {
-    horse.gear[slot]
-        .as_ref()
-        .map_or("nothing", |gear| gear.name.as_str())
-}
-
-/// A piece against what a horse wears in its slot: what that is, and
-/// whether the piece would be an upgrade for it, in points.
-fn against(game: &Game, horse: &Horse, gear: &Gear) -> String {
-    let worn = match &horse.gear[gear.slot.index()] {
-        Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
-        None => "nothing".into(),
-    };
-    let change = gain(&game.data, horse, gear);
-    format!(
-        "{} wears: {}\n{}",
-        horse.name,
-        worn,
-        match change {
-            1.. => format!("An upgrade for {}: +{change} points.", horse.name),
-            0 => format!("No better for {}: the same points.", horse.name),
-            _ => format!("Worse for {}: {change} points.", horse.name),
-        },
-    )
 }
 
 /// The working controls among these that cannot be used now, gathered by the
@@ -2015,7 +2181,8 @@ mod tests {
             }
         }
         let cargo = &places.places[0].cargo;
-        assert_eq!(unbuilt_line(cargo, false), "All but Equip: not built yet.");
+        assert_eq!(unbuilt_line(cargo, false), "None of these is built yet.");
+        assert!(unbuilt_line(&places.card, false).starts_with("All but Equip: "));
         assert_eq!(
             unbuilt_line(&places.footer, false),
             "Planned changes: not built yet."
@@ -2039,7 +2206,8 @@ mod tests {
             },
         );
         let say = |what| fact(&game, &uncollected, &shell, &places, what);
-        assert!(say(Fact::Cargo).contains("Gear the horses bring back"));
+        assert!(card::NOTHING_CARRIED.contains("Gear the horses bring back"));
+        assert_eq!(say(Fact::CarriedName), "");
         assert!(say(Fact::Detail(0)).contains("Gear comes from the trail"));
         assert!(say(Fact::Report).contains("is reported here"));
     }
@@ -2238,7 +2406,7 @@ mod tests {
             .into_iter()
             .map(Action::Element)
             .collect();
-        actions.extend([Action::EquipDrop, Action::Swap, Action::SetOut]);
+        actions.extend([Action::Equip, Action::SetOut]);
         for action in actions {
             let controls = places
                 .controls()

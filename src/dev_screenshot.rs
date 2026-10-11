@@ -21,7 +21,7 @@ use bevy::{
 };
 
 use crate::game::menu::shell::{
-    ControlButton, HorseButton, PlaceButton, Places, SlotRow, TabButton,
+    CarriedCell, ControlButton, HorseButton, PlaceButton, Places, SlotRow, TabButton,
 };
 use crate::game::{Action, Game, Hand};
 
@@ -97,6 +97,8 @@ enum Step {
     /// Go round every stop Tab makes and log how many there are, and how
     /// many of them are out of sight.
     TabRound,
+    /// Press the carried piece where a place shows it.
+    Carried(usize),
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -190,11 +192,22 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Town,
         Step::Wait(SETTLE),
         Step::Shot("back in town with the report".into()),
+        // The item card (#228): the drop is opened from the report, and
+        // then from the cargo, and it is the same card.
+        Step::Carried(places.places.len() - 1),
+        Step::Shot("the drop's card from the report".into()),
+        Step::Key(KeyCode::Escape),
         // A town visit by keys alone (#229): the keys are those printed on
         // the controls in places.ron, so one changed there is changed here.
         Step::Key(KeyCode::KeyH),
         Step::Key(KeyCode::Digit1),
         Step::Shot("by keys the drop waits in the cargo".into()),
+        Step::Carried(0),
+        Step::Shot("the drop's card from the cargo".into()),
+        Step::Key(KeyCode::KeyX),
+        Step::Shot("the card against another horse".into()),
+        Step::Key(KeyCode::KeyC),
+        Step::Key(KeyCode::Escape),
         // The arrow keys: onto the first slot, down to the second, open it,
         // close it, and across to the horses.
         Step::Key(KeyCode::ArrowDown),
@@ -217,11 +230,11 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyE),
         Step::Shot("by keys the drop equipped".into()),
         // The overview (#285): with the first horse selected, open what
-        // the third wears on its head and swap it over.
+        // the third wears on its head and equip it: the two change places.
         Step::Key(KeyCode::KeyZ),
         Step::Slot(2, 0),
         Step::Shot("another horse's piece open".into()),
-        Step::Key(KeyCode::KeyW),
+        Step::Key(KeyCode::KeyE),
         Step::Shot("swapped onto the selected horse".into()),
         Step::Key(KeyCode::Escape),
         Step::Key(KeyCode::KeyC),
@@ -271,6 +284,7 @@ fn tour(
     tabs: Query<(Entity, &TabButton)>,
     horses: Query<(Entity, &HorseButton)>,
     slots: Query<(Entity, &SlotRow)>,
+    carried: Query<(Entity, &CarriedCell)>,
     controls: Query<(Entity, &ControlButton)>,
     map: Res<Places>,
     mut focus: ResMut<InputFocus>,
@@ -312,6 +326,7 @@ fn tour(
             .iter()
             .find(|(_, b)| b.horse == *h && b.slot == *s)
             .map(|(e, _)| e),
+        Step::Carried(p) => carried.iter().find(|(_, b)| b.place == *p).map(|(e, _)| e),
         Step::Control(name) => controls
             .iter()
             .filter(|(_, b)| map.control(b.id).name == *name)

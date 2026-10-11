@@ -4,6 +4,7 @@
 
 use bevy::{input_focus::tab_navigation::TabNavigationPlugin, prelude::*};
 
+mod card;
 mod gallery;
 pub mod parts;
 pub mod shell;

@@ -117,20 +117,29 @@ impl Plugin for GamePlugin {
 pub enum Action {
     /// Fight the next trail with this element.
     Element(Element),
-    /// Put the last trail's drop on the selected horse.
-    EquipDrop,
-    /// The worn piece that is open and what the selected horse wears in
-    /// that slot change places.
-    Swap,
+    /// Put a piece on the selected horse (#228): the piece whose card is
+    /// open, or the one carried when none is. A carried piece is put on; a
+    /// piece another horse wears changes places with what the selected
+    /// horse wears in that slot.
+    Equip,
     SetOut,
 }
 
-/// What an action is done to: the selected horse, and the worn piece open
-/// in the side panel, as (horse, slot), when one is.
+/// Where a piece of gear is. One card shows it wherever that is (#228).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Piece {
+    /// In the cargo: the last trail's drop, until it is equipped.
+    Carried,
+    /// On a horse, in a slot. The slot may be empty.
+    Worn { horse: usize, slot: usize },
+}
+
+/// What an action is done to: the selected horse, and the piece whose card
+/// is open in the side panel, when one is.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Hand {
     pub horse: usize,
-    pub open: Option<(usize, usize)>,
+    pub open: Option<Piece>,
 }
 
 impl Hand {
@@ -208,7 +217,9 @@ impl Game {
     /// The open piece and what the selected horse wears in its slot change
     /// places (#285). Returns what happened.
     fn swap(&mut self, hand: Hand) -> Option<String> {
-        let (other, slot) = hand.open?;
+        let Some(Piece::Worn { horse: other, slot }) = hand.open else {
+            return None;
+        };
         if !swap_worn(&mut self.party, other, hand.horse, slot) {
             return None;
         }
@@ -281,11 +292,7 @@ impl Game {
         };
         match action {
             Action::Element(_) | Action::SetOut => Ok(()),
-            Action::EquipDrop => match last {
-                Some(outcome) if outcome.drop.is_some() => Ok(()),
-                _ => Err("Nothing to equip."),
-            },
-            Action::Swap => {
+            Action::Equip => {
                 let worn = |horse: usize, slot: usize| {
                     self.party
                         .get(horse)
@@ -293,17 +300,56 @@ impl Game {
                         .is_some_and(|worn| worn.is_some())
                 };
                 match hand.open {
-                    Some((other, slot)) if other != hand.horse => {
-                        if worn(other, slot) || worn(hand.horse, slot) {
+                    Some(Piece::Worn { horse, slot }) if horse == hand.horse => {
+                        if worn(horse, slot) {
+                            Err("The selected horse wears it already.")
+                        } else {
+                            Err("Nothing is worn there.")
+                        }
+                    }
+                    Some(Piece::Worn { horse, slot }) => {
+                        if worn(horse, slot) || worn(hand.horse, slot) {
                             Ok(())
                         } else {
                             Err("Neither horse wears anything there.")
                         }
                     }
-                    _ => Err("Open a piece another horse wears."),
+                    Some(Piece::Carried) | None => match last {
+                        Some(outcome) if outcome.drop.is_some() => Ok(()),
+                        _ => Err("Nothing to equip."),
+                    },
                 }
             }
         }
+    }
+
+    /// The piece that is somewhere, if anything is there.
+    pub fn piece(&self, piece: Piece) -> Option<&Gear> {
+        match piece {
+            Piece::Carried => self.pending_drop(),
+            Piece::Worn { horse, slot } => self.party.get(horse)?.gear.get(slot)?.as_ref(),
+        }
+    }
+
+    /// Where the card in the hand would be after Equip: with its piece, on
+    /// the selected horse. A card open on an empty slot stays there, since
+    /// that is where the selected horse's piece goes. None when Equip
+    /// cannot be done.
+    pub fn equipped_at(&self, hand: Hand) -> Option<Piece> {
+        self.can(Action::Equip, hand).ok()?;
+        let slot = match hand.open {
+            Some(open @ Piece::Worn { slot, .. }) => {
+                if self.piece(open).is_none() {
+                    return Some(open);
+                }
+                slot
+            }
+            _ => self.pending_drop()?.slot.index(),
+        };
+        Some(Piece::Worn {
+            horse: hand.horse,
+            slot,
+        })
     }
 
     /// Do an action, if it can be done. `hand` is what it is done to, for
@@ -314,15 +360,12 @@ impl Game {
         }
         match action {
             Action::Element(element) => self.element = element,
-            Action::EquipDrop => {
-                if let Some(text) = self.equip_drop(hand.horse)
-                    && let Screen::Camp { note, .. } = &mut self.screen
-                {
-                    *note = text;
-                }
-            }
-            Action::Swap => {
-                if let Some(text) = self.swap(hand)
+            Action::Equip => {
+                let done = match hand.open {
+                    Some(Piece::Worn { .. }) => self.swap(hand),
+                    _ => self.equip_drop(hand.horse),
+                };
+                if let Some(text) = done
                     && let Screen::Camp { note, .. } = &mut self.screen
                 {
                     *note = text;
@@ -507,24 +550,13 @@ pub fn report_text(game: &Game) -> String {
                 outcome.strong_hits,
                 outcome.resisted_hits,
             );
-            if let Some(gear) = &outcome.drop {
-                out += &format!(
-                    "\nNEW GEAR: {} [{}, {}]  {}\n",
-                    gear.name,
-                    game.data.gear.rarities[gear.rarity].name,
-                    gear.slot.name(),
-                    stats_line(gear.stats),
-                );
+            // The piece itself is under this, as its card (#228).
+            if outcome.drop.is_some() {
                 out += &match game.drop_best_wearer() {
                     Some(best) => {
-                        let horse = &game.party[best];
-                        let worn = match &horse.gear[gear.slot.index()] {
-                            Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
-                            None => "nothing".into(),
-                        };
-                        format!("  does most for {}, who wears: {worn}\n", horse.name)
+                        format!("\nNEW GEAR, which does most for {}:\n", game.party[best].name)
                     }
-                    None => "  no horse is better off in it\n".into(),
+                    None => "\nNEW GEAR, which leaves no horse better off:\n".into(),
                 };
             }
             if !note.is_empty() {
@@ -624,18 +656,18 @@ mod tests {
         let mut game = Game::new(6);
         assert_eq!(game.can(Action::Element(Element::Ice), Hand::default()), Ok(()));
         assert_eq!(game.can(Action::SetOut, Hand::default()), Ok(()));
-        assert_eq!(game.can(Action::EquipDrop, Hand::default()), Err("Nothing to equip."));
+        assert_eq!(game.can(Action::Equip, Hand::default()), Err("Nothing to equip."));
 
         game.act(Action::Element(Element::Ice), Hand::horse(0));
         assert_eq!(game.element, Element::Ice);
-        game.act(Action::EquipDrop, Hand::horse(0));
+        game.act(Action::Equip, Hand::horse(0));
         assert!(game.in_town(), "a refused action changes nothing");
 
         game.act(Action::SetOut, Hand::horse(0));
         assert!(!game.in_town());
         for action in [
             Action::Element(Element::Fire),
-            Action::EquipDrop,
+            Action::Equip,
             Action::SetOut,
         ] {
             assert_eq!(game.can(action, Hand::default()), Err("In town only."));
@@ -657,16 +689,25 @@ mod tests {
         };
         for selected in 0..3 {
             let mut game = home();
-            assert_eq!(game.can(Action::EquipDrop, Hand::default()), Ok(()));
+            assert_eq!(game.can(Action::Equip, Hand::default()), Ok(()));
             let gear = game.pending_drop().unwrap();
+            assert_eq!(game.piece(Piece::Carried), Some(gear));
             let (slot, name) = (gear.slot.index(), gear.name.clone());
-            game.act(Action::EquipDrop, Hand::horse(selected));
+            // With the carried piece's card open or with none: the same.
+            let hand = Hand {
+                horse: selected,
+                open: (selected > 0).then_some(Piece::Carried),
+            };
+            let at = Piece::Worn { horse: selected, slot };
+            assert_eq!(game.equipped_at(hand), Some(at));
+            game.act(Action::Equip, hand);
+            assert_eq!(game.piece(at).map(|gear| gear.name.as_str()), Some(name.as_str()));
             assert!(game.pending_drop().is_none());
             for (index, horse) in game.party.iter().enumerate() {
                 let worn = horse.gear[slot].as_ref().map(|gear| gear.name.as_str());
                 assert_eq!(worn, (index == selected).then_some(name.as_str()));
             }
-            assert_eq!(game.can(Action::EquipDrop, Hand::default()), Err("Nothing to equip."));
+            assert_eq!(game.can(Action::Equip, Hand::default()), Err("Nothing to equip."));
         }
 
         let mut game = home();
@@ -686,35 +727,49 @@ mod tests {
             .expect("no seed under 50 brings a drop home");
         let slot = game.pending_drop().unwrap().slot.index();
         let name = game.pending_drop().unwrap().name.clone();
-        game.act(Action::EquipDrop, Hand::horse(0));
+        game.act(Action::Equip, Hand::horse(0));
         let open = |horse: usize, selected: usize| Hand {
             horse: selected,
-            open: Some((horse, slot)),
+            open: Some(Piece::Worn { horse, slot }),
         };
 
-        let nothing_open = Err("Open a piece another horse wears.");
-        assert_eq!(game.can(Action::Swap, Hand::horse(1)), nothing_open);
-        assert_eq!(game.can(Action::Swap, open(0, 0)), nothing_open);
+        // With no card open Equip is about the cargo, which is empty now.
+        assert_eq!(game.can(Action::Equip, Hand::horse(1)), Err("Nothing to equip."));
         assert_eq!(
-            game.can(Action::Swap, open(1, 2)),
+            game.can(Action::Equip, open(0, 0)),
+            Err("The selected horse wears it already.")
+        );
+        assert_eq!(game.can(Action::Equip, open(1, 1)), Err("Nothing is worn there."));
+        assert_eq!(
+            game.can(Action::Equip, open(1, 2)),
             Err("Neither horse wears anything there.")
         );
+        assert_eq!(game.equipped_at(open(1, 2)), None);
+        assert_eq!(
+            game.equipped_at(open(0, 1)),
+            Some(Piece::Worn { horse: 1, slot })
+        );
 
-        assert_eq!(game.can(Action::Swap, open(0, 1)), Ok(()));
-        game.act(Action::Swap, open(0, 1));
+        assert_eq!(game.can(Action::Equip, open(0, 1)), Ok(()));
+        game.act(Action::Equip, open(0, 1));
         let worn = |game: &Game, horse: usize| {
             game.party[horse].gear[slot].as_ref().map(|gear| gear.name.clone())
         };
         assert_eq!(worn(&game, 0), None);
         assert_eq!(worn(&game, 1), Some(name.clone()));
         // From an empty slot too: the selected horse's piece goes over.
-        assert_eq!(game.can(Action::Swap, open(2, 1)), Ok(()));
-        game.act(Action::Swap, open(2, 1));
+        assert_eq!(game.can(Action::Equip, open(2, 1)), Ok(()));
+        assert_eq!(
+            game.equipped_at(open(2, 1)),
+            Some(Piece::Worn { horse: 2, slot }),
+            "a card on an empty slot stays on it"
+        );
+        game.act(Action::Equip, open(2, 1));
         assert_eq!(worn(&game, 1), None);
         assert_eq!(worn(&game, 2), Some(name));
 
         game.act(Action::SetOut, Hand::horse(0));
-        assert_eq!(game.can(Action::Swap, open(2, 1)), Err("In town only."));
+        assert_eq!(game.can(Action::Equip, open(2, 1)), Err("In town only."));
     }
 
     /// The road is held for a won trail's last drops and for nothing else.
