@@ -1,0 +1,27 @@
+ASKED
+  "Next"
+
+DONE
+  - Tier 1a of next-thing: the build warned that Shell::select_horse was
+    never used. Since the horse's view (#311) a press on a horse goes
+    through inspect, and only a test still called the old setter. The
+    setter is gone and the test selects through inspect.
+    Compiled with no warning; tested (148 pass). Nothing visible changed,
+    so nothing was run.
+
+DECIDED
+  Nothing.
+
+FOUND
+  - The one open bug, #246, is fixed in the code and waits only on the
+    owner watching a few trails in a release. It is not a thing a session
+    can pick.
+
+NOT DONE
+  - Tier 2 (tests) was not looked at: one part, one session.
+  - #311 is as the last log left it.
+
+PICK UP
+  Ask the owner to press a horse in a running game and say whether the
+  side panel is the window she meant (#311); if she has not, go on by
+  next-thing.txt from tier 2.
