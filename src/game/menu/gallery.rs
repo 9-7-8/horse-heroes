@@ -211,8 +211,8 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                             .with_children(|tiers| {
                                 let tiers_of = std::iter::once(None).chain(gear.rarities.iter().map(Some));
                                 for tier in tiers_of {
-                                    tiers.spawn(picture::square(t)).with_children(|square| {
-                                        picture::draw(square, t, gear.picture(slot), tier);
+                                    tiers.spawn(picture::square(t, t.size.picture)).with_children(|square| {
+                                        picture::draw(square, t, gear.picture(slot), tier, t.size.picture);
                                     });
                                 }
                                 tiers.spawn(dim(t, slot.name()));

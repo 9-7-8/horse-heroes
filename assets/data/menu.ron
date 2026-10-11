@@ -24,10 +24,11 @@
         // 62, room for two always, the three slots no longer fit under the
         // scene at the smallest window.
         cell_height: 46,
-        // The least width of a cell of the Inventory's grid: the longest
-        // name a piece can have, on one line. The grid has as many columns
-        // of that as fit, all the same width.
-        inventory_cell: 208,
+        // A tile of the Inventory's grid: its width, and the side of the
+        // picture on it. The grid has as many columns of that width as fit.
+        // Wide enough for "Carried" and a horse's name on one line.
+        inventory_cell: 104,
+        inventory_picture: 56,
         // The comparison beside the Inventory's grid: wide enough for its
         // table of four columns. It keeps its room whether or not a piece
         // is open, so the grid never moves.

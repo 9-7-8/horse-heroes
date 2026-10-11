@@ -239,6 +239,14 @@ const SETTLE: f32 = 0.7;
 const MIDWAY: f32 = 0.2;
 
 fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
+    let named = |name: &str| {
+        places
+            .places
+            .iter()
+            .position(|place| place.name == name)
+            .unwrap_or_else(|| panic!("the tour visits {name}, which places.ron does not have"))
+    };
+    let (inventory, trade) = (named("Inventory"), named("Trade"));
     let mut steps = vec![
         Step::Shot("town opens on horses".into()),
         Step::TabRound,
@@ -302,7 +310,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         // The marks (#232): the party comes home to a place that shows
         // neither the cargo nor the report, so both are still unseen; the
         // report shows both, and both marks go.
-        Step::Place(1),
+        Step::Place(trade),
         Step::Town,
         Step::Wait(SETTLE),
         Step::Shot("back in town two places are marked".into()),
@@ -318,10 +326,15 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyH),
         Step::Key(KeyCode::Digit1),
         Step::Shot("by keys the drop waits in the cargo".into()),
-        // The Inventory (#308): the drop is in its type's group, carried,
-        // beside what the horses wear; its card is pinned from the grid.
-        Step::Key(KeyCode::Digit5),
+        // The Inventory (#308), a place of its own: the drop is in its
+        // type's group, carried, beside what the horses wear; the pointer
+        // on it compares it, and its card is pinned from the grid.
+        Step::Key(KeyCode::KeyB),
         Step::Shot("inventory with the drop carried".into()),
+        Step::Point,
+        Step::Carried(inventory),
+        Step::Shot("inventory the comparison under the pointer".into()),
+        Step::PointAway,
         Step::Key(KeyCode::ArrowDown),
         Step::Shot("inventory by arrows onto the grid".into()),
         Step::Enter,
@@ -332,7 +345,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::PageUp),
         Step::Key(KeyCode::Escape),
         Step::Focus(None),
-        Step::Key(KeyCode::Digit1),
+        Step::Key(KeyCode::KeyH),
         // The card under the pointer (#228): resting on a piece shows its
         // card beside it, and nothing is pinned.
         Step::Point,
@@ -381,9 +394,9 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyE),
         Step::Shot("by keys the drop equipped".into()),
         // Worn, it is still in its group of the Inventory, under its horse.
-        Step::Key(KeyCode::Digit5),
+        Step::Key(KeyCode::KeyB),
         Step::Shot("inventory with the drop worn".into()),
-        Step::Key(KeyCode::Digit1),
+        Step::Key(KeyCode::KeyH),
         // The overview (#285): with the first horse selected, open what
         // the third wears on its head and equip it: the two change places.
         Step::Key(KeyCode::KeyZ),

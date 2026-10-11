@@ -11,9 +11,9 @@ use crate::sim::loot::{Gear, Horse, gain};
 /// What a list says where the cargo is empty.
 pub const NOTHING_CARRIED: &str = "Nothing here yet.\nGear the horses bring back is carried here.";
 
-/// What the Inventory says of a piece in the cargo, where a worn piece says
-/// who wears it.
-pub const CARRIED: &str = "Carried in the cargo";
+/// What a tile of the Inventory says of a piece in the cargo, where a worn
+/// piece names its horse.
+pub const CARRIED: &str = "Carried";
 
 /// What the Inventory says under a type the party has no piece of.
 pub fn none_held(kind: &str) -> String {
@@ -243,7 +243,7 @@ fn face(game: &Game, gear: &Gear, wearer: Option<&Horse>, selected: &Horse) -> S
 /// What the comparison's room says in the Inventory while no piece is open.
 pub fn compare_hint(selected: &Horse) -> String {
     format!(
-        "Press a piece to compare it with what {} wears there. Another horse's key compares it on that horse.",
+        "Point at a piece to compare it with what {} wears there. A press pins it here, with Equip. Another horse's key compares it on that horse.",
         selected.name
     )
 }
@@ -279,16 +279,34 @@ fn table(equipped: Stats, selected: Stats) -> String {
     out
 }
 
-/// The comparison the Inventory opens on a piece (#308): whose it would be
+/// The comparison the Inventory pins on a piece (#308): whose it would be
 /// and in which slot, the piece equipped there and the piece selected, what
 /// equipping changes for that horse, the two pieces stat by stat, and what
 /// Equip would do. The horse is the selected one; another horse's key
 /// compares the same piece there, and nothing else on the panel moves.
 pub fn comparison(game: &Game, piece: Piece, hand: Hand) -> String {
-    let Some(gear) = game.piece(piece) else {
+    let Some(mut out) = weighed(game, piece, hand.horse) else {
         return pinned(game, piece, hand);
     };
-    let selected = &game.party[hand.horse.min(game.party.len() - 1)];
+    let does = consequence(game, hand);
+    if !does.is_empty() {
+        out += &format!("\n\n{does}");
+    }
+    out
+}
+
+/// The comparison under the pointer in the Inventory (#308): the pinned
+/// one's own lines, and how to pin it. What Equip would do is said beside
+/// Equip, never only here. Empty where there is no piece.
+pub fn pointed_comparison(game: &Game, piece: Piece, horse: usize) -> String {
+    weighed(game, piece, horse).map_or(String::new(), |said| format!("{said}\n\n{PRESS_PINS}"))
+}
+
+/// A piece against what a horse wears in its slot, without what Equip
+/// would do. None where there is no piece.
+fn weighed(game: &Game, piece: Piece, horse: usize) -> Option<String> {
+    let gear = game.piece(piece)?;
+    let selected = &game.party[horse.min(game.party.len() - 1)];
     let rarity = |gear: &Gear| game.data.gear.rarities[gear.rarity].name.clone();
     let worn = selected.gear[gear.slot.index()].as_ref();
     let mut out = format!("For {}, {}", selected.name, gear.slot.name());
@@ -310,7 +328,7 @@ pub fn comparison(game: &Game, piece: Piece, hand: Hand) -> String {
                 out += &format!("\n{}", table_row(label, &format!("+{value}"), "", ""));
             }
         }
-        return out;
+        return Some(out);
     }
     out += &match worn {
         Some(worn) => format!("\nEquipped: {} ({})", worn.name, rarity(worn)),
@@ -326,11 +344,7 @@ pub fn comparison(game: &Game, piece: Piece, hand: Hand) -> String {
         "\n\n{}",
         table(worn.map_or(Stats::default(), |worn| worn.stats), gear.stats)
     );
-    let does = consequence(game, hand);
-    if !does.is_empty() {
-        out += &format!("\n\n{does}");
-    }
-    out
+    Some(out)
 }
 
 /// Under the card the pointer shows: how to get the rest of it.
@@ -421,6 +435,14 @@ mod tests {
         assert!(!own.contains("Selected:") && !own.contains("AFTER EQUIPPING"));
         let swap = comparison(&game, worn, Hand { horse: 1, open: Some(worn) });
         assert!(swap.contains(&format!("\nWorn by {horse}.")), "{swap}");
+
+        // Under the pointer it is the same lines, without what Equip would
+        // do, and with how to pin it; and nothing where there is no piece.
+        let does = consequence(&game, Hand { horse: 1, open: Some(worn) });
+        assert!(!does.is_empty() && swap.ends_with(&does));
+        let pointed = pointed_comparison(&game, worn, 1);
+        assert_eq!(pointed, format!("{}\n\n{PRESS_PINS}", swap.strip_suffix(&does).unwrap().trim_end()));
+        assert!(pointed_comparison(&game, Piece::Carried, 1).is_empty());
     }
 
     /// The card is the same wherever the piece is (#228): carried or worn,

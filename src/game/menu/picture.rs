@@ -67,6 +67,8 @@ pub fn stamp(look: &RarityLook) -> Vec<Stamp> {
 #[derive(Component)]
 pub struct Picture {
     of: Of,
+    /// The side of its square.
+    side: f32,
     shown: Option<Option<(usize, Option<usize>)>>,
 }
 
@@ -81,21 +83,26 @@ enum Of {
 /// The square of a piece's picture. It keeps its size full or empty, and is
 /// away only while there is no piece or slot for it to be about.
 pub fn picture(t: &Tokens, of: Piece) -> impl Bundle + use<> {
-    (Picture { of: Of::At(of), shown: None }, square(t))
+    picture_of(t, of, t.size.picture)
+}
+
+/// The same at another size: a tile of the Inventory is mostly its picture.
+pub fn picture_of(t: &Tokens, of: Piece, side: f32) -> impl Bundle + use<> {
+    (Picture { of: Of::At(of), side, shown: None }, square(t, side))
 }
 
 /// The square of the picture of the piece the showing report dropped. It is
 /// away while the party does not have that piece.
 pub fn reported_picture(t: &Tokens) -> impl Bundle + use<> {
-    (Picture { of: Of::Reported, shown: None }, square(t))
+    (Picture { of: Of::Reported, side: t.size.picture, shown: None }, square(t, t.size.picture))
 }
 
 /// The square by itself, for `draw` to fill.
-pub fn square(t: &Tokens) -> impl Bundle + use<> {
+pub fn square(t: &Tokens, side: f32) -> impl Bundle + use<> {
     (
         Node {
-            width: Val::Px(t.size.picture),
-            height: Val::Px(t.size.picture),
+            width: Val::Px(side),
+            height: Val::Px(side),
             border_radius: BorderRadius::all(Val::Px(t.size.radius)),
             flex_shrink: 0.0,
             ..default()
@@ -113,9 +120,10 @@ pub fn draw(
     t: &Tokens,
     shape: PictureDef,
     tier: Option<&RarityDef>,
+    side: f32,
 ) {
-    let side = t.size.picture;
-    let room = side - 2.0 * t.size.picture_inset;
+    // The room around the shape grows with the square.
+    let room = side - 2.0 * t.size.picture_inset * side / t.size.picture;
     let (wide, tall) = (shape.wide * room, shape.tall * room);
     let (a, b, c, d) = shape.round;
     let placed = |wide: f32, tall: f32, at: (f32, f32)| Node {
@@ -200,7 +208,7 @@ pub fn show_pictures(
             let gear = &game.data.gear;
             let shape = gear.picture(Slot::ALL[slot]);
             square.with_children(|square| {
-                draw(square, &tokens, shape, tier.map(|tier| &gear.rarities[tier]));
+                draw(square, &tokens, shape, tier.map(|tier| &gear.rarities[tier]), picture.side);
             });
         }
     }

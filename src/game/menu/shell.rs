@@ -2,7 +2,7 @@
 //! never move, and between them the place that is open. Every later screen
 //! hangs on this. How it works: docs/menu-shell.md.
 //!
-//! All five places are spawned once and only shown or hidden, so a place is
+//! All the places are spawned once and only shown or hidden, so a place is
 //! found exactly as it was left.
 
 use bevy::{
@@ -25,7 +25,7 @@ use serde::Deserialize;
 
 use super::card;
 use super::ink;
-use super::picture::{self, picture, reported_picture};
+use super::picture::{self, picture, picture_of, reported_picture};
 use super::parts::{
     ClosePanel, CounterValue, NotBuilt, Part, PartText, RowValue, Stop, Unseen, button, cell, counter, dim,
     panel, reason, row, side_panel, tab, text, title, trail_mark,
@@ -72,6 +72,9 @@ pub struct Place {
     /// What is decided here, for a place with no tabs.
     #[serde(default)]
     pub job: String,
+    /// What a place with no tabs shows.
+    #[serde(default)]
+    pub content: Content,
     /// Show the horses beside the tabs on one side and the cargo on the other.
     #[serde(default)]
     pub horse_columns: bool,
@@ -148,7 +151,8 @@ pub enum Shows {
     Keys,
 }
 
-/// What a tab shows. `Planned` is a tab whose system is not built.
+/// What a tab shows, or a place without tabs. `Planned` is one whose system
+/// is not built.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 pub enum Content {
     #[default]
@@ -221,12 +225,11 @@ impl Places {
         self.pages().nth(page)?.tabs.get(tab)?.key.as_deref()
     }
 
-    /// What a tab of a page shows.
+    /// What a tab of a page shows, or the page itself when it has no tabs.
     pub fn content(&self, page: usize, tab: usize) -> Content {
-        self.pages()
-            .nth(page)
-            .and_then(|page| page.tabs.get(tab))
-            .map_or(Content::Planned, |tab| tab.content)
+        self.pages().nth(page).map_or(Content::Planned, |page| {
+            page.tabs.get(tab).map_or(page.content, |tab| tab.content)
+        })
     }
 
     pub fn horse_key(&self, horse: usize) -> Option<&str> {
@@ -328,7 +331,7 @@ impl Place {
             return vec![(
                 self.name.clone(),
                 &self.job,
-                Content::Planned,
+                self.content,
                 &self.controls,
             )];
         }
@@ -629,13 +632,10 @@ enum Page {
     Place(usize),
     Tab(usize, usize),
     Detail(usize),
-    /// The horses column of a place. Away on the Inventory, which is of
-    /// every piece and not of one horse (#308).
-    Horses(usize),
     /// The cargo column of a place. The detail opens in its room (#287).
     Cargo(usize),
     /// The room of the comparison beside the Inventory, while no piece is
-    /// open in it: the grid keeps its width (#308).
+    /// pinned in it: the grid keeps its width (#308).
     Compare(usize),
     /// The actions of the item card, in a place's side panel: there while
     /// the detail is a piece of gear (#228).
@@ -687,7 +687,8 @@ enum Fact {
     Worn(usize, usize),
     WornLine(usize, usize),
     Detail(usize),
-    /// The card of the piece the pointer rests on.
+    /// The card of the piece the pointer rests on; in the Inventory, its
+    /// comparison.
     Hovered,
     /// What the comparison's room says while no piece is open in it.
     CompareHint,
@@ -696,9 +697,7 @@ enum Fact {
     CarriedName,
     CarriedKind,
     CarriedVerdict,
-    /// In the Inventory: what the carried piece adds, and whose a worn
-    /// piece is.
-    CarriedLine,
+    /// On a tile of the Inventory: whose a worn piece is.
     WornBy(usize),
     /// The piece of the report that is showing: its name, what it is, and
     /// where it is now.
@@ -911,7 +910,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                         })
                         .with_children(|body| {
                             if place.horse_columns {
-                                body.spawn((panel(t), Page::Horses(p)))
+                                body.spawn(panel(t))
                                     .insert(column(t.size.horses_width))
                                     .with_children(|horses| {
                                         horses.spawn(dim(t, "horses"));
@@ -1005,7 +1004,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                     });
                             }
 
-                            if place.tabs.iter().any(|tab| tab.content == Content::Inventory) {
+                            if place.content == Content::Inventory {
                                 body.spawn((panel(t), Page::Compare(p)))
                                     .insert(column(t.size.compare_width))
                                     .with_children(|compare| {
@@ -1288,9 +1287,22 @@ fn spawn_content(
             });
         }
         Content::Inventory => {
-            // A headed group for each type (#308). Every cell a group can
+            // A headed group for each type (#308). Every tile a group can
             // come to hold is here, and shows while its piece is held, so
-            // the grid follows the game with nothing rebuilt.
+            // the grid follows the game with nothing rebuilt. A tile is the
+            // piece's picture and whose it is; the pointer on it says the
+            // rest, against what the selected horse wears.
+            let tile = || Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                padding: UiRect::all(Val::Px(t.space.s)),
+                row_gap: Val::Px(t.space.xs),
+                border: UiRect::all(Val::Px(t.size.border)),
+                border_radius: BorderRadius::all(Val::Px(t.size.radius)),
+                overflow: Overflow::clip(),
+                ..default()
+            };
             for slot in Slot::ALL {
                 let name = slot.name();
                 let slot = slot.index();
@@ -1304,7 +1316,7 @@ fn spawn_content(
                     grid_template_columns: RepeatedGridTrack::minmax(
                         GridTrackRepetition::AutoFill,
                         MinTrackSizingFunction::Px(t.size.inventory_cell),
-                        MaxTrackSizingFunction::Fraction(1.0),
+                        MaxTrackSizingFunction::Px(t.size.inventory_cell),
                     ),
                     column_gap: Val::Px(t.space.s),
                     row_gap: Val::Px(t.space.s),
@@ -1319,12 +1331,10 @@ fn spawn_content(
                             SlotRow { place, tab, horse, slot },
                             When::Held(piece, slot),
                         ))
+                        .insert(tile())
                         .with_children(|cell| {
-                            cell.spawn((text(t, ""), Live(Fact::Worn(horse, slot))));
-                            spawn_pictured(cell, t, piece, |lines| {
-                                lines.spawn((dim(t, ""), Live(Fact::WornLine(horse, slot))));
-                                lines.spawn((dim(t, ""), Live(Fact::WornBy(horse))));
-                            });
+                            cell.spawn(picture_of(t, piece, t.size.inventory_picture));
+                            cell.spawn((dim(t, ""), Live(Fact::WornBy(horse))));
                         });
                     }
                     grid.spawn((
@@ -1332,12 +1342,10 @@ fn spawn_content(
                         CarriedCell { place, tab: Some(tab) },
                         When::Held(Piece::Carried, slot),
                     ))
+                    .insert(tile())
                     .with_children(|cell| {
-                        cell.spawn((text(t, ""), Live(Fact::CarriedName)));
-                        spawn_pictured(cell, t, Piece::Carried, |lines| {
-                            lines.spawn((dim(t, ""), Live(Fact::CarriedLine)));
-                            lines.spawn(dim(t, card::CARRIED));
-                        });
+                        cell.spawn(picture_of(t, Piece::Carried, t.size.inventory_picture));
+                        cell.spawn(dim(t, card::CARRIED));
                     });
                 });
             }
@@ -1951,6 +1959,7 @@ fn beside(cell: Rect, window: Vec2, gap: f32) -> UiRect {
 fn show_hover_card(
     tokens: Res<Tokens>,
     shell: Res<Shell>,
+    map: Res<Places>,
     window: Single<&Window, With<PrimaryWindow>>,
     cells: Query<(&ComputedNode, &UiGlobalTransform)>,
     card: Single<(&mut Node, &mut Visibility), With<HoverCard>>,
@@ -1979,6 +1988,14 @@ fn show_hover_card(
         && (node.left, node.right, node.top, node.bottom) != (at.left, at.right, at.top, at.bottom)
     {
         (node.left, node.right, node.top, node.bottom) = (at.left, at.right, at.top, at.bottom);
+    }
+    // In the Inventory it is the comparison, which has a table to fit.
+    let width = Val::Px(match map.content(shell.place(), shell.tab(shell.place())) {
+        Content::Inventory => tokens.size.compare_width,
+        _ => tokens.size.hover_card_width,
+    });
+    if node.width != width {
+        node.width = width;
     }
 }
 
@@ -2017,8 +2034,7 @@ fn show_place(
             Page::Place(place) => place == shell.place() && place_in_view,
             Page::Tab(place, tab) => tab == shell.tab(place),
             Page::Detail(place) => shell.detail(place).is_some(),
-            Page::Horses(place) => !inventory(place),
-            Page::Cargo(place) => shell.detail(place).is_none() && !inventory(place),
+            Page::Cargo(place) => shell.detail(place).is_none(),
             Page::Compare(place) => shell.detail(place).is_none() && inventory(place),
             Page::Card(place) => shell
                 .detail(place)
@@ -2029,7 +2045,7 @@ fn show_place(
         if node.display != wanted {
             node.display = wanted;
         }
-        // A detail opened in the Inventory has the comparison's width.
+        // A piece pinned in the Inventory has the comparison's width.
         if let Page::Detail(place) = *page {
             let columns = map.pages().nth(place).is_some_and(|page| page.horse_columns);
             let width = Val::Px(match (inventory(place), columns) {
@@ -2163,8 +2179,9 @@ fn in_view(shell: &Shell, map: &Places, game: &Game) -> (bool, bool) {
         .is_some_and(|tab| tab.content == Content::Report);
     let carried = match shell.detail(place) {
         Some(detail) => detail.item == Item::Carried,
-        // With no detail over it, the cargo is beside every tab.
-        None => page.horse_columns,
+        // With no detail over it, the cargo is beside every tab; and the
+        // Inventory shows every piece.
+        None => page.horse_columns || page.content == Content::Inventory,
     };
     let reported = report && game.reported_piece() == Some(Piece::Carried);
     (report, carried || reported)
@@ -2452,7 +2469,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 return String::new();
             };
             match detail.item.piece() {
-                // In the Inventory a piece is opened to be compared.
+                // In the Inventory a piece is pinned to be compared.
                 Some(piece) if map.content(place, detail.tab) == Content::Inventory => {
                     card::comparison(game, piece, shell.hand())
                 }
@@ -2474,7 +2491,10 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             }
         }
         Fact::Hovered => shell.pointed().map_or(String::new(), |(_, piece)| {
-            card::hovered(game, piece, shell.horse())
+            match map.content(shell.place(), shell.tab(shell.place())) {
+                Content::Inventory => card::pointed_comparison(game, piece, shell.horse()),
+                _ => card::hovered(game, piece, shell.horse()),
+            }
         }),
         Fact::CompareHint => card::compare_hint(selected),
         // Against the selected horse, the one Equip puts it on.
@@ -2487,10 +2507,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::CarriedVerdict => game
             .pending_drop()
             .map_or(String::new(), |gear| card::verdict(game, selected, gear)),
-        Fact::CarriedLine => game
-            .pending_drop()
-            .map_or(String::new(), |gear| stats_line(gear.stats)),
-        Fact::WornBy(horse) => format!("Worn by {}", game.party[horse].name),
+        Fact::WornBy(horse) => game.party[horse].name.clone(),
         Fact::ReportedName | Fact::ReportedKind | Fact::ReportedWhere => {
             let Some(at) = game.reported_piece() else {
                 return String::new();
@@ -3208,24 +3225,32 @@ mod tests {
         assert!(held(&bare, 0).is_empty());
         assert!(card::none_held(Slot::ALL[0].name()).contains("head"));
 
-        // It is one tab, with a key the game can read.
+        // It is one place of the bar and a tab of none (the owner,
+        // 2026-10-11), with a key the game can read.
         let places = Places::load();
-        let tabs: Vec<_> = places
+        let own: Vec<_> = places
             .places
             .iter()
-            .flat_map(|place| &place.tabs)
-            .filter(|tab| tab.content == Content::Inventory)
+            .filter(|place| place.content == Content::Inventory)
             .collect();
-        assert_eq!(tabs.len(), 1);
-        assert!(tabs[0].key.as_deref().and_then(key_code).is_some());
+        assert_eq!(own.len(), 1);
+        assert!(own[0].tabs.is_empty() && !own[0].horse_columns);
+        assert!(own[0].key.as_deref().and_then(key_code).is_some());
+        assert!(
+            places
+                .pages()
+                .flat_map(|place| &place.tabs)
+                .all(|tab| tab.content != Content::Inventory)
+        );
     }
 
-    /// "It must stay five places" (epic #225), in the owner's order.
+    /// The owner's five places (epic #225), in her order, and the Inventory
+    /// she gave a place of its own on 2026-10-11, beside the horses.
     #[test]
-    fn the_bar_is_the_five_places_in_order() {
+    fn the_bar_is_the_places_in_order() {
         let places = Places::load();
         let names: Vec<&str> = places.places.iter().map(|p| p.name.as_str()).collect();
-        assert_eq!(names, ["Horses", "Trade", "Map", "Town", "Journal"]);
+        assert_eq!(names, ["Horses", "Inventory", "Trade", "Map", "Town", "Journal"]);
     }
 
     /// One name for one thing: no two tabs of a place share a name, and

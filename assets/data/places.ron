@@ -2,7 +2,8 @@
 // and every control planned for each. Rename or rearrange here; no menu code
 // holds a name of its own.
 // `job` is the one line saying what is decided there. `content` names what
-// a tab shows once its system is built; a tab without one says so.
+// a tab, or a place without tabs, shows once its system is built; one
+// without it says so.
 //
 // A control is (name, does, and then whichever of these apply):
 //   does      what it does, or will do, in one plain sentence.
@@ -97,20 +98,21 @@
                         (name: "Party theme", does: "Applies one palette or emblem across the whole party.", issue: 134, proposed: true),
                     ],
                 ),
-                // Every piece the party has, by type (#308). Its cells are
-                // its controls: a press on one pins the piece's card.
-                (
-                    name: "Inventory",
-                    key: "5",
-                    job: "Every piece the party has, worn or carried, by type. Press one to compare it.",
-                    content: Inventory,
-                ),
             ],
             cargo: [
                 (name: "Filter", does: "Shows only some of the cargo: by slot, rarity, new, favourite or usable by the selected horse.", issue: 235),
                 (name: "Sort", does: "Puts the cargo in another order.", issue: 235),
                 (name: "Search", does: "Finds a piece by its name.", issue: 235),
             ],
+        ),
+        // Every piece the party has, by type (#308): a place of its own
+        // (the owner, 2026-10-11). Its tiles are its controls: the pointer
+        // on one compares it, and a press pins its card.
+        (
+            name: "Inventory",
+            key: "B",
+            job: "Every piece the party has, worn or carried, by type. Point at one to compare it; press it to equip it.",
+            content: Inventory,
         ),
         (
             name: "Trade",
@@ -237,7 +239,7 @@
             ],
         ),
     ],
-    // At the far end of the bar. Not one of the five places.
+    // At the far end of the bar. Not one of the places.
     settings: (
         name: "Settings",
         key: "S",
