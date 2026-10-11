@@ -60,6 +60,37 @@ piece was pressed in:
 
 **Formulas behind a Details control** are not built.
 
+## Colour
+
+What an item says is coloured by kind (#251), the same on every screen:
+
+| Kind | Token in `menu.ron` | Now |
+| --- | --- | --- |
+| An element's name | `colour.element` | Fire red, Ice blue, Plant green: the colour of an enemy of that element in a fight, which the scene and the deaths take from the same token |
+| A stat, with its number | `colour.stat` | health pink, attack violet, defense teal, elemental magenta |
+
+No screen chooses a colour. `show_facts` (`shell.rs`) passes every live text
+through `ink::runs` (`src/game/menu/ink.rs`), which cuts it into runs: an
+element is its whole word ("Fire"), and a stat is its word with the number
+that belongs to it ("+15 health", "health 35", "health 35 to 50 (+15)"). The
+text itself is what comes before the first colour and each run after it is a
+`TextSpan` under it; an uncoloured run keeps following the state of the part
+it is in. So a new screen that says "+2 attack" has it in violet with no
+code.
+
+- The word is always in the run, so a line reads the same with the colour
+  taken away.
+- The stat colours keep clear of the element colours, of plain text and of
+  the rarity colours in `gear.ron`; a test holds the distances.
+- A name is never coloured: a test runs every horse, enemy, rarity and piece
+  name in the data through `runs`. A piece called "Ice Veil" would fail it.
+- A new kind of line (#69's affixes) is a variant of `Ink`, its words in
+  `ink`, and a token.
+
+Not coloured: the labels of controls (the Fire, Ice and Plant buttons) and
+the reason lines, which have their own colour by state. Items carry no
+element yet; elements belong to abilities.
+
 ## The picture
 
 A stand-in for every piece until there is art (#286; the owner: "gear badly

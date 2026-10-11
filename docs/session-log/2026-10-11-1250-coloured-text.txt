@@ -1,0 +1,51 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #251, coloured text on an item (24bea67). Closed.
+    Tested (138 pass) and seen running: the menu tour at seed 6, its
+    pictures of the report, the card, the gear overview, the abilities
+    page and a fight read by this session; the owner has not looked.
+    - menu.ron: colour.element and colour.stat.
+    - src/game/menu/ink.rs cuts every live text of the menus into runs;
+      an element's name and a stat with its number are in their colour
+      on every screen, with no screen choosing one.
+    - The scene and the deaths take an enemy's colour from the same
+      token, so the fight and the text agree.
+    - docs/item-card.md, "Colour"; three pictures in
+      docs/gallery/2026-10-11-coloured-text.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - "Traits" was read as the four stats a piece adds: health, attack,
+    defense, elemental.
+  - The stat colours: health pink ff8fb0, attack violet b99cff, defense
+    teal 45d0c0, elemental magenta e56fdc. Chosen from the hues the
+    elements, the rarities and the menu's accent do not use.
+  - The element colours are the ones the enemies already had.
+  - A stat's number is coloured with its word.
+  - #251 was closed although an item has no element to colour: elements
+    belong to abilities. The affix kinds get colours with #69.
+
+FOUND
+  - A text span has its own font and colour and inherits neither, so each
+    run is given the text's.
+  - A python edit by exact text failed on scene.rs and death.rs; the Edit
+    tool did them.
+
+NOT DONE
+  - The labels of the Fire, Ice and Plant buttons are not coloured.
+  - On a pressed cell a coloured run keeps its colour on the light fill;
+    not looked at.
+  - In the narrow card "+2 elemental" can break between the number and
+    the word, as plain text did.
+  - No one who cannot tell the hues apart has looked; the words carry it.
+  - Still not filed from seven logs ago: no key scrolls the card.
+
+PICK UP
+  The next "menus" feature of 0.2.1 by next-thing.txt. #228, #229, #230,
+  #236, #250, #253 and #285 were waiting on the owner or on systems not
+  built: read each one's last comment and build the first that has a
+  part buildable now; if none has, ask the owner which to unblock.
