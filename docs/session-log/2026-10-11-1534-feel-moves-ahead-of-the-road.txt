@@ -1,0 +1,56 @@
+SESSION 2026-10-11 15:34 - feel moves ahead of the road
+=====================================================
+
+ASKED
+  "What's left on 0.2.2? What's on 0.2.3? What's on each release after that?"
+  Then: keep 0.2.2 the same, but "we need to move up a lot of visual stuff,
+  because I'm having a hard time judging the game." For 0.3.0, move the horse
+  skeleton and gaits later, move all the juice and player feedback into it,
+  and move everything else out onto another release. "We can define patches
+  here." Then: have a 0.5.0 again, maybe How a horse moves.
+
+DONE
+  Release plan rearranged on GitHub (milestones and vX.Y.Z labels, checked
+  by listing every open issue whose label did not match its milestone: none).
+    0.3.0 Every hit and choice felt  16 open  (was 0.5.0)
+    0.3.1 The road                   26 open  (was 0.3.0)
+    0.4.0 Cargo and town             20 open  (gained #137)
+    0.5.0 How a horse moves          17 open  (new: #255 and its sub-issues
+                                               that were in 0.3.0, with #187,
+                                               #247, #248)
+  0.2.1, 0.2.2 and 0.6.0 onwards are as they were, except #41 and its epic
+  #37 left 0.6.0 for 0.3.0. There is no 0.2.3.
+  Docs that named the old numbers now say 0.3.1 for the road
+  (onboarding.md, vision.md, mechanics-for-tutorial.md).
+  No code changed. cargo check and cargo test green, 152 passed.
+
+DECIDED
+  By the owner: feel and feedback come before the road; the skeleton and
+  gaits come later, as 0.5.0; patch releases may hold what a 0.X.0 does not.
+  Made for her, and reported in chat:
+    - Four of the old 0.5.0's sixteen did not go to 0.3.0, each for a stated
+      dependency: #47 (needs save #44) with its epic #38, #162 (needs the
+      boss #161) and #166 (needs primers #94, #95) went to 0.3.1; #137
+      (needs pets #106) went to 0.4.0.
+    - Pulled into 0.3.0: #10, #241, #254 from the road; #41 and epic #37
+      from 0.6.0.
+    - #95 and #176 carry the juice label but are sim rules; they stayed with
+      the road.
+
+FOUND
+  - Renaming a vX.Y.Z label carries every issue with it, open and closed, so
+    a whole release moves in two calls (label, milestone title).
+  - cargo is not on the path of a fresh shell here; prepend
+    %USERPROFILE%\.cargo\bin.
+  - 0.3.0 holds two issues whose stated dependencies are later: #45 Feel
+    settings wants save (#44, 0.3.1) and #32 Loot report cites #5 (0.6.0).
+
+NOT DONE
+  - The bodies of the moved issues were not edited; "Depends on" lines are
+    as written.
+  - 0.2.1 still has 8 open issues and 0.2.2 has 23.
+
+PICK UP
+  Run next-thing: the earliest release with open work is 0.2.1 Menus first,
+  starting with the bug #246 (the menus shrink and expand at what look like
+  random times).
