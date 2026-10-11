@@ -12,7 +12,8 @@
 //
 // The walk (procedures/walk-the-click-budget.txt) does each job that can be
 // done in the running game, both ways, and says which are over.
-// The budgets are the owner's to set.
+// The budgets are the owner's: these were set by her on 2026-10-11, after
+// the first walk.
 #![enable(implicit_some)]
 (
     jobs: [
