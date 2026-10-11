@@ -372,8 +372,9 @@ pub fn side_panel(t: &Tokens, heading: &str) -> impl Bundle + use<> {
     )
 }
 
-/// A labelled number in a box of fixed width, set against its right edge, so
-/// the number can grow without moving anything.
+/// A labelled number in a box of fixed width, so the number can grow without
+/// moving anything. The number starts beside its label: set against the far
+/// edge it sat next to the following counter and read as that one (#252).
 pub fn counter(t: &Tokens, label: &str, value: &str) -> impl Bundle + use<> {
     (
         Node {
@@ -386,7 +387,7 @@ pub fn counter(t: &Tokens, label: &str, value: &str) -> impl Bundle + use<> {
             (
                 Node {
                     width: Val::Px(t.size.counter_width),
-                    justify_content: JustifyContent::FlexEnd,
+                    justify_content: JustifyContent::FlexStart,
                     flex_shrink: 0.0,
                     ..default()
                 },
