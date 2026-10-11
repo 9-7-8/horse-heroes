@@ -1,0 +1,36 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tier 1 and 2 were empty: build and tests green, #246 waits only on
+    the owner, no sim code without a test.
+  - #253, the trail tracker: one mark per fight at the start of the
+    footer. Solid behind the party, a ringed dot where it is, an outline
+    ahead; the boss larger, on a corner, with the word "boss".
+    Tested (107 pass, one new: the marks for trails of 1 to 8 fights).
+    Seen in stills, --seed 6: town, fights 1, 3 and 4, the walk home won,
+    and --seed 1 lost; at 1120x640 too; the parts screen; the menu tour
+    (35 Tab stops, 0 out of sight). Not seen moving.
+  - docs/menu-shell.md "The trail tracker", menu-parts.md, and
+    docs/gallery/2026-10-11-trail-tracker.
+
+DECIDED (for her)
+  - It sits in the footer, first, and shows in town too (the next trail).
+  - The town sentence is now "Ready: level 0 trail. Setting out in 9s.":
+    with the tracker beside it the old one wrapped at the smallest window,
+    and the tracker shows the count.
+  - No "trail" label before the marks, for the same room.
+
+FOUND
+  - Bevy 0.20 UiTransform::from_rotation turns a node without moving its
+    layout box; the boss mark has a margin for its corners.
+  - Session log names today run ahead of the clock (this was written at
+    09:20); this one is named to sort last.
+
+NOT DONE
+  - #253 stays open for its last line: the owner looking at it in a
+    release. #246 the same.
+
+PICK UP
+  #250, the gear and inventory layout: read the issue and menus.md, then
+  run the menu tour and look at the Horses place before changing it.

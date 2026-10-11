@@ -28,7 +28,7 @@ that is open. The guidance behind it is
     | tabs of the open place                           |
     | [horses] | the open tab | [cargo] | [side panel] |
     +--------------------------------------------------+
-    | what the party is doing              [ Set out ] |  footer
+    | trail  what the party is doing       [ Set out ] |  footer
     +--------------------------------------------------+
 
 The scene is not a separate viewport. The camera's projection covers the
@@ -99,9 +99,39 @@ in view.
   health, and the day. Bags, hold and the day show "-" and keep their
   positions until the systems behind them exist. A horse in the strip is a
   control: pressing it selects that horse.
-- **The footer.** In town: what the party is ready for, the countdown, and
-  the footer's controls from the map, Set out last. On the road: where the
-  party is, and Set out unavailable.
+- **The footer.** First the trail tracker, then, in town: what the party
+  is ready for, the countdown, and the footer's controls from the map, Set
+  out last. On the road: where the party is, and Set out unavailable.
+
+## The trail tracker
+
+How many fights are left before the boss, seen without reading (#253). It
+is the first thing in the footer, so nothing beside it can move it, and it
+is there in both layouts.
+
+    [#] [#] [o] < >  boss     two behind, the third being fought, the boss ahead
+
+One mark per fight of the trail's plan, in order (`trail_mark` in
+`parts.rs`, sized by `size.trail_mark` and `size.trail_boss`):
+
+| The fight is | Its mark |
+| --- | --- |
+| behind the party | solid |
+| the one the party is at, walking to it or fighting | a thick ring in the accent colour with a dot in it |
+| ahead | a thin outline |
+| the last, the boss | the same, larger and stood on a corner, with the word "boss" after it |
+
+So the states differ by shape and not by colour alone. In town the marks
+are the next trail's, all ahead. A won trail is all solid on the walk home;
+a lost one keeps its ring on the fight that stopped the party.
+
+`trail_stops` in the shell turns the game into the marks, from
+`plan.encounters`, so a longer trail has more of them; `show_trail` redraws
+them only when that answer changes. A test holds the count and the order
+for trails of one to eight fights.
+
+The footer's sentence in town no longer counts the encounters: the tracker
+does, and with both the sentence wrapped at the smallest window.
 
 ## How a place keeps its state
 

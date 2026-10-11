@@ -21,6 +21,8 @@ Each is a function that takes the tokens and returns a bundle to spawn.
   `card` (the item card frame; its lines are added as children).
 - Without states: `panel`, `side_panel` (title and Close), `counter`,
   `reason` (the line that says why a control is unavailable),
+  `trail_mark` (one fight in the footer's trail tracker: behind, here or
+  ahead, and whether it is the boss),
   `confirmation` on a `scrim` (the one modal).
 - Text: `text`, `dim`, `title`.
 
