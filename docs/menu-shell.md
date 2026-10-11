@@ -158,7 +158,7 @@ Three systems follow it each frame: `show_place` shows and hides,
 makes Set out unavailable on the road), and `show_facts` fills in every text
 that follows the game. A text, counter or row that should follow the game
 carries `Live(Fact)`; `fact` is the one place that turns game state into
-words.
+words. Two more, `see` and `mark_unseen`, keep the marks (see Marks).
 
 One observer, `on_activate`, handles every control of the shell: what a
 press does depends on which marker the control carries (`PlaceButton`,
@@ -475,6 +475,55 @@ report dropped (same name, slot, rarity and stats) counts as it.
 Still to come: the loot, trail and stall reports as separate reports (#32,
 #51, #170), the Journal tab (#107) and the Codex (#30).
 
+## Marks
+
+A place says when it has something the player has not seen, and stops when
+it has been seen (#232, `docs/philosophy/menus.md`, A place says when it
+wants attention). The mark is a round dot in the corner of the place in the
+bar, and of the tab the thing is on. It is a state of the `tab` part
+(`Unseen`, [menu-parts.md](menu-parts.md)).
+
+What raises one is `marks` in `places.ron`: a `raise`, the `place` it
+marks, and the `tab` when the thing is on one.
+
+| `raise` | There is a mark while | It is seen when |
+| --- | --- | --- |
+| `Upgrade` | the piece in the cargo betters what some horse wears | the cargo column shows, or the piece's card, or the report that shows the piece |
+| `Report(lost, rarity)` | the newest report kept is of a trail that was lost (`lost`), or that dropped a piece of at least `rarity` | that report shows, on its tab |
+
+Today: an upgrade marks Horses, and a lost trail or a Legendary piece or
+better marks Journal, Report. A trail simply won, a common drop and a
+piece that is no upgrade raise nothing.
+
+- **Seen is in view.** `in_view` in the shell says which of the two is
+  showing, `see` tells the game each frame, and `Game::wants` is what
+  `mark_unseen` asks for every place and tab. A slot's card standing over
+  the cargo hides the cargo, so the upgrade is not seen through it.
+- **It does not come back for the same thing.** The game keeps the trail
+  whose drop was seen and the newest report read. A piece equipped and
+  taken back with Undo is the same piece.
+- **Only the newest report raises one.** So a long absence leaves at most
+  one report marked, not twenty, and a lost trail that another has
+  followed raises nothing.
+- **Two actions at most.** In town the Journal opens on the report, or it
+  is one tab away. On the road the Journal opens on the fight and the
+  mark stays: the report is behind it, and Earlier (`[`) is on it in one
+  press from anywhere.
+- A new kind of thing is a new `Raise` in `src/game/mod.rs`, with what
+  seeing it is, and a line in `places.ron`.
+
+Tests: the rules of the file point at a place that shows their thing and
+name a rarity `gear.ron` has; a mark leads to its thing in two actions,
+goes when it is seen and stays gone; three hundred trails unwatched raise
+a report's mark only for the newest.
+
+Chosen without the owner: Legendary as the rarity, the dot and its blue,
+and that a report showing the piece counts as seeing the upgrade.
+
+Still to come, each with its system: a mark for an unspent ability point
+(#220), a new look (#92), a recruit to meet (#116) and a project that can
+take a delivery (#172).
+
 ## Looking at it
 
     $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
@@ -485,9 +534,9 @@ each into the folder (which must exist), sends the party off, photographs
 the road view
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
-page scrolling to it), waits for the party to come home, and then makes a town visit by keys
+page scrolling to it), waits for the party to come home, opens the report, and then makes a town visit by keys
 alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, C, 2, I and F on the abilities, T, 3, S,
-K for the list of keys, Escape twice, Space to set out, and on the road J, 1, [ for the report of the trail before, a press on its piece, Escape, ] back to the latest, and Escape. Then it exits. Those
+K for the list of keys, Escape twice, Space to set out, and on the road J, 1, [ for the report of the trail before, a press on its piece, Escape, ] back to the latest, and Escape. Both times the party comes home, Trade is open, so that the marks are in the picture before a press clears them (the second time: T on the road, then H in town). Then it exits, in town, after about two and a half minutes. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written
 in `plan_tour`, so a key changed in `places.ron` is changed there too. The

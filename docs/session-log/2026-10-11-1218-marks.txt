@@ -1,0 +1,61 @@
+ASKED
+  "next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #232, a place says when it wants attention (1c050db). Closed.
+    Tested (129 pass) and seen running, read by this session; the owner
+    has not looked.
+    - A round dot in the corner of a place in the bar, and of the tab the
+      thing is on. What raises one is `marks` in places.ron.
+    - Two things raise one today: an upgrade in the cargo marks Horses; a
+      lost trail or a Legendary piece or better in the newest report
+      marks Journal, Report.
+    - Seen is in view: the cargo column, the piece's card or the report
+      that shows it; the report on its tab. A mark that has gone does not
+      come back for the same thing. Tested, with Undo putting the piece
+      back, and across a departure.
+    - Only the newest report can raise one. Tested over 300 trails with
+      nobody looking.
+    - Menu tour at 1120x640, pictures 32, 33, 58 and 59, and the parts
+      screen; all five are docs/gallery/2026-10-11-marks.
+    - docs/menu-shell.md has "Marks"; menu-parts.md has the new state.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The mark is a round dot, light blue (5cc8ff), top right of the tab.
+  - Legendary is the rarity a report is marked for (rules in places.ron).
+    At Rare about three won trails in ten would mark the Journal.
+  - A piece that is an upgrade marks Horses, not the Journal.
+  - The report showing the piece counts as seeing the upgrade, so one
+    press on Journal can clear both marks.
+  - On the road the mark stays on Journal with the fight showing: the
+    report is one press of [ behind it.
+  - #232 is closed with the two things that exist. The other four it
+    names wait on their systems: #220, #92, #116, #172 (noted on each).
+
+FOUND
+  - With no input the Horses mark is hardly ever seen: town opens on
+    Horses, where the cargo is in view, and the party takes the upgrade
+    itself after 12 seconds. It shows when the player is elsewhere.
+  - The menu tour now takes about two and a half minutes: it waits for a
+    second trail to come home.
+
+NOT DONE
+  - The dot was not looked at by the owner, nor with colour taken away
+    by anything but the test of its lightness against a tab's fills.
+  - A lost trail raising the Journal's mark was tested, not seen in a
+    picture: seed 6 wins its first six trails.
+  - The mark on a tab inside a place (Report, with Journal open on
+    another tab or on the road) was tested and is on the parts screen,
+    not in a tour picture.
+  - Nothing says in words what a dot means: no tooltip, no line. A
+    lesson for it is #290's, after 0.2.2.
+  - Still not filed from five logs ago: no key scrolls the card.
+
+PICK UP
+  The next "menus" feature of 0.2.1 by next-thing.txt: #236, a click
+  budget for the common jobs, walked in the running game. #228, #229,
+  #230, #250, #253 and #285 wait on the owner or on systems not built;
+  #251 comes after #236 by number.

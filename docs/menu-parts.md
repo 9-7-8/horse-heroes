@@ -38,6 +38,13 @@ tracked by Bevy (`Hovered`, `Pressed`, `InputFocus`), and every interactive
 part is a headless `bevy::ui_widgets::Button`, so it sends `Activate` on a
 click, or on Enter or Space when focused.
 
+A `tab` has one more state, beside the six: `Unseen`, for a place or tab
+with something not yet seen (#232, menu-shell.md, Marks). It shows the
+attention mark, a round dot in the tab's top corner (`size.attention`,
+`colour.attention`), edged in the screen's colour. It is round where the
+selected mark is a bar, and out of the layout. A test holds its colour
+apart from every fill a tab can have with the colour taken away.
+
 ## How a state looks
 
 `paint` is the only place that decides, from the colour tokens:

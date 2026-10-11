@@ -67,8 +67,8 @@ Use the cheapest step that can prove the change:
    IDLE_TOUR walks the menus instead (docs/menu-shell.md): it presses
    through every place and tab, then the road view and the move between
    the layouts, then a town visit by keys alone, saves a numbered PNG of
-   each into the folder it names (create it first), and exits on the road
-   after setting out a second time (about 80 s):
+   each into the folder it names (create it first), and exits in town
+   after the second trail (about two and a half minutes):
        $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
    The tour logs "tour: Tab makes N stops, M of them out of sight"; M is
    0, and anything else is a hidden page taking the focus (#244).

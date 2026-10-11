@@ -101,7 +101,9 @@ exists, but should not send a new player to press one.
 
 - **Undo** for everything reversible; confirmation only for what cannot be
   taken back (#230).
-- **A place says when it wants attention** and stops once seen (#232).
+- **A place says when it wants attention** and stops once seen (#232,
+  built: a dot on Horses for an upgrade in the cargo, on Journal for a
+  lost trail or a Legendary drop).
 - **Journal** as the one home for reports, journal and codex (#231).
 - **Coloured text** per element and trait on items (#251).
 - **Click budget** for the common jobs (#236).
