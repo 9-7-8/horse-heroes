@@ -20,7 +20,7 @@ the new rate, the bottleneck and the payback time is good feedback.
 **Quick early rewards, real later decisions.** The opening teaches the loop
 fast: first resource, first upgrade, first visible gain, first automation,
 first moment the game carries on by itself. After that, progress must shift
-from speed to choice.
+from speed to choice. How the opening teaches is [onboarding.md](onboarding.md).
 
 > Keep changing the question, not merely enlarging the answer.
 

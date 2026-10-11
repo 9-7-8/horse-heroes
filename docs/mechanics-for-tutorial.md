@@ -14,6 +14,10 @@ unlock order in one data file, one new thing at a time, each tied to the
 event that makes it relevant, and "the first trail needs no decisions at
 all". A tutorial design should become that file.
 
+**Since this was written (2026-10-11):** the tutorial documents written from
+it are taken in. The guidance is `philosophy/onboarding.md`; the opening is
+release 0.2.2, epic #288; #47 is now the lessons of the later systems.
+
 ## 1. The one thing to teach first
 
 The player is the **organiser**, not a rider. There is no avatar. Horses
