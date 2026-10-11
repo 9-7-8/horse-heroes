@@ -550,7 +550,7 @@ Set are the tiers with a beam.
 - **The game starts on the road.** The player learns the basics of combat by
   watching them happen. In 0.2.2 that is what is built, the three abilities
   and the loot; "they see the setup, they see the finishers" holds once
-  0.3.0 ships them, and they join the watched opening then.
+  0.3.1 ships them, and they join the watched opening then.
 - **The first town does not leave by itself.** "You need to give the player
   a chance to breathe, to get acquainted... that point in the town will
   really be their first chance to explore the UI, so we need to not rush

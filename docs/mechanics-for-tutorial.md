@@ -9,7 +9,7 @@ is my reading and not the owner's words, it says "mine".
 For each mechanic: **what the player decides**, **what happens by itself**,
 and **status** (Built, or the release it is planned for).
 
-The existing issue for tutorial pacing is **#47, Opening pacing** (0.5.0): an
+The existing issue for tutorial pacing is **#47, Opening pacing** (0.3.1): an
 unlock order in one data file, one new thing at a time, each tied to the
 event that makes it relevant, and "the first trail needs no decisions at
 all". A tutorial design should become that file.
@@ -111,7 +111,7 @@ exists, but should not send a new player to press one.
 - **Coloured text** per element and trait on items (#251).
 - **Click budget** for the common jobs (#236).
 
-### 0.3.0 The road
+### 0.3.1 The road
 
 Combat stops being one element for the party and becomes cooperation.
 
@@ -173,7 +173,7 @@ The second half of the loop: selling.
 - **Adopt a pet and assign it to a horse** (#106).
 - **Health returns over time while waiting in town** (#218), not instantly.
 
-### 0.5.0 Every hit and choice felt
+### 0.3.0 Every hit and choice felt (ahead of the road since 2026-10-11)
 
 Mostly feedback, and the release the tutorial itself belongs to.
 
@@ -315,9 +315,9 @@ asks. Steps 1 to 4 work in the game as built.
 | 3 | Press a piece, read its card, Equip on the selected horse | First gear drop | Yes |
 | 4 | The trail tracker, and that a win makes the next trail harder | Second trail | Yes |
 | 5 | Elements: what beats what | First loss, or first resisted fight | Yes, as a party element |
-| 6 | Failure is cheap and the party waits for you | First loss | 0.3.0 |
-| 7 | Choosing a destination; corrupt towns end in a boss | First town reached | 0.3.0 |
-| 8 | Primer then Finisher makes a reaction | First hard fight | 0.3.0 |
+| 6 | Failure is cheap and the party waits for you | First loss | 0.3.1 |
+| 7 | Choosing a destination; corrupt towns end in a boss | First town reached | 0.3.1 |
+| 8 | Primer then Finisher makes a reaction | First hard fight | 0.3.1 |
 | 9 | Cargo, and listing at the stall | First bag with spare gear | 0.4.0 |
 | 10 | Prices and goodwill | First sale | 0.4.0 |
 | 11 | Slots have jobs; ability points and loadouts | First level up | 0.6.0 |
@@ -328,7 +328,7 @@ asks. Steps 1 to 4 work in the game as built.
 ## 6. Things a tutorial design will run into
 
 - **The built element system will be replaced.** One element for the whole
-  party (step 5) goes in 0.3.0, when elements move to abilities. Anything
+  party (step 5) goes in 0.3.1, when elements move to abilities. Anything
   taught about it now is taught twice.
 - **Auto-equip hides the decision.** A drop left alone is equipped by itself
   at setting out, so a new player can go several trails without opening a
