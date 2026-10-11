@@ -40,7 +40,8 @@ Use the cheapest step that can prove the change:
    their way. Real kills, --seed 6: the first enemy falls at 21.3 s (its
    small drop is in the air at 21.6, its coins arriving at 23.85) and the
    final one at 64.5 s (its flash at 64.86, its fountain in the air at
-   65.9, its coins arriving at 68.6; the party is back in town by 70).
+   65.9, its coins arriving at 68.6; it is walking back to town at 71.5,
+   the gate coming up the trail, and is in town by 76).
    A death (docs/death-events.md), --seed 6: the first enemy is in
    shards at 21.6 and only its mark is left at 22.3; the final one is
    falling at 64.62, bursts at 64.95, and its shards are going at 66.0,
@@ -49,7 +50,7 @@ Use the cheapest step that can prove the change:
    enemy drawing off.
    The horses (docs/horse-model.md): --bare starts with their hair hidden
    and F5 toggles it. They stand still in a fight (IDLE_SHOT_AT=17) and
-   are walking in town at 3, so a picture of the build is taken at 17.
+   in town (3), beside the town gate; they are walking at 13.5.
    The test burst's flash, on the road: --burst --burst-at 14 at 14.36.
    A flash lasts a third of a second, so a picture of one is a matter of
    a few hundredths.

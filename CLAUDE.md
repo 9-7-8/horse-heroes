@@ -43,6 +43,10 @@ git history, how a system works goes in `docs/`, a routine goes in
    is replaced late, so nothing may depend on a specific model.
 4. **Numbers are data.** Items, affixes, rarities, monsters and drop tables
    live in data files, not in match arms.
+5. **Menus first.** "This game is all menus, and it lives and dies on how
+   easy its menus are to navigate." A menu change is the highest priority
+   and rides the next release, so the menus are tested early and often.
+   (Owner, 2026-10-11.)
 
 ---
 ## Stack

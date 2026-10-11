@@ -1,0 +1,38 @@
+ASKED
+  "it seems that the menu shrinks and expands when I get new gear. It
+  shouldn't do this ... It should stay where it is until you reach the
+  village." An indication of how many fights are left before the boss.
+  Parallax for the scrolling scene. And a standing rule: "Any menu changes
+  should always be considered highest priority, and should always ride the
+  next release."
+
+DONE
+  - #246: a finished trail ends with a walk back to town; a town gate
+    comes up the trail and the menus open when the party stops at it. The
+    party stands still in town. (106 tests pass; seen running: pictures of
+    --seed 6 read at 3, 71.5 and 76 s)
+  - Menus first is pillar 5 in CLAUDE.md and step 0 of next-thing.txt.
+  - Filed #253 (fights left before the boss) and #254 (parallax).
+  - menu-shell.md, expedition.md and build-and-run.txt say what is now
+    true.
+
+DECIDED (for her)
+  - The walk back is as long as the walk between two encounters
+    (travel_secs), and happens after a loss as well as a win.
+  - The gate is three timber boxes on the far side of the trail.
+  - #253 and #254 are in 0.3.0.
+
+FOUND
+  - A gate across the trail is seen end-on by this camera and reads as a
+    pole; it has to face the camera.
+
+NOT DONE
+  - A lost trail's walk back was not looked at (--seed 1).
+  - The menu tour (IDLE_TOUR) was not rerun; its timing waits for the
+    party to come home and may need the four seconds more.
+  - #246 stays open until the owner has watched it in a release.
+  - None of this is in an installer yet.
+
+PICK UP
+  Run the menu tour (build-and-run.txt, IDLE_TOUR, --seed 6) and read its
+  last pictures, then #253.

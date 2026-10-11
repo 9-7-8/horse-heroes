@@ -65,7 +65,12 @@ sized against.
 Which layout is wanted follows one thing, `Shell::is_open`:
 
 - Setting out closes the open place; arriving opens it again, as it was
-  left.
+  left. **Nothing else moves the layout by itself.** Arriving is something
+  the player sees: when a trail is over the party walks back, for as long
+  as it walks between two encounters, the town gate comes up the trail, and
+  the place opens as the party stops at it (#246). Until then the footer
+  says "On the way back to town." A drop does not move the layout: gear
+  cannot be used before town.
 - On the road, a press on a place in the bar opens it. A press on the place
   that is open, or Escape with no side panel open, closes it.
 - In town a place is always open.

@@ -13,6 +13,11 @@ Keys, in camp only: `1` Fire, `2` Ice, `3` Plant, `E` equip the drop,
 `Space` set out now. Camp leaves by itself after 12 s and equips the drop
 first if it is an upgrade.
 
+A trail that is over, won or lost, ends with a walk back to town
+(`Game::secs_to_town`, as long as `travel_secs`): the party is in town only
+when it has reached the town gate, and it stands still there. The walk is
+presentation, in `src/game/mod.rs`; the sim's trail is already finished.
+
 ## Where things are
 
 | Part | File |

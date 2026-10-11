@@ -14,6 +14,13 @@ BEFORE PICKING
   - cargo check and cargo test (build-and-run.txt). Red is tier 1.
 
 THE ORDER
+0. Menus first (owner, 2026-10-11: "Any menu changes should always be
+   considered highest priority, and should always ride the next release.
+   This game is all menus"). Inside each tier below, an issue labelled
+   "menus" comes before one that is not, whatever its milestone. A menu
+   change that is finished goes out in the next release; it does not wait
+   for the release its milestone names.
+
 1. Bugs.
    a. A red build, a failing test, or a warning nobody has dealt with.
    b. Open issues labelled "bug":
