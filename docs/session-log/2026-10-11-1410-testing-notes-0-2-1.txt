@@ -1,0 +1,48 @@
+ASKED
+  The owner's testing notes on 0.2.1:
+  "1) the game should start and they're instantly walking
+   2) we need some kind of combat log tab in addition to the damage/heal
+      numbers. This should be overlayed on the horses walking screen,
+      probably on the left.
+   3) they shouldn't automatically leave town by default unless the user
+      has set up an itinerary that spans through multiple towns, which
+      they have to do on the world map.
+   4) clicking the road where the horses are should collapse the menu
+      back down"
+  and then: "I see we already have a combat log under journal. Move that"
+
+DONE
+  Recorded by record-a-design-change.txt. Nothing was built.
+  - 1: already #292 (0.2.2); a comment that she asked again.
+  - 2: #306, the fight log moves out of the Journal and lies over the
+    road scene, on the left.
+  - 3: #305, no town leaves by itself; a Keep going switch stands in for
+    the itinerary. #302 closed as replaced by it. Comments on #201 (set
+    on the world map, more than one town; it removes the switch) and
+    #297 (how to read it now).
+  - 4: #307, a press on the road scene closes the open place.
+  - vision.md, "Leaving town"; CLAUDE.md, pillar 2.
+  All three new issues are 0.2.2, labelled menus.
+
+DECIDED
+  The owner: a stopgap in 0.2.2 (a Keep going switch, off by default),
+  over moving the itinerary to 0.3.0 or leaving the game to stop at every
+  town until 0.7.0.
+  Made for her, hers to overrule:
+  - Keep going stops after a lost trail, as an itinerary would.
+  - The log shows a few of the latest lines, can be hidden by a key, and
+    the Journal's report no longer carries it.
+  - A press on the scene does nothing in town.
+
+FOUND
+  - Notes 1 and 3 together make #302 pointless: with the switch off in a
+    new game the first town waits like any other.
+
+NOT DONE
+  - Her view of #246, #250, #253 and #285 in 0.2.1 was not asked; these
+    notes do not mention them.
+
+PICK UP
+  Build #307, a press on the road scene closes the open place: the
+  smallest of the three menu issues from her testing, and it waits on
+  nothing. Then #306, then #292 and #305.

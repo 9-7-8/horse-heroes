@@ -38,9 +38,10 @@ git history, how a system works goes in `docs/`, a routine goes in
 2. **Idle first.** The road runs with no input, and a party with an itinerary
    keeps travelling by itself. Town is where the player decides. The party
    waits in town in two cases: after a failed journey, and when its itinerary
-   is empty; the stall sells meanwhile. (Owner, 2026-10-10.) A third, from
-   0.2.2: the first town of a new game waits for the player. (Owner,
-   2026-10-11.)
+   is empty; the stall sells meanwhile. (Owner, 2026-10-10.) No town leaves
+   by itself without an itinerary, which is set on the world map and spans
+   more than one town; until it exists (#201) a Keep going switch, off by
+   default, stands in for it (#305). (Owner, 2026-10-11.)
 3. **Simple 3D.** Primitive meshes and flat colours until the loop is fun. Art
    is replaced late, so nothing may depend on a specific model.
 4. **Numbers are data.** Items, affixes, rarities, monsters and drop tables

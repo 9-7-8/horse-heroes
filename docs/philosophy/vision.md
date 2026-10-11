@@ -230,6 +230,8 @@ recommendation, this section is the newer statement.
 - **The party follows an itinerary** of destinations the player queues. After
   a success it sells until sold out or a set time passes, then leaves. With
   an empty itinerary, or after a failure, it waits.
+  *2026-10-11: it is set on the world map and spans more than one town;
+  see "Leaving town".*
 
 ### Cargo, the stall and the caravan (#83, #84, #144)
 
@@ -554,12 +556,32 @@ Set are the tiers with a beam.
   them through it." The party waits there until the player sets out (#302).
   This is a third case of waiting in town, beside a failed journey and an
   empty itinerary; later towns leave by themselves as before.
+  *Replaced 2026-10-11 by "Leaving town" below: no town leaves by itself,
+  so the first is no longer a special case (#302 closed for #305).*
 - **A first-town list of things to try**, each paying a small amount of
   coins when done, "like clicking or equipping an item" (#303). A short list
   for the first town, kept as data so a later feature can add its entry; not
   a general quest system.
 - The opening is release 0.2.2 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
+
+## Leaving town (owner, testing 0.2.1, 2026-10-11)
+
+- **No town leaves by itself by default.** "They shouldn't automatically
+  leave town by default unless the user has set up an itinerary that spans
+  through multiple towns, which they have to do on the world map." The
+  countdown goes; the party waits at the gate until the player sets out.
+- **An itinerary is set on the world map and spans more than one town**
+  (#201). It is the only thing that makes the party leave a town by itself.
+- **Until the itinerary exists, a Keep going switch stands in for it**
+  (#305): off by default, in town, for the one repeating trail. She chose
+  this over the game stopping at every town until #201. It is a stopgap and
+  is removed when the itinerary ships.
+- **The game starts and the horses are instantly walking** (#292, said
+  again).
+- **The fight log lies over the road scene, on the left**, beside the damage
+  and heal numbers, and moves out of the Journal (#306).
+- **A press on the road where the horses are closes the open place** (#307).
 
 ## The design priority
 
