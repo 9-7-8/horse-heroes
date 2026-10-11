@@ -21,7 +21,7 @@ use bevy::{
         FocusCause, InputFocus, InputFocusVisible,
         tab_navigation::{NavAction, TabNavigation},
     },
-    picking::pointer::{Location, PointerAction, PointerId, PointerInput},
+    picking::pointer::{Location, PointerAction, PointerButton, PointerId, PointerInput},
     prelude::*,
     render::view::screenshot::{Screenshot, save_to_disk},
     ui::UiGlobalTransform,
@@ -117,6 +117,8 @@ enum Step {
     Point,
     /// Move the pointer off the menus, onto the scene.
     PointAway,
+    /// Press the scene with the pointer, above where any menu reaches (#307).
+    Scene,
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -232,6 +234,10 @@ impl Tour {
     }
 }
 
+/// A point of the scene in a window of any size: the smallest window is
+/// wider than this, and the scene never has less than a third of its height.
+const ON_THE_SCENE: Vec2 = Vec2::new(560.0, 100.0);
+
 /// Seconds for a press to show before the picture is taken: longer than the
 /// scene takes to move between its layouts.
 const SETTLE: f32 = 0.7;
@@ -285,6 +291,8 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("ice chosen".into()),
         Step::Control("Fire"),
         Step::Tab(0, 0),
+        // In town a press on the scene changes nothing (#307).
+        Step::Scene,
         Step::Shot("side panel still open on its tab".into()),
         Step::Place(places.places.len() - 1),
         Step::Tab(places.places.len() - 1, 0),
@@ -315,6 +323,15 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("closing it midway".into()),
         Step::Wait(SETTLE),
         Step::Shot("closed and the scene expanded again".into()),
+        // A press on the scene (#307): nothing with every place closed, and
+        // with one open, side panel and all, it is put away.
+        Step::Scene,
+        Step::Shot("a press on the scene with every place closed".into()),
+        Step::Place(0),
+        Step::Horse(2),
+        Step::Shot("a place open on the road again".into()),
+        Step::Scene,
+        Step::Shot("a press on the scene closes the place".into()),
         // The marks (#232): the party comes home to a place that shows
         // neither the cargo nor the report, so both are still unseen; the
         // report shows both, and both marks go.
@@ -671,6 +688,7 @@ fn tour(
         | Step::TabRound
         | Step::Point
         | Step::PointAway
+        | Step::Scene
         | Step::Wait(_)
         | Step::SetOut
         | Step::Town
@@ -760,7 +778,7 @@ fn tour(
         }
         info!("tour: Tab makes {stops} stops, {unseen} of them out of sight");
     }
-    let mut point = |position: Vec2| {
+    let mut send = |position: Vec2, action: PointerAction| {
         if let Some(window) = WindowRef::Entity(*window).normalize(None) {
             pointer.write(PointerInput::new(
                 PointerId::Mouse,
@@ -768,19 +786,25 @@ fn tour(
                     target: NormalizedRenderTarget::Window(window),
                     position,
                 },
-                PointerAction::Move { delta: Vec2::ZERO },
+                action,
             ));
         }
     };
+    let moved = PointerAction::Move { delta: Vec2::ZERO };
     if let Step::PointAway = step {
-        point(Vec2::ONE);
+        send(Vec2::ONE, moved.clone());
+    }
+    if let Step::Scene = step {
+        send(ON_THE_SCENE, moved.clone());
+        send(ON_THE_SCENE, PointerAction::Press(PointerButton::Primary));
+        send(ON_THE_SCENE, PointerAction::Release(PointerButton::Primary));
     }
     if let Some(entity) = pressed {
         if !std::mem::take(&mut tour.pointing) {
             commands.trigger(Activate { entity });
         } else if let (Ok(node), Ok(transform)) = (nodes.get(entity), transforms.get(entity)) {
             let (_, _, middle) = transform.to_scale_angle_translation();
-            point(middle * node.inverse_scale_factor());
+            send(middle * node.inverse_scale_factor(), moved);
         }
     }
     let mut wait = SETTLE;

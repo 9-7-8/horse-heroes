@@ -13,7 +13,7 @@ use bevy::{
         tab_navigation::TabGroup,
     },
     math::CompassOctant,
-    picking::hover::Hovered,
+    picking::{events::PointerPress, hover::Hovered, pointer::PointerButton},
     prelude::*,
     ui::{InteractionDisabled, ScrollPosition, Selected, UiGlobalTransform},
     ui_widgets::{
@@ -507,6 +507,15 @@ impl Shell {
         }
     }
 
+    /// A press on the scene (#307). On the road it puts the open place away,
+    /// whatever is open in it, and the scene has its room back. In town,
+    /// where a place is always open, it does nothing.
+    pub fn press_scene(&mut self, in_town: bool) {
+        if !in_town {
+            self.close();
+        }
+    }
+
     pub fn choose_tab(&mut self, place: usize, tab: usize) {
         if place < self.tabs.len() {
             self.tabs[place] = tab;
@@ -706,6 +715,11 @@ struct HoverCard;
 #[derive(Component)]
 struct ShellRoot;
 
+/// What a press on the scene lands on (#307): the whole window, behind
+/// every menu.
+#[derive(Component)]
+struct SceneCatcher;
+
 /// The trail tracker's marks, in the footer: one per fight of the trail.
 #[derive(Component)]
 struct TrailTracker;
@@ -833,6 +847,25 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
         ..default()
     };
 
+    // Behind the menus, so only a press that no menu takes reaches it. The
+    // fight log and the pointer's card let a press through, but neither is
+    // ever under the pointer with a place open: the log is away, and the
+    // card is up only while the pointer is on its piece.
+    commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(0.0),
+                bottom: Val::Px(0.0),
+                left: Val::Px(0.0),
+                right: Val::Px(0.0),
+                ..default()
+            },
+            GlobalZIndex(-1),
+            SceneCatcher,
+        ))
+        .observe(on_scene_press);
+
     commands
         .spawn((
             Node {
@@ -922,7 +955,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                 .with_children(|line| {
                     line.spawn(dim(
                         t,
-                        "On the road. Open a place to look and plan; press it again, or Escape, to give the scene its room back.",
+                        "On the road. Open a place to look and plan; press it again, the scene, or Escape, to give the scene its room back.",
                     ));
                 });
                 for (p, place) in places.pages().enumerate() {
@@ -1574,6 +1607,13 @@ fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Cont
     let unbuilt = unbuilt_line(controls, hint);
     if !unbuilt.is_empty() {
         parent.spawn(reason(t, &unbuilt));
+    }
+}
+
+/// A press on the scene closes the place that is open on the road (#307).
+fn on_scene_press(press: On<PointerPress>, game: Res<Game>, mut shell: ResMut<Shell>) {
+    if press.button == PointerButton::Primary && shell.is_open() {
+        shell.press_scene(game.in_town());
     }
 }
 
@@ -3788,6 +3828,31 @@ mod tests {
         shell.open(0);
         assert_eq!(shell.tab(0), 1);
         assert_eq!(shell.detail(0), Some(detail));
+    }
+
+    /// A press on the scene (#307) puts the place away on the road, side
+    /// panel and all, and it is found as it was left; in town, and with
+    /// every place closed, it changes nothing.
+    #[test]
+    fn a_press_on_the_scene_closes_the_place_on_the_road_only() {
+        let mut shell = Shell::new(5);
+        let detail = Detail {
+            tab: 0,
+            item: Item::Worn { horse: 0, slot: 2 },
+            opener: None,
+        };
+        shell.open(1);
+        shell.show_detail(1, detail);
+        let in_town = shell.clone();
+        shell.press_scene(true);
+        assert_eq!(shell, in_town, "nothing in town");
+        shell.press_scene(false);
+        assert!(!shell.is_open());
+        let closed = shell.clone();
+        shell.press_scene(false);
+        assert_eq!(shell, closed, "nothing with every place closed");
+        shell.open(1);
+        assert_eq!(shell, in_town, "as it was left");
     }
 
     /// The pointer shows the card of a piece (#228), and not of an empty
