@@ -1,0 +1,35 @@
+ASKED
+  "next": the next thing by next-thing.txt.
+
+DONE
+  - Tier 1: the build was green (108 pass, no warnings). The one open bug,
+    #246, is fixed and waits on the owner watching a few trails, so there
+    was nothing in it to do.
+  - Tier 2, tests for sim rules nothing asserted. Tested (111 pass); no
+    game code changed, so nothing was run or looked at.
+    - An enemy's hit is its attack less the horse's defense, never less
+      than 1, and lands only on a horse still standing.
+    - A fallen horse does nothing more: no hit and no ability.
+    - A lost trail brings back a piece only past its first encounter, and
+      no enemy drops it.
+    - data_files_are_consistent now also checks: no two horses share a
+      name, no horse or enemy stat is negative, the spring's heal is a
+      fraction, the weak multiplier is above 0, Focused Shot is worth more
+      than a hit, and the Ward is down before it comes round again.
+
+DECIDED
+  Nothing.
+
+FOUND
+  - No test failed: the new tests found no bug.
+  - The session logs of 2026-10-11 are named about an hour ahead of the
+    clock (1030 was written at 09:33). This one is named 1040 to keep
+    them in order by name.
+
+NOT DONE
+  - #285 was not started: one part, one session.
+  - #246 and #250 stay open for the owner to watch and play.
+
+PICK UP
+  #285, the overview of all the gear: read the issue and menus.md, then
+  lay out on the Gear tab what all three horses wear beside the cargo.
