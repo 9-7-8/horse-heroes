@@ -60,6 +60,45 @@ piece was pressed in:
 
 **Formulas behind a Details control** are not built.
 
+## Under the pointer
+
+The pointer resting on a piece shows its card beside it, in the gear
+overview, the cargo and the report (`card::hovered`; `point`,
+`show_hover_card` and `Shell::points_at` in `shell.rs`):
+
+    Sunforged Halter
+    Legendary, Head  +15 health  +2 attack  +4 defense  +2 elemental
+    Carried in the cargo.
+
+    On Sable, who wears nothing there:
+    health 35 to 50 (+15)
+    ...
+    An upgrade: +11 points.
+
+    A press pins it, with its actions.
+
+- It is the pinned card's own lines (`face`), so the two cannot differ. What
+  Equip would do is not on it: a consequence is said beside the action,
+  never only under the pointer (menus.md).
+- It shows nothing that a press does not: nothing is reachable by hover
+  alone. A press pins the card, as before.
+- The first card waits for the pointer to rest (`time.hover_card` in
+  `menu.ron`, 0.25 s), so a pointer on its way elsewhere raises nothing.
+  With a card up, the next piece's shows at once.
+- No card for an empty slot, nor for the piece whose card is pinned beside
+  it already.
+- It is one node over the shell, out of the layout, so it moves nothing,
+  and the pointer passes through it (`Pickable::IGNORE`). It stands beside
+  its cell on the side of the window with more room, from the cell's top
+  or bottom edge towards the middle, so it is never over its own piece
+  (`beside`; a test holds it at the smallest window). Its width is
+  `size.hover_card_width`.
+- It can stand over the scene while the pointer rests, on the road too.
+
+Pictures: `docs/gallery/2026-10-11-hover-card`. The menu tour moves Bevy's
+pointer onto a piece (`Step::Point`), so the hover is the real one; a hand
+on a mouse has not tried it.
+
 ## Colour
 
 What an item says is coloured by kind (#251), the same on every screen:
@@ -204,7 +243,6 @@ or moved; an empty slot and an empty cargo say what belongs there.
 
 - The card in the stall, storage and the codex: none of those lists exists.
 - List and Favourite from the card: #99 and the favourite mark (#150).
-- Hover showing the card. Today a press pins it.
 - Dragging a piece to a slot.
 - The indicators of #150: new, equipped, favourite, look owned, listed.
 - Formulas behind a Details control.

@@ -1,0 +1,53 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #228, the part that could be built now: the pointer resting
+    on a piece shows its card beside it (c08a174). #228 stays open.
+    Tested (141 pass) and seen running: the menu tour at seed 6, 1120x640,
+    with the tour moving Bevy's own pointer; its pictures of the card
+    beside the drop in the cargo, beside a worn piece, and gone once the
+    piece is pinned were read by this session. The owner has not looked.
+    - card::hovered is the pinned card's own lines, less what Equip
+      would do, and then "A press pins it, with its actions."
+    - shell.rs: point, show_hover_card, beside, Shell::points_at.
+    - menu.ron: size.hover_card_width, time.hover_card.
+    - The tour has Step::Point and Step::PointAway.
+    - docs/item-card.md, "Under the pointer"; three pictures in
+      docs/gallery/2026-10-11-hover-card.
+  - Filed #304: no key scrolls the card in the side panel (carried
+    unfiled through eight logs).
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The card floats beside the piece and is not put in the side panel:
+    in the Horses place the panel stands where the cargo cell is.
+  - A quarter of a second's rest before the first card, none before the
+    next. A width of 320.
+  - No card for an empty slot, nor for the piece pinned beside it.
+  - The keyboard focus does not raise it; Enter pins the card.
+
+FOUND
+  - At 1120x640 the report's piece is below the fold of the Journal, so
+    a pointer sent to its middle rests on nothing. That picture was
+    dropped from the tour.
+  - A python edit by exact text failed again, on card.rs; the Edit tool
+    did it.
+
+NOT DONE
+  - The card over a report's piece was not seen in a picture.
+  - No hand on a mouse has tried it: the rest time and a pointer crossing
+    the overview are untested by feel.
+  - The card can stand over the scene while the pointer rests, on the
+    road too, where a drop may be in flight behind it.
+  - From the log before: the labels of the Fire, Ice and Plant buttons
+    are not coloured; a coloured run on a pressed cell was not looked at.
+
+PICK UP
+  Every 0.2.1 issue now waits on the owner or on a system of a later
+  release (#228's rest: #99, #202, #150; dragging is the one part left
+  that needs neither). Ask the owner, through the question tool, whether
+  to build dragging a piece to a slot next, or to release 0.2.1 so she
+  can look at what waits on her (#246, #250, #253, #285).

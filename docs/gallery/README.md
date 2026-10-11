@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-11, the card under the pointer](2026-10-11-hover-card/README.md) (#228)
 - [2026-10-11, coloured text](2026-10-11-coloured-text/README.md) (#251)
 - [2026-10-11, the click budget, walked](2026-10-11-click-budget/README.md) (#236)
 - [2026-10-11, a place says when it has something unseen](2026-10-11-marks/README.md) (#232)

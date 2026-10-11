@@ -547,8 +547,10 @@ Equip), so one of those renamed in `places.ron` is renamed in
 the count ("tour: Tab makes 36 stops, 0 of them out of sight"); a stop out of
 sight is #244 come back. The
 presses are the `Activate` event a click sends, so the tour goes through the
-same code as the pointer, but it is not the pointer: hover and real clicks
-are checked by hand.
+same code as the pointer, but it is not the pointer: real clicks
+are checked by hand. For the card under the pointer (item-card.md) the tour
+does move Bevy's own pointer onto a piece (`Step::Point`, then
+`Step::PointAway`), as a moved mouse would.
 
 `IDLE_WALK` is the same machinery counting the presses of the common jobs:
 [click-budget.md](click-budget.md).
