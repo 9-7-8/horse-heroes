@@ -1,0 +1,26 @@
+ASKED
+  Two questions put to the owner on how far "menu changes ride the next
+  release" reaches. Her answers: "Move the ready ones forward", and the
+  next release is "0.2.1, a menus patch".
+
+DONE
+  - Milestone "0.2.1 Menus first" and label v0.2.1.
+  - Moved into it: #246, #252 (closed), #253, #229, #251, #250, #236, #11,
+    #232, #231, #230, #228.
+  - The other 0.2.0 leftovers (#10, #187, #241) moved to 0.3.0, and the
+    0.2.0 milestone closed.
+
+DECIDED (for her)
+  - "Ready" was read as: depends on nothing that is not built. Left where
+    they were, with what each waits for: #235 and #227 (shared cargo,
+    #34), #234 and #47 (saving, #44), #222 (#221), #151 (#99), #106 (#87,
+    #91, #62), #123 (#98, #109), #98, #150 and #132 (proposed, hers to
+    rule on).
+
+NOT DONE
+  - Nothing of 0.2.1 beyond #246 and #252 is built.
+  - #250 needs the owner to say what confused her on the gear screens.
+
+PICK UP
+  Run the menu tour (build-and-run.txt, IDLE_TOUR, --seed 6) and read its
+  last pictures, then #253, the first open issue of 0.2.1 to build.
