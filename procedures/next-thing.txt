@@ -59,6 +59,8 @@ DOING IT
     met in full. If only part is met, say which part in a comment on the
     issue and leave it open.
   - docs/<system>.md for a system built or changed.
+  - Once 0.2.2 has shipped: a lesson for a new feature, in
+    assets/data/lessons.ron, as part of the feature (CLAUDE.md, rule 5).
 
 THEN END THE SESSION
   When the part is finished, run end-session.txt without being asked (owner,

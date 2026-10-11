@@ -86,6 +86,11 @@ RNG, so a drop table can be tested by rolling it a million times in a test.
    `C:\Users\Isabel\Procedural-Horse-Coats`.
 4. **Questions go through the question tool**, recommendation first (see the
    global CLAUDE.md).
+5. **Once 0.2.2 has shipped, a new feature is not finished without its
+   tutorial**, as it is not finished without its test: a lesson for it
+   somewhere the player will meet it (`assets/data/lessons.ron`, #290;
+   `docs/philosophy/onboarding.md`). A feature issue filed from then on says
+   so under "Done when". (Owner, 2026-10-11.)
 
 ---
 ## Planning (owner, 2026-10-09)
