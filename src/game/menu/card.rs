@@ -347,6 +347,51 @@ fn weighed(game: &Game, piece: Piece, horse: usize) -> Option<String> {
     Some(out)
 }
 
+/// One row of a horse's table: a label, then what the horse has by
+/// itself, what its gear adds, and the two together, right-aligned. It is
+/// 25 letters wide, which the narrowest side panel holds.
+fn sheet_row(label: &str, horse: &str, gear: &str, now: &str) -> String {
+    format!("{label:<9}{horse:>6}{gear:>5}{now:>5}")
+}
+
+/// The head of a horse's view (#311): its name, its health now and at
+/// most, and every stat with where its points come from, so each total is
+/// accounted for. `health` is the horse's health as the strip says it.
+pub fn horse_sheet(game: &Game, horse: usize, health: &str) -> String {
+    let horse = &game.party[horse.min(game.party.len() - 1)];
+    let gear = horse
+        .gear
+        .iter()
+        .flatten()
+        .fold(Stats::default(), |sum, gear| sum.plus(gear.stats));
+    let now = horse.stats();
+    let mut out = format!("{}\nHealth {health}\n\n{}", horse.name, sheet_row("", "horse", "gear", "now"));
+    for (label, base, gear, now) in [
+        ("health", horse.base.health, gear.health, now.health),
+        ("attack", horse.base.attack, gear.attack, now.attack),
+        ("defense", horse.base.defense, gear.defense, now.defense),
+        ("elemental", horse.base.elemental, gear.elemental, now.elemental),
+    ] {
+        let gear = if gear == 0 { "-".to_string() } else { format!("{gear:+}") };
+        out += &format!("\n{}", sheet_row(label, &base.to_string(), &gear, &now.to_string()));
+    }
+    out
+}
+
+/// What a horse wears, slot by slot, with what each piece adds: the gear
+/// column of its table, piece by piece.
+pub fn horse_wears(game: &Game, horse: usize) -> String {
+    let horse = &game.party[horse.min(game.party.len() - 1)];
+    let lines: Vec<String> = Slot::ALL
+        .iter()
+        .map(|slot| match &horse.gear[slot.index()] {
+            Some(gear) => format!("{}: {}\n  {}", slot.name(), gear.name, stats_line(gear.stats)),
+            None => format!("{}: nothing worn", slot.name()),
+        })
+        .collect();
+    lines.join("\n")
+}
+
 /// Under the card the pointer shows: how to get the rest of it.
 pub const PRESS_PINS: &str = "A press pins it, with its actions.";
 
@@ -443,6 +488,32 @@ mod tests {
         let pointed = pointed_comparison(&game, worn, 1);
         assert_eq!(pointed, format!("{}\n\n{PRESS_PINS}", swap.strip_suffix(&does).unwrap().trim_end()));
         assert!(pointed_comparison(&game, Piece::Carried, 1).is_empty());
+    }
+
+    /// A horse's view (#311) accounts for every total: what the horse has
+    /// and what its gear adds come to what it has now, and each piece that
+    /// adds is named under its slot.
+    #[test]
+    fn a_horses_view_accounts_for_every_total() {
+        let mut game = home();
+        let gear = game.pending_drop().unwrap().clone();
+        game.act(Action::Equip, Hand::horse(0));
+        let sheet = horse_sheet(&game, 0, "7/9");
+        let rows: Vec<&str> = sheet.lines().collect();
+        assert_eq!(rows[0], game.party[0].name);
+        assert_eq!(rows[1], "Health 7/9");
+        assert_eq!(rows.len(), 8, "{sheet}");
+        for row in &rows[4..] {
+            assert!(row.len() <= 25, "{row}");
+            let cells: Vec<&str> = row.split_whitespace().collect();
+            let number = |cell: &str| if cell == "-" { 0 } else { cell.parse::<i32>().unwrap() };
+            assert_eq!(number(cells[1]) + number(cells[2]), number(cells[3]), "{row}");
+        }
+        let now = game.party[0].stats();
+        assert!(rows[4].ends_with(&now.health.to_string()) && rows[5].ends_with(&now.attack.to_string()));
+        let wears = horse_wears(&game, 0);
+        assert_eq!(wears.matches("nothing worn").count() + wears.matches("\n  ").count(), Slot::ALL.len());
+        assert!(wears.contains(&format!("{}: {}\n  {}", gear.slot.name(), gear.name, stats_line(gear.stats))));
     }
 
     /// The card is the same wherever the piece is (#228): carried or worn,

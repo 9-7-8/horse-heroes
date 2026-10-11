@@ -56,7 +56,6 @@ pub struct Sizes {
     pub scrollbar_width: f32,
     pub scroll_page: f32,
     pub strip_horse_width: f32,
-    pub horses_width: f32,
     pub cargo_width: f32,
     pub trail_mark: f32,
     pub trail_boss: f32,

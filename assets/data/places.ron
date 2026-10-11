@@ -35,8 +35,8 @@
         (
             name: "Horses",
             key: "H",
-            // The horses down the left and the shared cargo down the right
-            // stay in view on every tab.
+            // The shared cargo down the right stays in view on every tab.
+            // The horses are in the strip, once (#311).
             horse_columns: true,
             tabs: [
                 (

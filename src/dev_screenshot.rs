@@ -250,8 +250,9 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
     let mut steps = vec![
         Step::Shot("town opens on horses".into()),
         Step::TabRound,
+        // A press on a horse opens everything about it (#311).
         Step::Horse(1),
-        Step::Shot("second horse selected".into()),
+        Step::Shot("a horse's view".into()),
         Step::Slot(0, 0),
         Step::Shot("side panel open".into()),
         Step::Control("Compare"),
@@ -293,11 +294,15 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("on the road the scene expands".into()),
         Step::Wait(5.0),
         Step::Shot("a fight in the road view".into()),
-        Step::Horse(2),
         Step::PlaceMidway(0),
         Step::Shot("opening a place on the road midway".into()),
         Step::Wait(SETTLE),
         Step::Shot("on the road horses".into()),
+        // The slot's card left pinned here would stay; put it away.
+        Step::Key(KeyCode::Escape),
+        Step::Horse(2),
+        Step::Shot("on the road a horse's view".into()),
+        Step::Key(KeyCode::Escape),
         Step::Focus(Some("Sets")),
         Step::Shot("focus brings a control into view".into()),
         Step::Focus(None),

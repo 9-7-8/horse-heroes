@@ -369,6 +369,8 @@ pub enum Item {
     /// A control, by its `id`: what it shows, or, for one that is not
     /// built, what it will do.
     Control(usize),
+    /// A horse of the party: everything about it (#311).
+    Horse(usize),
 }
 
 impl Item {
@@ -377,7 +379,7 @@ impl Item {
         match self {
             Item::Worn { horse, slot } => Some(Piece::Worn { horse, slot }),
             Item::Carried => Some(Piece::Carried),
-            Item::Control(_) => None,
+            Item::Control(_) | Item::Horse(_) => None,
         }
     }
 }
@@ -489,6 +491,24 @@ impl Shell {
 
     pub fn select_horse(&mut self, horse: usize) {
         self.horse = horse;
+    }
+
+    /// A press on a horse (#311): it is selected, and its view opens in the
+    /// side panel of the place the player is in, which is opened if none
+    /// is showing. A piece's card pinned there stays instead, and is
+    /// compared on that horse.
+    pub fn inspect(&mut self, horse: usize, opener: Option<Entity>) {
+        self.horse = horse;
+        self.showing = true;
+        let place = self.place;
+        if self.detail(place).is_some_and(|detail| detail.item.piece().is_some()) {
+            return;
+        }
+        self.details[place] = Some(Detail {
+            tab: self.tabs[place],
+            item: Item::Horse(horse),
+            opener,
+        });
     }
 
     /// The detail showing in a place: the one opened from its current tab.
@@ -909,21 +929,6 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                             ..default()
                         })
                         .with_children(|body| {
-                            if place.horse_columns {
-                                body.spawn(panel(t))
-                                    .insert(column(t.size.horses_width))
-                                    .with_children(|horses| {
-                                        horses.spawn(dim(t, "horses"));
-                                        for (h, horse) in game.party.iter().enumerate() {
-                                            horses.spawn((
-                                                row(t, &horse.name, places.horse_key(h), ""),
-                                                HorseButton(h),
-                                                Live(Fact::Health(h)),
-                                            ));
-                                        }
-                                    });
-                            }
-
                             body.spawn(Node {
                                 flex_grow: 1.0,
                                 min_width: Val::Px(0.0),
@@ -1538,7 +1543,7 @@ fn on_activate(
     } else if let Ok(tab) = tabs.get(entity) {
         shell.choose_tab(tab.place, tab.tab);
     } else if let Ok(horse) = horses.get(entity) {
-        shell.select_horse(horse.0);
+        shell.inspect(horse.0, Some(entity));
     } else if let Ok(row) = slots.get(entity) {
         shell.show_detail(
             row.place,
@@ -1665,7 +1670,7 @@ fn keys(
             commands.trigger(Activate { entity });
         }
     }
-    // A horse is in the strip and in a column: one press, not one for each.
+    // A horse's key is a press on it in the strip.
     for h in 0..map.horse_keys.len() {
         if down(map.horse_key(h)) {
             if let Some((entity, _)) = horses.iter().find(|(_, horse)| horse.0 == h) {
@@ -2475,8 +2480,10 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 }
                 Some(piece) => card::pinned(game, piece, shell.hand()),
                 None => {
-                    let Item::Control(id) = detail.item else {
-                        return String::new();
+                    let id = match detail.item {
+                        Item::Control(id) => id,
+                        Item::Horse(horse) => return horse_view(game, uncollected, shell, map, horse),
+                        _ => return String::new(),
                     };
                     let control = map.control(id);
                     match control.shows {
@@ -2556,6 +2563,32 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             }
         },
     }
+}
+
+/// Everything about a horse (#311), in the side panel a press on it opens:
+/// its sheet, and then a part for each tab of the horses' place, headed by
+/// that tab and the keys that lead to it, since that is where the part is
+/// changed. A part that is not built says so.
+fn horse_view(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, horse: usize) -> String {
+    let horse = horse.min(game.party.len() - 1);
+    let health = fact(game, uncollected, shell, map, Fact::Health(horse));
+    let mut out = card::horse_sheet(game, horse, &health);
+    if let Some(place) = map.places.iter().find(|place| place.horse_columns) {
+        for tab in &place.tabs {
+            let said = match tab.content {
+                Content::Gear => card::horse_wears(game, horse),
+                Content::Element => format!(
+                    "The party fights with {}. A horse's own abilities are not built yet.",
+                    game.element.name()
+                ),
+                Content::Planned => format!("Not built yet. {}", tab.job),
+                Content::Report | Content::Inventory => continue,
+            };
+            let keys: Vec<&str> = [place.key.as_deref(), tab.key.as_deref()].into_iter().flatten().collect();
+            out += &format!("\n\n{} ({})\n{said}", tab.name.to_uppercase(), keys.join(", "));
+        }
+    }
+    out + "\n\nLAST TRAIL\nWhat each horse did on a trail is not kept yet."
 }
 
 /// The working controls among these that cannot be used now, gathered by the
@@ -3242,6 +3275,48 @@ mod tests {
                 .flat_map(|place| &place.tabs)
                 .all(|tab| tab.content != Content::Inventory)
         );
+    }
+
+    /// A press on a horse (#311) selects it and opens its view where the
+    /// player is, on the road too; a pinned piece stays, compared on that
+    /// horse; and the view has the horse's sheet and a part for every tab
+    /// of the horses' place, with the keys that lead there.
+    #[test]
+    fn a_press_on_a_horse_opens_everything_about_it() {
+        let places = Places::load();
+        let game = Game::new(6);
+        let uncollected = Uncollected::default();
+        let mut shell = Shell::new(places.pages().count());
+        shell.inspect(1, None);
+        assert_eq!(shell.horse(), 1);
+        assert_eq!(shell.detail(0).map(|detail| detail.item), Some(Item::Horse(1)));
+        assert_eq!(shell.hand(), Hand::horse(1));
+        let said = fact(&game, &uncollected, &shell, &places, Fact::Detail(0));
+        let health = game.party[1].stats().health;
+        assert!(said.starts_with(&format!("{}\nHealth {health}/{health}\n", game.party[1].name)), "{said}");
+        let horses = &places.places[0];
+        assert!(horses.horse_columns);
+        for tab in &horses.tabs {
+            let head = format!("\n{} (H, {})\n", tab.name.to_uppercase(), tab.key.as_deref().unwrap());
+            assert!(said.contains(&head), "{} is not in the view", tab.name);
+        }
+        assert!(said.contains("Head: nothing worn") && said.contains("LAST TRAIL"));
+
+        // From the road with every place closed, it opens the place.
+        shell.close();
+        shell.open(2);
+        shell.close();
+        shell.inspect(2, None);
+        assert!(shell.is_open() && shell.place() == 2);
+        assert_eq!(shell.detail(2).map(|detail| detail.item), Some(Item::Horse(2)));
+
+        // A pinned piece is the handle: it stays, and the horse changes.
+        let pinned = Detail { tab: 0, item: Item::Carried, opener: None };
+        shell.open(0);
+        shell.show_detail(0, pinned);
+        shell.inspect(0, None);
+        assert_eq!(shell.detail(0), Some(pinned));
+        assert_eq!(shell.horse(), 0);
     }
 
     /// The owner's five places (epic #225), in her order, and the Inventory
