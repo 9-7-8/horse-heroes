@@ -10,8 +10,9 @@ use bevy::{
 };
 
 use super::parts::{
-    self, ConfirmAction, ConfirmCancel, CounterValue, Part, ShowLook, button, card, confirmation,
-    counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
+    self, ConfirmAction, ConfirmCancel, CounterValue, Part, ShowLook, Stop, button, card,
+    confirmation, counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
+    trail_mark,
 };
 use super::tokens::Tokens;
 
@@ -165,6 +166,21 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                     panel.spawn(counter(t, "coins", "9,876,543"));
                     panel.spawn(dim(t, "reason line"));
                     panel.spawn(reason(t, "In town only"));
+                    panel.spawn(dim(t, "trail marks: behind, here, ahead, boss"));
+                    panel
+                        .spawn(Node {
+                            align_items: AlignItems::Center,
+                            column_gap: Val::Px(t.space.s),
+                            ..default()
+                        })
+                        .with_children(|trail| {
+                            trail.spawn(trail_mark(t, Stop::Behind, false));
+                            trail.spawn(trail_mark(t, Stop::Here, false));
+                            trail.spawn(trail_mark(t, Stop::Ahead, false));
+                            trail.spawn(trail_mark(t, Stop::Ahead, true));
+                            trail.spawn(trail_mark(t, Stop::Here, true));
+                            trail.spawn(trail_mark(t, Stop::Behind, true));
+                        });
                 });
 
                 lower

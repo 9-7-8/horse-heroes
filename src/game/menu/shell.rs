@@ -22,8 +22,8 @@ use bevy::{
 use serde::Deserialize;
 
 use super::parts::{
-    ClosePanel, CounterValue, NotBuilt, Part, RowValue, button, counter, dim, panel, reason, row,
-    side_panel, tab, text, title,
+    ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, button, counter, dim, panel, reason,
+    row, side_panel, tab, text, title, trail_mark,
 };
 use super::tokens::Tokens;
 use crate::game::{
@@ -444,6 +444,10 @@ enum Page {
 #[derive(Component)]
 struct ShellRoot;
 
+/// The trail tracker's marks, in the footer: one per fight of the trail.
+#[derive(Component)]
+struct TrailTracker;
+
 /// Text that follows the game. On a text it sets that text; on a counter or
 /// a row it sets the value.
 #[derive(Component)]
@@ -485,6 +489,7 @@ impl Plugin for ShellPlugin {
                     mark_chosen,
                     show_reasons,
                     show_facts,
+                    show_trail,
                     show_scrollbars,
                     follow_focus,
                 )
@@ -753,6 +758,26 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
             // The footer: what the party is doing, and the one departure.
             root.spawn(band(UiRect::top(Val::Px(t.size.border))))
                 .with_children(|footer| {
+                    // The trail tracker (#253), first so that nothing beside
+                    // it can move it: how many fights are left, at a glance.
+                    footer
+                        .spawn(Node {
+                            align_items: AlignItems::Center,
+                            column_gap: Val::Px(t.space.s),
+                            flex_shrink: 0.0,
+                            ..default()
+                        })
+                        .with_children(|trail| {
+                            trail.spawn((
+                                Node {
+                                    align_items: AlignItems::Center,
+                                    column_gap: Val::Px(t.space.s),
+                                    ..default()
+                                },
+                                TrailTracker,
+                            ));
+                            trail.spawn(dim(t, "boss"));
+                        });
                     footer.spawn((text(t, ""), Live(Fact::Footer)));
                     footer.spawn(spacer());
                     // One above the other and never squeezed: the footer
@@ -1372,6 +1397,58 @@ fn show_facts(
     }
 }
 
+/// One stop per fight of a trail of `total`, with `cleared` of them behind
+/// the party and the next the one it is at.
+fn stops(total: usize, cleared: usize) -> Vec<Stop> {
+    (0..total)
+        .map(|fight| match fight.cmp(&cleared) {
+            std::cmp::Ordering::Less => Stop::Behind,
+            std::cmp::Ordering::Equal => Stop::Here,
+            std::cmp::Ordering::Greater => Stop::Ahead,
+        })
+        .collect()
+}
+
+/// The trail as the tracker shows it, taken from the trail's plan: in town
+/// the next trail, all of it ahead; on the road the one being walked. The
+/// last stop is the boss.
+fn trail_stops(game: &Game) -> Vec<Stop> {
+    match &game.screen {
+        Screen::Camp { .. } => vec![Stop::Ahead; game.plan.encounters.len()],
+        Screen::Trail(expedition) => stops(
+            expedition.plan.encounters.len(),
+            match &expedition.outcome {
+                Some(outcome) => outcome.cleared,
+                None => expedition.encounter,
+            },
+        ),
+    }
+}
+
+/// Draw the trail tracker again when the trail, or the party's place on it,
+/// has changed.
+fn show_trail(
+    mut commands: Commands,
+    tokens: Res<Tokens>,
+    game: Res<Game>,
+    tracker: Single<Entity, With<TrailTracker>>,
+    mut shown: Local<Vec<Stop>>,
+) {
+    let stops = trail_stops(&game);
+    if *shown == stops {
+        return;
+    }
+    commands
+        .entity(*tracker)
+        .despawn_children()
+        .with_children(|trail| {
+            for (fight, stop) in stops.iter().enumerate() {
+                trail.spawn(trail_mark(&tokens, *stop, fight + 1 == stops.len()));
+            }
+        });
+    *shown = stops;
+}
+
 fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fact: Fact) -> String {
     let selected = &game.party[shell.horse().min(game.party.len() - 1)];
     match fact {
@@ -1473,9 +1550,9 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::ReportSide => report_side(game).trim_end().into(),
         Fact::Footer => match &game.screen {
             Screen::Camp { countdown, .. } => format!(
-                "Ready for: a level {} trail, {} encounters. Setting out in {:.0}s.",
+                // The tracker beside it shows the trail's fights.
+                "Ready: level {} trail. Setting out in {:.0}s.",
                 game.plan.level,
-                game.plan.encounters.len(),
                 countdown.max(0.0).ceil(),
             ),
             Screen::Trail(expedition) => {
@@ -1707,6 +1784,52 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// The trail tracker (#253) has a mark for every fight of the plan,
+    /// however long the trail, and every fight left is counted ahead.
+    #[test]
+    fn the_tracker_has_a_mark_for_every_fight_of_the_plan() {
+        use Stop::{Ahead, Behind, Here};
+        assert_eq!(stops(4, 1), [Behind, Here, Ahead, Ahead]);
+        assert_eq!(stops(1, 0), [Here]);
+        for total in 1..9 {
+            for cleared in 0..=total {
+                let stops = stops(total, cleared);
+                assert_eq!(stops.len(), total);
+                assert_eq!(stops.iter().filter(|s| **s == Behind).count(), cleared);
+                assert!(stops.iter().filter(|s| **s == Here).count() <= 1);
+            }
+        }
+
+        // In town it is the next trail, none of it walked.
+        let mut game = Game::new(6);
+        let total = game.plan.encounters.len();
+        assert_eq!(trail_stops(&game), vec![Ahead; total]);
+
+        // On the road it follows the party, and a longer trail has more marks.
+        game.act(Action::SetOut);
+        assert_eq!(trail_stops(&game), stops(total, 0));
+        let Screen::Trail(expedition) = &mut game.screen else {
+            unreachable!("the party set out");
+        };
+        expedition.encounter = 2;
+        let another = expedition.plan.encounters[0].clone();
+        expedition.plan.encounters.push(another);
+        assert_eq!(trail_stops(&game), stops(total + 1, 2));
+
+        // A won trail is all behind, the boss too.
+        let mut won = Game::new(6);
+        won.act(Action::SetOut);
+        let Screen::Trail(expedition) = &mut won.screen else {
+            unreachable!("the party set out");
+        };
+        while expedition.outcome.is_none() {
+            expedition.tick(&won.data, 0.1);
+        }
+        let outcome = expedition.outcome.clone().unwrap();
+        assert!(outcome.won, "seed 6 wins its first trail");
+        assert_eq!(trail_stops(&won), vec![Behind; total]);
     }
 
     #[test]

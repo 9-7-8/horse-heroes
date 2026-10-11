@@ -45,6 +45,8 @@ pub struct Sizes {
     pub strip_horse_width: f32,
     pub horses_width: f32,
     pub cargo_width: f32,
+    pub trail_mark: f32,
+    pub trail_boss: f32,
 }
 
 /// The split of the window between the scene and the menus.

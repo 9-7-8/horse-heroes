@@ -29,6 +29,10 @@
         strip_horse_width: 150,
         horses_width: 200,
         cargo_width: 260,
+        // The trail tracker in the footer: the side of one fight's mark, and
+        // of the boss's, which is also turned to stand on a corner.
+        trail_mark: 14,
+        trail_boss: 16,
     ),
 
     // The split of the window between the 3D scene, at the top, and the

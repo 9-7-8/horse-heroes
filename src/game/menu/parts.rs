@@ -397,6 +397,63 @@ pub fn counter(t: &Tokens, label: &str, value: &str) -> impl Bundle + use<> {
     )
 }
 
+/// Where a fight of the trail stands against the party.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Stop {
+    Behind,
+    Here,
+    Ahead,
+}
+
+/// One fight in the trail tracker. Told apart by shape as well as colour: a
+/// fight behind the party is solid, the one it is at is a thick ring with a
+/// dot in it, one ahead is a thin outline, and the boss stands on a corner.
+pub fn trail_mark(t: &Tokens, stop: Stop, boss: bool) -> impl Bundle + use<> {
+    let size = if boss {
+        t.size.trail_boss
+    } else {
+        t.size.trail_mark
+    };
+    let (fill, edge, width) = match stop {
+        Stop::Behind => (t.colour.text.0, t.colour.text.0, t.size.border),
+        Stop::Here => (Color::NONE, t.colour.accent.0, t.size.mark),
+        Stop::Ahead => (Color::NONE, t.colour.text_dim.0, t.size.border),
+    };
+    let dot = size - 2.0 * width - 2.0 * t.space.xs;
+    (
+        Node {
+            width: Val::Px(size),
+            height: Val::Px(size),
+            border: UiRect::all(Val::Px(width)),
+            // On its corner the boss is wider than its box by this much.
+            margin: UiRect::horizontal(Val::Px(if boss { size * 0.21 } else { 0.0 })),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            flex_shrink: 0.0,
+            ..default()
+        },
+        BackgroundColor(fill),
+        BorderColor::all(edge),
+        UiTransform::from_rotation(if boss {
+            Rot2::degrees(45.0)
+        } else {
+            Rot2::IDENTITY
+        }),
+        children![(
+            Node {
+                width: Val::Px(dot),
+                height: Val::Px(dot),
+                ..default()
+            },
+            BackgroundColor(if stop == Stop::Here {
+                t.colour.accent.0
+            } else {
+                Color::NONE
+            }),
+        )],
+    )
+}
+
 /// Why a control cannot be used, said in place. The hollow square marks it
 /// as a reason by shape as well as colour.
 pub fn reason(t: &Tokens, why: &str) -> impl Bundle + use<> {
