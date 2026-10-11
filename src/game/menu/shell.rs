@@ -13,11 +13,13 @@ use bevy::{
         tab_navigation::TabGroup,
     },
     math::CompassOctant,
+    picking::hover::Hovered,
     prelude::*,
     ui::{InteractionDisabled, Selected, UiGlobalTransform},
     ui_widgets::{
         Activate, ControlOrientation, ScrollArea, ScrollIntoView, Scrollbar, ScrollbarThumb,
     },
+    window::PrimaryWindow,
 };
 use serde::Deserialize;
 
@@ -383,6 +385,9 @@ pub struct Shell {
     horse: usize,
     tabs: Vec<usize>,
     details: Vec<Option<Detail>>,
+    /// The piece the pointer rests on and the cell it is in, while its card
+    /// shows beside it (#228).
+    pointed: Option<(Entity, Piece)>,
 }
 
 impl Shell {
@@ -393,6 +398,7 @@ impl Shell {
             horse: 0,
             tabs: vec![0; places],
             details: vec![None; places],
+            pointed: None,
         }
     }
 
@@ -500,6 +506,20 @@ impl Shell {
         }
     }
 
+    /// The piece whose card the pointer may show: the one it rests on, when
+    /// there is a piece there and its card is not pinned beside it already.
+    pub fn points_at(&self, game: &Game, piece: Piece) -> Option<Piece> {
+        (game.piece(piece).is_some() && self.hand().open != Some(piece)).then_some(piece)
+    }
+
+    pub fn pointed(&self) -> Option<(Entity, Piece)> {
+        self.pointed
+    }
+
+    pub fn point(&mut self, at: Option<(Entity, Piece)>) {
+        self.pointed = at;
+    }
+
     /// Close the detail showing in the open place. Returns what opened it.
     pub fn close_detail(&mut self) -> Option<Entity> {
         let detail = self.detail(self.place)?;
@@ -591,6 +611,11 @@ enum Page {
     RoadView,
 }
 
+/// The card the pointer shows beside the piece it rests on (#228). It is
+/// over the shell and out of its layout, and the pointer passes through it.
+#[derive(Component)]
+struct HoverCard;
+
 /// The whole shell: everything below the scene.
 #[derive(Component)]
 struct ShellRoot;
@@ -616,6 +641,8 @@ enum Fact {
     Worn(usize, usize),
     WornLine(usize, usize),
     Detail(usize),
+    /// The card of the piece the pointer rests on.
+    Hovered,
     /// The carried piece as a list shows it: its name, what it is, and
     /// whether it matters to the selected horse.
     CarriedName,
@@ -648,6 +675,7 @@ impl Plugin for ShellPlugin {
                     keys,
                     escape,
                     follow_the_party,
+                    point,
                     move_scene,
                     show_place,
                     see,
@@ -655,6 +683,7 @@ impl Plugin for ShellPlugin {
                     mark_unseen,
                     mark_wearer,
                     show_carried,
+                    show_hover_card,
                     picture::show_pictures,
                     show_reasons,
                     show_facts,
@@ -1025,6 +1054,24 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                     }
                 });
         });
+
+    commands.spawn((
+        panel(t),
+        HoverCard,
+        GlobalZIndex(5),
+        Pickable::IGNORE,
+        Visibility::Hidden,
+        children![(text(t, ""), Live(Fact::Hovered), Pickable::IGNORE)],
+    ))
+    .insert(Node {
+        position_type: PositionType::Absolute,
+        display: Display::None,
+        width: Val::Px(t.size.hover_card_width),
+        flex_direction: FlexDirection::Column,
+        padding: UiRect::all(Val::Px(t.space.m)),
+        border: UiRect::all(Val::Px(t.size.border)),
+        ..default()
+    });
 }
 
 /// The bar beside a page that scrolls. It keeps its width whether or not it
@@ -1640,6 +1687,108 @@ fn follow_the_party(
     }
 }
 
+/// The pointer resting on a piece shows its card (#228). The first card
+/// waits for the pointer to rest; with one up, the next piece's shows at
+/// once, so that going down a column reads each in turn.
+fn point(
+    time: Res<Time>,
+    tokens: Res<Tokens>,
+    game: Res<Game>,
+    mut shell: ResMut<Shell>,
+    mut rested: Local<f32>,
+    cells: Query<
+        (
+            Entity,
+            &Hovered,
+            &ComputedNode,
+            Option<&SlotRow>,
+            Option<&CarriedCell>,
+        ),
+        Or<(With<SlotRow>, With<CarriedCell>, With<ReportedCell>)>,
+    >,
+) {
+    let under = cells.iter().find_map(|(entity, hovered, node, row, carried)| {
+        // A cell of a page that is not showing has no size.
+        if !hovered.get() || node.is_empty() {
+            return None;
+        }
+        let piece = match (row, carried) {
+            (Some(row), _) => Piece::Worn {
+                horse: row.horse,
+                slot: row.slot,
+            },
+            (None, Some(_)) => Piece::Carried,
+            (None, None) => game.reported_piece()?,
+        };
+        shell.points_at(&game, piece).map(|piece| (entity, piece))
+    });
+    if under.is_none() || shell.pointed().is_some() {
+        *rested = 0.0;
+    } else {
+        *rested += time.delta_secs();
+    }
+    let wanted = under.filter(|_| shell.pointed().is_some() || *rested >= tokens.time.hover_card);
+    if shell.pointed() != wanted {
+        shell.point(wanted);
+    }
+}
+
+/// Where the hover card goes, as the edges of its node: beside the cell it
+/// is about, on the side with more room, and from the cell's top or bottom
+/// edge towards the middle of the window, so it is never over its piece.
+fn beside(cell: Rect, window: Vec2, gap: f32) -> UiRect {
+    let (left, right) = if cell.center().x < window.x / 2.0 {
+        (Val::Px(cell.max.x + gap), Val::Auto)
+    } else {
+        (Val::Auto, Val::Px(window.x - cell.min.x + gap))
+    };
+    let (top, bottom) = if cell.center().y < window.y / 2.0 {
+        (Val::Px(cell.min.y), Val::Auto)
+    } else {
+        (Val::Auto, Val::Px(window.y - cell.max.y))
+    };
+    UiRect {
+        left,
+        right,
+        top,
+        bottom,
+    }
+}
+
+fn show_hover_card(
+    tokens: Res<Tokens>,
+    shell: Res<Shell>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    cells: Query<(&ComputedNode, &UiGlobalTransform)>,
+    card: Single<(&mut Node, &mut Visibility), With<HoverCard>>,
+) {
+    let (mut node, mut visibility) = card.into_inner();
+    let at = shell
+        .pointed()
+        .and_then(|(cell, _)| cells.get(cell).ok())
+        .map(|(cell, transform)| {
+            let scale = cell.inverse_scale_factor();
+            let (_, _, middle) = transform.to_scale_angle_translation();
+            let cell = Rect::from_center_size(middle * scale, cell.size() * scale);
+            beside(cell, window.size(), tokens.space.s)
+        });
+    let (display, wanted) = match at {
+        Some(_) => (Display::Flex, Visibility::Inherited),
+        None => (Display::None, Visibility::Hidden),
+    };
+    if node.display != display {
+        node.display = display;
+    }
+    if *visibility != wanted {
+        *visibility = wanted;
+    }
+    if let Some(at) = at
+        && (node.left, node.right, node.top, node.bottom) != (at.left, at.right, at.top, at.bottom)
+    {
+        (node.left, node.right, node.top, node.bottom) = (at.left, at.right, at.top, at.bottom);
+    }
+}
+
 /// Move the scene towards the layout the shell asks for, and the shell's
 /// top edge with it.
 fn move_scene(
@@ -2104,6 +2253,9 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 }
             }
         }
+        Fact::Hovered => shell.pointed().map_or(String::new(), |(_, piece)| {
+            card::hovered(game, piece, shell.horse())
+        }),
         // Against the selected horse, the one Equip puts it on.
         Fact::CarriedName => game
             .pending_drop()
@@ -2997,6 +3149,62 @@ mod tests {
         shell.open(0);
         assert_eq!(shell.tab(0), 1);
         assert_eq!(shell.detail(0), Some(detail));
+    }
+
+    /// The pointer shows the card of a piece (#228), and not of an empty
+    /// slot, nor of the piece whose card is pinned beside it already.
+    #[test]
+    fn the_pointer_shows_a_piece_that_is_not_pinned() {
+        let game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let mut shell = Shell::new(5);
+        let empty = (0..Slot::ALL.len())
+            .find(|slot| game.party[0].gear[*slot].is_none())
+            .unwrap();
+        assert_eq!(shell.points_at(&game, Piece::Carried), Some(Piece::Carried));
+        assert_eq!(shell.points_at(&game, Piece::Worn { horse: 0, slot: empty }), None);
+        shell.show_detail(
+            0,
+            Detail {
+                tab: 0,
+                item: Item::Carried,
+                opener: None,
+            },
+        );
+        assert_eq!(shell.points_at(&game, Piece::Carried), None);
+        // Pinned in a place that is not showing, it is not beside it.
+        shell.open(1);
+        assert_eq!(shell.points_at(&game, Piece::Carried), Some(Piece::Carried));
+    }
+
+    /// The hover card is beside its piece, never over it, and on the side
+    /// of the window with more room, at the smallest window too.
+    #[test]
+    fn the_hover_card_is_beside_its_piece_and_in_the_window() {
+        let t = Tokens::load();
+        let window = Vec2::new(t.layout.min_width, t.layout.min_height);
+        let width = t.size.hover_card_width;
+        let size = Vec2::new(t.size.cargo_width, t.size.cell_height);
+        for x in [0.0, 300.0, window.x / 2.0, 700.0, window.x - size.x] {
+            for y in [0.0, 200.0, window.y / 2.0, window.y - size.y] {
+                let cell = Rect::from_corners(Vec2::new(x, y), Vec2::new(x, y) + size);
+                let at = beside(cell, window, t.space.s);
+                let (left, right) = match (at.left, at.right) {
+                    (Val::Px(left), Val::Auto) => (left, left + width),
+                    (Val::Auto, Val::Px(right)) => (window.x - right - width, window.x - right),
+                    other => panic!("{other:?}"),
+                };
+                assert!(left >= 0.0 && right <= window.x, "{cell:?}: {left} to {right}");
+                assert!(left >= cell.max.x || right <= cell.min.x, "{cell:?}: over its piece");
+                match (at.top, at.bottom) {
+                    (Val::Px(top), Val::Auto) => assert_eq!(top, cell.min.y),
+                    (Val::Auto, Val::Px(bottom)) => assert_eq!(window.y - bottom, cell.max.y),
+                    other => panic!("{other:?}"),
+                }
+            }
+        }
     }
 
     #[test]

@@ -41,6 +41,7 @@ pub struct Sizes {
     pub focus_ring: f32,
     pub focus_gap: f32,
     pub card_width: f32,
+    pub hover_card_width: f32,
     pub cell_height: f32,
     pub picture: f32,
     pub picture_inset: f32,
@@ -77,6 +78,7 @@ impl Layout {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Times {
     pub hover: f32,
+    pub hover_card: f32,
     pub layout: f32,
 }
 

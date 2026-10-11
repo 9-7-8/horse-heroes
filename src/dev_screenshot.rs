@@ -21,10 +21,14 @@ use bevy::{
         FocusCause, InputFocus, InputFocusVisible,
         tab_navigation::{NavAction, TabNavigation},
     },
+    picking::pointer::{Location, PointerAction, PointerId, PointerInput},
     prelude::*,
     render::view::screenshot::{Screenshot, save_to_disk},
+    ui::UiGlobalTransform,
     ui_widgets::Activate,
+    window::{PrimaryWindow, WindowRef},
 };
+use bevy::camera::NormalizedRenderTarget;
 use serde::Deserialize;
 
 use crate::game::menu::shell::{
@@ -107,6 +111,12 @@ enum Step {
     Carried(usize),
     /// Press the piece of the report that is showing, in the report.
     Reported,
+    /// Move the pointer onto what the next step names, which that step
+    /// then does not press: the pointer is Bevy's own, moved as the mouse
+    /// moves it, so what it rests on is hovered as by hand.
+    Point,
+    /// Move the pointer off the menus, onto the scene.
+    PointAway,
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -189,6 +199,8 @@ struct Tour {
     key: Option<KeyCode>,
     /// The key put down last frame, to let go of.
     held: Option<KeyCode>,
+    /// The next step points at its control and does not press it.
+    pointing: bool,
     /// The job being walked, and how.
     job: Option<(&'static str, By)>,
     /// The presses it has taken so far.
@@ -210,6 +222,7 @@ impl Tour {
             shots: 0,
             key: None,
             held: None,
+            pointing: false,
             job: None,
             presses: 0,
             missed: false,
@@ -305,6 +318,12 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyH),
         Step::Key(KeyCode::Digit1),
         Step::Shot("by keys the drop waits in the cargo".into()),
+        // The card under the pointer (#228): resting on a piece shows its
+        // card beside it, and nothing is pinned.
+        Step::Point,
+        Step::Carried(0),
+        Step::Shot("the pointer on the drop in the cargo".into()),
+        Step::PointAway,
         Step::Carried(0),
         Step::Shot("the drop's card from the cargo".into()),
         Step::Key(KeyCode::KeyX),
@@ -335,8 +354,13 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         // The overview (#285): with the first horse selected, open what
         // the third wears on its head and equip it: the two change places.
         Step::Key(KeyCode::KeyZ),
+        Step::Point,
+        Step::Slot(2, 0),
+        Step::Shot("the pointer on another horse's piece".into()),
+        // Pressed, its card is pinned beside it and the pointer's goes.
         Step::Slot(2, 0),
         Step::Shot("another horse's piece open".into()),
+        Step::PointAway,
         Step::Key(KeyCode::KeyE),
         Step::Shot("swapped onto the selected horse".into()),
         // Undo (#230): the swap is taken back, then the equip, and the
@@ -517,8 +541,14 @@ fn tour(
     mut focus_visible: ResMut<InputFocusVisible>,
     tab_stops: TabNavigation,
     nodes: Query<&ComputedNode>,
-    mut exit: MessageWriter<AppExit>,
+    out: (
+        MessageWriter<AppExit>,
+        MessageWriter<PointerInput>,
+        Single<Entity, With<PrimaryWindow>>,
+        Query<&UiGlobalTransform>,
+    ),
 ) {
+    let (mut exit, mut pointer, window, transforms) = out;
     let (carried, reported) = cells;
     let (map, shell) = menus;
     // Its fields one by one: the step is read while the counts are kept.
@@ -578,6 +608,8 @@ fn tour(
         Step::Key(_)
         | Step::Focus(_)
         | Step::TabRound
+        | Step::Point
+        | Step::PointAway
         | Step::Wait(_)
         | Step::SetOut
         | Step::Town
@@ -667,11 +699,35 @@ fn tour(
         }
         info!("tour: Tab makes {stops} stops, {unseen} of them out of sight");
     }
+    let mut point = |position: Vec2| {
+        if let Some(window) = WindowRef::Entity(*window).normalize(None) {
+            pointer.write(PointerInput::new(
+                PointerId::Mouse,
+                Location {
+                    target: NormalizedRenderTarget::Window(window),
+                    position,
+                },
+                PointerAction::Move { delta: Vec2::ZERO },
+            ));
+        }
+    };
+    if let Step::PointAway = step {
+        point(Vec2::ONE);
+    }
     if let Some(entity) = pressed {
-        commands.trigger(Activate { entity });
+        if !std::mem::take(&mut tour.pointing) {
+            commands.trigger(Activate { entity });
+        } else if let (Ok(node), Ok(transform)) = (nodes.get(entity), transforms.get(entity)) {
+            let (_, _, middle) = transform.to_scale_angle_translation();
+            point(middle * node.inverse_scale_factor());
+        }
     }
     let mut wait = SETTLE;
     match step {
+        Step::Point => {
+            tour.pointing = true;
+            wait = 0.0;
+        }
         Step::Wait(secs) => wait = *secs,
         Step::PlaceMidway(_) | Step::SetOut => wait = MIDWAY,
         Step::Shot(name) => {

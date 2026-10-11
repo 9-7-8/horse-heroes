@@ -200,6 +200,17 @@ pub fn pinned(game: &Game, piece: Piece, hand: Hand) -> String {
             _ => NOTHING_CARRIED.into(),
         };
     };
+    let mut out = face(game, gear, wearer, selected);
+    let does = consequence(game, hand);
+    if !does.is_empty() {
+        out += &format!("\n{does}");
+    }
+    out
+}
+
+/// What every card says of a piece: what it is, where it is, and how it
+/// compares on the selected horse.
+fn face(game: &Game, gear: &Gear, wearer: Option<&Horse>, selected: &Horse) -> String {
     let mut out = format!(
         "{}\n{}\n{}",
         gear.name,
@@ -214,11 +225,26 @@ pub fn pinned(game: &Game, piece: Piece, hand: Hand) -> String {
     if !wearer.is_some_and(|wearer| std::ptr::eq(wearer, selected)) {
         out += &format!("\n\n{}", compare(game, selected, gear));
     }
-    let does = consequence(game, hand);
-    if !does.is_empty() {
-        out += &format!("\n{does}");
-    }
     out
+}
+
+/// Under the card the pointer shows: how to get the rest of it.
+pub const PRESS_PINS: &str = "A press pins it, with its actions.";
+
+/// The card under the pointer (#228): the pinned card's own lines of what
+/// the piece is, where, and how it compares on the selected horse. What an
+/// action would do is on the pinned card, beside the action, and never only
+/// here. Empty where there is no piece to show.
+pub fn hovered(game: &Game, piece: Piece, horse: usize) -> String {
+    let Some(gear) = game.piece(piece) else {
+        return String::new();
+    };
+    let selected = &game.party[horse.min(game.party.len() - 1)];
+    let wearer = match piece {
+        Piece::Worn { horse, .. } => game.party.get(horse),
+        Piece::Carried => None,
+    };
+    format!("{}\n\n{PRESS_PINS}", face(game, gear, wearer, selected))
 }
 
 #[cfg(test)]
@@ -258,6 +284,43 @@ mod tests {
             // Compared on the selected horse, unless it is the one wearing it.
             assert_eq!(card.contains("\nOn "), selected != 0, "{card}");
         }
+    }
+
+    /// The card under the pointer (#228) is the pinned card as far as it
+    /// goes: the same lines, for whichever horse is selected, and then how
+    /// to pin it. What Equip would do is said only where Equip is.
+    #[test]
+    fn the_hovered_card_is_the_start_of_the_pinned_one() {
+        let mut game = home();
+        let carried = Hand {
+            horse: 1,
+            open: Some(Piece::Carried),
+        };
+        let at = game.equipped_at(carried).unwrap();
+        for piece in [Piece::Carried, at] {
+            for selected in 0..game.party.len() {
+                let hand = Hand {
+                    horse: selected,
+                    open: Some(piece),
+                };
+                let said = hovered(&game, piece, selected);
+                let lines = said.strip_suffix(&format!("\n\n{PRESS_PINS}")).expect(&said);
+                assert!(pinned(&game, piece, hand).starts_with(lines), "{said}");
+                assert_eq!(lines.contains("\nOn "), piece != Piece::Worn { horse: selected, slot: gear_slot(&game, piece) }, "{said}");
+                assert!(!said.contains("Equip"), "{said}");
+            }
+            game.act(Action::Equip, carried);
+        }
+        // An empty slot and an empty cargo have nothing to show.
+        let empty = (0..Slot::ALL.len())
+            .find(|slot| game.party[0].gear[*slot].is_none())
+            .unwrap();
+        assert!(hovered(&game, Piece::Worn { horse: 0, slot: empty }, 0).is_empty());
+        assert!(hovered(&game, Piece::Carried, 0).is_empty());
+    }
+
+    fn gear_slot(game: &Game, piece: Piece) -> usize {
+        game.piece(piece).unwrap().slot.index()
     }
 
     /// The comparison (#11) is per stat and in the horse's own numbers: as

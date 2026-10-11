@@ -16,6 +16,9 @@
         focus_ring: 2,
         focus_gap: 2,
         card_width: 164,
+        // The card the pointer shows beside a piece of gear: wide enough
+        // for the heading of the comparison on one line at the body size.
+        hover_card_width: 320,
         // A slot in the gear overview: room for a piece's name and one line
         // under it. A piece that adds to many stats takes a second line; at
         // 62, room for two always, the three slots no longer fit under the
@@ -71,8 +74,11 @@
 
     // hover: how long a control takes to settle after the pointer arrives or
     // leaves. A press is never eased: it shows on the frame it happens.
+    // hover_card: how long the pointer rests on a piece before its card
+    // shows, so that a pointer on its way somewhere else raises nothing.
+    // Once a card is up, the next piece's card shows at once.
     // layout: how long the scene takes to move between its two sizes.
-    time: (hover: 0.08, layout: 0.45),
+    time: (hover: 0.08, hover_card: 0.25, layout: 0.45),
 
     colour: (
         screen: "14171a",
