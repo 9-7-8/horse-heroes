@@ -125,6 +125,20 @@ pub enum Action {
     SetOut,
     /// Take back the last change made during this town visit (#230).
     Undo,
+    /// Open the report before the one the Journal shows, or the one after
+    /// it (#231).
+    Earlier,
+    Later,
+}
+
+/// A trail's report, kept for the Journal after the party has moved on
+/// (#231): which trail it was, and how it ended, with what it dropped.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Kept {
+    /// The trail's number, counted from the first the party walked.
+    pub number: u32,
+    pub level: u32,
+    pub outcome: Outcome,
 }
 
 /// Where a piece of gear is. One card shows it wherever that is (#228).
@@ -192,6 +206,14 @@ pub struct Game {
     /// back the last; setting out empties it, so nothing reaches back past
     /// a departure (#230).
     changes: Vec<Change>,
+    /// How many trails the party has walked.
+    trails: u32,
+    /// The reports of the trails walked, oldest first, as many as
+    /// `rules.reports_kept` (#231).
+    reports: Vec<Kept>,
+    /// The number of the earlier report the Journal is open at. None is the
+    /// latest: the last trail in town, the fight on the road.
+    reading: Option<u32>,
 }
 
 impl Game {
@@ -211,6 +233,9 @@ impl Game {
             accumulator: 0.0,
             arriving: None,
             changes: Vec::new(),
+            trails: 0,
+            reports: Vec::new(),
+            reading: None,
             data,
         }
     }
@@ -353,15 +378,76 @@ impl Game {
         }
     }
 
+    /// The reports behind the latest, oldest first. In town the newest one
+    /// kept is the latest itself, the last trail's, and is not among them.
+    pub fn earlier(&self) -> &[Kept] {
+        let latest = usize::from(self.in_town() && !self.reports.is_empty());
+        &self.reports[..self.reports.len() - latest]
+    }
+
+    /// The earlier report the Journal is open at. None when it shows the
+    /// latest, and when the one it was open at is no longer kept.
+    pub fn reading(&self) -> Option<&Kept> {
+        let number = self.reading?;
+        self.earlier().iter().find(|kept| kept.number == number)
+    }
+
+    /// Where the Journal is among the earlier reports: the index of the one
+    /// it is open at, or one past the last when it shows the latest.
+    fn reading_at(&self) -> usize {
+        let earlier = self.earlier();
+        self.reading()
+            .and_then(|open| earlier.iter().position(|kept| kept.number == open.number))
+            .unwrap_or(earlier.len())
+    }
+
+    /// Where a piece is now, if the party has it: in the cargo, or on the
+    /// horse that wears it. Pieces have no identity of their own yet, so a
+    /// piece exactly like it counts as it.
+    pub fn find(&self, gear: &Gear) -> Option<Piece> {
+        if self.pending_drop() == Some(gear) {
+            return Some(Piece::Carried);
+        }
+        let slot = gear.slot.index();
+        self.party
+            .iter()
+            .position(|horse| horse.gear[slot].as_ref() == Some(gear))
+            .map(|horse| Piece::Worn { horse, slot })
+    }
+
+    /// The piece dropped by the trail whose report the Journal shows, where
+    /// it is now, if the party still has it (#231). None on the road while
+    /// the report is the fight's.
+    pub fn reported_piece(&self) -> Option<Piece> {
+        let kept = match self.reading() {
+            Some(kept) => kept,
+            None if self.in_town() => self.reports.last()?,
+            None => return None,
+        };
+        self.find(kept.outcome.drop.as_ref()?)
+    }
+
     /// Whether an action can be done now, and if not, why not in plain
     /// words. `act` uses the same check, so the reason a control shows is
     /// the reason the action would fail.
     pub fn can(&self, action: Action, hand: Hand) -> Result<(), &'static str> {
+        // The Journal is read on the road as in town.
+        match action {
+            Action::Earlier if self.earlier().is_empty() => return Err("No earlier report."),
+            Action::Earlier if self.reading_at() == 0 => {
+                return Err("This is the earliest report kept.");
+            }
+            Action::Later if self.reading().is_none() => {
+                return Err("This is the latest report.");
+            }
+            Action::Earlier | Action::Later => return Ok(()),
+            _ => {}
+        }
         let Screen::Camp { last, .. } = &self.screen else {
             return Err("In town only.");
         };
         match action {
-            Action::Element(_) | Action::SetOut => Ok(()),
+            Action::Element(_) | Action::SetOut | Action::Earlier | Action::Later => Ok(()),
             Action::Undo if self.changes.is_empty() => Err("Nothing changed this visit."),
             Action::Undo => Ok(()),
             Action::Equip => {
@@ -455,6 +541,16 @@ impl Game {
             }
             Action::SetOut => self.depart(),
             Action::Undo => self.undo(),
+            // By its number, so the report being read stays the one being
+            // read when the party leaves or arrives.
+            Action::Earlier => {
+                let at = self.reading_at();
+                self.reading = Some(self.earlier()[at - 1].number);
+            }
+            Action::Later => {
+                let at = self.reading_at();
+                self.reading = self.earlier().get(at + 1).map(|kept| kept.number);
+            }
         }
     }
 
@@ -494,6 +590,16 @@ impl Game {
         if outcome.won {
             self.level += 1;
         }
+        // The report is kept: it is in the Journal after the party has
+        // moved on, and never has to be read first (#231).
+        self.trails += 1;
+        self.reports.push(Kept {
+            number: self.trails,
+            level: self.plan.level,
+            outcome: outcome.clone(),
+        });
+        let over = self.reports.len().saturating_sub(self.data.rules.reports_kept);
+        self.reports.drain(..over);
         self.plan = Plan::generate(&self.data, self.plan.seed.wrapping_add(1), self.level);
         self.screen = Screen::Camp {
             last: Some(outcome),
@@ -613,11 +719,36 @@ pub fn stats_line(stats: Stats) -> String {
     parts.join("  ")
 }
 
-/// The latest report: the last trail and its drop in town, the fight on the
-/// road. Shown in the Journal, beside `report_side`.
+/// The report the Journal is open at: an earlier one that was kept, or the
+/// latest, which is the last trail and its drop in town and the fight on the
+/// road. Shown beside `report_side`.
 pub fn report_text(game: &Game) -> String {
     let rules = &game.data.rules;
     let mut out = String::new();
+
+    if let Some(kept) = game.reading() {
+        let earlier = game.earlier();
+        let at = earlier.iter().position(|other| other.number == kept.number);
+        out += &format!(
+            "EARLIER REPORT {} of {}: trail {}, level {}\n{}",
+            at.map_or(0, |at| at + 1),
+            earlier.len(),
+            kept.number,
+            kept.level,
+            outcome_lines(&kept.outcome),
+        );
+        // Where the piece is now is said by its card, under this, while
+        // the party has it.
+        out += &match &kept.outcome.drop {
+            Some(gear) if game.find(gear).is_some() => format!("\nIt dropped {}:\n", gear.name),
+            Some(gear) => format!(
+                "\nIt dropped {}.\nThe party no longer has it.\n",
+                gear.name
+            ),
+            None => "\nIt dropped no gear.\n".into(),
+        };
+        return out;
+    }
 
     match &game.screen {
         Screen::Camp { last, note, .. } => {
@@ -626,17 +757,7 @@ pub fn report_text(game: &Game) -> String {
                         What happens on a trail is reported here when the party is back."
                     .into();
             };
-            out += &format!(
-                "{}  cleared {}/{} encounters, +{} coins\n\
-                 {}: {} strong hits, {} resisted\n",
-                if outcome.won { "VICTORY!" } else { "DEFEAT." },
-                outcome.cleared,
-                outcome.total,
-                outcome.coins,
-                outcome.element.name(),
-                outcome.strong_hits,
-                outcome.resisted_hits,
-            );
+            out += &outcome_lines(outcome);
             // The appraisal, with no input (#11). The piece itself is under
             // this, as its card (#228).
             if outcome.drop.is_some() {
@@ -689,10 +810,58 @@ pub fn report_text(game: &Game) -> String {
     out
 }
 
+/// How a trail ended, in the two lines every report of it opens with.
+fn outcome_lines(outcome: &Outcome) -> String {
+    format!(
+        "{}  cleared {}/{} encounters, +{} coins\n\
+         {}: {} strong hits, {} resisted\n",
+        if outcome.won { "VICTORY!" } else { "DEFEAT." },
+        outcome.cleared,
+        outcome.total,
+        outcome.coins,
+        outcome.element.name(),
+        outcome.strong_hits,
+        outcome.resisted_hits,
+    )
+}
+
+/// The reports kept, newest first, with a mark on the one that is open:
+/// where the player is among them (#231).
+fn reports_list(game: &Game, open: &Kept) -> String {
+    let mut out = format!(
+        "REPORTS KEPT, newest first\n  {}\n",
+        match &game.screen {
+            Screen::Camp { .. } => format!("Latest: trail {}", game.trails),
+            Screen::Trail(_) => format!("Latest: trail {}, being walked", game.trails + 1),
+        }
+    );
+    for kept in game.earlier().iter().rev() {
+        let outcome = &kept.outcome;
+        out += &format!(
+            "{} Trail {}  {} {}/{}  +{}{}\n",
+            if kept.number == open.number { ">" } else { " " },
+            kept.number,
+            if outcome.won { "won" } else { "lost" },
+            outcome.cleared,
+            outcome.total,
+            outcome.coins,
+            match &outcome.drop {
+                Some(gear) => format!("  {}", gear.name),
+                None => String::new(),
+            },
+        );
+    }
+    out
+}
+
 /// Beside the report: the trail ahead and the element to walk it with in
-/// town, the log of the fight on the road.
+/// town, the log of the fight on the road; beside an earlier report, the
+/// list of those kept.
 pub fn report_side(game: &Game) -> String {
     let rules = &game.data.rules;
+    if let Some(open) = game.reading() {
+        return reports_list(game, open);
+    }
     match &game.screen {
         Screen::Camp { .. } => {
             let mut out = format!(
@@ -756,6 +925,7 @@ mod tests {
         ] {
             assert_eq!(game.can(action, Hand::default()), Err("In town only."));
         }
+        assert_eq!(game.can(Action::Earlier, Hand::default()), Err("No earlier report."));
         game.act(Action::Element(Element::Fire), Hand::horse(0));
         assert_eq!(game.element, Element::Ice, "no change on the road");
     }
@@ -954,6 +1124,133 @@ mod tests {
         game.act(Action::Undo, Hand::default());
         assert_eq!(game.party[wearer].gear[slot], under);
         assert_eq!(game.pending_drop(), Some(&over));
+    }
+
+    /// Walk the trail the party is on to its end and bring it home.
+    fn walk_home(game: &mut Game) {
+        let outcome = loop {
+            let Screen::Trail(expedition) = &mut game.screen else {
+                unreachable!("the party set out");
+            };
+            expedition.tick(&game.data, TICK);
+            if let Some(outcome) = expedition.outcome.clone() {
+                break outcome;
+            }
+        };
+        game.return_to_camp(outcome);
+    }
+
+    /// The Journal (#231): with no input the party walks trail after trail
+    /// and every report is kept, as many as the rules say; Earlier and
+    /// Later step through them, and the one being read stays the one being
+    /// read when the party leaves and arrives.
+    #[test]
+    fn a_report_is_kept_and_opened_afterwards() {
+        let none = Hand::default();
+        let mut game = Game::new(6);
+        assert!(game.earlier().is_empty());
+        assert_eq!(game.can(Action::Earlier, none), Err("No earlier report."));
+        assert_eq!(game.can(Action::Later, none), Err("This is the latest report."));
+
+        // No input: the countdown's own departure, three trails running.
+        let mut outcomes = Vec::new();
+        for trail in 1..=3 {
+            game.depart();
+            assert_eq!(game.earlier().len(), trail - 1, "on the road every one kept is earlier");
+            walk_home(&mut game);
+            let Screen::Camp { last: Some(outcome), .. } = &game.screen else {
+                unreachable!("back in town");
+            };
+            outcomes.push(outcome.clone());
+            // In town the newest kept is the latest, not an earlier one.
+            assert_eq!(game.earlier().len(), trail - 1);
+        }
+        assert!(game.reading().is_none());
+        assert!(report_text(&game).contains("cleared"));
+
+        // Earlier, twice, to the first trail's report, as it was.
+        game.act(Action::Earlier, none);
+        assert_eq!(game.reading().map(|kept| kept.number), Some(2));
+        assert_eq!(game.reading().unwrap().outcome, outcomes[1]);
+        game.act(Action::Earlier, none);
+        assert_eq!(game.reading().unwrap().outcome, outcomes[0]);
+        assert!(report_text(&game).starts_with("EARLIER REPORT 1 of 2: trail 1, level 0"));
+        assert!(report_side(&game).contains("> Trail 1 "), "{}", report_side(&game));
+        assert_eq!(
+            game.can(Action::Earlier, none),
+            Err("This is the earliest report kept.")
+        );
+        game.act(Action::Earlier, none);
+        assert_eq!(game.reading().map(|kept| kept.number), Some(1));
+
+        // The party leaves and comes back; the report being read holds.
+        game.depart();
+        assert_eq!(game.reading().map(|kept| kept.number), Some(1));
+        assert_eq!(game.earlier().len(), 3);
+        walk_home(&mut game);
+        assert_eq!(game.reading().map(|kept| kept.number), Some(1));
+
+        // Later, up to the latest, and no further.
+        for number in [2, 3] {
+            game.act(Action::Later, none);
+            assert_eq!(game.reading().map(|kept| kept.number), Some(number));
+        }
+        game.act(Action::Later, none);
+        assert!(game.reading().is_none());
+        assert_eq!(game.can(Action::Later, none), Err("This is the latest report."));
+        // Turning the pages is nothing to undo.
+        assert_eq!(game.can(Action::Undo, none), Err("Nothing changed this visit."));
+
+        // Only so many are kept: the oldest goes, and a report that is no
+        // longer kept is no longer being read.
+        for _ in 0..3 {
+            game.act(Action::Earlier, none);
+        }
+        assert_eq!(game.reading().map(|kept| kept.number), Some(1));
+        let limit = game.data.rules.reports_kept;
+        for _ in 0..limit {
+            game.depart();
+            walk_home(&mut game);
+        }
+        assert_eq!(game.reports.len(), limit);
+        assert_eq!(game.reports.first().map(|kept| kept.number), Some(5));
+        assert!(game.reading().is_none());
+    }
+
+    /// A piece an earlier report shows is found where it is now and acted
+    /// on there, while the party has it (#231).
+    #[test]
+    fn a_piece_in_an_earlier_report_is_found_where_it_is() {
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let gear = game.pending_drop().unwrap().clone();
+        let slot = gear.slot.index();
+        // The latest report's piece is the one in the cargo, and is still
+        // the report's piece once it is worn.
+        assert_eq!(game.reported_piece(), Some(Piece::Carried));
+        game.act(Action::Equip, Hand::horse(1));
+        let worn = Piece::Worn { horse: 1, slot };
+        assert_eq!(game.reported_piece(), Some(worn));
+
+        game.depart();
+        assert_eq!(game.reported_piece(), None, "on the road the report is the fight's");
+        game.act(Action::Earlier, Hand::default());
+        assert_eq!(game.reported_piece(), Some(worn));
+        assert!(report_text(&game).contains(&format!("It dropped {}:", gear.name)));
+
+        // Back in town it is acted on from that report: onto another horse.
+        walk_home(&mut game);
+        let open = game.reported_piece();
+        assert_eq!(open, Some(worn));
+        game.act(Action::Equip, Hand { horse: 0, open });
+        assert_eq!(game.reported_piece(), Some(Piece::Worn { horse: 0, slot }));
+
+        // Thrown away, it is said to be gone.
+        game.party[0].gear[slot] = None;
+        assert_eq!(game.reported_piece(), None);
+        assert!(report_text(&game).contains("The party no longer has it."));
     }
 
     /// The road is held for a won trail's last drops and for nothing else.

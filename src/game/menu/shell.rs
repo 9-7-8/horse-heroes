@@ -22,7 +22,7 @@ use bevy::{
 use serde::Deserialize;
 
 use super::card;
-use super::picture::{self, picture};
+use super::picture::{self, picture, reported_picture};
 use super::parts::{
     ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, button, cell, counter, dim, panel,
     reason, row, side_panel, tab, text, title, trail_mark,
@@ -224,10 +224,13 @@ impl Places {
     }
 }
 
-/// The key a control's `key` names: a letter, a digit or Space.
+/// The key a control's `key` names: a letter, a digit, a square bracket or
+/// Space.
 pub fn key_code(name: &str) -> Option<KeyCode> {
     Some(match name {
         "Space" => KeyCode::Space,
+        "[" => KeyCode::BracketLeft,
+        "]" => KeyCode::BracketRight,
         "0" => KeyCode::Digit0,
         "1" => KeyCode::Digit1,
         "2" => KeyCode::Digit2,
@@ -502,10 +505,23 @@ pub struct CarriedCell {
     pub tab: Option<usize>,
 }
 
-/// Something shown only while a piece is carried (true), or only while
-/// none is (false).
+/// The piece dropped by the trail whose report is showing, in that report
+/// (#231). A press opens its card where the piece is now: in the cargo, or
+/// on the horse that wears it.
 #[derive(Component)]
-struct WhenCarried(bool);
+pub struct ReportedCell {
+    pub place: usize,
+    pub tab: usize,
+}
+
+/// Something shown only while a piece is carried (true), or only while
+/// none is (false); or only while the party has the piece of the report
+/// that is showing.
+#[derive(Component)]
+enum When {
+    Carried(bool),
+    Reported,
+}
 
 /// A horse's column of the gear overview, outlined while it is the selected
 /// horse's.
@@ -571,6 +587,11 @@ enum Fact {
     CarriedName,
     CarriedKind,
     CarriedVerdict,
+    /// The piece of the report that is showing: its name, what it is, and
+    /// where it is now.
+    ReportedName,
+    ReportedKind,
+    ReportedWhere,
     Element,
     Report,
     ReportSide,
@@ -858,7 +879,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                         cargo.spawn(dim(t, "cargo"));
                                         cargo.spawn((
                                             dim(t, card::NOTHING_CARRIED),
-                                            WhenCarried(false),
+                                            When::Carried(false),
                                         ));
                                         spawn_carried(cargo, t, p, None);
                                         spawn_controls(cargo, t, &place.cargo, Some(p), true);
@@ -1112,9 +1133,18 @@ fn spawn_content(
                         .with_children(|half| {
                             half.spawn((text(t, ""), Live(fact)));
                             // The drop, under the report of the trail that
-                            // dropped it: the card the cargo shows (#228).
+                            // dropped it, while the party has it: the card
+                            // the cargo shows (#228), for the latest report
+                            // and for an earlier one alike (#231).
                             if matches!(fact, Fact::Report) {
-                                spawn_carried(half, t, place, Some(tab));
+                                half.spawn((cell(t), ReportedCell { place, tab }, When::Reported))
+                                    .with_children(|cell| {
+                                        cell.spawn((text(t, ""), Live(Fact::ReportedName)));
+                                        spawn_lines(cell, t, reported_picture(t), |lines| {
+                                            lines.spawn((dim(t, ""), Live(Fact::ReportedKind)));
+                                            lines.spawn((dim(t, ""), Live(Fact::ReportedWhere)));
+                                        });
+                                    });
                             }
                         });
                 }
@@ -1132,7 +1162,7 @@ fn spawn_carried(
     tab: Option<usize>,
 ) {
     parent
-        .spawn((cell(t), CarriedCell { place, tab }, WhenCarried(true)))
+        .spawn((cell(t), CarriedCell { place, tab }, When::Carried(true)))
         .with_children(|cell| {
             cell.spawn((text(t, ""), Live(Fact::CarriedName)));
             spawn_pictured(cell, t, Piece::Carried, |lines| {
@@ -1151,13 +1181,23 @@ fn spawn_pictured(
     piece: Piece,
     lines: impl FnOnce(&mut ChildSpawnerCommands),
 ) {
+    spawn_lines(cell, t, picture(t, piece), lines);
+}
+
+/// A picture, and beside it the lines that say what it is of.
+fn spawn_lines(
+    cell: &mut ChildSpawnerCommands,
+    t: &Tokens,
+    picture: impl Bundle,
+    lines: impl FnOnce(&mut ChildSpawnerCommands),
+) {
     cell.spawn(Node {
         align_items: AlignItems::Center,
         column_gap: Val::Px(t.space.s),
         ..default()
     })
     .with_children(|across| {
-        across.spawn(picture(t, piece));
+        across.spawn(picture);
         across
             .spawn(Node {
                 flex_grow: 1.0,
@@ -1251,10 +1291,11 @@ fn on_activate(
     tabs: Query<&TabButton>,
     horses: Query<&HorseButton>,
     slots: Query<&SlotRow>,
-    carried: Query<&CarriedCell>,
+    cells: (Query<&CarriedCell>, Query<&ReportedCell>),
     closes: Query<(), With<ClosePanel>>,
     controls: Query<&ControlButton>,
 ) {
+    let (carried, reported) = cells;
     let entity = activate.entity;
     if let Ok(place) = places.get(entity) {
         shell.press(place.0, game.in_town());
@@ -1284,6 +1325,17 @@ fn on_activate(
                 opener: Some(entity),
             },
         );
+    } else if let Ok(cell) = reported.get(entity) {
+        if let Some(piece) = game.reported_piece() {
+            shell.show_detail(
+                cell.place,
+                Detail {
+                    tab: cell.tab,
+                    item: piece.into(),
+                    opener: Some(entity),
+                },
+            );
+        }
     } else if closes.contains(entity) {
         close_detail(&mut shell, &mut focus);
     } else if let Ok(button) = controls.get(entity) {
@@ -1300,9 +1352,27 @@ fn on_activate(
                     Action::Undo => game.can(action, hand).ok().and(game.undone_move()),
                     _ => None,
                 };
+                let turned = matches!(action, Action::Earlier | Action::Later)
+                    && game.can(action, hand).is_ok();
                 game.act(action, hand);
                 if let Some((from, to)) = moved {
                     shell.piece_moved(from, to);
+                }
+                // A page turned is a page shown (#231): its key works from
+                // anywhere, and opens the report it turned. A card open
+                // there was of the other report's piece, and is put away.
+                if turned && let Some(place) = button.place {
+                    shell.open(place);
+                    let report = map
+                        .pages()
+                        .nth(place)
+                        .and_then(|page| page.tabs.iter().position(|tab| tab.content == Content::Report));
+                    if let Some(tab) = report {
+                        shell.choose_tab(place, tab);
+                    }
+                    if shell.detail(place).is_some_and(|detail| detail.item.piece().is_some()) {
+                        shell.drop_detail(place);
+                    }
                 }
             }
             // It shows something, or is not built and says so: either way
@@ -1601,6 +1671,7 @@ fn mark_chosen(
             Option<&HorseButton>,
             Option<&SlotRow>,
             Option<&CarriedCell>,
+            Option<&ReportedCell>,
             Has<Selected>,
         ),
         Or<(
@@ -1609,6 +1680,7 @@ fn mark_chosen(
             With<HorseButton>,
             With<SlotRow>,
             With<CarriedCell>,
+            With<ReportedCell>,
         )>,
     >,
     map: Res<Places>,
@@ -1619,7 +1691,7 @@ fn mark_chosen(
         Has<InteractionDisabled>,
     )>,
 ) {
-    for (entity, place, tab, horse, slot, carried, selected) in &controls {
+    for (entity, place, tab, horse, slot, carried, reported, selected) in &controls {
         let wanted = place.is_some_and(|place| place.0 == shell.place() && shell.is_open())
             || tab.is_some_and(|tab| tab.tab == shell.tab(tab.place))
             || horse.is_some_and(|horse| horse.0 == shell.horse())
@@ -1636,6 +1708,13 @@ fn mark_chosen(
             || carried.is_some_and(|cell| {
                 shell.detail(cell.place).is_some_and(|detail| {
                     detail.item == Item::Carried && cell.tab.is_none_or(|tab| tab == detail.tab)
+                })
+            })
+            || reported.is_some_and(|cell| {
+                game.reported_piece().is_some_and(|piece| {
+                    shell.detail(cell.place).is_some_and(|detail| {
+                        detail.tab == cell.tab && detail.item == Item::from(piece)
+                    })
                 })
             });
         if wanted && !selected {
@@ -1693,14 +1772,16 @@ fn mark_wearer(
 }
 
 /// The carried piece is in its lists while there is one, and what an empty
-/// list says is there while there is none.
-fn show_carried(
-    game: Res<Game>,
-    mut parts: Query<(&WhenCarried, &mut Node, &mut Visibility)>,
-) {
+/// list says is there while there is none. A report's piece is in the
+/// report while the party has it.
+fn show_carried(game: Res<Game>, mut parts: Query<(&When, &mut Node, &mut Visibility)>) {
     let carried = game.pending_drop().is_some();
+    let reported = game.reported_piece().is_some();
     for (when, mut node, mut visibility) in &mut parts {
-        let shown = when.0 == carried;
+        let shown = match *when {
+            When::Carried(when) => when == carried,
+            When::Reported => reported,
+        };
         let wanted = if shown { Display::Flex } else { Display::None };
         if node.display != wanted {
             node.display = wanted;
@@ -1894,6 +1975,22 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::CarriedVerdict => game
             .pending_drop()
             .map_or(String::new(), |gear| card::verdict(game, selected, gear)),
+        Fact::ReportedName | Fact::ReportedKind | Fact::ReportedWhere => {
+            let Some(at) = game.reported_piece() else {
+                return String::new();
+            };
+            let Some(gear) = game.piece(at) else {
+                return String::new();
+            };
+            match (fact, at) {
+                (Fact::ReportedName, _) => gear.name.clone(),
+                (Fact::ReportedKind, _) => card::kind(game, gear),
+                // Carried, it is what the cargo says of it: against the
+                // selected horse, the one Equip puts it on.
+                (_, Piece::Carried) => card::verdict(game, selected, gear),
+                (_, Piece::Worn { horse, .. }) => format!("{} wears it.", game.party[horse].name),
+            }
+        }
         Fact::Element => {
             let rules = &game.data.rules;
             format!(
@@ -2459,7 +2556,13 @@ mod tests {
             .into_iter()
             .map(Action::Element)
             .collect();
-        actions.extend([Action::Equip, Action::SetOut, Action::Undo]);
+        actions.extend([
+            Action::Equip,
+            Action::SetOut,
+            Action::Undo,
+            Action::Earlier,
+            Action::Later,
+        ]);
         for action in actions {
             let controls = places
                 .controls()
@@ -2522,6 +2625,38 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// A report shows the piece its trail dropped where the piece is now
+    /// (#231): in the cargo as the cargo shows it, and then on its horse.
+    #[test]
+    fn a_report_shows_its_piece_where_it_is() {
+        let places = Places::load();
+        let uncollected = Uncollected::default();
+        let shell = Shell::new(places.pages().count());
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let name = game.pending_drop().unwrap().name.clone();
+        let say = |game: &Game, what| fact(game, &uncollected, &shell, &places, what);
+        assert_eq!(say(&game, Fact::ReportedName), name);
+        assert_eq!(say(&game, Fact::ReportedKind), say(&game, Fact::CarriedKind));
+        assert_eq!(say(&game, Fact::ReportedWhere), say(&game, Fact::CarriedVerdict));
+
+        game.act(Action::Equip, Hand::horse(2));
+        assert_eq!(say(&game, Fact::ReportedName), name);
+        let wearer = &game.party[2].name;
+        assert_eq!(say(&game, Fact::ReportedWhere), format!("{wearer} wears it."));
+
+        // On the road the report is the fight's and has no piece, until an
+        // earlier one is opened.
+        game.act(Action::SetOut, Hand::horse(0));
+        assert_eq!(say(&game, Fact::ReportedName), "");
+        game.act(Action::Earlier, Hand::default());
+        assert_eq!(say(&game, Fact::ReportedName), name);
+        assert!(say(&game, Fact::Report).starts_with("EARLIER REPORT 1 of 1"));
+        assert!(say(&game, Fact::ReportSide).starts_with("REPORTS KEPT"));
     }
 
     #[test]

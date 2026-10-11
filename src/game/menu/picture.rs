@@ -66,14 +66,28 @@ pub fn stamp(look: &RarityLook) -> Vec<Stamp> {
 /// it now.
 #[derive(Component)]
 pub struct Picture {
-    of: Piece,
+    of: Of,
     shown: Option<Option<(usize, Option<usize>)>>,
+}
+
+/// What a picture is of: the piece at one place, or the piece of the report
+/// the Journal shows, wherever that piece is now (#231).
+#[derive(Clone, Copy)]
+enum Of {
+    At(Piece),
+    Reported,
 }
 
 /// The square of a piece's picture. It keeps its size full or empty, and is
 /// away only while there is no piece or slot for it to be about.
 pub fn picture(t: &Tokens, of: Piece) -> impl Bundle + use<> {
-    (Picture { of, shown: None }, square(t))
+    (Picture { of: Of::At(of), shown: None }, square(t))
+}
+
+/// The square of the picture of the piece the showing report dropped. It is
+/// away while the party does not have that piece.
+pub fn reported_picture(t: &Tokens) -> impl Bundle + use<> {
+    (Picture { of: Of::Reported, shown: None }, square(t))
 }
 
 /// The square by itself, for `draw` to fill.
@@ -148,7 +162,11 @@ pub fn draw(
 }
 
 /// The slot and the tier a square is to show, if it is about anything.
-fn wanted(game: &Game, piece: Piece) -> Option<(usize, Option<usize>)> {
+fn wanted(game: &Game, of: Of) -> Option<(usize, Option<usize>)> {
+    let piece = match of {
+        Of::At(piece) => piece,
+        Of::Reported => game.reported_piece()?,
+    };
     let tier = game.piece(piece).map(|gear| gear.rarity);
     match piece {
         Piece::Worn { horse, slot } => {
@@ -226,15 +244,19 @@ mod tests {
         let gear = game.pending_drop().unwrap().clone();
         let slot = gear.slot.index();
         let worn = Piece::Worn { horse: 0, slot };
-        assert_eq!(wanted(&game, worn), Some((slot, None)));
-        assert_eq!(wanted(&game, Piece::Carried), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&game, Of::At(worn)), Some((slot, None)));
+        assert_eq!(wanted(&game, Of::At(Piece::Carried)), Some((slot, Some(gear.rarity))));
 
         let mut on = home();
         on.party[0].gear[slot] = Some(gear.clone());
-        assert_eq!(wanted(&on, worn), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&on, Of::At(worn)), Some((slot, Some(gear.rarity))));
 
         let mut away = home();
         away.act(crate::game::Action::Equip, crate::game::Hand::horse(0));
-        assert_eq!(wanted(&away, Piece::Carried), None);
+        assert_eq!(wanted(&away, Of::At(Piece::Carried)), None);
+        // The report's piece is pictured where it is: carried, then worn.
+        assert_eq!(wanted(&game, Of::Reported), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&away, Of::Reported), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&Game::new(6), Of::Reported), None);
     }
 }

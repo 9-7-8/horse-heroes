@@ -27,4 +27,7 @@
 
     // Enemy health and attack grow by this fraction per trail level.
     level_scaling: 0.15,
+
+    // How many trails' reports the Journal keeps, the newest of them.
+    reports_kept: 20,
 )

@@ -10,10 +10,12 @@
 //             no action or shows is not built: it is drawn as unavailable, and a
 //             press says so and says what it will do.
 //   proposed  the issue is a proposal the owner has not decided.
-//   action    what it does today: Element(Fire), Equip, SetOut, Undo.
+//   action    what it does today: Element(Fire), Equip, SetOut, Undo,
+//             Earlier, Later.
 //   shows     what a press opens in the side panel of its page: Keys.
-//   key       the key that works it, printed on it: a letter, a digit or
-//             Space. Only a control with an action or a shows has one.
+//   key       the key that works it, printed on it: a letter, a digit, a
+//             square bracket or Space. Only a control with an action or a
+//             shows has one.
 // Every key is in this file (#229). A place's `key` opens it and a control's
 // presses it, wherever the player is. A tab's `key` chooses it while its
 // place is showing, so two places may use the same keys for their tabs and
@@ -194,13 +196,14 @@
                 (
                     name: "Report",
                     key: "1",
-                    job: "The latest loot, trail and stall reports.",
+                    job: "The latest loot, trail and stall reports, and the earlier ones behind them.",
                     content: Report,
                     controls: [
                         (name: "Loot report", does: "Shows the latest loot: the ordinary in one line, the best one piece at a time.", issue: 32),
                         (name: "Trail report", does: "Shows what happened on the last trail and why.", issue: 51),
                         (name: "Stall report", does: "Shows what sold while the party was away.", issue: 170),
-                        (name: "Earlier", does: "Opens the reports before this one.", issue: 231),
+                        (name: "Earlier", does: "Opens the report before the one showing. Reports are kept as the party moves on.", action: Earlier, key: "["),
+                        (name: "Later", does: "Opens the report after the one showing, as far as the latest.", action: Later, key: "]"),
                     ],
                 ),
                 (

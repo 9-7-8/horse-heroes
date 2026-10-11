@@ -98,6 +98,8 @@ pub struct Rules {
     pub bonus_chance: f32,
     pub bonus_heal: f32,
     pub level_scaling: f32,
+    /// How many trails' reports the Journal keeps (#231).
+    pub reports_kept: usize,
 }
 
 impl Rules {
