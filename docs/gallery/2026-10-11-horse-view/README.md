@@ -12,3 +12,7 @@ window (1120x640), read by the session. How it works:
 **2.** On the road, a press on Sable: its health is the fight's.
 
 ![Sable's view on the road, at 32 of 35 health.](02-on-the-road.png)
+
+**3.** Each part is headed by a button that goes to its tab. A press on Abilities in Morrow's view: the Horses place is on Abilities, Morrow still selected, and the view is put away.
+
+![The Abilities tab, opened from Morrow's view.](03-a-part-goes-to-its-tab.png)

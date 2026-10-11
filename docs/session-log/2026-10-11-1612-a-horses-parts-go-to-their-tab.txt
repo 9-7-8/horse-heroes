@@ -1,0 +1,53 @@
+SESSION 2026-10-11 16:12 - a horse's parts go to their tab
+==========================================================
+
+ASKED
+  "Build the next most important thing for our next release"
+
+DONE
+  - Tier 3 of next-thing, in 0.2.2 (tiers 1 and 2: build and tests green,
+    no warning; the one open bug, #246, waits only on the owner). #311,
+    the part PICK UP named, in 3b4ee1d:
+      each part of a horse's view (Gear, Abilities, Pet, Look) is headed
+        by a button with the keys that lead there;
+      a press on it opens that tab of the Horses place, from any place
+        and on the road, with the horse still selected;
+      the view is put away in the Horses place, where it stands over the
+        cargo, and stays open in the place the player came from.
+    Tested (154 pass; the horse's view test now presses its parts). Seen
+    running, pictures read by the session: the tour at --seed 6, 1120x640,
+    a horse's view in town and on the road with the Gear button in it,
+    and a press on Abilities landing on that tab. The tour ran to its
+    end; Tab makes 34 stops, 0 out of sight.
+    Pictures: docs/gallery/2026-10-11-horse-view (two retaken, one new).
+    docs/menu-shell.md, "A horse's view".
+  - #311 stays open; a comment on it says what is left.
+
+DECIDED
+  Made for the owner, none by her:
+    - The part's heading is the control, in place of a heading and a
+      separate button: one thing to read and press.
+    - A press on a part puts the view away in the Horses place, so the
+      tab's own tools (the cargo) show; it does not come back with the
+      tab.
+    - The tab's key is printed on the button as "H, 1": the two presses
+      that do the same from anywhere.
+
+FOUND
+  - The first cut left the view on the tab it was opened from, so it came
+    back when that tab was chosen again; the test now covers it.
+
+NOT DONE
+  - What a horse did on the last trail: nothing is kept per horse yet.
+    That is sim work and its own part of #311.
+  - At 1120x640 only the Gear button is in sight without PageDown; the
+    buttons further down were pressed by the tour, not seen scrolled to.
+  - The owner has not pressed a horse or a part by hand.
+  - The walk of the click budget was not run again: no job changed.
+
+PICK UP
+  Run next-thing for 0.2.2: #311's last buildable line, what each horse
+  did on the last trail (keep it per horse in src/sim/, show it under
+  LAST TRAIL in the view). After that #308 is the lowest-numbered menu
+  issue (#312 depends on it; #290 holds #291, #296, #300 and #303; #305
+  waits on #292).

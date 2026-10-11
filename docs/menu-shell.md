@@ -396,8 +396,8 @@ A press on a horse in the strip, or its key (Z, X, C), selects it and opens
 everything about it in the side panel of the place the player is in (#311;
 the owner: "Clicking a horse should open up an inspection screen that lets
 you view all the information about that horse"). `Shell::inspect`,
-`Item::Horse`, `horse_view` in the shell, `card::horse_sheet` and
-`card::horse_wears`.
+`Item::Horse`, `spawn_horse_parts`, `horse_part` and `Shell::go_to` in the
+shell, `card::horse_sheet` and `card::horse_wears`.
 
     Sable
     Health 32/35
@@ -407,14 +407,14 @@ you view all the information about that horse"). `Shell::inspect`,
     attack        3   +2    5
     ...
 
-    GEAR (H, 1)
+    [ Gear [H, 1] ]
     Head: Sunforged Halter
       +15 health  +2 attack ...
     Body: nothing worn
     ...
-    ABILITIES (H, 2)
-    PET (H, 3)
-    LOOK (H, 4)
+    [ Abilities [H, 2] ]
+    [ Pet [H, 3] ]
+    [ Look [H, 4] ]
     LAST TRAIL
 
 - **Every total is accounted for:** what the horse has by itself, what its
@@ -422,8 +422,13 @@ you view all the information about that horse"). `Shell::inspect`,
   named with what it adds. The table is 25 letters wide, which the
   narrowest side panel (the cargo's room, 248) holds.
 - **A part for each tab of the horses' place**, from `places.ron`, headed
-  by the tab's name and the keys that lead to it, since that is where the
-  part is changed. A tab that is not built says so with its job.
+  by a button with the tab's name and the keys that lead to it, since that
+  is where the part is changed. A tab that is not built says so with its
+  job.
+- **A press on a part goes to its tab**, from any place and on the road:
+  the Horses place opens on that tab, with the horse still selected. The
+  view is put away there, as it stands over the cargo the tab works with,
+  and it stays open in the place the player came from.
 - **On the road** its health is the fight's, and with every place closed
   the press opens the place that was last open, with the view in it.
 - **A pinned piece stays.** While a piece's card is pinned in that side
@@ -434,7 +439,7 @@ you view all the information about that horse"). `Shell::inspect`,
 - At the smallest window it is longer than the panel; PageDown reads on.
 
 Not here yet: what the horse did on the last trail (nothing is kept for
-each horse), and a control on each part that goes to its tab.
+each horse).
 
 ## A tab that does not fit
 
