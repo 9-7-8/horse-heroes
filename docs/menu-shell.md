@@ -266,7 +266,8 @@ every place, tab and horse has a key, and no key means two things at once.
   element buttons. The slice's stand-in for abilities.
 - `Report`: the latest report, in two halves of fixed width. In town, the
   last trail and the next trail; on the road, the fight and its log. Under
-  the last trail is its drop, as the cargo shows it, and a press opens its
+  the last trail is what becomes of its drop at setting out
+  (item-card.md, "The appraisal in camp"), then the drop as the cargo shows it, and a press opens its
   card in the Journal's side panel, where Equip works without going to the
   Horses place.
 - none: the tab says what will be decided there and that it is not built.

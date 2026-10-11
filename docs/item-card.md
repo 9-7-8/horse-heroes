@@ -92,6 +92,36 @@ says so, and a press on one says what it will do and names its issue. That
 press puts the card away, as a press on any unbuilt control replaces the
 detail.
 
+## The appraisal in camp
+
+What the report says of the drop by itself, with no card opened and no
+input (#11; `card::appraisal`, shown by `report_text`). It is about the
+horse the piece goes on when the party sets out (`loot::best_wearer`),
+whoever is selected:
+
+    NEW GEAR: Sunforged Halter, on setting out:
+    On Juniper, who wears nothing there:
+    health 40 to 55 (+15)
+    attack 6 to 8 (+2)
+    defense 1 to 5 (+4)
+    elemental 1 to 3 (+2)
+    An upgrade: +11 points.
+    E puts it on the selected horse instead.
+
+- The comparison is the card's own (`compare`). Over a worn piece its
+  heading names that piece, and a line says it is thrown away.
+- When no horse is better off: "left behind on setting out", then why, a
+  verdict per horse ("Worse for Juniper: -3"), and that E puts it on the
+  selected horse all the same.
+- The drop's cell is under it, with its verdict for the selected horse.
+- Once the piece is on, by E or at the gate, what happened is kept
+  (`card::equipped`): "Equipped A on Juniper, in place of B:", the same
+  lines per stat, and "B was thrown away". By E it is the report's note;
+  at the gate it is the first lines of the road's log, after "The party
+  sets out", so the Journal still says it on the road.
+
+Held by `camp_says_what_the_drop_replaces_or_why_it_is_not_used`.
+
 ## Fitting
 
 What a detail says scrolls, with its bar, where it does not fit; the actions
@@ -114,4 +144,3 @@ or moved; an empty slot and an empty cargo say what belongs there.
 - Dragging a piece to a slot.
 - The indicators of #150: new, equipped, favourite, look owned, listed.
 - Formulas behind a Details control.
-- What camp shows by itself for every drop, replaced or not used: #11.

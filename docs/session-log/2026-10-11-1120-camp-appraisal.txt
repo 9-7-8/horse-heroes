@@ -1,0 +1,49 @@
+ASKED
+  "next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #11, camp appraisal, closed. Tested (119 pass) and seen
+    running: the menu tour at 1120x640, picture 32, read by this session.
+    The owner has not looked.
+    - The report says by itself what becomes of the drop at setting out:
+      the horse it goes on, each stat it changes there, the piece it
+      replaces and that it is thrown away; or that it is left behind, and
+      why, horse by horse (card::appraisal).
+    - After Equip the note keeps what the piece replaced and changed
+      (card::equipped). Put on at the gate, the same lines open the road's
+      log.
+    - docs/item-card.md has "The appraisal in camp"; menu-shell.md and
+      expedition.md follow.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The piece still goes on when the party sets out, not on arrival, so
+    the twelve seconds in town are the time to decide otherwise. The
+    report says what will happen, not what has.
+  - The appraisal is about the horse the piece goes on by itself; the cell
+    under it is still about the selected horse.
+  - "Readable in the time camp lasts" was judged by this session from one
+    picture: nine lines in twelve seconds.
+
+FOUND
+  - The session-log names run ahead of the clock: 1110 was written at
+    10:44. This file was written at 10:58 and is named 1120 so that the
+    newest name is still the newest log.
+  - A Python here-document with a backslash before the closing quotes
+    failed; the edits went through the Edit tool.
+
+NOT DONE
+  - At 1120x640 the appraisal pushes the drop's cell and the report's
+    controls below the fold of the Journal page; the page scrolls.
+  - Only a drop onto an empty slot was in a picture (seed 6). Replacing a
+    worn piece, the left-behind case and the gate's lines in the road's log
+    are held by the test and were not seen.
+  - Still not filed from the last log: no key scrolls the card.
+
+PICK UP
+  The next "menus" feature of 0.2.1 by next-thing.txt: #228 is part built
+  and its rest waits on lists that do not exist, so read #250 (the gear
+  and inventory layout is confusing) and see what of it #285 and #228 have
+  already met before building.
