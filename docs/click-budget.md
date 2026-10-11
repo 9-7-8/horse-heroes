@@ -53,6 +53,15 @@ nowhere else: the walk reads them there.
   After the party has left, the report is one more press behind the latest
   (Earlier, or `[`).
 
+## A press on the scene
+
+On the road, a press on the scene closes the open place (#307). None of the
+six jobs is done on the road, so it changes no count in the table. Where it
+saves a press: a place open with its side panel open is closed by one press
+on the scene, where Escape takes two (the panel, then the place). With no
+side panel open it is one press either way: the scene, the place's own tab,
+or Escape.
+
 ## The walk
 
     $env:IDLE_WALK = "screenshots/walk"; cargo run -- --seed 6 --mute *> run.log

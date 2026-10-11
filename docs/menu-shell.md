@@ -74,7 +74,16 @@ Which layout is wanted follows one thing, `Shell::is_open`:
   says "On the way back to town." A drop does not move the layout: gear
   cannot be used before town.
 - On the road, a press on a place in the bar opens it. A press on the place
-  that is open, or Escape with no side panel open, closes it.
+  that is open, a press on the scene, or Escape with no side panel open,
+  closes it.
+- **A press on the scene** (#307) closes the open place in one press, side
+  panel and all; the place is found as it was left. In town, and with every
+  place closed, it does nothing. It lands on `SceneCatcher`, a node the size
+  of the window that lies behind every menu (`GlobalZIndex(-1)`), so a press
+  a menu takes never reaches it; `Shell::press_scene` is what it does. The
+  fight log and the pointer's card let a press through, and neither is ever
+  under the pointer with a place open: the log is away, and the card is up
+  only while the pointer is on its piece.
 - In town a place is always open.
 
 `SceneView` (in `src/game/mod.rs`) holds how far the window is from the town
@@ -686,7 +695,9 @@ each into the folder (which must exist), sends the party off, photographs
 the road view (with the fight log over it, and again with the log hidden by L)
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
-page scrolling to it), waits for the party to come home, opens the report, and then makes a town visit by keys
+page scrolling to it), presses the scene (in town, on the road with every
+place closed, and with a place and its side panel open, which that press
+closes; the press is Bevy's own pointer, at `ON_THE_SCENE`), waits for the party to come home, opens the report, and then makes a town visit by keys
 alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left (which now finds nothing to go to), Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, C, 2, I and F on the abilities, T, 3, S,
 K for the list of keys, Escape twice, Space to set out, and on the road J, 1, [ for the report of the trail before, a press on its piece, Escape, ] back to the latest, and Escape. Both times the party comes home, Trade is open, so that the marks are in the picture before a press clears them (the second time: T on the road, then H in town). Then it exits, in town, after about two and a half minutes. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so

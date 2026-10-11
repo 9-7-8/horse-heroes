@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-11, a press on the scene closes the place](2026-10-11-scene-press/README.md) (#307)
 - [2026-10-11, the fight log over the road](2026-10-11-fight-log/README.md) (#306)
 - [2026-10-11, a horse's view](2026-10-11-horse-view/README.md) (#311)
 - [2026-10-11, the scroll keys](2026-10-11-scroll-keys/README.md) (#304)

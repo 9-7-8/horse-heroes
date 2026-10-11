@@ -1,0 +1,45 @@
+SESSION 2026-10-11 15:58 - a press on the scene closes the place
+===============================================================
+
+ASKED
+  "next for the next release"
+
+DONE
+  - Tier 3 of next-thing, in 0.2.2 (tiers 1 and 2: build and tests green,
+    no warning; the one open bug, #246, waits only on the owner). #307, a
+    press on the road scene closes the open place, closed in 8f98a58:
+      on the road, one press anywhere on the scene puts the open place
+        away, side panel and all, and it is found as it was left;
+      in town, and with every place closed, a press on the scene changes
+        nothing;
+      the line on the road names the scene among the ways to close a place.
+    Tested (154 pass, one new test). Seen running, pictures read by the
+    session: the tour at --seed 6, 1120x640, pressing the scene with
+    Bevy's own pointer in town (nothing), on the road with every place
+    closed (nothing), and with Horses and a horse's view open (closed).
+    The tour ran to its end. Pictures: docs/gallery/2026-10-11-scene-press.
+    docs/menu-shell.md, "A press on the scene"; docs/click-budget.md.
+
+DECIDED
+  Made for the owner, none by her:
+    - A press on the scene closes the place even with a side panel open,
+      where Escape closes the panel first: the issue asks for one press.
+    - The primary button only.
+    - No job of the click budget is done on the road, so no count changed;
+      docs/click-budget.md says where the press saves one (a place with
+      its side panel open: one press, where Escape takes two).
+
+FOUND
+  - A here-document in the Bash tool failed again on text with
+    apostrophes, and worked without them (build-and-run.txt, NOTES).
+
+NOT DONE
+  - The owner has not pressed it by hand; the tour's press is Bevy's
+    pointer, not a mouse.
+  - The walk of the click budget was not run again: no job changed.
+
+PICK UP
+  Run next-thing for 0.2.2: #311, what is left of a horse's view - make
+  its parts controls that go to their tab (the lowest-numbered menu issue
+  that can be worked on: #312 depends on #308, still open; #290 holds
+  #291, #296, #300 and #303; #305 waits on #292).
