@@ -41,6 +41,14 @@ const HORSE_Z: [f32; 3] = [0.6, -0.6, 0.6];
 /// About how high the middle of a horse's body is.
 const HORSE_MIDDLE: f32 = 1.2;
 pub const ENEMY_X: [f32; 3] = [3.5, 6.0, 8.5];
+/// The town gate, an arch on the far side of the trail, facing the camera:
+/// where its middle is when the party is in town, just ahead of the first
+/// horse, how far along the trail each post is from that, how far back it
+/// stands, and how high its beam is.
+const GATE_X: f32 = 1.6;
+const GATE_HALF_SPAN: f32 = 1.3;
+const GATE_Z: f32 = -2.2;
+const GATE_HEIGHT: f32 = 2.6;
 /// An exhausted horse: seconds to lie down or get up, how far its neck drops
 /// while it is on its feet and how much further lying down, in radians, how
 /// far forward its legs fold, how high its belly rests, and the share of
@@ -82,11 +90,18 @@ impl Plugin for ScenePlugin {
                     scroll,
                     (sync_horses, swing_legs).chain(),
                     sync_enemies,
+                    move_gate,
                     toggle_hair,
                 ),
             );
     }
 }
+
+/// The town gate. It is what reaching town looks like: it comes up the
+/// trail as the party walks back, stands in front of the party in town, and
+/// is left behind when the party sets out.
+#[derive(Component)]
+struct TownGate;
 
 /// Whether the horses' hair is hidden, to see the build underneath.
 #[derive(Resource)]
@@ -187,6 +202,30 @@ fn setup(
                 .with_scale(Vec3::new(0.7, 0.2, 0.7)),
         ));
     }
+
+    // The town gate: two posts and a beam, behind the lane.
+    let timber = materials.add(Color::srgb(0.62, 0.52, 0.36));
+    commands
+        .spawn((TownGate, Transform::from_xyz(GATE_X, 0.0, GATE_Z), Visibility::Inherited))
+        .with_children(|gate| {
+            for x in [-GATE_HALF_SPAN, GATE_HALF_SPAN] {
+                gate.spawn((
+                    Mesh3d(cube.clone()),
+                    MeshMaterial3d(timber.clone()),
+                    Transform::from_xyz(x, GATE_HEIGHT / 2.0, 0.0)
+                        .with_scale(Vec3::new(0.4, GATE_HEIGHT, 0.4)),
+                ));
+            }
+            gate.spawn((
+                Mesh3d(cube.clone()),
+                MeshMaterial3d(timber.clone()),
+                Transform::from_xyz(0.0, GATE_HEIGHT, 0.0).with_scale(Vec3::new(
+                    2.0 * GATE_HALF_SPAN + 1.0,
+                    0.4,
+                    0.5,
+                )),
+            ));
+        });
 
     // Every horse is the base horse for now, so one set of meshes does for
     // all three.
@@ -467,6 +506,33 @@ fn scroll(
     }
 }
 
+/// Where the town gate is. On the way back it is as far ahead as the party
+/// has left to walk, so the party stops as it reaches it; in town it stands
+/// there; on the road it is left behind with the rest of the ground.
+fn move_gate(
+    time: Res<Time>,
+    game: Res<Game>,
+    gate: Single<(&mut Transform, &mut Visibility), With<TownGate>>,
+) {
+    let (mut transform, mut visibility) = gate.into_inner();
+    let x = if let Some(secs) = game.secs_to_town() {
+        GATE_X + SCROLL_SPEED * secs
+    } else if game.in_town() {
+        GATE_X
+    } else if game.party_moving() {
+        (transform.translation.x - SCROLL_SPEED * time.delta_secs()).max(-2.0 * WRAP)
+    } else {
+        transform.translation.x
+    };
+    if transform.translation.x != x {
+        transform.translation.x = x;
+    }
+    let wanted = if x > -2.0 * WRAP { Visibility::Inherited } else { Visibility::Hidden };
+    if *visibility != wanted {
+        *visibility = wanted;
+    }
+}
+
 fn swing_legs(
     time: Res<Time>,
     game: Res<Game>,
@@ -535,6 +601,9 @@ fn sync_enemies(
 ) {
     for (body, mut visibility, mut transform, mut material) in &mut enemies {
         let foe = match &game.screen {
+            // On the way back to town the trail's enemies are behind the
+            // party; `fx` shows the ones left standing drawing off.
+            Screen::Trail(_) if game.secs_to_town().is_some() => None,
             Screen::Trail(expedition) => expedition.foes.get(body.0).filter(|f| f.health > 0),
             Screen::Camp { .. } => None,
         };

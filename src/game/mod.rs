@@ -143,6 +143,10 @@ pub struct Game {
     pub plan: Plan,
     pub screen: Screen,
     accumulator: f32,
+    /// Seconds walked towards town since a finished trail let the party go.
+    /// The trail is over and town has not begun: the menus stay as they are
+    /// until the party is seen to arrive (#246).
+    arriving: Option<f32>,
 }
 
 impl Game {
@@ -160,6 +164,7 @@ impl Game {
                 countdown: CAMP_SECS,
             },
             accumulator: 0.0,
+            arriving: None,
             data,
         }
     }
@@ -211,11 +216,25 @@ impl Game {
         matches!(self.screen, Screen::Camp { .. })
     }
 
-    /// Whether the party is walking. It stands still to fight, and while
-    /// the last fountain of a won trail plays, and the ground and whatever
-    /// lies on it stand still with it.
+    /// Whether the party is walking. It stands still in town, to fight, and
+    /// while the last fountain of a won trail plays, and the ground and
+    /// whatever lies on it stand still with it. It walks between encounters
+    /// and on the way back to town.
     pub fn party_moving(&self) -> bool {
-        !matches!(&self.screen, Screen::Trail(expedition) if expedition.phase != Phase::Travelling)
+        match &self.screen {
+            Screen::Camp { .. } => false,
+            Screen::Trail(expedition) => {
+                self.arriving.is_some() || expedition.phase == Phase::Travelling
+            }
+        }
+    }
+
+    /// Seconds of walking left before the party reaches town, while it is on
+    /// its way back from a finished trail. The walk is as long as the one
+    /// between two encounters.
+    pub fn secs_to_town(&self) -> Option<f32> {
+        self.arriving
+            .map(|walked| (self.data.rules.travel_secs - walked).max(0.0))
     }
 
     /// Dev aid: start the wait in town again, so the menu tour can finish
@@ -286,6 +305,7 @@ impl Game {
     }
 
     fn return_to_camp(&mut self, outcome: Outcome) {
+        self.arriving = None;
         self.coins += outcome.coins;
         if outcome.won {
             self.level += 1;
@@ -365,17 +385,30 @@ pub fn advance(
             if let Some(outcome) = expedition.outcome.clone()
                 && !road_is_held(outcome.won, fell, uncollected.pieces)
             {
-                // Enemies the party leaves standing are handed on, not dropped.
-                for (i, foe) in expedition.foes.iter().enumerate() {
-                    if foe.health > 0 {
-                        withdrew.write(Withdrew {
-                            at: scene::enemy_centre(i, foe.max_health),
-                            size: scene::enemy_size(foe.max_health),
-                            element: foe.element,
-                        });
+                let walked = match game.arriving {
+                    Some(walked) => walked + dt,
+                    None => {
+                        // Enemies the party leaves standing are handed on,
+                        // not dropped.
+                        for (i, foe) in expedition.foes.iter().enumerate() {
+                            if foe.health > 0 {
+                                withdrew.write(Withdrew {
+                                    at: scene::enemy_centre(i, foe.max_health),
+                                    size: scene::enemy_size(foe.max_health),
+                                    element: foe.element,
+                                });
+                            }
+                        }
+                        0.0
                     }
+                };
+                // The party walks to town before it is in town, so the
+                // menus move when it is seen to arrive and not before.
+                if walked < game.data.rules.travel_secs {
+                    game.arriving = Some(walked);
+                } else {
+                    game.return_to_camp(outcome);
                 }
-                game.return_to_camp(outcome);
             }
         }
     }
