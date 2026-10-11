@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-11, a horse's view](2026-10-11-horse-view/README.md) (#311)
 - [2026-10-11, the scroll keys](2026-10-11-scroll-keys/README.md) (#304)
 - [2026-10-11, the Inventory](2026-10-11-inventory/README.md) (#308)
 - [2026-10-11, a piece is named in its rarity](2026-10-11-rarity-names/README.md) (#309)

@@ -1,0 +1,48 @@
+ASKED
+  "Can you now add the inspection window instead when you click on a
+  horse, to make the multiple places horse names are listed not
+  degenerate"
+
+DONE
+  - #311, part. The horses are listed once, in the strip: the list down
+    the left of Horses is gone and the overview has its room. A press on
+    a horse, or Z, X, C, selects it and opens its view in the side panel
+    of the place the player is in: name, health, every stat as horse,
+    gear and total, what it wears with what each piece adds, and a part
+    for each tab of Horses with the keys that lead there.
+    Tested (148 pass, two new). Seen running: the menu tour at seed 6 at
+    1120x640, its pictures of the view in town and on the road, read by
+    this session; both are in docs/gallery/2026-10-11-horse-view.
+  - The click budget walked again: every count as before.
+  - docs/menu-shell.md, "A horse's view".
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The view is in the side panel, not a page or a floating window, so it
+    opens in every place and on the road. In Horses it covers the cargo
+    until it is closed.
+  - While a piece's card is pinned, a press on a horse keeps the card and
+    compares it on that horse, and does not open the view.
+  - On the road with every place closed, the press opens the place last
+    open.
+
+FOUND
+  - A slot's card left pinned made the tour's press on a horse on the road
+    show the card and not the view; the tour closes it first.
+
+NOT DONE
+  - #311 stays open: the view does not say what the horse did on the last
+    trail (nothing is kept for each horse), its parts name their tab's
+    keys and are not controls that go there, and the owner has not
+    pressed a horse.
+  - At 1120x640 the view is longer than the panel in Horses, and is read
+    on with PageDown. Not seen: the view of a horse that wears gear, and
+    the view in the Inventory and the Journal.
+  - The names over the columns of the gear overview and under the tiles
+    of the Inventory are still there: they say whose a piece is and are
+    not controls.
+
+PICK UP
+  Ask the owner to press a horse in a running game and say whether the
+  side panel is the window she meant; then the last trail for each horse,
+  the rest of #311.

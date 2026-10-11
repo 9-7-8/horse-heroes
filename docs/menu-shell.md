@@ -28,7 +28,7 @@ that is open. The guidance behind it is
     | coins  bags  hold    A  B  C                 day |  status strip
     +--------------------------------------------------+
     | tabs of the open place                           |
-    | [horses] | the open tab | [cargo or side panel]  |
+    | the open tab            | [cargo or side panel]  |
     +--------------------------------------------------+
     | trail  what the party is doing       [ Set out ] |  footer
     +--------------------------------------------------+
@@ -100,7 +100,8 @@ in view.
 - **The status strip.** Coins, bags, hold, the three horses with their
   health, and the day. Bags, hold and the day show "-" and keep their
   positions until the systems behind them exist. A horse in the strip is a
-  control: pressing it selects that horse.
+  control: pressing it selects that horse and opens its view (see "A
+  horse's view"). This is the one list of horses (#311).
 - **The footer.** First the trail tracker, then, in town: what the party
   is ready for, the countdown, and the footer's controls from the map, Set
   out last. On the road: where the party is, and Set out unavailable.
@@ -280,8 +281,9 @@ every place, tab and horse has a key, and no key means two things at once.
 
 Under whatever a tab shows come its controls.
 
-A place marked `horse_columns` keeps the horses down its left and the cargo
-down its right on every tab. Until 0.4.0 the cargo holds one thing: the
+A place marked `horse_columns` keeps the cargo down its right on every
+tab. It had the horses down its left too until #311: they were listed
+twice, and the strip is the list that stayed. Until 0.4.0 the cargo holds one thing: the
 piece the last trail dropped, until it is equipped or the party leaves.
 It is shown as the summary of its card: its name, what it is, and whether
 it is an upgrade for the selected horse, no better or worse, in points
@@ -340,6 +342,52 @@ comparisons when you hover an item".
 - The place has no controls of its own: its tiles are its controls. Filter,
   Sort and Search are #235.
 
+## A horse's view
+
+A press on a horse in the strip, or its key (Z, X, C), selects it and opens
+everything about it in the side panel of the place the player is in (#311;
+the owner: "Clicking a horse should open up an inspection screen that lets
+you view all the information about that horse"). `Shell::inspect`,
+`Item::Horse`, `horse_view` in the shell, `card::horse_sheet` and
+`card::horse_wears`.
+
+    Sable
+    Health 32/35
+
+              horse gear  now
+    health       35  +15   50
+    attack        3   +2    5
+    ...
+
+    GEAR (H, 1)
+    Head: Sunforged Halter
+      +15 health  +2 attack ...
+    Body: nothing worn
+    ...
+    ABILITIES (H, 2)
+    PET (H, 3)
+    LOOK (H, 4)
+    LAST TRAIL
+
+- **Every total is accounted for:** what the horse has by itself, what its
+  gear adds, and the two together, a stat a line; under Gear each piece is
+  named with what it adds. The table is 25 letters wide, which the
+  narrowest side panel (the cargo's room, 248) holds.
+- **A part for each tab of the horses' place**, from `places.ron`, headed
+  by the tab's name and the keys that lead to it, since that is where the
+  part is changed. A tab that is not built says so with its job.
+- **On the road** its health is the fight's, and with every place closed
+  the press opens the place that was last open, with the view in it.
+- **A pinned piece stays.** While a piece's card is pinned in that side
+  panel, a press on a horse leaves it there and compares it on that horse:
+  the piece is the handle, and that is how a piece is tried on each horse.
+- Close or Escape puts it away. In the Horses place it stands over the
+  cargo, as every detail there does.
+- At the smallest window it is longer than the panel; PageDown reads on.
+
+Not here yet: what the horse did on the last trail (nothing is kept for
+each horse), and a control on each part that goes to its tab.
+
 ## A tab that does not fit
 
 A tab's page scrolls when it is taller than its room (#243), which today
@@ -387,7 +435,7 @@ At the smallest window a slot of the overview holds 22 letters on one line,
 with one to spare: the longest name the data can make today ("Fae-touched
 Saddle Pad"). A test in `sim/loot.rs` holds `gear.ron` to that, so a longer
 prefix or noun fails there and not on screen. The room comes from
-`size.horses_width` (164, as narrow as a horse's row reads),
+the horses column that is gone (#311),
 `size.cargo_width` (248) and the padding of a `cell`. That is why a piece's
 picture is under its name and not beside it: beside it, 18 letters fit. A
 piece's stats may still take two lines, which makes its slot a few pixels
@@ -599,7 +647,7 @@ the road view
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, opens the report, and then makes a town visit by keys
-alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, C, 2, I and F on the abilities, T, 3, S,
+alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left (which now finds nothing to go to), Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, C, 2, I and F on the abilities, T, 3, S,
 K for the list of keys, Escape twice, Space to set out, and on the road J, 1, [ for the report of the trail before, a press on its piece, Escape, ] back to the latest, and Escape. Both times the party comes home, Trade is open, so that the marks are in the picture before a press clears them (the second time: T on the road, then H in town). Then it exits, in town, after about two and a half minutes. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written
