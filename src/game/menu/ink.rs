@@ -1,17 +1,56 @@
 //! Coloured text (#251): which parts of what the menus say are about an
-//! element or a stat, so that each is shown in its colour wherever it is
-//! said. The colours are `colour.element` and `colour.stat` in
-//! `assets/data/menu.ron`. A coloured run always holds its own word, so the
-//! text reads the same with the colour taken away. How it works:
-//! docs/item-card.md, "Colour".
+//! element or a stat, or are the name of a piece of gear, so that each is
+//! shown in its colour wherever it is said. The colours are `colour.element`
+//! and `colour.stat` in `assets/data/menu.ron`, and a piece's name is in the
+//! colour of its rarity in `assets/data/gear.ron` (#309). A coloured run
+//! always holds its own word, so the text reads the same with the colour
+//! taken away. How it works: docs/item-card.md, "Colour".
 
-use crate::sim::data::Element;
+use crate::sim::data::{Element, GearTable};
 
 /// What a piece of text is about.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Ink {
     Element(Element),
     Stat(Stat),
+    /// The name of a piece of gear, by its tier's place in
+    /// `GearTable::rarities`.
+    Rarity(usize),
+}
+
+/// Every name a piece of gear can have, each with its tier.
+pub struct Names(Vec<(String, usize)>);
+
+impl Names {
+    pub fn of(gear: &GearTable) -> Self {
+        let mut names = Vec::new();
+        for (tier, rarity) in gear.rarities.iter().enumerate() {
+            for base in &gear.bases {
+                names.extend(base.names.iter().map(|noun| (format!("{} {noun}", rarity.prefix), tier)));
+            }
+        }
+        Names(names)
+    }
+
+    /// The first name of a piece in `words`, as a whole name: where it
+    /// starts, where it ends and its tier.
+    fn first_in(&self, words: &str) -> Option<(usize, usize, usize)> {
+        let whole = |from: usize, to: usize| {
+            let before = words[..from].chars().next_back();
+            let after = words[to..].chars().next();
+            !before.is_some_and(char::is_alphanumeric) && !after.is_some_and(char::is_alphanumeric)
+        };
+        self.0
+            .iter()
+            .filter_map(|(name, tier)| {
+                let to = |from: usize| from + name.len();
+                let (from, _) = words.match_indices(name.as_str()).find(|(from, _)| whole(*from, to(*from)))?;
+                Some((from, to(from), *tier))
+            })
+            // The earliest; of two that start together the longer, so that
+            // a "Starlit Saddle Pad" is not taken for a "Starlit Saddle".
+            .min_by_key(|(from, to, _)| (*from, std::cmp::Reverse(*to)))
+    }
 }
 
 /// A stat of a horse or of a piece of gear, as the menus name it.
@@ -93,8 +132,22 @@ fn stat_end(text: &[u8], at: usize) -> usize {
 }
 
 /// `words` cut into runs in order, each with what it is about. The runs put
-/// end to end are `words` exactly.
-pub fn runs(words: &str) -> Vec<(&str, Option<Ink>)> {
+/// end to end are `words` exactly. A piece's name is one run, whatever words
+/// are in it.
+pub fn runs<'a>(words: &'a str, names: &Names) -> Vec<(&'a str, Option<Ink>)> {
+    let mut out = Vec::new();
+    let mut rest = words;
+    while let Some((from, to, tier)) = names.first_in(rest) {
+        out.extend(plain_runs(&rest[..from]));
+        out.push((&rest[from..to], Some(Ink::Rarity(tier))));
+        rest = &rest[to..];
+    }
+    out.extend(plain_runs(rest));
+    out
+}
+
+/// The runs of `words` that have no piece's name in them.
+fn plain_runs(words: &str) -> Vec<(&str, Option<Ink>)> {
     let text = words.as_bytes();
     let mut out = Vec::new();
     // Up to here is in `out`.
@@ -112,7 +165,7 @@ pub fn runs(words: &str) -> Vec<(&str, Option<Ink>)> {
             continue;
         };
         let (from, to) = match ink {
-            Ink::Element(_) => (start, end),
+            Ink::Element(_) | Ink::Rarity(_) => (start, end),
             Ink::Stat(_) => (stat_start(text, start).max(done), stat_end(text, end)),
         };
         if from > done {
@@ -139,7 +192,8 @@ mod tests {
     use bevy::prelude::*;
 
     fn inked(words: &str) -> Vec<(&str, Ink)> {
-        runs(words)
+        let names = Names::of(&Data::load().gear);
+        runs(words, &names)
             .into_iter()
             .filter_map(|(run, ink)| Some((run, ink?)))
             .collect()
@@ -163,12 +217,14 @@ mod tests {
             "Fée +1 health, à Ice".into(),
             String::new(),
         ] {
-            let joined: String = runs(&words).iter().map(|(run, _)| *run).collect();
+            let names = Names::of(&game.data.gear);
+            let joined: String = runs(&words, &names).iter().map(|(run, _)| *run).collect();
             assert_eq!(joined, words);
             for (run, ink) in inked(&words) {
                 let named = match ink {
                     Ink::Element(element) => element.name(),
                     Ink::Stat(stat) => stat.name(),
+                    Ink::Rarity(tier) => &game.data.gear.rarities[tier].prefix,
                 };
                 assert!(run.contains(named), "`{run}` does not say {named}");
             }
@@ -235,22 +291,37 @@ mod tests {
     }
 
     /// No name in the game is taken for an element or a stat: a horse, an
-    /// enemy and a piece of gear stay in the colour of their line.
+    /// enemy and a rarity stay in the colour of their line.
     #[test]
-    fn no_name_is_coloured() {
+    fn no_other_name_is_coloured() {
         let data = Data::load();
         let mut names: Vec<String> = Vec::new();
         names.extend(data.horses.iter().map(|horse| horse.name.clone()));
         names.extend(data.enemies.iter().map(|enemy| enemy.name.clone()));
-        for rarity in &data.gear.rarities {
-            names.push(rarity.name.clone());
-            for base in &data.gear.bases {
-                names.extend(base.names.iter().map(|name| format!("{} {name}", rarity.prefix)));
-            }
-        }
+        names.extend(data.gear.rarities.iter().map(|rarity| rarity.name.clone()));
         for name in names {
             assert_eq!(inked(&name), [], "{name}");
         }
+    }
+
+    /// The name of every piece the game can roll is one run in its rarity,
+    /// all of it, wherever it is said (#309).
+    #[test]
+    fn a_piece_is_named_in_its_rarity() {
+        let data = Data::load();
+        for (tier, rarity) in data.gear.rarities.iter().enumerate() {
+            for noun in data.gear.bases.iter().flat_map(|base| &base.names) {
+                let name = format!("{} {noun}", rarity.prefix);
+                assert_eq!(inked(&name), [(name.as_str(), Ink::Rarity(tier))]);
+                assert_eq!(
+                    inked(&format!("Juniper wears {name}: +2 attack.")),
+                    [(name.as_str(), Ink::Rarity(tier)), ("+2 attack", Ink::Stat(Stat::Attack))]
+                );
+            }
+        }
+        // Part of a longer word is not a piece.
+        let name = format!("{} {}", data.gear.rarities[0].prefix, data.gear.bases[0].names[0]);
+        assert_eq!(inked(&format!("{name}s")), []);
     }
 
     /// The colours can be told from each other, from the text they sit in
@@ -264,7 +335,7 @@ mod tests {
             inks.push((element.name().into(), tokens.colour.of(element)));
         }
         for stat in Stat::ALL {
-            inks.push((stat.name().into(), tokens.colour.ink(Ink::Stat(stat))));
+            inks.push((stat.name().into(), tokens.colour.ink(Ink::Stat(stat), &data.gear)));
         }
         // What an ink is seen beside: the others, the text it sits in, and
         // the rarities.

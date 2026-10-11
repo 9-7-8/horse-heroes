@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use serde::{Deserialize, Deserializer};
 
 use super::ink::{Ink, Stat};
-use crate::sim::data::Element;
+use crate::fx::drops::rarity_colour;
+use crate::sim::data::{Element, GearTable};
 
 #[derive(Resource, Clone, Debug, Deserialize)]
 pub struct Tokens {
@@ -132,9 +133,11 @@ impl Colours {
         }
     }
 
-    /// The colour of a piece of text that is about one kind of thing.
-    pub fn ink(&self, ink: Ink) -> Color {
+    /// The colour of a piece of text that is about one kind of thing. A
+    /// piece's name has its rarity's colour, which is `gear`'s, not a token.
+    pub fn ink(&self, ink: Ink, gear: &GearTable) -> Color {
         match ink {
+            Ink::Rarity(tier) => rarity_colour(&gear.rarities[tier]).into(),
             Ink::Element(element) => self.of(element),
             Ink::Stat(Stat::Health) => self.stat.health.0,
             Ink::Stat(Stat::Attack) => self.stat.attack.0,

@@ -2096,6 +2096,7 @@ fn show_facts(
     mut texts: Query<(&mut Text, &TextFont, &TextColor, Option<&PartText>, Option<&Said>)>,
     runs: Query<(), With<Run>>,
 ) {
+    let names = ink::Names::of(&game.data.gear);
     for (entity, live) in &live {
         let target = if texts.contains(entity) {
             Some(entity)
@@ -2116,9 +2117,9 @@ fn show_facts(
         }
         // The text itself is what comes before the first colour; each run
         // after that is a span under it, an element or a stat in its colour
-        // (#251) and the rest in the text's own, which follows the state of
-        // the part it is in.
-        let mut rest = ink::runs(&words);
+        // (#251), a piece's name in its rarity's (#309), and the rest in the
+        // text's own, which follows the state of the part it is in.
+        let mut rest = ink::runs(&words, &names);
         let first = match rest.first() {
             Some((_, None)) => rest.remove(0).0,
             _ => "",
@@ -2134,7 +2135,7 @@ fn show_facts(
         for (run, ink) in rest {
             let mut span = commands.spawn((Run, TextSpan::new(run), font.clone(), ChildOf(target)));
             match (ink, part) {
-                (Some(ink), _) => span.insert(TextColor(tokens.colour.ink(ink))),
+                (Some(ink), _) => span.insert(TextColor(tokens.colour.ink(ink, &game.data.gear))),
                 (None, Some(part)) => span.insert((*colour, *part)),
                 (None, None) => span.insert(*colour),
             };

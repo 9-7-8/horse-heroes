@@ -107,6 +107,7 @@ What an item says is coloured by kind (#251), the same on every screen:
 | --- | --- | --- |
 | An element's name | `colour.element` | Fire red, Ice blue, Plant green: the colour of an enemy of that element in a fight, which the scene and the deaths take from the same token |
 | A stat, with its number | `colour.stat` | health pink, attack violet, defense teal, elemental magenta |
+| A piece's name | its rarity's `look.colour` in `gear.ron` | Normal white, Magic blue, Rare yellow, Legendary orange, Set green: the colour of its drop in the loot shower (#309) |
 
 No screen chooses a colour. `show_facts` (`shell.rs`) passes every live text
 through `ink::runs` (`src/game/menu/ink.rs`), which cuts it into runs: an
@@ -121,8 +122,15 @@ code.
   taken away.
 - The stat colours keep clear of the element colours, of plain text and of
   the rarity colours in `gear.ron`; a test holds the distances.
-- A name is never coloured: a test runs every horse, enemy, rarity and piece
-  name in the data through `runs`. A piece called "Ice Veil" would fail it.
+- A piece's name is one run in its rarity's colour, all of it, whatever
+  words are in it (#309). `ink::Names` is every name `gear.ron` can make, a
+  prefix and a noun, with its tier; `runs` finds those first and cuts the
+  rest as before. The owner asked for the name or the card's background;
+  the name was picked, because a card filled with a rarity's yellow, orange
+  or green would take the contrast from the stat colours on it, and a name
+  carries the rarity into rows and reports that have no card.
+- No other name is coloured: a test runs every horse, enemy and rarity name
+  in the data through `runs`, and another every piece name.
 - A new kind of line (#69's affixes) is a variant of `Ink`, its words in
   `ink`, and a token.
 
