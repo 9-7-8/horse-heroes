@@ -32,7 +32,7 @@ use bevy::camera::NormalizedRenderTarget;
 use serde::Deserialize;
 
 use crate::game::menu::shell::{
-    CarriedCell, Content, ControlButton, HorseButton, PlaceButton, Places, ReportedCell, Shell,
+    CarriedCell, Content, ControlButton, HorseButton, PartButton, PlaceButton, Places, ReportedCell, Shell,
     SlotRow, TabButton,
 };
 use crate::game::{Action, Game, Hand};
@@ -93,6 +93,8 @@ enum Step {
     Place(usize),
     Tab(usize, usize),
     Horse(usize),
+    /// A part of a horse's view, by the tab of the horses' place it goes to.
+    Part(usize),
     /// A slot of the gear overview: the horse, then the slot.
     Slot(usize, usize),
     /// Press the first control of that name.
@@ -259,6 +261,10 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         // A press on a horse opens everything about it (#311).
         Step::Horse(1),
         Step::Shot("a horse's view".into()),
+        // Its parts are controls that go to their tab.
+        Step::Part(1),
+        Step::Shot("a part of the view goes to its tab".into()),
+        Step::Tab(0, 0),
         Step::Slot(0, 0),
         Step::Shot("side panel open".into()),
         Step::Control("Compare"),
@@ -600,7 +606,7 @@ fn tour(
     mut game: ResMut<Game>,
     places: Query<(Entity, &PlaceButton)>,
     tabs: Query<(Entity, &TabButton)>,
-    horses: Query<(Entity, &HorseButton)>,
+    horses: (Query<(Entity, &HorseButton)>, Query<(Entity, &PartButton)>),
     slots: Query<(Entity, &SlotRow)>,
     cells: (
         Query<(Entity, &CarriedCell)>,
@@ -621,6 +627,7 @@ fn tour(
 ) {
     let (mut exit, mut pointer, window, transforms) = out;
     let (carried, reported) = cells;
+    let (horses, parts) = horses;
     let (map, shell) = menus;
     // Its fields one by one: the step is read while the counts are kept.
     let tour = &mut *tour;
@@ -663,6 +670,11 @@ fn tour(
             .find(|(_, b)| b.place == *p && b.tab == *t)
             .map(|(e, _)| e),
         Step::Horse(h) => horses.iter().find(|(_, b)| b.0 == *h).map(|(e, _)| e),
+        Step::Part(t) => parts
+            .iter()
+            .filter(|(_, b)| b.tab == *t)
+            .min_by_key(|(e, _)| !seen(*e))
+            .map(|(e, _)| e),
         // The one in sight: the Inventory shows the same pieces as the
         // overview and the cargo.
         Step::Slot(h, s) => slots
@@ -731,6 +743,7 @@ fn tour(
         | Step::PlaceMidway(_)
         | Step::Tab(..)
         | Step::Horse(_)
+        | Step::Part(_)
         | Step::Slot(..)
         | Step::Carried(_)
         | Step::Reported
