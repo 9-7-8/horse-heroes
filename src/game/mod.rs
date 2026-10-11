@@ -199,6 +199,8 @@ impl Game {
     /// Put the last run's drop on a horse. Any horse can wear any piece
     /// (#250). Returns what happened.
     fn equip_drop(&mut self, horse: usize) -> Option<String> {
+        // Said of the horse as it is before the piece goes on (#11).
+        let note = menu::card::equipped(self, self.party.get(horse)?, self.pending_drop()?);
         let Screen::Camp {
             last: Some(outcome),
             ..
@@ -208,7 +210,6 @@ impl Game {
         };
         let horse = self.party.get_mut(horse)?;
         let gear = outcome.drop.take()?;
-        let note = format!("Equipped {} on {}.", gear.name, horse.name);
         let slot = gear.slot.index();
         horse.gear[slot] = Some(gear);
         Some(note)
@@ -389,16 +390,18 @@ impl Game {
     fn depart(&mut self) {
         // Idle first: an unattended camp still takes the upgrade, on the
         // horse it does most for.
-        if let Some(horse) = self.drop_best_wearer() {
-            self.equip_drop(horse);
-        }
+        let taken = self
+            .drop_best_wearer()
+            .and_then(|horse| self.equip_drop(horse));
         self.accumulator = 0.0;
-        self.screen = Screen::Trail(Expedition::new(
-            &self.data,
-            self.plan.clone(),
-            &self.party,
-            self.element,
-        ));
+        let mut expedition =
+            Expedition::new(&self.data, self.plan.clone(), &self.party, self.element);
+        // What was put on at the gate opens the road's log, so the report
+        // that said it would happen is not the last word on it (#11).
+        if let Some(taken) = taken {
+            expedition.log.extend(taken.lines().map(String::from));
+        }
+        self.screen = Screen::Trail(expedition);
     }
 
     fn return_to_camp(&mut self, outcome: Outcome) {
@@ -550,14 +553,10 @@ pub fn report_text(game: &Game) -> String {
                 outcome.strong_hits,
                 outcome.resisted_hits,
             );
-            // The piece itself is under this, as its card (#228).
+            // The appraisal, with no input (#11). The piece itself is under
+            // this, as its card (#228).
             if outcome.drop.is_some() {
-                out += &match game.drop_best_wearer() {
-                    Some(best) => {
-                        format!("\nNEW GEAR, which does most for {}:\n", game.party[best].name)
-                    }
-                    None => "\nNEW GEAR, which leaves no horse better off:\n".into(),
-                };
+                out += &format!("\n{}\n", menu::card::appraisal(game));
             }
             if !note.is_empty() {
                 out += &format!("\n{note}\n");
