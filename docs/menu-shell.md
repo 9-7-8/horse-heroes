@@ -26,7 +26,7 @@ that is open. The guidance behind it is
     | coins  bags  hold    A  B  C                 day |  status strip
     +--------------------------------------------------+
     | tabs of the open place                           |
-    | [horses] | the open tab | [cargo] | [side panel] |
+    | [horses] | the open tab | [cargo or side panel]  |
     +--------------------------------------------------+
     | trail  what the party is doing       [ Set out ] |  footer
     +--------------------------------------------------+
@@ -298,9 +298,38 @@ whose plugins come with `DefaultPlugins`:
 The horses and cargo columns and the side panel do not scroll; they fit at
 the smallest window today.
 
-At the smallest window the overview fits with the side panel closed and its
-controls are a scroll away. With the side panel open its columns are too
-narrow: names and stats wrap to several lines (#287).
+## Where the side panel opens
+
+In a place with `horse_columns` the side panel opens **in the cargo
+column's room**, at the cargo's width (`size.cargo_width`): the cargo is
+put away while a detail shows and comes back when it is closed (#287). So
+opening or closing a detail moves nothing on the tab beside it, and the
+overview keeps its width. Before, the panel took its 280 pixels from the
+tab, and at the smallest window a column of the overview was about 95
+pixels wide. In the other places and in Settings the panel opens at the
+right at `size.side_panel_width`, as it did.
+
+Two things follow from the cargo being covered:
+
+- A detail left open in such a place is put away when the party arrives in
+  town (`follow_the_party`), on every tab: the party has come back with
+  something in the cargo, and that must not be hidden behind what was being
+  looked at before. This is the one case in which a place is not found
+  exactly as it was left.
+- A cargo control that is not built opens its "Not built yet." detail over
+  the cargo, itself included. Close or Escape brings the cargo back with
+  the focus on that control.
+
+Equip (E) still works with the cargo covered, as every key does.
+
+At the smallest window a slot of the overview holds 22 letters on one line,
+with one to spare: the longest name the data can make today ("Fae-touched
+Saddle Pad"). A test in `sim/loot.rs` holds `gear.ron` to that, so a longer
+prefix or noun fails there and not on screen. The room comes from
+`size.horses_width` (164, as narrow as a horse's row reads),
+`size.cargo_width` (248) and the padding of a `cell`. A piece's stats may
+still take two lines. The three horses' slots are in view without
+scrolling; the tab's controls are partly a scroll away.
 
 ## Keys
 

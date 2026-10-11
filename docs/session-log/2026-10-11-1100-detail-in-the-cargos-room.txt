@@ -1,0 +1,51 @@
+ASKED
+  "Next, then how much is left for this patch": the next thing by
+  next-thing.txt, then a count of what 0.2.1 still holds.
+
+DONE
+  - Tier 1, #287, a bug in the menus: the gear overview squeezed with a
+    slot open at the smallest window. Closed. Tested (114 pass) and seen
+    running: pictures of the menu tour at 1120x640, read by this session.
+    The owner has not looked.
+    - In the Horses place the side panel opens in the cargo column's room,
+      at the cargo's width. The cargo is put away while a detail shows.
+      Opening and closing a slot moves nothing: the slots are in the same
+      place in the pictures with and without one open.
+    - The horses column is 164 wide (was 200) and the cargo 248 (was 260),
+      and a slot's padding is trimmed, so a slot holds 22 letters on one
+      line, with about one to spare.
+    - A test holds gear.ron to that: no prefix and noun together make a
+      name longer than 22 letters.
+    - A detail left open over the cargo is put away when the party
+      arrives in town, so a drop is never hidden behind it.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - Of the three ways out named in #287, the first: the detail takes the
+    cargo's room. It is the only one that keeps the slots still.
+  - The cargo cannot be seen while a detail is open. A cargo control that
+    is not built therefore covers itself with its own "Not built yet."
+  - Arriving in town closes a detail in the Horses place. Before, a place
+    was always found exactly as it was left.
+
+FOUND
+  - The longest name the data makes, "Fae-touched Saddle Pad", was not in
+    any picture: seed 6 drops "Sunforged Halter". Its fit is by measuring
+    the picture (a letter is about 8.4 pixels, a slot's line about 192).
+  - Remove-Item on screenshots/t287/* was refused as a protected path;
+    the tour overwrites its pictures, so nothing was lost by it.
+  - This log is named 1100, written at 10:25, to stay in order after the
+    earlier logs of the day.
+
+NOT DONE
+  - Hover and real clicks were not tried; the tour sends the press a
+    click sends.
+  - A horse's health of three digits in the narrower horses column was
+    not looked at. Nothing reaches 100 today.
+  - No gallery pictures were added for this change.
+
+PICK UP
+  0.2.1 has 13 open issues. #246, #253 and #285 are built and wait only
+  on the owner looking at them in a release. Next by number among the
+  rest is #11, camp appraisal, which leans on the item card (#228): read
+  both and build #228 first if #11 cannot stand without it.
