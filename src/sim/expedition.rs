@@ -768,6 +768,106 @@ mod tests {
         assert_eq!(fading.ward, 0.0);
     }
 
+    /// An enemy's hit is its attack less the horse's defense, never less
+    /// than 1, and it lands only on a horse still standing.
+    #[test]
+    fn an_enemy_hit_is_its_attack_less_defense_on_a_standing_horse() {
+        let data = Data::load();
+        let toad: &[&[(&str, Element)]] = &[&[("mire_toad", Element::Ice)]];
+        let hit_with = |defense: i32| {
+            let mut run = fighting(&data, 0, toad);
+            hold_the_party(&mut run);
+            for fighter in &mut run.party {
+                fighter.defense = defense;
+            }
+            // Long enough for the toad's first hit, too short for its second.
+            let dt = run.foes[0].attack_interval * 1.5;
+            run.tick(&data, dt);
+            (health_lost(&run), run.foes[0].attack)
+        };
+        let (lost, attack) = hit_with(2);
+        assert!(attack > 3, "the toad's hit should be worth blocking");
+        assert_eq!(lost, attack - 2);
+        assert_eq!(hit_with(attack).0, 1);
+        assert_eq!(hit_with(attack + 50).0, 1);
+
+        let mut run = fighting(&data, 0, toad);
+        hold_the_party(&mut run);
+        run.party[0].health = 0;
+        run.party[1].health = 0;
+        run.party[2].health = 10_000;
+        run.party[2].max_health = 10_000;
+        let dt = run.foes[0].attack_interval;
+        for _ in 0..20 {
+            run.tick(&data, dt);
+        }
+        let hits = lines_with(&run, "Mire Toad hits") as i32;
+        assert!(hits >= 10, "{hits} hits");
+        let each = (run.foes[0].attack - run.party[2].defense).max(1);
+        assert_eq!(run.party[2].max_health - run.party[2].health, hits * each);
+        assert_eq!((run.party[0].health, run.party[1].health), (0, 0));
+        assert_eq!(run.phase, Phase::Fighting);
+    }
+
+    /// A fallen horse does nothing more: no hit and no ability.
+    #[test]
+    fn a_fallen_horse_does_nothing() {
+        let data = Data::load();
+        let mut run = fighting(&data, 0, &[&[("corrupted_stag", Element::Fire)]]);
+        run.foes[0].health = i32::MAX;
+        run.foes[0].attack_timer = f32::MAX;
+        run.party[0].health = 0;
+        run.party[1].health = 0;
+        let lines = run.log.len();
+        for _ in 0..200 {
+            run.tick(&data, TICK);
+        }
+        let acted = |horse: usize| {
+            let name = &run.party[horse].name;
+            run.log[lines..].iter().filter(|line| line.starts_with(name.as_str())).count()
+        };
+        assert_eq!((acted(0), acted(1)), (0, 0));
+        assert!(acted(2) > 0);
+        assert_eq!(run.log.len() - lines, acted(2));
+    }
+
+    /// A trail is lost when the last horse falls. Lost in its first
+    /// encounter it brings nothing back; lost further on it brings a piece,
+    /// which no enemy drops.
+    #[test]
+    fn a_lost_trail_brings_back_a_piece_only_past_its_first_encounter() {
+        let data = Data::load();
+        let trail: &[&[(&str, Element)]] = &[
+            &[("mire_toad", Element::Ice)],
+            &[("mire_toad", Element::Ice)],
+            &[("hollow_wolf", Element::Ice)],
+        ];
+        let lose = |cleared: usize| {
+            let mut run = fighting(&data, 0, trail);
+            for _ in 0..cleared {
+                run.foes.clear();
+                run.encounter_cleared(&data);
+            }
+            hold_the_party(&mut run);
+            for fighter in &mut run.party {
+                fighter.health = 1;
+            }
+            for _ in 0..600 {
+                run.tick(&data, TICK);
+            }
+            assert_eq!(run.phase, Phase::Finished);
+            assert!(run.party.iter().all(|f| f.health == 0));
+            assert_eq!(lines_with(&run, "driven back"), 1);
+            assert!(run.kills.is_empty());
+            let outcome = run.outcome.unwrap();
+            assert_eq!((outcome.won, outcome.cleared, outcome.total), (false, cleared, 3));
+            outcome.drop
+        };
+        assert_eq!(lose(0), None);
+        assert!(lose(1).is_some());
+        assert!(lose(2).is_some());
+    }
+
     fn horse_of(expedition: &Expedition, class: Class) -> usize {
         expedition.party.iter().position(|f| f.class == class).unwrap()
     }

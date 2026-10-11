@@ -323,6 +323,10 @@ mod tests {
         assert!(!data.horses.is_empty());
         for horse in &data.horses {
             assert!(horse.stats.health > 0, "{}", horse.name);
+            let Stats { attack, defense, elemental, .. } = horse.stats;
+            assert!(attack >= 0 && defense >= 0 && elemental >= 0, "{}", horse.name);
+            let named = data.horses.iter().filter(|h| h.name == horse.name).count();
+            assert_eq!(named, 1, "horses.ron: two horses named `{}`", horse.name);
         }
 
         let mut ids: Vec<&str> = data.enemies.iter().map(|e| e.id.as_str()).collect();
@@ -331,6 +335,7 @@ mod tests {
         assert_eq!(ids.len(), data.enemies.len(), "an enemy id is used twice");
         for enemy in &data.enemies {
             assert!(enemy.health > 0 && enemy.attack_interval > 0.0, "{}", enemy.id);
+            assert!(enemy.attack >= 0 && enemy.defense >= 0, "{}", enemy.id);
             assert!(0 <= enemy.coins.0 && enemy.coins.0 <= enemy.coins.1, "{}", enemy.id);
             assert!(!enemy.fountain.is_empty(), "{}", enemy.id);
             assert!(!enemy.death.is_empty(), "{}", enemy.id);
@@ -391,7 +396,13 @@ mod tests {
         assert!(rules.ward_cooldown > 0.0);
         assert!((0.0..=1.0).contains(&rules.bonus_chance));
         assert!((0.0..=1.0).contains(&rules.ward_reduction));
+        assert!((0.0..=1.0).contains(&rules.bonus_heal));
+        assert!(0.0 < rules.weak_multiplier);
         assert!(rules.weak_multiplier < 1.0 && 1.0 < rules.strong_multiplier);
+        // An ability is worth using, and the Ward is down before it is up again.
+        assert!(rules.focused_shot_multiplier > 1.0 && rules.burst_multiplier > 0.0);
+        assert!(0.0 < rules.ward_duration && rules.ward_duration < rules.ward_cooldown);
+        assert!(rules.level_scaling >= 0.0);
     }
 
     /// A piece's reach and thickness cover every solid in it, wherever the
