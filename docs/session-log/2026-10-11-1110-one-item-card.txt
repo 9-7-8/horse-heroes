@@ -1,0 +1,60 @@
+ASKED
+  "next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #228, the item card, in part. It was picked before #11 because
+    #11's comparison is the card's. Left open; what is met is in a comment
+    on the issue. Tested (118 pass) and seen running: pictures of the menu
+    tour at 1120x640, read by this session. The owner has not looked.
+    - One description of a piece (src/game/menu/card.rs): the summary a
+      list shows, and the pinned card with the comparison per stat on the
+      selected horse and what Equip would do.
+    - The carried piece is a pressable cell in the cargo and under the
+      report. A press pins its card in that place's side panel.
+    - Under the card, in every place: Equip, and List, Store, Lock,
+      Favourite and Look, which are not built and say so.
+    - Equip works from the Journal as from the Horses place.
+    - The card stays on its piece after Equip.
+    - docs/item-card.md is new; docs/menu-shell.md follows.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - Equip and Swap are one action, Equip (E). W is no longer a key. With a
+    card open E is done to that piece; with none, to the drop, as before.
+  - The item's verbs left the cargo column for the card. So by mouse the
+    drop is now two presses to equip (the piece, then Equip) where it was
+    one. By key it is still E alone.
+  - The card's last control is named "Look" (wear as a look, #92), so that
+    the six fit three rows of the panel.
+  - The card says a worn piece "is thrown away" when a drop is put over it.
+    That was already what happened; nothing said so.
+  - A press on an unbuilt control of the card puts the card away, as any
+    unbuilt control replaces the detail.
+
+FOUND
+  - With the actions under it, the card did not fit the side panel at the
+    smallest window. What a detail says now scrolls and the actions stay.
+  - A card open on another horse's empty slot followed the wrong piece
+    after Equip; seen in a tour picture, fixed, and held by a test.
+  - A key of a card control would have pressed one button per place; `keys`
+    now presses a control once.
+  - A here-document in Git Bash failed again where its text had
+    apostrophes; one without them ran. Scripts went through the Write tool.
+
+NOT DONE
+  - Of #228: the stall, storage and codex (no such lists yet), List and
+    Favourite, hover, dragging, the indicators of #150, the Details layer.
+  - At 1120x640 in the Horses place the comparison is a scroll away, and
+    no key scrolls the card. Not filed.
+  - Hover and real clicks were not tried; the tour sends the press a click
+    sends. The wheel over the card was not tried.
+  - A piece with a worn piece under it ("in place of", "is thrown away")
+    is tested and was not in any picture: seed 6 brings one drop home.
+  - No gallery pictures were added.
+
+PICK UP
+  #11, camp appraisal: the comparison is built (card::compare), so what is
+  left is the report showing by itself, for the drop, what it replaced or
+  why it was not used. Read #11 and docs/item-card.md first.

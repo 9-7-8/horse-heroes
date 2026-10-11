@@ -13,6 +13,7 @@ that is open. The guidance behind it is
 | --- | --- |
 | `assets/data/places.ron` | The map of the menus: the places in order, the tabs of each, the line saying what is decided there, and every control planned for each (#238) |
 | `assets/data/menu.ron` | Sizes of the shell's columns, and `layout`: the scene's share of the window in each layout and the minimum window size; `time.layout`: how long the move takes |
+| `src/game/menu/card.rs` | What an item card says ([item-card.md](item-card.md)) |
 | `src/game/menu/shell.rs` | The shell: its state (`Shell`), its layout, and the systems that keep it showing the game |
 | `src/game/mod.rs` | `SceneView`, which layout the window is in and how far between them; `Action`, `Game::can` and `Game::act`, what a working control does; the report text shown in the Journal |
 | `src/game/scene.rs` | `frame`, which sizes the camera to the layout every frame |
@@ -168,7 +169,8 @@ press does depends on which marker the control carries (`PlaceButton`,
 The owner, 2026-10-10: "All buttons should be there, even if they're not
 functional, as early as possible." So `places.ron` lists every control
 planned for every tab, for the cargo column (`cargo`), for a place without
-tabs and for Settings (`controls`), and for the footer (`footer`). The shell
+tabs and for Settings (`controls`), for the footer (`footer`), and for the
+item card (`card`, in every place's side panel: [item-card.md](item-card.md)). The shell
 makes a button for each, in the order of the file, in a row that wraps.
 Renaming, reordering or moving a control is a change to that file only.
 
@@ -180,7 +182,7 @@ A control in the file is:
 | `does` | What it does, or will do, in one sentence |
 | `issue` | The issue that will make it work |
 | `proposed` | That issue is a proposal the owner has not decided |
-| `action` | What it does today: `Element(Fire)`, `EquipDrop`, `Swap`, `SetOut` |
+| `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut` |
 | `shows` | What a press opens in the side panel of its page: `Keys` |
 | `key` | The key that works it, printed on it: a letter, a digit or `Space` |
 
@@ -224,18 +226,16 @@ puts up to two `reason` lines:
 
 A new reason is a new `Err` in `Game::can`; nothing in the shell changes.
 
-`can` and `act` take a `Hand`: the selected horse and, when a worn piece is
-open in the side panel, whose it is and which slot (`Shell::hand`). That is
-all an action knows of the menus.
+`can` and `act` take a `Hand`: the selected horse and, when a piece's card
+is open in the side panel, where that piece is (`Piece`, from
+`Shell::hand`). That is all an action knows of the menus.
 
-**Swap** (W, on Gear) is how a worn piece is equipped on the selected horse
-from the overview: the piece that is open and what the selected horse wears
-in that slot change places (`loot::swap_worn`), an empty slot like a piece,
-so nothing is lost and a second press puts it back. It is refused, with
-its reason, on the road, with no slot of another horse open, and when
-neither horse wears anything there. The displaced piece goes to the other
-horse and not to the cargo because the cargo holds one thing until 0.4.0
-(#227).
+**Equip** (E, on the item card) is the one way a piece is put on the
+selected horse, from the cargo or from another horse: see
+[item-card.md](item-card.md). From another horse the two change places
+(`loot::swap_worn`), an empty slot like a piece, so nothing is lost. The
+displaced piece goes to the other horse and not to the cargo because the
+cargo holds one thing until 0.4.0 (#227).
 
 An empty list says what belongs in it: the cargo, an empty slot's side
 panel, and the report before any trail. A tab with no content says "This
@@ -259,14 +259,16 @@ every place, tab and horse has a key, and no key means two things at once.
   is seen at once beside the cargo and no horse has to be selected to look.
   A slot is a `cell`: the piece and, under it, the slot and what the piece
   adds, or "nothing worn". The selected horse's column is outlined and its
-  heading says "selected". Pressing a slot opens it in the side panel and
-  does not change the selected horse. Another horse's slot is shown against
-  the selected horse, as the cargo's piece is, with what Swap would do.
+  heading says "selected". Pressing a slot opens its card in the side panel
+  and does not change the selected horse. Another horse's piece is compared
+  on the selected horse, as the cargo's piece is, with what Equip would do.
 - `Element`: the party's one element and what beats what, above the three
   element buttons. The slice's stand-in for abilities.
 - `Report`: the latest report, in two halves of fixed width. In town, the
-  last trail and its drop, and the next trail; on the road, the fight and
-  its log. This is the text the old overlay showed.
+  last trail and the next trail; on the road, the fight and its log. Under
+  the last trail is its drop, as the cargo shows it, and a press opens its
+  card in the Journal's side panel, where Equip works without going to the
+  Horses place.
 - none: the tab says what will be decided there and that it is not built.
 
 Under whatever a tab shows come its controls.
@@ -274,11 +276,11 @@ Under whatever a tab shows come its controls.
 A place marked `horse_columns` keeps the horses down its left and the cargo
 down its right on every tab. Until 0.4.0 the cargo holds one thing: the
 piece the last trail dropped, until it is equipped or the party leaves.
-It is compared with the selected horse: what that horse wears in the slot,
-and whether the piece is an upgrade for it, no better or worse, in points
-(`loot::gain`). Selecting another horse changes the comparison. Equip is
-there and puts the piece on the selected horse (#250); before, a piece was
-rolled for one horse and went to it whoever was selected.
+It is shown as the summary of its card: its name, what it is, and whether
+it is an upgrade for the selected horse, no better or worse, in points
+(`loot::gain`). Selecting another horse changes that line. A press opens
+its card, with Equip, which puts the piece on the selected horse (#250).
+The cargo's own controls are those of a list: Filter, Sort, Search.
 
 ## A tab that does not fit
 
@@ -295,8 +297,9 @@ whose plugins come with `DefaultPlugins`:
   (`follow_focus`, which sends Bevy's `ScrollIntoView`), so Tab never lands
   on something out of sight.
 
-The horses and cargo columns and the side panel do not scroll; they fit at
-the smallest window today.
+The horses and cargo columns do not scroll; they fit at the smallest window
+today. What a side panel says scrolls in the same way where it does not
+fit, and the item card's actions under it stay in view.
 
 ## Where the side panel opens
 
@@ -344,8 +347,7 @@ in the shell presses the thing when its key goes down, by the same
 | 1 to 4 | The tabs of the place that is showing | `key` of the tab |
 | Z, X, C | The first, second and third horse | `horse_keys` |
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
-| E | Equip the drop, in town only | `key` of the control |
-| W | Swap the open piece onto the selected horse, in town only | `key` of the control |
+| E | Equip the piece whose card is open, or the drop when none is, in town only | `key` of the control |
 | Space | Set out, in town only | `key` of the control |
 | K | Keys: the list of every key, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
@@ -403,7 +405,7 @@ the road view
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, and then makes a town visit by keys
-alone: H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, W to swap it over, Escape, C, 2, I and F on the abilities, T, 3, S,
+alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, Escape, C, 2, I and F on the abilities, T, 3, S,
 K for the list of keys, Escape twice, Space to set out, and J, 1, Escape on the road. Then it exits. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written
@@ -412,7 +414,7 @@ party does not leave by itself during the tour.
 The tour finds the controls it presses by name (Compare, Shake, Ice, Fire,
 Equip), so one of those renamed in `places.ron` is renamed in
 `plan_tour` too, or its press is skipped. At its first picture the tour also goes round every stop Tab makes and logs
-the count ("tour: Tab makes 35 stops, 0 of them out of sight"); a stop out of
+the count ("tour: Tab makes 36 stops, 0 of them out of sight"); a stop out of
 sight is #244 come back. The
 presses are the `Activate` event a click sends, so the tour goes through the
 same code as the pointer, but it is not the pointer: hover and real clicks
@@ -425,3 +427,4 @@ are checked by hand.
 - What is planned on the road, listed in the footer: #234.
 - The rest of #229: keys for actions not built yet.
 - The Horses place proper, with cargo: #227.
+- The rest of the item card: [item-card.md](item-card.md), "Not here yet".
