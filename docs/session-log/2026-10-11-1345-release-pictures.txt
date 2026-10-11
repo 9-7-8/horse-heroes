@@ -1,0 +1,38 @@
+ASKED
+  "Can you edit the release note for this and the previous release, and
+  add this as a rule, to add images? There should always be images in
+  each release description, ideally 1-3 images per feature"
+
+DONE
+  - The rule: CLAUDE.md, Planning, and release-a-build.txt, step 7 and
+    DO NOT (36dc16d).
+  - 0.2.1's description: nine features, each under its own heading with
+    one to three pictures, 15 in all.
+  - 0.2.0's description: a new "What is in it", seven features, 14
+    pictures. Its other sections are as they were.
+  - Every picture is from docs/gallery/, pinned to commit 36dc16d. Each
+    address was fetched after the edit and answered 200. The release
+    pages themselves were not opened in a browser.
+  - One picture taken for it, from the 0.2.1 staged build and read by the
+    session: the walk back to town (docs/gallery/2026-10-11-release-0-2-1).
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - Which pictures stand for which feature, and their captions.
+  - 0.2.0's features were named from its commits; its notes had named
+    none.
+
+FOUND
+  - Most 0.2.1 pictures were taken as each feature was built, so some
+    are from before coloured text and are not the release build's look.
+  - 0.2.0's pictures are of the 2026-10-10 builds, as in the v0.2.0 tag.
+
+NOT DONE
+  - The pictures are full window stills, not cut down to the feature.
+  - No picture of the stand-in gear pictures by themselves; the gear
+    overview's picture stands for them.
+
+PICK UP
+  Ask the owner, through the question tool, what she saw in 0.2.1 for
+  #246, #250, #253 and #285. If she has not looked yet, build dragging a
+  piece to a slot (#228), the one part of 0.2.1 that waits on nothing.
