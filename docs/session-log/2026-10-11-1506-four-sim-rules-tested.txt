@@ -1,0 +1,38 @@
+ASKED
+  "Next, then tell me how much is left before the next patch release"
+
+DONE
+  - Tier 2 of next-thing (tier 1 was empty: build and tests green, no
+    warning, and the one open bug, #246, waits only on the owner). Four
+    rules docs/expedition.md states that no test asserted now have one
+    each, in src/sim/expedition.rs:
+      a trail is ordinary pieces in a rolled order, none twice, then a
+        final, and every piece, final and element comes up;
+      the road to an encounter takes travel_secs and no timer runs on it;
+      each horse hits the first enemy still standing once an interval;
+      a kill's coins lie in its enemy's range and reach both ends of it.
+    Tested (152 pass, no warning). All four passed as written, so no bug
+    was found. Nothing visible changed, so nothing was run.
+  - Counted what is left before 0.2.2, the next patch release (0.2.1 went
+    out on 2026-10-11): 23 open in its milestone and 8 menu issues still
+    open under 0.2.1, which ride the next release.
+
+DECIDED
+  Nothing.
+
+FOUND
+  - cargo is not on the PATH of a fresh shell on this machine; it is at
+    %USERPROFILE%\.cargo\bin.
+  - The data files outside src/sim/ (deaths, loot_shower, sounds, menu,
+    places, jobs) each have a consistency test where they are loaded.
+
+NOT DONE
+  - The rest of tier 2 was not swept: src/sim/horse_shape.rs was not read
+    for untested rules.
+  - #311 is as the earlier log left it.
+
+PICK UP
+  Ask the owner to press a horse in a running game and say whether the
+  side panel is the window she meant (#311); if she has not, read
+  src/sim/horse_shape.rs against docs/horse-model.md for a rule with no
+  test, then go on to tier 3.
