@@ -17,7 +17,8 @@ use bevy::prelude::*;
 use serde::Deserialize;
 
 use super::sound::Heard;
-use crate::game::scene::{SCROLL_SPEED, element_colour};
+use crate::game::menu::tokens::Tokens;
+use crate::game::scene::SCROLL_SPEED;
 use crate::game::{Game, Killed, Withdrew};
 use crate::sim::data::Element;
 use crate::sim::rng::Rng;
@@ -288,11 +289,12 @@ impl Look {
 fn setup(
     mut commands: Commands,
     deaths: Res<Deaths>,
+    tokens: Res<Tokens>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let mut shades = |element: Element| {
-        let colour = element_colour(element);
+        let colour = tokens.colour.of(element);
         let dark = colour.to_linear() * deaths.mark_shade;
         Shades {
             body: materials.add(colour),

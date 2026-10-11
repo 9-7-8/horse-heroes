@@ -63,15 +63,6 @@ const TIRED_STRIDE: f32 = 0.5;
 const HOOF_SHADE: f32 = 0.45;
 const HAIR_SHADE: f32 = 0.3;
 
-/// The colour an enemy of each element is drawn in.
-pub fn element_colour(element: Element) -> Color {
-    match element {
-        Element::Fire => Color::srgb(0.9, 0.25, 0.15),
-        Element::Ice => Color::srgb(0.35, 0.65, 0.95),
-        Element::Plant => Color::srgb(0.3, 0.75, 0.3),
-    }
-}
-
 pub struct ScenePlugin {
     /// Start with the horses' hair hidden.
     pub bare: bool,
@@ -165,6 +156,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     bare: Res<Bare>,
+    tokens: Res<Tokens>,
 ) {
     // Camera at the isometric elevation (about 35 degrees), looking across
     // the trail. Its projection covers the whole window and the menu shell
@@ -249,9 +241,9 @@ fn setup(
     }
 
     let elements = ElementMaterials {
-        fire: materials.add(element_colour(Element::Fire)),
-        ice: materials.add(element_colour(Element::Ice)),
-        plant: materials.add(element_colour(Element::Plant)),
+        fire: materials.add(tokens.colour.of(Element::Fire)),
+        ice: materials.add(tokens.colour.of(Element::Ice)),
+        plant: materials.add(tokens.colour.of(Element::Plant)),
     };
     for (i, &x) in ENEMY_X.iter().enumerate() {
         commands.spawn((

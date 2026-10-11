@@ -3,6 +3,9 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Deserializer};
 
+use super::ink::{Ink, Stat};
+use crate::sim::data::Element;
+
 #[derive(Resource, Clone, Debug, Deserialize)]
 pub struct Tokens {
     pub space: Space,
@@ -98,6 +101,45 @@ pub struct Colours {
     pub reason: Hex,
     pub attention: Hex,
     pub scrim: Hex,
+    pub element: ElementColours,
+    pub stat: StatColours,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ElementColours {
+    pub fire: Hex,
+    pub ice: Hex,
+    pub plant: Hex,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct StatColours {
+    pub health: Hex,
+    pub attack: Hex,
+    pub defense: Hex,
+    pub elemental: Hex,
+}
+
+impl Colours {
+    /// An element's colour, in a fight and in text.
+    pub fn of(&self, element: Element) -> Color {
+        match element {
+            Element::Fire => self.element.fire.0,
+            Element::Ice => self.element.ice.0,
+            Element::Plant => self.element.plant.0,
+        }
+    }
+
+    /// The colour of a piece of text that is about one kind of thing.
+    pub fn ink(&self, ink: Ink) -> Color {
+        match ink {
+            Ink::Element(element) => self.of(element),
+            Ink::Stat(Stat::Health) => self.stat.health.0,
+            Ink::Stat(Stat::Attack) => self.stat.attack.0,
+            Ink::Stat(Stat::Defense) => self.stat.defense.0,
+            Ink::Stat(Stat::Elemental) => self.stat.elemental.0,
+        }
+    }
 }
 
 /// A colour written as sRGB hex in the data file: `"rrggbb"` or `"rrggbbaa"`.

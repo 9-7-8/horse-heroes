@@ -6,6 +6,7 @@ use bevy::{input_focus::tab_navigation::TabNavigationPlugin, prelude::*};
 
 pub mod card;
 mod gallery;
+pub mod ink;
 pub mod parts;
 pub mod picture;
 pub mod shell;

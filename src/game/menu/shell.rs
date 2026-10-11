@@ -22,9 +22,10 @@ use bevy::{
 use serde::Deserialize;
 
 use super::card;
+use super::ink;
 use super::picture::{self, picture, reported_picture};
 use super::parts::{
-    ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, Unseen, button, cell, counter, dim,
+    ClosePanel, CounterValue, NotBuilt, Part, PartText, RowValue, Stop, Unseen, button, cell, counter, dim,
     panel, reason, row, side_panel, tab, text, title, trail_mark,
 };
 use super::tokens::Tokens;
@@ -1924,7 +1925,18 @@ fn show_reasons(
     }
 }
 
+/// What a live text says now, kept beside it: what it says in colour is in
+/// spans under it, so its own text is not all of it.
+#[derive(Component)]
+struct Said(String);
+
+/// A run of a live text, under it.
+#[derive(Component)]
+struct Run;
+
 fn show_facts(
+    mut commands: Commands,
+    tokens: Res<Tokens>,
     game: Res<Game>,
     uncollected: Res<Uncollected>,
     shell: Res<Shell>,
@@ -1932,7 +1944,8 @@ fn show_facts(
     live: Query<(Entity, &Live)>,
     children: Query<&Children>,
     values: Query<(), Or<(With<CounterValue>, With<RowValue>)>>,
-    mut texts: Query<&mut Text>,
+    mut texts: Query<(&mut Text, &TextFont, &TextColor, Option<&PartText>, Option<&Said>)>,
+    runs: Query<(), With<Run>>,
 ) {
     for (entity, live) in &live {
         let target = if texts.contains(entity) {
@@ -1942,13 +1955,42 @@ fn show_facts(
                 .iter_descendants(entity)
                 .find(|child| values.contains(*child))
         };
-        let Some(mut text) = target.and_then(|target| texts.get_mut(target).ok()) else {
+        let Some(target) = target else {
+            continue;
+        };
+        let Ok((mut text, font, colour, part, said)) = texts.get_mut(target) else {
             continue;
         };
         let words = fact(&game, &uncollected, &shell, &map, live.0);
-        if text.0 != words {
-            text.0 = words;
+        if said.is_some_and(|said| said.0 == words) {
+            continue;
         }
+        // The text itself is what comes before the first colour; each run
+        // after that is a span under it, an element or a stat in its colour
+        // (#251) and the rest in the text's own, which follows the state of
+        // the part it is in.
+        let mut rest = ink::runs(&words);
+        let first = match rest.first() {
+            Some((_, None)) => rest.remove(0).0,
+            _ => "",
+        };
+        if text.0 != first {
+            text.0 = first.into();
+        }
+        for child in children.get(target).into_iter().flatten() {
+            if runs.contains(*child) {
+                commands.entity(*child).despawn();
+            }
+        }
+        for (run, ink) in rest {
+            let mut span = commands.spawn((Run, TextSpan::new(run), font.clone(), ChildOf(target)));
+            match (ink, part) {
+                (Some(ink), _) => span.insert(TextColor(tokens.colour.ink(ink))),
+                (None, Some(part)) => span.insert((*colour, *part)),
+                (None, None) => span.insert(*colour),
+            };
+        }
+        commands.entity(target).insert(Said(words));
     }
 }
 

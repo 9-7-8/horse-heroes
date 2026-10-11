@@ -102,5 +102,14 @@
         // the accent's mark is a bar.
         attention: "5cc8ff",
         scrim: "000000b0",
+
+        // What an item says, by kind (#251): the same colour means the same
+        // thing on every screen. An element's colour is also the colour of
+        // an enemy of that element in a fight. A trait's colour is the
+        // colour of every line about that stat. They keep clear of each
+        // other and of the rarity colours in gear.ron (white, blue, yellow,
+        // orange, green), and a coloured line always keeps its word.
+        element: (fire: "e64026", ice: "59a6f2", plant: "4dbf4d"),
+        stat: (health: "ff8fb0", attack: "b99cff", defense: "45d0c0", elemental: "e56fdc"),
     ),
 )
