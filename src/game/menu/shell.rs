@@ -489,10 +489,6 @@ impl Shell {
         }
     }
 
-    pub fn select_horse(&mut self, horse: usize) {
-        self.horse = horse;
-    }
-
     /// A press on a horse (#311): it is selected, and its view opens in the
     /// side panel of the place the player is in, which is opened if none
     /// is showing. A piece's card pinned there stays instead, and is
@@ -3538,7 +3534,7 @@ mod tests {
     #[test]
     fn one_horse_is_selected_everywhere() {
         let mut shell = Shell::new(5);
-        shell.select_horse(2);
+        shell.inspect(2, None);
         for place in 0..5 {
             shell.open(place);
             assert_eq!(shell.horse(), 2);
