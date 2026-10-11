@@ -15,7 +15,7 @@ use bevy::{
     math::CompassOctant,
     picking::hover::Hovered,
     prelude::*,
-    ui::{InteractionDisabled, Selected, UiGlobalTransform},
+    ui::{InteractionDisabled, ScrollPosition, Selected, UiGlobalTransform},
     ui_widgets::{
         Activate, ControlOrientation, ScrollArea, ScrollIntoView, Scrollbar, ScrollbarThumb,
     },
@@ -47,6 +47,8 @@ pub struct Places {
     /// The keys that select the horses of the party, in order.
     #[serde(default)]
     pub horse_keys: Vec<String>,
+    /// The keys that scroll what does not fit, up and then down (#304).
+    pub scroll_keys: (String, String),
     #[serde(default)]
     pub footer: Vec<Control>,
     /// What can be done with a piece of gear, on its card (#228): the same
@@ -270,10 +272,12 @@ impl Places {
     }
 }
 
-/// The key a control's `key` names: a letter, a digit, a square bracket or
-/// Space.
+/// The key a control's `key` names: a letter, a digit, a square bracket,
+/// Space, PageUp or PageDown.
 pub fn key_code(name: &str) -> Option<KeyCode> {
     Some(match name {
+        "PageUp" => KeyCode::PageUp,
+        "PageDown" => KeyCode::PageDown,
         "Space" => KeyCode::Space,
         "[" => KeyCode::BracketLeft,
         "]" => KeyCode::BracketRight,
@@ -640,6 +644,19 @@ enum Page {
     RoadView,
 }
 
+/// What a scroll key moves (#304): the page of a tab, or what a place's side
+/// panel says.
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
+enum Scrolled {
+    Tab(usize, usize),
+    Detail(usize),
+}
+
+/// The line under what a side panel says that names the scroll keys, there
+/// only while its words do not fit.
+#[derive(Component)]
+struct ScrollHint(Entity);
+
 /// The card the pointer shows beside the piece it rests on (#228). It is
 /// over the shell and out of its layout, and the pointer passes through it.
 #[derive(Component)]
@@ -707,7 +724,8 @@ impl Plugin for ShellPlugin {
                 (
                     lose_hidden_focus,
                     arrows,
-                    keys,
+                    // Twenty is as many as one chain takes.
+                    (keys, scroll).chain(),
                     escape,
                     follow_the_party,
                     point,
@@ -931,6 +949,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                         scrolls = frame
                                             .spawn((
                                                 ScrollArea,
+                                                Scrolled::Tab(p, i),
                                                 Node {
                                                     flex_grow: 1.0,
                                                     min_width: Val::Px(0.0),
@@ -1015,6 +1034,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                         scrolls = frame
                                             .spawn((
                                                 ScrollArea,
+                                                Scrolled::Detail(p),
                                                 Node {
                                                     flex_grow: 1.0,
                                                     min_width: Val::Px(0.0),
@@ -1034,6 +1054,17 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                             })
                                             .id();
                                         frame.spawn(scrollbar(t, scrolls));
+                                    });
+                                    // The keys that read the rest, printed
+                                    // where the rest is (#304).
+                                    side.spawn((
+                                        dim(t, &scroll_hint(&places)),
+                                        ScrollHint(scrolls),
+                                    ))
+                                    .insert(Node {
+                                        display: Display::None,
+                                        flex_shrink: 0.0,
+                                        ..default()
                                     });
                                     // The card's actions, the same in every
                                     // place a piece can be opened in (#228).
@@ -1140,11 +1171,26 @@ fn scrollbar(t: &Tokens, target: Entity) -> impl Bundle + use<> {
     )
 }
 
-/// A scrollbar shows only while its page does not fit.
+/// A scrollbar shows only while its page does not fit, and so does the line
+/// that names the scroll keys.
 fn show_scrollbars(
     mut bars: Query<(&Scrollbar, &mut Visibility)>,
+    mut hints: Query<(&ScrollHint, &mut Node)>,
     areas: Query<&ComputedNode, With<ScrollArea>>,
 ) {
+    for (hint, mut node) in &mut hints {
+        let Ok(area) = areas.get(hint.0) else {
+            continue;
+        };
+        let wanted = if area.content_size().y > area.size().y + 0.5 {
+            Display::Flex
+        } else {
+            Display::None
+        };
+        if node.display != wanted {
+            node.display = wanted;
+        }
+    }
     for (bar, mut visibility) in &mut bars {
         let Ok(area) = areas.get(bar.target) else {
             continue;
@@ -1634,6 +1680,54 @@ fn keys(
         {
             pressed.push(button.id);
             commands.trigger(Activate { entity });
+        }
+    }
+}
+
+/// Where a press of a scroll key leaves what was `at`: `way` is -1 up and 1
+/// down, `room` is what is in view and `content` all there is to read. It
+/// moves by `share` of the room and stops at either end.
+fn scrolled(at: f32, way: f32, room: f32, content: f32, share: f32) -> f32 {
+    (at + way * room * share).clamp(0.0, (content - room).max(0.0))
+}
+
+/// The scroll keys (#304) move what the side panel says while one is open,
+/// and the page of the tab otherwise, so every line can be read by keys.
+fn scroll(
+    keys: Res<ButtonInput<KeyCode>>,
+    map: Res<Places>,
+    tokens: Res<Tokens>,
+    shell: Res<Shell>,
+    mut areas: Query<(&Scrolled, &ComputedNode, &mut ScrollPosition)>,
+) {
+    let down = |key: &str| key_code(key).is_some_and(|code| keys.just_pressed(code));
+    let way = match (down(&map.scroll_keys.0), down(&map.scroll_keys.1)) {
+        (true, false) => -1.0,
+        (false, true) => 1.0,
+        _ => return,
+    };
+    if !shell.is_open() {
+        return;
+    }
+    let place = shell.place();
+    let wanted = match shell.detail(place) {
+        Some(_) => Scrolled::Detail(place),
+        None => Scrolled::Tab(place, shell.tab(place)),
+    };
+    for (part, node, mut at) in &mut areas {
+        if *part != wanted {
+            continue;
+        }
+        let scale = node.inverse_scale_factor();
+        let to = scrolled(
+            at.y,
+            way,
+            node.size().y * scale,
+            node.content_size().y * scale,
+            tokens.size.scroll_page,
+        );
+        if at.y != to {
+            at.y = to;
         }
     }
 }
@@ -2534,6 +2628,11 @@ fn not_built(control: &Control) -> String {
     out
 }
 
+/// The line that names the scroll keys, under words that do not fit.
+fn scroll_hint(map: &Places) -> String {
+    format!("{}, {}: read the rest", map.scroll_keys.0, map.scroll_keys.1)
+}
+
 /// What the Keys control shows (#229): every key and what it works, taken
 /// from the map, so a key changed in `places.ron` is changed here. Escape,
 /// Tab and Enter are not in the file; what they do is in `escape` and Bevy.
@@ -2572,6 +2671,7 @@ fn keys_list(map: &Places, horses: &[&str]) -> String {
         format!("Actions: {}", actions.join(", ")),
         "Esc: back one level".into(),
         "Arrows: move focus that way".into(),
+        format!("{}, {}: scroll", map.scroll_keys.0, map.scroll_keys.1),
         "Tab, Shift+Tab: move focus".into(),
         "Enter: press what has focus".into(),
     ]
@@ -2807,7 +2907,8 @@ mod tests {
             seen.push(key.clone());
         }
         let pages = places.pages().filter_map(|page| page.key.as_ref());
-        for key in pages.chain(&places.horse_keys) {
+        let scroll = [&places.scroll_keys.0, &places.scroll_keys.1];
+        for key in pages.chain(&places.horse_keys).chain(scroll) {
             assert!(key_code(key).is_some(), "no key called {key}");
             assert!(!seen.contains(key), "two things answer {key}");
             seen.push(key.clone());
@@ -2926,6 +3027,37 @@ mod tests {
             "{said}"
         );
         assert!(said.contains("Arrows:"), "{said}");
+        let (up, down) = &places.scroll_keys;
+        assert!(said.contains(&format!("{up}, {down}: scroll")), "{said}");
+        assert!(scroll_hint(&places).starts_with(&format!("{up}, {down}")));
+    }
+
+    /// The scroll keys (#304): a press moves by most of what is in view, so
+    /// no line is passed over, enough presses reach the last line, and it
+    /// stops at both ends. Words that fit do not move.
+    #[test]
+    fn the_scroll_keys_reach_every_line_and_stop_at_the_ends() {
+        let (room, content, share) = (200.0, 730.0, 0.8);
+        let mut at = 0.0;
+        let mut presses = 0;
+        loop {
+            let to = scrolled(at, 1.0, room, content, share);
+            if to == at {
+                break;
+            }
+            assert!(to - at < room, "a line was passed over");
+            at = to;
+            presses += 1;
+        }
+        assert_eq!(at, content - room);
+        assert_eq!(presses, 4);
+        while at > 0.0 {
+            at = scrolled(at, -1.0, room, content, share);
+        }
+        assert_eq!(scrolled(at, -1.0, room, content, share), 0.0);
+        assert_eq!(scrolled(0.0, 1.0, room, 150.0, share), 0.0);
+        let share = Tokens::load().size.scroll_page;
+        assert!(share > 0.0 && share < 1.0);
     }
 
     /// The arrow keys (#229): down a list is the next row and up is the one

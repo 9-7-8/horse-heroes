@@ -49,6 +49,9 @@
         // The bar beside a page that scrolls. Its width is kept when it is
         // hidden, so a page does not move when it starts to scroll.
         scrollbar_width: 6,
+        // How much of what is in view a press of a scroll key moves by:
+        // less than all of it, so the last line read is still there.
+        scroll_page: 0.8,
         // The shell: a horse in the status strip, and the two columns that
         // stay beside the tabs of the Horses place.
         strip_horse_width: 150,
