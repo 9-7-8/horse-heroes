@@ -70,6 +70,11 @@ No avatar and no explanation for the organiser is required.
   for colour only for now, borrowed from the horse breeding mod she has
   already made. It is not an important mechanic and everything it affects is
   aesthetic.
+- **There will be breeds, later, and a breed decides a horse's colours and
+  its gaits** (owner, 2026-10-11: "We will later have different breeds of
+  horses in the game, which will dictate their colors and gaits"). Which
+  breeds, how a breed meets the colour genetics above, and whether a gait is
+  only looks are open (#267). How a horse moves: `horse-movement.md`.
 - Pets are collectible companions assigned to individual horses. What they
   do in play is open; the recommendation she was given is in
   [pets.md](pets.md).

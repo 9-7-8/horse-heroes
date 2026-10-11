@@ -1,0 +1,36 @@
+ASKED
+  Two documents of gait mathematics, to be filed as separate issues and
+  kept for later reference. "We will later have different breeds of horses
+  in the game, which will dictate their colors and gaits." Not one huge
+  issue.
+
+DONE
+  - The documents are in docs/source/, unedited, with a README.
+  - docs/philosophy/horse-movement.md: the rules taken from them, checked
+    against the game as built.
+  - vision.md: breeds are confirmed, later, deciding colours and gaits.
+  - Epic #255, how a horse moves: #256 to #262 in 0.3.0 (gait data, legs
+    that bend, planted hooves, joint curves, walk and trot, canter and
+    gallop, a footfall view), #263 to #265 in 0.10.0 (head and neck, tail,
+    fitting to footage). #247 and #248 are now under it.
+  - Epic #266, breeds, in 0.10.0: #267 (decision), #268 to #277.
+  - Comments on #247, #248, #171 and #63.
+  (docs only; nothing was built or run)
+
+DECIDED (for her)
+  - Movement the road needs is in 0.3.0; the rest and all of breeds in
+    0.10.0.
+  - The ambling gaits are four issues by timing family, not one per breed.
+
+FOUND
+  - Both files end complete.
+  - The source has no verified joint extremes for gallop or most ambling
+    gaits, and says so; the issues carry that through.
+
+NOT DONE
+  - The six questions on #267 are hers.
+  - There is no footage to fit any gait to (#265).
+
+PICK UP
+  Run the menu tour (build-and-run.txt, IDLE_TOUR, --seed 6) and read its
+  last pictures, then #253, the first open issue of 0.2.1 to build.
