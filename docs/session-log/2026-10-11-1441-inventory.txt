@@ -1,0 +1,63 @@
+ASKED
+  "Can you build the inventory screen next?"
+  And, while the first build was being looked at, with a document on
+  inventories and comparison windows: "Intake this document and redesign
+  the inventory screen. The inventory screen should just be all items, NOT
+  DIVIDED BY HORSE."
+
+DONE
+  - #308, part: the Inventory tab of Horses, key 5 (0c9872c, 04ed7db).
+    Every piece worn or carried, in a grid by type, at the place's whole
+    width; an empty type says so. Beside it a comparison that keeps its
+    room: recipient and slot, equipped and selected, what changes for the
+    horse, an aligned table (new, lost, same), what Equip would do.
+    Tested (145 pass, three new). Seen running: the menu tour at seed 6 at
+    1120x640, its pictures of the tab empty, with the drop carried, with
+    the piece opened by arrows and Enter, and with it worn, read by this
+    session. Three are in docs/gallery/2026-10-11-inventory.
+    docs/menu-shell.md, "The Inventory"; docs/item-card.md, "The
+    comparison".
+  - Intake: docs/source/inventory-and-comparison.md kept whole;
+    docs/philosophy/inventory.md written. New issues under epic #225, both
+    0.2.2: #312 the same comparison wherever a card is pinned, #313 gain
+    and loss in colour. Comments on #308 (the revision and what is
+    built), #40 (acknowledging Equip) and #228 (Details, dragging).
+
+DECIDED
+  The owner's: the Inventory is all the items, not divided by horse.
+  Made for her, hers to overrule:
+  - The groups by type stay: #308 asks for them, and her ruling was
+    against dividing by horse.
+  - On the Inventory the horses column and the cargo column are away; the
+    strip above selects the horse a piece is compared on.
+  - The comparison is in the Inventory only for now; the Gear tab and the
+    Journal keep the older card until #312.
+  - The Inventory tab has no controls of its own, so the test that every
+    page has controls excuses it.
+  - The survival-horror half of the document was left out of the
+    philosophy file.
+
+FOUND
+  - The session log before this one is named 1440 and was committed at
+    13:37. This one was written at 14:04 and is named 1441 so that it
+    sorts as the newest.
+  - A long here-document failed in the Bash tool again, as
+    build-and-run.txt says; the edits were scripts under target/.
+  - The tour's Slot and Carried steps took the first cell that matched;
+    with the same pieces on two tabs they now take the one in sight.
+
+NOT DONE
+  - #308 stays open for "The owner finds a given piece without help."
+  - Not seen: two or more pieces in one group (seed 6 brings home one), a
+    group that scrolls, a swap between horses made from the grid, the
+    comparison's table without scrolling (at 1120x640 it is below the
+    fold, #304), and a real pointer on the grid.
+  - The panel beside the grid is headed "Detail" when a piece is open and
+    "compare" when none is.
+  - PICK UP of the last log named #307 first; it was not built, the owner
+    having asked for the Inventory.
+
+PICK UP
+  Ask the owner to find a piece in the Inventory of a running game
+  (Horses, 5) and close #308 on her word. Then build #307, a press on the
+  road scene closes the open place; after it #312, #313, #306, #311.

@@ -60,6 +60,58 @@ piece was pressed in:
 
 **Formulas behind a Details control** are not built.
 
+## The comparison
+
+What a press on a piece opens in the Inventory (#308;
+`docs/philosophy/inventory.md`, "The comparison answers three questions at
+once"; `card::comparison`). Everywhere else a press still pins the card
+above; making them one is #312.
+
+    For Sable, Head
+    Equipped: Plain Halter (Normal)
+    Selected: Sunforged Halter (Legendary)
+    Carried in the cargo.
+
+    AFTER EQUIPPING, Sable:
+    health 40 to 50 (+10)
+    attack 3 to 5 (+2)
+    defense 5 to 1 (-4)
+    An upgrade: +6 points.
+
+    Piece      Equipped  Selected  Change
+    health           +5       +15  +10
+    attack            -        +2  +2 new
+    defense          +4         -  -4 lost
+    elemental        +2        +2  same
+
+    Equip puts it on Sable. Plain Halter is thrown away: ...
+
+- **Context first:** who would receive it and in which slot, then the
+  piece equipped there ("nothing" for an empty slot) and the piece
+  selected, in that order and labelled in words, and where the selected
+  piece is.
+- **The horse apart from the pieces:** "after equipping" is the horse's
+  own stats as they are and would be (the card's `changes`); the table is
+  the two pieces, a stat on one line for both, amounts right-aligned (the
+  menus' font is monospaced), and the change. A stat only the selected
+  piece has is "new", one only the equipped piece has is "lost", and an
+  equal one is "same"; a stat neither has gets no row.
+- **The recipient is the selected horse.** Another horse's key compares
+  the same piece there, and nothing else on the panel moves.
+- **A horse's own piece** is not compared with itself: it says who wears
+  it, and what it adds.
+- The last line is `consequence`, as on the card, and the card's actions
+  are under it.
+- The stat's word takes its colour (#251); the amounts in the table are
+  plain. Gain and loss are said by sign and word and have no colour yet:
+  #313.
+- At the smallest window the table is a scroll of the wheel away (#304).
+
+Tests in `card.rs`: the table's columns line up and say new, lost and
+same; the comparison names the horse and both pieces, ends with what Equip
+would do, follows the selected horse, and does not compare a horse's piece
+with itself.
+
 ## Under the pointer
 
 The pointer resting on a piece shows its card beside it, in the gear

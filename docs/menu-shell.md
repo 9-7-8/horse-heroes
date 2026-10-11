@@ -272,6 +272,8 @@ every place, tab and horse has a key, and no key means two things at once.
   drop as the cargo shows it, and a press opens its card in the Journal's
   side panel, where Equip works without going to the Horses place. An
   earlier one: see "The Journal's reports".
+- `Inventory`: every piece the party has, worn or carried, in a grid by
+  type (#308): see "The Inventory" below.
 - none: the tab says what will be decided there and that it is not built.
 
 Under whatever a tab shows come its controls.
@@ -284,6 +286,48 @@ it is an upgrade for the selected horse, no better or worse, in points
 (`loot::gain`). Selecting another horse changes that line. A press opens
 its card, with Equip, which puts the piece on the selected horse (#250).
 The cargo's own controls are those of a list: Filter, Sort, Search.
+
+## The Inventory
+
+The fifth tab of Horses (key 5): all the items, not divided by horse (the
+owner, 2026-10-11; `docs/philosophy/inventory.md`).
+
+    | Head                                    | compare            |
+    | [piece] [piece] [piece]                 | For Sable, Head    |
+    | Body                                    | Equipped: ...      |
+    | No body piece is worn or carried yet.   | Selected: ...      |
+    | Saddle                                  | ...                |
+    | [piece]                                 | [Equip] [List] ... |
+
+- **A headed group for each type**, in the order of `Slot::ALL`, so a new
+  slot gets its group with no menu code. In a group: what each horse wears
+  in that slot, in the party's order, then the piece in the cargo when it
+  is of that type (`held` in the shell; a test holds that every piece is
+  there once, under its type). An empty type says so in a line
+  (`card::none_held`) and keeps its heading.
+- **A cell** is the piece's name in its rarity's colour, its picture, what
+  it adds, and "Worn by Sable" or "Carried in the cargo". It is the same
+  control as a slot of the overview (`SlotRow`) or the cargo's piece
+  (`CarriedCell`), on this tab, so the pointer's card, the arrow keys and
+  the selected mark come with it.
+- **Every cell a group can hold is spawned once** and shows while its piece
+  is held (`When::Held`, `When::NoneHeld`, in `show_carried`), as the rest
+  of the shell is shown and hidden and never rebuilt. When the cargo holds
+  more than one piece (#227) this is the part that changes.
+- **The grid** is a CSS grid of as many equal columns as fit, each at least
+  `size.inventory_cell` wide (208, the longest name on one line): three at
+  the smallest window.
+- **It has the place's width.** On this tab the horses column
+  (`Page::Horses`) and the cargo column are away. The horse a piece is
+  compared on, and equipped on, is the one selected in the status strip,
+  which is always in view.
+- **The comparison keeps its room** at the right, `size.compare_width`
+  (420), whether or not a piece is open: `Page::Compare` says how to use it
+  while none is, and the detail opens at that same width, so the grid
+  never moves. What it says is in [item-card.md](item-card.md), "The
+  comparison".
+- The tab has no controls of its own: its cells are its controls. Filter,
+  Sort and Search are #235.
 
 ## A tab that does not fit
 
@@ -349,7 +393,7 @@ in the shell presses the thing when its key goes down, by the same
 | --- | --- | --- |
 | H, T, M, N, J | Horses, Trade, Map, Town, Journal | `key` of the place |
 | S | Settings | `key` of `settings` |
-| 1 to 4 | The tabs of the place that is showing | `key` of the tab |
+| 1 to 5 | The tabs of the place that is showing | `key` of the tab |
 | Z, X, C | The first, second and third horse | `horse_keys` |
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
 | E | Equip the piece whose card is open, or the drop when none is, in town only | `key` of the control |
