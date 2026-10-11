@@ -352,6 +352,7 @@ in the shell presses the thing when its key goes down, by the same
 | Z, X, C | The first, second and third horse | `horse_keys` |
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
 | E | Equip the piece whose card is open, or the drop when none is, in town only | `key` of the control |
+| U | Undo the last change of this town visit, in town only | `key` of the control |
 | Space | Set out, in town only | `key` of the control |
 | K | Keys: the list of every key, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
@@ -398,6 +399,41 @@ scroll.
 Still to come under #229: a key for each action as its button is built
 (List, with #99, is the one a town visit lacks).
 
+## Undo
+
+Undo (U; on Horses, Gear, and its key works in every place) takes back the
+last change made during this town visit, one step a press (#230,
+`docs/philosophy/menus.md`, Undo, not "are you sure"). Nothing reversible
+asks for confirmation.
+
+- **What it takes back today:** an equip of the drop, a swap between two
+  horses, and a change of element. Those are all the changes the slice
+  has. Listing, prices, ability points, looks and pets join the list as
+  each is built: an action is undoable when `Game::act` pushes a `Change`
+  before doing it.
+- **It restores the real state.** A `Change` holds the whole party, the
+  cargo and the element as they were before it (`Game::before`), and
+  `Game::undo` puts them back, so a piece that was equipped over is on its
+  horse again and the drop is in the cargo again.
+- **What changes nothing is not a step:** choosing the element the party
+  already has, and an Equip that is refused.
+- **It never reaches back past a departure.** `Game::depart` empties the
+  list, whether the player set out or the countdown did. With nothing to
+  take back, Undo is unavailable and says "Undo: nothing changed this
+  visit."; on the road, "in town only".
+- **The card goes with the piece.** A change that moved a piece remembers
+  from where to where; `on_activate` moves any open card back the other
+  way (`Game::undone_move`), so a card opened on the drop is on the drop
+  again.
+- **It is acknowledged** as every choice in camp is today, by a line in
+  the report: "Taken back: Sunforged Halter on Sable." More than that is
+  #40.
+
+Chosen without the owner: the key U, and that Undo stays on the Gear tab
+where the map had it. In the footer it would be in sight from every place,
+but at the smallest window it made the footer's sentence wrap to a second
+line.
+
 ## Looking at it
 
     $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
@@ -409,7 +445,7 @@ the road view
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, and then makes a town visit by keys
-alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, Escape, C, 2, I and F on the abilities, T, 3, S,
+alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left to the horses, Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, C, 2, I and F on the abilities, T, 3, S,
 K for the list of keys, Escape twice, Space to set out, and J, 1, Escape on the road. Then it exits. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written
@@ -430,5 +466,7 @@ are checked by hand.
   #205).
 - What is planned on the road, listed in the footer: #234.
 - The rest of #229: keys for actions not built yet.
+- The rest of #230: undo for listing, prices, points, looks and pets, and
+  the stop at a completed sale, each with its system.
 - The Horses place proper, with cargo: #227.
 - The rest of the item card: [item-card.md](item-card.md), "Not here yet".

@@ -1,0 +1,48 @@
+ASKED
+  "Next": the next thing by next-thing.txt.
+
+DONE
+  - Tiers 1 and 2 were empty: the build was green and the one open bug,
+    #246, waits on the owner watching a release.
+  - Tier 3, #230, undo, the part the slice has (d5f0979). The issue stays
+    open; what is left is in a comment on it. Tested (122 pass) and seen
+    running, read by this session; the owner has not looked.
+    - Undo (U; on Horses, Gear) takes back the last change of the town
+      visit, one step a press: an equip, a swap, a change of element. The
+      horses, the cargo and the element are exactly what they were. A test
+      walks three changes forward and back.
+    - Setting out empties the list. With nothing to take back the control
+      is unavailable and says why.
+    - A card open on a piece goes back with it. Menu tour at 1120x640,
+      pictures 43 to 46; three of them are docs/gallery/2026-10-11-undo.
+    - docs/menu-shell.md has "Undo".
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The key is U.
+  - Undo stays on the Gear tab, where the map had it, though it also takes
+    back a change of element made on Abilities. It was tried in the footer,
+    in sight from every place: at the smallest window the footer's sentence
+    then wrapped onto a second line.
+  - Undo is said in the report as "Taken back: <what>."
+
+FOUND
+  - The last log's PICK UP named #229, but all that is left of #229 waits
+    on List (#99, 0.4.0). #230 was the next lowest number not waiting.
+  - Equipping a drop over a worn piece destroys the worn piece; there is
+    no cargo for it to go to (#227). Undo brings it back; nothing else
+    does.
+
+NOT DONE
+  - Undo for listing, prices, points, looks and pets, and the stop at a
+    completed sale: none of those systems exists.
+  - The reason line "Undo: nothing changed this visit." is under the Gear
+    tab's controls, a scroll away at the smallest window; it was tested,
+    not seen in a picture.
+  - U was not pressed on a real keyboard.
+  - Still not filed from three logs ago: no key scrolls the card.
+
+PICK UP
+  The next "menus" feature of 0.2.1 by next-thing.txt: #231, the Journal
+  place (earlier reports kept and opened from the Journal). #228, #229,
+  #230, #250, #253 and #285 wait on the owner or on systems not built.
