@@ -1,0 +1,49 @@
+ASKED
+  "Next": the next thing by next-thing.txt. The log before said to ask;
+  asked, the owner chose "Release 0.2.1".
+
+DONE
+  - Tier 1 was empty: the build was green (141 pass) and the one open bug,
+    #246, waits on the owner watching a release.
+  - Released 0.2.1 by release-a-build.txt:
+    https://github.com/9-7-8/horse-heroes/releases/tag/v0.2.1
+    - Version 0.2.1 in Cargo.toml (2b8c81c); the tag v0.2.1 is that commit.
+    - installer/build.ps1 built, staged and packaged. SHA-256 of the
+      installer: 7c71cc90...dd168891.
+    - The staged game, started from an unrelated directory at seed 6: a
+      picture of the town at 3 s was read by this session.
+    - The installer, silently, /CURRENTUSER, into a scratch folder: the
+      five files and the uninstaller were there; the installed game's
+      picture of the first fight at 17 s was read; the uninstall returned
+      0 and left no uninstall entry.
+    - Published, then downloaded again: the hash matches the one built;
+      the release is "Horse Heroes 0.2.1", not a draft, with both assets.
+  - release-a-build.txt corrected for what this release found (FOUND).
+
+DECIDED
+  The owner: release 0.2.1 now, over building dragging first.
+  Made for her, hers to overrule: the release notes' wording, and that
+  the nine open 0.2.1 issues stay on their milestone and ride the next
+  release.
+
+FOUND
+  - PowerShell's "&" does not wait for the game, a window program: the
+    uninstall ran under the running installed copy and left
+    horse_heroes.exe in the scratch folder. It exited by itself, the
+    picture was good, and the folder was removed by hand.
+  - The installer already in target/installer was 0.2.0's until the build
+    finished: read its time or its hash before trusting it.
+
+NOT DONE
+  - No clean-machine test (#198): this machine has developer tools.
+  - The default install under Program Files, the wizard, the shortcuts
+    and the SmartScreen warning need a person: the owner's test.
+  - Installing 0.2.1 over 0.2.0 was not tried.
+  - Nothing is signed (#189).
+  - Carried: the card over a report's piece was not seen in a picture; no
+    hand on a mouse has tried the card under the pointer.
+
+PICK UP
+  Ask the owner, through the question tool, what she saw in 0.2.1 for
+  #246, #250, #253 and #285. If she has not looked yet, build dragging a
+  piece to a slot (#228), the one part of 0.2.1 that waits on nothing.

@@ -5,8 +5,8 @@ Leaves:    a tag vX.Y.Z, a GitHub Release with HorseHeroes-Setup.exe, and a
            statement of what was tested and what was not.
 
 The rules behind this are docs/philosophy/distribution.md, "Publishing, in
-order". First carried out 2026-10-10 for 0.2.0 (#197): correct it the second
-time. Steps marked LATER do not exist yet and are skipped, not forgotten.
+order". First carried out 2026-10-10 for 0.2.0 (#197); corrected 2026-10-11 for
+0.2.1. Steps marked LATER do not exist yet and are skipped, not forgotten.
 
 1. Freeze the version.
    Cargo.toml's version is the only place it is written. Set it, run
@@ -24,6 +24,9 @@ time. Steps marked LATER do not exist yet and are skipped, not forgotten.
    a picture of it (IDLE_SHOT with a full path; build-and-run.txt). This
    machine has developer tools on it: a clean-machine test is #198 and is
    not done by this step. Say so.
+   The game is a window program, so PowerShell's "&" starts it and does not
+   wait: the picture is there only some seconds later. Wait for the process
+   (Start-Process -PassThru, then Wait-Process) before reading it or going on.
 
 4. LATER: sign the game and the launcher (decided before 1.0, #189).
 
@@ -32,6 +35,9 @@ time. Steps marked LATER do not exist yet and are skipped, not forgotten.
        HorseHeroes-Setup.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES
            /DIR="<scratch>"
        "<scratch>\unins000.exe" /VERYSILENT
+   Start both with Start-Process -Wait. A picture from the installed copy
+   is taken, and its process has exited, before the uninstall: an uninstall
+   under a running game leaves horse_heroes.exe behind (0.2.1).
    Use a scratch /DIR only when Horse Heroes is not installed on this
    machine: the application ID is the same, so it would otherwise move the
    owner's own installation. /CURRENTUSER keeps the test from asking for
