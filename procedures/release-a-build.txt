@@ -57,6 +57,18 @@ order". First carried out 2026-10-10 for 0.2.0 (#197); corrected 2026-10-11 for
    The asset name is exactly HorseHeroes-Setup.exe, every release. The
    notes say it is unsigned, what Windows will show, and never tell anyone
    to turn protection off.
+   The notes always have pictures (owner, 2026-10-11: "There should
+   always be images in each release description, ideally 1-3 images per
+   feature"). Every feature the notes name has one to three, under its
+   line. They come from docs/gallery/; a feature with none there gets a
+   picture taken from the staged build (step 3) and put in a gallery
+   folder for the release, committed and pushed before the notes are
+   written. A picture's address is pinned to a commit, so it does not
+   change when the file does:
+       https://raw.githubusercontent.com/9-7-8/horse-heroes/<commit>/docs/gallery/<folder>/<file>
+   After publishing, open the release page and see that every picture
+   loads. To change the notes of a release already out:
+       gh release edit vX.Y.Z --notes-file <notes>
 
 8. Check the published release: download the asset, compare its hash with
    the one built, and read the release page's names and version.
@@ -70,6 +82,7 @@ SECRETS
   certificate is the owner's. Neither is ever in the repository.
 
 DO NOT
+  - Publish notes without pictures.
   - Change AppId in installer/horse-heroes.iss. Ever.
   - Write the version anywhere but Cargo.toml.
   - Ship a build made with Bevy's dynamic_linking feature.
