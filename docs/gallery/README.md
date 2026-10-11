@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-11, a piece is named in its rarity](2026-10-11-rarity-names/README.md) (#309)
 - [2026-10-11, release 0.2.1: the walk back to town](2026-10-11-release-0-2-1/README.md) (#246)
 - [2026-10-11, the card under the pointer](2026-10-11-hover-card/README.md) (#228)
 - [2026-10-11, coloured text](2026-10-11-coloured-text/README.md) (#251)

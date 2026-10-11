@@ -1,0 +1,53 @@
+ASKED
+  "The name of an item OR the background of its card (you pick which
+  looks better) should be its rarity level"
+  And, each marked "queue:":
+  - a proper Inventory tab, a grid of every item the horses and their
+    caravan hold, split by item type;
+  - "elemental" is not a bonus, each element is its own;
+  - the horse buttons along the top and the side are redundant, and a
+    press on a horse should open an inspection screen;
+  - move damage numbers up to the next release.
+
+DONE
+  - #309, closed: a piece's name is in its rarity's colour wherever the
+    menus say it (bf0e8da). Tested (142 pass) and seen running: the menu
+    tour at seed 6, its pictures of a Legendary piece in the report, its
+    row, its card and a worn slot, and of a Magic piece in the cargo, read
+    by this session. Three are in docs/gallery/2026-10-11-rarity-names.
+    docs/item-card.md, "Colour".
+  - Queued: #308 the Inventory tab (0.2.2), #310 a bonus to one element
+    in place of "elemental" (0.3.0, beside the damage formula #224), #311
+    one list of horses and a press that inspects one (0.2.2).
+  - #249, floating damage numbers, moved from 0.5.0 to 0.2.2.
+
+DECIDED
+  Made for the owner, hers to overrule:
+  - The name, not the card's background: a card filled with yellow,
+    orange or green would take the contrast from the stat colours on it,
+    and a name reaches rows and reports. The background was not built to
+    compare; this was judged, not seen.
+  - #308: the Inventory is a fifth tab of the Horses place; "item type"
+    is the slot.
+  - #311: the strip under the bar is the list that stays.
+  - #310 is in 0.3.0, not 0.2.2: it changes the sim, not a menu.
+
+FOUND
+  - The first tour run was stopped by Claude Code while compiling, the
+    machine being low on memory. The owner said to run it again; it ran.
+  - Magic's blue (6969ff) is the darkest name on the dark card; it reads,
+    but it is the one to watch.
+
+NOT DONE
+  - Rare, Set and Normal names were not seen in a picture; the test
+    covers every name, not its look.
+  - A coloured name on a pressed (light) cell was not looked at: yellow
+    or white there may not read.
+  - #310 leaves two questions for the owner when it is built: how a piece
+    comes by its element, and what a bonus is worth to a horse using
+    another element. They are on the issue.
+  - Her view of #246, #250, #253 and #285 in 0.2.1 was not asked.
+
+PICK UP
+  Build #307, a press on the road scene closes the open place. Then, in
+  0.2.2 and all menus: #306, #308, #311, #249, #292, #305.
