@@ -11,6 +11,12 @@ of text a player is expected to read". A lesson is something that happens or
 something the player does, with at most a line beside it. And once 0.2.2 has
 shipped, every new feature has a tutorial somewhere, as it has a test.
 
+Also hers, the same day: the game starts on the road and combat is learned
+by watching; the first town does not leave by itself (#302), so where this
+file speaks below of the 12 seconds in the first town, that now applies to
+later towns only; and a first-town list pays a few coins for trying things
+(#303). The statement is [vision.md](vision.md), Tutorials.
+
 The rest is advice from the two source documents and is not her decision;
 what she has decided is in [vision.md](vision.md), and the open questions
 are a `decision` issue (#289).

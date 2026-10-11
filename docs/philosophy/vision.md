@@ -544,6 +544,20 @@ Set are the tiers with a beam.
   ever just a wall of text a player is expected to read."
 - **Once 0.2.2 has shipped, every new feature has a tutorial somewhere**, as
   it has a test.
+- **The game starts on the road.** The player learns the basics of combat by
+  watching them happen. In 0.2.2 that is what is built, the three abilities
+  and the loot; "they see the setup, they see the finishers" holds once
+  0.3.0 ships them, and they join the watched opening then.
+- **The first town does not leave by itself.** "You need to give the player
+  a chance to breathe, to get acquainted... that point in the town will
+  really be their first chance to explore the UI, so we need to not rush
+  them through it." The party waits there until the player sets out (#302).
+  This is a third case of waiting in town, beside a failed journey and an
+  empty itinerary; later towns leave by themselves as before.
+- **A first-town list of things to try**, each paying a small amount of
+  coins when done, "like clicking or equipping an item" (#303). A short list
+  for the first town, kept as data so a later feature can add its entry; not
+  a general quest system.
 - The opening is release 0.2.2 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
