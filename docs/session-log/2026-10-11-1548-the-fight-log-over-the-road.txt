@@ -1,0 +1,50 @@
+SESSION 2026-10-11 15:48 - the fight log over the road
+======================================================
+
+ASKED
+  "build the next part for 0.2.2"
+
+DONE
+  - Tier 3 of next-thing, kept to 0.2.2 as asked (tiers 1 and 2: build and
+    tests green, no warning; the one open bug, #246, waits only on the
+    owner). #306, the fight log, closed in eff2ac0:
+      on the road with every place closed, the six latest lines of the
+        fight lie at the top left of the scene, newest lowest, older ones
+        fainter, elements in their colours, the pointer passing through;
+      L hides and shows the lines; the heading stays with the key on it,
+        and the key is in the Keys list;
+      the Journal's report on the road says where the log is and no longer
+        carries it.
+    Tested (153 pass, one new test). Seen running, pictures read by the
+    session: --seed 6 at 1120x640 at 30 s (a fight) and 65.9 s (the final
+    kill's fountain), and the tour's picture of it hidden. The log covers
+    neither the party, an enemy nor the fountain. The tour ran to its end.
+    Pictures: docs/gallery/2026-10-11-fight-log. docs/menu-shell.md, "The
+    fight log".
+
+DECIDED
+  Made for the owner, none by her:
+    - #306 was picked as the lowest-numbered menu issue of 0.2.2 with
+      nothing open in front of it: #291, #296, #300 and #303 wait on #290
+      (lessons as data), and #305 names #292 as its dependency.
+    - The key L; six lines; no backing behind the letters; top left of the
+      scene and not lower, where the party stands; away while a place is
+      open on the road, where the scene has a third of the window.
+    - L does nothing while the log is not in view.
+
+FOUND
+  - The tour logs "Tab makes 34 stops, 0 of them out of sight";
+    docs/menu-shell.md gives 36 as its example. Not from this change (the
+    log has no control); likely the horses list that went with #311.
+  - gh issue view --comments prints only the comments when it is not on a
+    terminal; the body needs --json body.
+
+NOT DONE
+  - The owner has not looked at it. The sky behind the log is black today;
+    letters with no backing may want one when the scene has a sky.
+  - Whether the log is hidden is not kept between launches (#44).
+
+PICK UP
+  Run next-thing for 0.2.2: #307, a press on the road scene closes the
+  open place (a press on the fight log already passes through to the
+  scene, which its "done when" asks about).

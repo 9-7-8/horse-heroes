@@ -136,6 +136,44 @@ for trails of one to eight fights.
 The footer's sentence in town no longer counts the encounters: the tracker
 does, and with both the sentence wrapped at the smallest window.
 
+## The fight log
+
+The log of the fight lies over the road scene, at its top left (#306; the
+owner, testing 0.2.1: "overlayed on the horses walking screen, probably on
+the left", and "I see we already have a combat log under journal. Move
+that."). It is not in the Journal's report any more.
+
+    FIGHT LOG  [L] hides it
+    Encounter 2/4: Mire Toad (Fire)          faintest
+    Juniper Focused Shot on Mire Toad for 16
+    ...
+    Sable hits Mire Toad for 5               newest, whole
+
+- **When.** On the road with every place closed (`Shell::log_in_view`):
+  the road layout, where the fight is watched. Not in town, and not under
+  an open place, where the scene has a third of the window.
+- **Where.** `space.l` from the top and the left of the window,
+  `size.fight_log_width` (440) wide. The party stands below it and an
+  enemy falls to the right of it, so at the smallest window it covers
+  neither, nor the fountain of the final kill (pictures: `--seed 6
+  --window 1120x640` at 30 and 65.9).
+- **What.** The latest `size.fight_log_lines` (6) lines of
+  `Expedition::log` (`fight_log` in `src/game/mod.rs`), the newest lowest.
+  Each older line is fainter, down to `size.fight_log_fade` (0.3) for the
+  oldest of a full log (`log_alpha`). Elements and stats are in their
+  colours (#251), by the same `ink::runs` every live text uses.
+- **The pointer passes through it** (`Pickable::IGNORE`); it has no
+  backing, so it hides nothing but its own letters.
+- **L hides and shows its lines** (`log_key` in `places.ron`). The heading
+  stays, since the key is printed on it: "FIGHT LOG hidden  [L] shows it".
+  The key does nothing while the log is not in view. It is in the Keys
+  list. Hidden or shown is kept for the run; saving it is #44.
+- `show_log` in the shell keeps it; a test holds when it is in view, the
+  key, the lines and that the report no longer carries them.
+
+Chosen without the owner: the key L, six lines, no backing behind the
+letters, and that it is away while a place is open on the road.
+
 ## How a place keeps its state
 
 All the places, and every tab of each, are spawned once at startup and only
@@ -269,7 +307,8 @@ every place, tab and horse has a key, and no key means two things at once.
   element buttons. The slice's stand-in for abilities.
 - `Report`: the report the Journal is open at, in two halves of fixed
   width. The latest: in town, the last trail and the next trail; on the
-  road, the fight and its log. Under the last trail is what becomes of its
+  road, the fight, and beside it a line saying where its log is (see
+  "The fight log"). Under the last trail is what becomes of its
   drop at setting out (item-card.md, "The appraisal in camp"), then the
   drop as the cargo shows it, and a press opens its card in the Journal's
   side panel, where Equip works without going to the Horses place. An
@@ -463,6 +502,7 @@ in the shell presses the thing when its key goes down, by the same
 | Escape | Back one level | not in the file |
 | Arrows | Move the keyboard focus to the nearest control that way | not in the file |
 | PageUp, PageDown | Scroll what the side panel says, or the tab's page when no panel is open | `scroll_keys` |
+| L | Hide or show the fight log, on the road with every place closed | `log_key` |
 
 The keys of places, horses and controls work wherever the player is, so no
 two of them are the same. A tab's key works only while its place is showing,
@@ -643,7 +683,7 @@ take a delivery (#172).
 presses through every place and tab and Settings, presses a control that
 is not built on two of them, chooses an element, saves a numbered PNG of
 each into the folder (which must exist), sends the party off, photographs
-the road view
+the road view (with the fight log over it, and again with the log hidden by L)
 and a place being opened and closed there (two of them part of the way
 through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), waits for the party to come home, opens the report, and then makes a town visit by keys
