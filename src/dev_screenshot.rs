@@ -23,7 +23,7 @@ use bevy::{
 use crate::game::menu::shell::{
     ControlButton, HorseButton, PlaceButton, Places, SlotRow, TabButton,
 };
-use crate::game::{Action, Game};
+use crate::game::{Action, Game, Hand};
 
 #[derive(Resource)]
 struct Shot {
@@ -83,7 +83,8 @@ enum Step {
     Place(usize),
     Tab(usize, usize),
     Horse(usize),
-    Slot(usize),
+    /// A slot of the gear overview: the horse, then the slot.
+    Slot(usize, usize),
     /// Press the first control of that name.
     Control(&'static str),
     /// Press a key, as the keyboard would.
@@ -131,11 +132,11 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::TabRound,
         Step::Horse(1),
         Step::Shot("second horse selected".into()),
-        Step::Slot(0),
+        Step::Slot(0, 0),
         Step::Shot("side panel open".into()),
         Step::Control("Compare"),
         Step::Shot("a control not built says so".into()),
-        Step::Slot(0),
+        Step::Slot(0, 0),
     ];
     for (p, place) in places.places.iter().enumerate() {
         steps.push(Step::Place(p));
@@ -204,6 +205,9 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::Escape),
         Step::Key(KeyCode::ArrowLeft),
         Step::Shot("by arrows across to the horses".into()),
+        // Past the three horses of the overview.
+        Step::Key(KeyCode::ArrowRight),
+        Step::Key(KeyCode::ArrowRight),
         Step::Key(KeyCode::ArrowRight),
         Step::Key(KeyCode::ArrowRight),
         Step::Shot("by arrows across to the cargo".into()),
@@ -212,6 +216,14 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Focus(None),
         Step::Key(KeyCode::KeyE),
         Step::Shot("by keys the drop equipped".into()),
+        // The overview (#285): with the first horse selected, open what
+        // the third wears on its head and swap it over.
+        Step::Key(KeyCode::KeyZ),
+        Step::Slot(2, 0),
+        Step::Shot("another horse's piece open".into()),
+        Step::Key(KeyCode::KeyW),
+        Step::Shot("swapped onto the selected horse".into()),
+        Step::Key(KeyCode::Escape),
         Step::Key(KeyCode::KeyC),
         Step::Key(KeyCode::Digit2),
         Step::Key(KeyCode::KeyI),
@@ -280,7 +292,7 @@ fn tour(
     }
     // The party leaves when the tour says so, not in the middle of it.
     match step {
-        Step::SetOut => game.act(Action::SetOut, 0),
+        Step::SetOut => game.act(Action::SetOut, Hand::horse(0)),
         _ => game.hold_in_town(),
     }
     let key = match step {
@@ -296,7 +308,10 @@ fn tour(
             .find(|(_, b)| b.place == *p && b.tab == *t)
             .map(|(e, _)| e),
         Step::Horse(h) => horses.iter().find(|(_, b)| b.0 == *h).map(|(e, _)| e),
-        Step::Slot(s) => slots.iter().find(|(_, b)| b.slot == *s).map(|(e, _)| e),
+        Step::Slot(h, s) => slots
+            .iter()
+            .find(|(_, b)| b.horse == *h && b.slot == *s)
+            .map(|(e, _)| e),
         Step::Control(name) => controls
             .iter()
             .filter(|(_, b)| map.control(b.id).name == *name)

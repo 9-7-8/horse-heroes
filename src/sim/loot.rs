@@ -65,6 +65,27 @@ pub fn best_wearer(data: &Data, party: &[Horse], gear: &Gear) -> Option<usize> {
     best.map(|(index, _)| index)
 }
 
+/// Two horses change what they wear in one slot. Any horse can wear any
+/// piece (#250), so nothing is refused and nothing is lost: an empty slot
+/// changes places like a piece does. Returns whether anything moved.
+pub fn swap_worn(party: &mut [Horse], a: usize, b: usize, slot: usize) -> bool {
+    let wears = |horse: usize| {
+        party
+            .get(horse)
+            .and_then(|horse| horse.gear.get(slot))
+            .map(|worn| worn.is_some())
+    };
+    let (Some(on_a), Some(on_b)) = (wears(a), wears(b)) else {
+        return false;
+    };
+    if a == b || !(on_a || on_b) {
+        return false;
+    }
+    let piece = party[a].gear[slot].take();
+    party[a].gear[slot] = std::mem::replace(&mut party[b].gear[slot], piece);
+    true
+}
+
 pub fn roll_gear(data: &Data, rng: &mut Rng, won: bool, level: u32) -> Gear {
     let table = &data.gear;
     let weights: Vec<u32> = table
@@ -208,5 +229,37 @@ mod tests {
         let slot = gear.slot.index();
         horse.gear[slot] = Some(gear);
         assert_eq!(horse.stats(), expected);
+    }
+
+    /// A swap moves a piece between two horses in its own slot, an empty
+    /// slot changing places like a piece, and loses nothing. It refuses a
+    /// horse with itself, two empty slots, and what is not there.
+    #[test]
+    fn two_horses_swap_what_they_wear_in_a_slot() {
+        let data = Data::load();
+        let mut party: Vec<Horse> = data.horses.iter().map(Horse::new).collect();
+        let mut rng = Rng::new(14);
+        let gear = roll_gear(&data, &mut rng, true, 2);
+        let (slot, name) = (gear.slot.index(), gear.name.clone());
+        let other = (slot + 1) % 3;
+        party[0].gear[slot] = Some(gear);
+        let worn = |party: &[Horse], horse: usize| {
+            party[horse].gear[slot].as_ref().map(|gear| gear.name.clone())
+        };
+
+        assert!(swap_worn(&mut party, 0, 2, slot));
+        assert_eq!(worn(&party, 0), None);
+        assert_eq!(worn(&party, 2), Some(name.clone()));
+        assert!(swap_worn(&mut party, 0, 2, slot), "onto a bare horse");
+        assert_eq!(worn(&party, 0), Some(name.clone()));
+        assert_eq!(worn(&party, 2), None);
+
+        assert!(!swap_worn(&mut party, 0, 0, slot), "a horse with itself");
+        assert!(!swap_worn(&mut party, 0, 1, other), "two empty slots");
+        assert!(!swap_worn(&mut party, 0, 9, slot), "no such horse");
+        assert!(!swap_worn(&mut party, 0, 1, 9), "no such slot");
+        let pieces = party.iter().flat_map(|horse| &horse.gear).flatten().count();
+        assert_eq!(pieces, 1);
+        assert_eq!(worn(&party, 0), Some(name));
     }
 }

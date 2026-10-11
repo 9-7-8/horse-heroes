@@ -327,6 +327,29 @@ pub fn card(t: &Tokens, name: &str, kind: &str) -> impl Bundle + use<> {
     )
 }
 
+/// One square of a grid of things, such as a gear slot in the overview. It
+/// takes the width of the column it is in and keeps its height full or
+/// empty; its lines are added as children by whoever fills it.
+pub fn cell(t: &Tokens) -> impl Bundle + use<> {
+    (
+        interactive(t, Part::Card),
+        Node {
+            width: Val::Percent(100.0),
+            min_height: Val::Px(t.size.cell_height),
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::Center,
+            padding: UiRect::axes(Val::Px(t.space.m + t.size.mark), Val::Px(t.space.s)),
+            row_gap: Val::Px(t.space.xs),
+            border: UiRect::all(Val::Px(t.size.border)),
+            border_radius: BorderRadius::all(Val::Px(t.size.radius)),
+            overflow: Overflow::clip(),
+            flex_shrink: 0.0,
+            ..default()
+        },
+        children![mark(t, Part::Card)],
+    )
+}
+
 /// A flat panel. Its contents are added as children.
 pub fn panel(t: &Tokens) -> impl Bundle + use<> {
     (

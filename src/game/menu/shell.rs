@@ -22,16 +22,16 @@ use bevy::{
 use serde::Deserialize;
 
 use super::parts::{
-    ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, button, counter, dim, panel, reason,
-    row, side_panel, tab, text, title, trail_mark,
+    ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, button, cell, counter, dim, panel,
+    reason, row, side_panel, tab, text, title, trail_mark,
 };
 use super::tokens::Tokens;
 use crate::game::{
-    Action, Game, SceneView, Screen, Uncollected, report_side, report_text, stats_line,
+    Action, Game, Hand, SceneView, Screen, Uncollected, report_side, report_text, stats_line,
 };
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
-use crate::sim::loot::gain;
+use crate::sim::loot::{Gear, Horse, gain};
 
 /// The map of the menus, from `assets/data/places.ron`.
 #[derive(Resource, Clone, Debug, Deserialize)]
@@ -287,8 +287,8 @@ impl Place {
 /// What a side panel is about.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Item {
-    /// A gear slot of the selected horse.
-    Slot(usize),
+    /// A gear slot of a horse, and the piece worn in it.
+    Worn { horse: usize, slot: usize },
     /// A control, by its `id`: what it shows, or, for one that is not
     /// built, what it will do.
     Control(usize),
@@ -338,6 +338,18 @@ impl Shell {
 
     pub fn tab(&self, place: usize) -> usize {
         self.tabs[place]
+    }
+
+    /// What an action would be done to now: the selected horse, and the
+    /// worn piece open in the side panel that is showing.
+    pub fn hand(&self) -> Hand {
+        Hand {
+            horse: self.horse,
+            open: match self.detail(self.place).map(|detail| detail.item) {
+                Some(Item::Worn { horse, slot }) if self.showing => Some((horse, slot)),
+                _ => None,
+            },
+        }
     }
 
     pub fn open(&mut self, place: usize) {
@@ -409,13 +421,20 @@ pub struct TabButton {
 #[derive(Component)]
 pub struct HorseButton(pub usize);
 
-/// A gear slot of the selected horse. Opens the piece in the side panel.
+/// A gear slot of a horse in the overview. Opens the piece in the side
+/// panel, whoever is selected.
 #[derive(Component)]
 pub struct SlotRow {
     pub place: usize,
     pub tab: usize,
+    pub horse: usize,
     pub slot: usize,
 }
+
+/// A horse's column of the gear overview, outlined while it is the selected
+/// horse's.
+#[derive(Component)]
+struct Wearer(usize);
 
 /// A control from the map of the menus. `place` is the page it is on; a
 /// control of the footer is on none.
@@ -460,7 +479,11 @@ enum Fact {
     Health(usize),
     SelectedHorse,
     SelectedStats,
-    Slot(usize),
+    /// The heading of a horse's column in the overview.
+    Wearer(usize),
+    /// The piece a horse wears in a slot, and the line under it.
+    Worn(usize, usize),
+    WornLine(usize, usize),
     Detail(usize),
     Cargo,
     Element,
@@ -488,6 +511,7 @@ impl Plugin for ShellPlugin {
                     move_scene,
                     show_place,
                     mark_chosen,
+                    mark_wearer,
                     show_reasons,
                     show_facts,
                     show_trail,
@@ -731,7 +755,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                                     Live(Fact::SelectedHorse),
                                                 ));
                                             }
-                                            spawn_content(tab_page, t, p, i, content);
+                                            spawn_content(tab_page, t, p, i, content, game.party.len());
                                             spawn_controls(tab_page, t, controls, Some(p));
                                         });
                                 }
@@ -857,6 +881,7 @@ fn spawn_content(
     place: usize,
     tab: usize,
     content: Content,
+    horses: usize,
 ) {
     match content {
         Content::Planned => {
@@ -871,22 +896,47 @@ fn spawn_content(
         }
         Content::Gear => {
             page.spawn((text(t, ""), Live(Fact::SelectedStats)));
+            // The overview (#285): a column for each horse and a slot on
+            // each line, so everything worn is seen without selecting.
             page.spawn(Node {
-                flex_direction: FlexDirection::Column,
+                column_gap: Val::Px(t.space.s),
                 margin: UiRect::top(Val::Px(t.space.s)),
+                flex_shrink: 0.0,
                 ..default()
             })
-            .with_children(|slots| {
-                for slot in Slot::ALL {
-                    slots.spawn((
-                        row(t, slot.name(), None, ""),
-                        SlotRow {
-                            place,
-                            tab,
-                            slot: slot.index(),
-                        },
-                        Live(Fact::Slot(slot.index())),
-                    ));
+            .with_children(|overview| {
+                for horse in 0..horses {
+                    overview
+                        .spawn((
+                            Node {
+                                flex_grow: 1.0,
+                                flex_basis: Val::Px(0.0),
+                                min_width: Val::Px(0.0),
+                                flex_direction: FlexDirection::Column,
+                                row_gap: Val::Px(t.space.s),
+                                padding: UiRect::all(Val::Px(t.space.s)),
+                                border: UiRect::all(Val::Px(t.size.border)),
+                                border_radius: BorderRadius::all(Val::Px(t.size.radius)),
+                                ..default()
+                            },
+                            BorderColor::all(Color::NONE),
+                            Wearer(horse),
+                        ))
+                        .with_children(|slots| {
+                            slots.spawn((text(t, ""), Live(Fact::Wearer(horse))));
+                            for slot in Slot::ALL {
+                                let slot = slot.index();
+                                slots
+                                    .spawn((cell(t), SlotRow { place, tab, horse, slot }))
+                                    .with_children(|lines| {
+                                        lines.spawn((text(t, ""), Live(Fact::Worn(horse, slot))));
+                                        lines.spawn((
+                                            dim(t, ""),
+                                            Live(Fact::WornLine(horse, slot)),
+                                        ));
+                                    });
+                            }
+                        });
                 }
             });
         }
@@ -1005,7 +1055,10 @@ fn on_activate(
             row.place,
             Detail {
                 tab: row.tab,
-                item: Item::Slot(row.slot),
+                item: Item::Worn {
+                    horse: row.horse,
+                    slot: row.slot,
+                },
                 opener: Some(entity),
             },
         );
@@ -1013,7 +1066,7 @@ fn on_activate(
         close_detail(&mut shell, &mut focus);
     } else if let Ok(button) = controls.get(entity) {
         match map.control(button.id).action {
-            Some(action) => game.act(action, shell.horse()),
+            Some(action) => game.act(action, shell.hand()),
             // It shows something, or is not built and says so: either way
             // in the side panel of the page it is on.
             None => {
@@ -1304,7 +1357,12 @@ fn mark_chosen(
             || horse.is_some_and(|horse| horse.0 == shell.horse())
             || slot.is_some_and(|row| {
                 shell.detail(row.place).is_some_and(|detail| {
-                    detail.tab == row.tab && detail.item == Item::Slot(row.slot)
+                    detail.tab == row.tab
+                        && detail.item
+                            == Item::Worn {
+                                horse: row.horse,
+                                slot: row.slot,
+                            }
                 })
             });
         if wanted && !selected {
@@ -1320,7 +1378,7 @@ fn mark_chosen(
         let (chosen, blocked) = match map.control(button.id).action {
             Some(action) => (
                 action == Action::Element(game.element),
-                game.can(action).is_err(),
+                game.can(action, shell.hand()).is_err(),
             ),
             None => (
                 shell
@@ -1342,16 +1400,36 @@ fn mark_chosen(
     }
 }
 
+/// Outline the selected horse's column of the overview: the horse a piece
+/// would go onto.
+fn mark_wearer(
+    shell: Res<Shell>,
+    tokens: Res<Tokens>,
+    mut columns: Query<(&Wearer, &mut BorderColor)>,
+) {
+    for (wearer, mut border) in &mut columns {
+        let wanted = BorderColor::all(if wearer.0 == shell.horse() {
+            tokens.colour.accent.0
+        } else {
+            Color::NONE
+        });
+        if *border != wanted {
+            *border = wanted;
+        }
+    }
+}
+
 /// Say under each group of controls why those that work cannot be used now,
 /// and put the line away while all of them can.
 fn show_reasons(
     game: Res<Game>,
+    shell: Res<Shell>,
     map: Res<Places>,
     mut lines: Query<(&Blocked, &mut Node, &Children)>,
     mut texts: Query<&mut Text>,
 ) {
     for (blocked, mut node, children) in &mut lines {
-        let words = blocked_line(blocked.0.iter().map(|&id| map.control(id)), &game);
+        let words = blocked_line(blocked.0.iter().map(|&id| map.control(id)), &game, shell.hand());
         let wanted = if words.is_empty() {
             Display::None
         } else {
@@ -1473,16 +1551,24 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 selected.name, stats.health, stats.attack, stats.defense, stats.elemental
             )
         }
-        Fact::Slot(slot) => match &selected.gear[slot] {
-            Some(gear) => format!("{}   {}", gear.name, stats_line(gear.stats)),
+        Fact::Wearer(horse) if horse == shell.horse() => {
+            format!("{}, selected", game.party[horse].name)
+        }
+        Fact::Wearer(horse) => game.party[horse].name.clone(),
+        Fact::Worn(horse, slot) => match &game.party[horse].gear[slot] {
+            Some(gear) => gear.name.clone(),
             None => "nothing worn".into(),
+        },
+        Fact::WornLine(horse, slot) => match &game.party[horse].gear[slot] {
+            Some(gear) => format!("{}  {}", Slot::ALL[slot].name(), stats_line(gear.stats)),
+            None => Slot::ALL[slot].name().into(),
         },
         Fact::Detail(place) => {
             let Some(detail) = shell.detail(place) else {
                 return String::new();
             };
-            let item = match detail.item {
-                Item::Slot(slot) => slot,
+            let (wearer, item) = match detail.item {
+                Item::Worn { horse, slot } => (&game.party[horse], slot),
                 Item::Control(id) => {
                     let control = map.control(id);
                     return match control.shows {
@@ -1496,45 +1582,49 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 }
             };
             let slot = Slot::ALL[item];
-            match &selected.gear[item] {
+            let mut words = match &wearer.gear[item] {
                 Some(gear) => format!(
                     "{}\n{} slot, worn by {}\n{}\n{}",
                     gear.name,
                     slot.name(),
-                    selected.name,
+                    wearer.name,
                     game.data.gear.rarities[gear.rarity].name,
                     stats_line(gear.stats),
                 ),
                 None => format!(
                     "{} slot of {}\nNothing worn.\nGear comes from the trail.",
                     slot.name(),
-                    selected.name,
+                    wearer.name,
                 ),
+            };
+            // Another horse's slot: against the selected horse, the one
+            // Swap would change it with.
+            if !std::ptr::eq(wearer, selected) {
+                if let Some(gear) = &wearer.gear[item] {
+                    words += &format!("\n\n{}", against(game, selected, gear));
+                }
+                if game.can(Action::Swap, shell.hand()).is_ok() {
+                    words += &format!(
+                        "\nSwap puts {} on {}, and {} on {}.",
+                        worn_name(wearer, item),
+                        selected.name,
+                        worn_name(selected, item),
+                        wearer.name,
+                    );
+                }
             }
+            words
         }
         Fact::Cargo => match game.pending_drop() {
-            Some(gear) => {
-                // Against the selected horse, the one Equip puts it on.
-                let worn = match &selected.gear[gear.slot.index()] {
-                    Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
-                    None => "nothing".into(),
-                };
-                let change = gain(&game.data, selected, gear);
-                format!(
-                    "{}\n{}, {}\n{}\n{} wears: {}\n{}",
-                    gear.name,
-                    game.data.gear.rarities[gear.rarity].name,
-                    gear.slot.name(),
-                    stats_line(gear.stats),
-                    selected.name,
-                    worn,
-                    match change {
-                        1.. => format!("An upgrade for {}: +{change} points.", selected.name),
-                        0 => format!("No better for {}: the same points.", selected.name),
-                        _ => format!("Worse for {}: {change} points.", selected.name),
-                    },
-                )
-            }
+            // Against the selected horse, the one Equip puts it on.
+            Some(gear) => format!(
+                "{}\n{}, {}\n{}\n{}",
+                gear.name,
+                game.data.gear.rarities[gear.rarity].name,
+                gear.slot.name(),
+                stats_line(gear.stats),
+                against(game, selected, gear),
+            ),
             None => "Nothing here yet.\nGear the horses bring back is carried here.".into(),
         },
         Fact::Element => {
@@ -1571,16 +1661,44 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
     }
 }
 
+/// What a horse wears in a slot, by name.
+fn worn_name(horse: &Horse, slot: usize) -> &str {
+    horse.gear[slot]
+        .as_ref()
+        .map_or("nothing", |gear| gear.name.as_str())
+}
+
+/// A piece against what a horse wears in its slot: what that is, and
+/// whether the piece would be an upgrade for it, in points.
+fn against(game: &Game, horse: &Horse, gear: &Gear) -> String {
+    let worn = match &horse.gear[gear.slot.index()] {
+        Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
+        None => "nothing".into(),
+    };
+    let change = gain(&game.data, horse, gear);
+    format!(
+        "{} wears: {}\n{}",
+        horse.name,
+        worn,
+        match change {
+            1.. => format!("An upgrade for {}: +{change} points.", horse.name),
+            0 => format!("No better for {}: the same points.", horse.name),
+            _ => format!("Worse for {}: {change} points.", horse.name),
+        },
+    )
+}
+
 /// The working controls among these that cannot be used now, gathered by the
 /// reason, in the order of the map. The reason is `Game::can`'s, the check
 /// `Game::act` makes, so what is shown is why the press would do nothing.
 fn blocked<'a>(
     controls: impl IntoIterator<Item = &'a Control>,
     game: &Game,
+    hand: Hand,
 ) -> Vec<(Vec<&'a str>, &'static str)> {
     let mut reasons: Vec<(Vec<&str>, &str)> = Vec::new();
     for control in controls {
-        let Some(Err(why)) = control.action.map(|action| game.can(action)) else {
+        let Some(Err(why)) = control.action.map(|action| game.can(action, hand)) else {
             continue;
         };
         match reasons.iter_mut().find(|(_, reason)| *reason == why) {
@@ -1593,8 +1711,12 @@ fn blocked<'a>(
 
 /// What a group of controls says in place about those: "Fire, Ice, Plant:
 /// in town only." Empty when every working control can be used.
-fn blocked_line<'a>(controls: impl IntoIterator<Item = &'a Control>, game: &Game) -> String {
-    let lines: Vec<String> = blocked(controls, game)
+fn blocked_line<'a>(
+    controls: impl IntoIterator<Item = &'a Control>,
+    game: &Game,
+    hand: Hand,
+) -> String {
+    let lines: Vec<String> = blocked(controls, game, hand)
         .iter()
         .map(|(names, why)| reason_line(names, why))
         .collect();
@@ -1730,7 +1852,7 @@ mod tests {
             .find(|game| game.pending_drop().is_some())
             .expect("no seed under 50 brings a drop home");
         let mut on_the_road = Game::new(6);
-        on_the_road.act(Action::SetOut, 0);
+        on_the_road.act(Action::SetOut, Hand::horse(0));
         vec![
             ("in town", Game::new(6)),
             ("in town with a drop", with_a_drop),
@@ -1749,7 +1871,7 @@ mod tests {
         assert_eq!(grouped, places.controls().len(), "a control is in no group");
         for (state, game) in states() {
             for group in places.groups() {
-                let reasons = blocked(group, &game);
+                let reasons = blocked(group, &game, Hand::default());
                 let unbuilt = unbuilt_line(group, true);
                 for control in group {
                     let name = control.name.as_str();
@@ -1758,12 +1880,12 @@ mod tests {
                         .filter(|(names, _)| names.contains(&name))
                         .map(|(_, why)| *why)
                         .collect();
-                    match control.action.map(|action| game.can(action)) {
+                    match control.action.map(|action| game.can(action, Hand::default())) {
                         Some(Ok(())) => assert!(given.is_empty(), "{state}: {name}"),
                         Some(Err(why)) => {
                             assert_eq!(given, [why], "{state}: {name}");
                             assert!(!why.is_empty());
-                            let line = blocked_line(group, &game);
+                            let line = blocked_line(group, &game, Hand::default());
                             assert!(line.contains(name), "{state}: {line}");
                         }
                         // It shows something, whatever the party is doing:
@@ -1810,7 +1932,7 @@ mod tests {
         assert_eq!(trail_stops(&game), vec![Ahead; total]);
 
         // On the road it follows the party, and a longer trail has more marks.
-        game.act(Action::SetOut, 0);
+        game.act(Action::SetOut, Hand::horse(0));
         assert_eq!(trail_stops(&game), stops(total, 0));
         let Screen::Trail(expedition) = &mut game.screen else {
             unreachable!("the party set out");
@@ -1822,7 +1944,7 @@ mod tests {
 
         // A won trail is all behind, the boss too.
         let mut won = Game::new(6);
-        won.act(Action::SetOut, 0);
+        won.act(Action::SetOut, Hand::horse(0));
         let Screen::Trail(expedition) = &mut won.screen else {
             unreachable!("the party set out");
         };
@@ -1841,7 +1963,7 @@ mod tests {
             "Fire, Ice: in town only."
         );
         let game = Game::new(6);
-        assert_eq!(blocked_line(&Places::load().footer, &game), "");
+        assert_eq!(blocked_line(&Places::load().footer, &game, Hand::default()), "");
     }
 
     /// The line about controls that are not built names whichever is the
@@ -1882,7 +2004,7 @@ mod tests {
             0,
             Detail {
                 tab: 0,
-                item: Item::Slot(0),
+                item: Item::Worn { horse: 0, slot: 0 },
                 opener: None,
             },
         );
@@ -2086,7 +2208,7 @@ mod tests {
             .into_iter()
             .map(Action::Element)
             .collect();
-        actions.extend([Action::EquipDrop, Action::SetOut]);
+        actions.extend([Action::EquipDrop, Action::Swap, Action::SetOut]);
         for action in actions {
             let controls = places
                 .controls()
@@ -2177,7 +2299,7 @@ mod tests {
         let mut shell = Shell::new(5);
         let detail = Detail {
             tab: 0,
-            item: Item::Slot(1),
+            item: Item::Worn { horse: 0, slot: 1 },
             opener: None,
         };
         shell.show_detail(0, detail);
@@ -2226,7 +2348,7 @@ mod tests {
         let mut shell = Shell::new(5);
         let detail = Detail {
             tab: 1,
-            item: Item::Slot(2),
+            item: Item::Worn { horse: 0, slot: 2 },
             opener: None,
         };
         shell.choose_tab(0, 1);

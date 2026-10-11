@@ -16,6 +16,11 @@
         focus_ring: 2,
         focus_gap: 2,
         card_width: 164,
+        // A slot in the gear overview: room for a piece's name and one line
+        // under it. A piece that adds to many stats takes a second line; at
+        // 62, room for two always, the three slots no longer fit under the
+        // scene at the smallest window.
+        cell_height: 46,
         side_panel_width: 280,
         confirm_width: 380,
         // Wide enough for the largest number shown, so a growing count never
