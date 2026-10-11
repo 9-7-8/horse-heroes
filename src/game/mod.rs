@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
-use crate::sim::loot::{Gear, Horse, score};
+use crate::sim::loot::{Gear, Horse, best_wearer};
 
 pub mod menu;
 pub mod scene;
@@ -117,7 +117,7 @@ impl Plugin for GamePlugin {
 pub enum Action {
     /// Fight the next trail with this element.
     Element(Element),
-    /// Put the last trail's drop on the horse it fits.
+    /// Put the last trail's drop on the selected horse.
     EquipDrop,
     SetOut,
 }
@@ -169,8 +169,9 @@ impl Game {
         }
     }
 
-    /// Put the last run's drop on the horse it fits. Returns what happened.
-    fn equip_drop(&mut self) -> Option<String> {
+    /// Put the last run's drop on a horse. Any horse can wear any piece
+    /// (#250). Returns what happened.
+    fn equip_drop(&mut self, horse: usize) -> Option<String> {
         let Screen::Camp {
             last: Some(outcome),
             ..
@@ -178,30 +179,17 @@ impl Game {
         else {
             return None;
         };
+        let horse = self.party.get_mut(horse)?;
         let gear = outcome.drop.take()?;
-        let horse = &mut self.party[gear.fits];
         let note = format!("Equipped {} on {}.", gear.name, horse.name);
         let slot = gear.slot.index();
         horse.gear[slot] = Some(gear);
         Some(note)
     }
 
-    /// Whether the pending drop beats what its horse wears in that slot.
-    pub fn drop_is_upgrade(&self) -> bool {
-        let Screen::Camp {
-            last: Some(outcome),
-            ..
-        } = &self.screen
-        else {
-            return false;
-        };
-        let Some(gear) = &outcome.drop else {
-            return false;
-        };
-        let worn = self.party[gear.fits].gear[gear.slot.index()]
-            .as_ref()
-            .map_or(Stats::default(), |g| g.stats);
-        score(&self.data, gear.stats) > score(&self.data, worn)
+    /// The horse the pending drop does most for, if it betters any of them.
+    pub fn drop_best_wearer(&self) -> Option<usize> {
+        best_wearer(&self.data, &self.party, self.pending_drop()?)
     }
 
     /// Every coin the party has earned, the current trail's included.
@@ -261,15 +249,16 @@ impl Game {
         }
     }
 
-    /// Do an action, if it can be done.
-    pub fn act(&mut self, action: Action) {
+    /// Do an action, if it can be done. `horse` is the selected horse, for
+    /// an action that is done to one.
+    pub fn act(&mut self, action: Action, horse: usize) {
         if self.can(action).is_err() {
             return;
         }
         match action {
             Action::Element(element) => self.element = element,
             Action::EquipDrop => {
-                if let Some(text) = self.equip_drop()
+                if let Some(text) = self.equip_drop(horse)
                     && let Screen::Camp { note, .. } = &mut self.screen
                 {
                     *note = text;
@@ -291,9 +280,10 @@ impl Game {
     }
 
     fn depart(&mut self) {
-        // Idle first: an unattended camp still takes the upgrade.
-        if self.drop_is_upgrade() {
-            self.equip_drop();
+        // Idle first: an unattended camp still takes the upgrade, on the
+        // horse it does most for.
+        if let Some(horse) = self.drop_best_wearer() {
+            self.equip_drop(horse);
         }
         self.accumulator = 0.0;
         self.screen = Screen::Trail(Expedition::new(
@@ -324,7 +314,7 @@ impl Game {
     /// A game back in town from its first trail, with whatever it dropped.
     pub fn back_from_a_trail(seed: u64) -> Game {
         let mut game = Game::new(seed);
-        game.act(Action::SetOut);
+        game.act(Action::SetOut, 0);
         let outcome = loop {
             let Screen::Trail(expedition) = &mut game.screen else {
                 unreachable!("the party set out");
@@ -454,26 +444,24 @@ pub fn report_text(game: &Game) -> String {
                 outcome.resisted_hits,
             );
             if let Some(gear) = &outcome.drop {
-                let horse = &game.party[gear.fits];
-                let worn = match &horse.gear[gear.slot.index()] {
-                    Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
-                    None => "nothing".into(),
-                };
                 out += &format!(
-                    "\nNEW GEAR: {} [{}, {}]  {}\n\
-                     \x20 fits {}, who wears: {}{}\n",
+                    "\nNEW GEAR: {} [{}, {}]  {}\n",
                     gear.name,
                     game.data.gear.rarities[gear.rarity].name,
                     gear.slot.name(),
                     stats_line(gear.stats),
-                    horse.name,
-                    worn,
-                    if game.drop_is_upgrade() {
-                        "  (an upgrade)"
-                    } else {
-                        ""
-                    },
                 );
+                out += &match game.drop_best_wearer() {
+                    Some(best) => {
+                        let horse = &game.party[best];
+                        let worn = match &horse.gear[gear.slot.index()] {
+                            Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
+                            None => "nothing".into(),
+                        };
+                        format!("  does most for {}, who wears: {worn}\n", horse.name)
+                    }
+                    None => "  no horse is better off in it\n".into(),
+                };
             }
             if !note.is_empty() {
                 out += &format!("\n{note}\n");
@@ -574,12 +562,12 @@ mod tests {
         assert_eq!(game.can(Action::SetOut), Ok(()));
         assert_eq!(game.can(Action::EquipDrop), Err("Nothing to equip."));
 
-        game.act(Action::Element(Element::Ice));
+        game.act(Action::Element(Element::Ice), 0);
         assert_eq!(game.element, Element::Ice);
-        game.act(Action::EquipDrop);
+        game.act(Action::EquipDrop, 0);
         assert!(game.in_town(), "a refused action changes nothing");
 
-        game.act(Action::SetOut);
+        game.act(Action::SetOut, 0);
         assert!(!game.in_town());
         for action in [
             Action::Element(Element::Fire),
@@ -588,12 +576,13 @@ mod tests {
         ] {
             assert_eq!(game.can(action), Err("In town only."));
         }
-        game.act(Action::Element(Element::Fire));
+        game.act(Action::Element(Element::Fire), 0);
         assert_eq!(game.element, Element::Ice, "no change on the road");
     }
 
     /// A press does something exactly when `can` allows it (#233): with a
-    /// drop home, Equip is allowed and puts it on; after that it is refused.
+    /// drop home, Equip is allowed and puts it on the selected horse,
+    /// whichever that is (#250); after that it is refused.
     #[test]
     fn what_can_be_done_is_done() {
         let home = || {
@@ -602,18 +591,23 @@ mod tests {
                 .find(|game| game.pending_drop().is_some())
                 .expect("no seed under 50 brings a drop home")
         };
-        let mut game = home();
-        assert_eq!(game.can(Action::EquipDrop), Ok(()));
-        let gear = game.pending_drop().unwrap();
-        let (fits, slot, name) = (gear.fits, gear.slot.index(), gear.name.clone());
-        game.act(Action::EquipDrop);
-        assert!(game.pending_drop().is_none());
-        assert_eq!(game.party[fits].gear[slot].as_ref().unwrap().name, name);
-        assert_eq!(game.can(Action::EquipDrop), Err("Nothing to equip."));
+        for selected in 0..3 {
+            let mut game = home();
+            assert_eq!(game.can(Action::EquipDrop), Ok(()));
+            let gear = game.pending_drop().unwrap();
+            let (slot, name) = (gear.slot.index(), gear.name.clone());
+            game.act(Action::EquipDrop, selected);
+            assert!(game.pending_drop().is_none());
+            for (index, horse) in game.party.iter().enumerate() {
+                let worn = horse.gear[slot].as_ref().map(|gear| gear.name.as_str());
+                assert_eq!(worn, (index == selected).then_some(name.as_str()));
+            }
+            assert_eq!(game.can(Action::EquipDrop), Err("Nothing to equip."));
+        }
 
         let mut game = home();
         assert_eq!(game.can(Action::SetOut), Ok(()));
-        game.act(Action::SetOut);
+        game.act(Action::SetOut, 0);
         assert!(!game.in_town());
     }
 

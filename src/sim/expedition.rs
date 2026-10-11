@@ -371,7 +371,7 @@ impl Expedition {
         };
         let drop = (cleared > 0).then(|| {
             let mut rng = Rng::new(self.plan.seed ^ 0x100F_100F_100F_100F);
-            roll_gear(data, &mut rng, won, self.plan.level, self.party.len())
+            roll_gear(data, &mut rng, won, self.plan.level)
         });
         // A trail is won in the tick its last enemy falls, so that kill is
         // still here, not yet taken.
@@ -663,7 +663,6 @@ mod tests {
             assert_eq!(a.drop, b.drop);
             assert_eq!(a.drop.is_some(), a.cleared > 0);
             if let Some(gear) = a.drop {
-                assert!(gear.fits < data.horses.len());
                 assert!(super::super::loot::score(&data, gear.stats) >= 2);
                 seen += 1;
             }
@@ -963,7 +962,7 @@ mod tests {
     fn worn_gear_is_fought_in_and_wins_more_trails() {
         let data = Data::load();
         let mut geared = party(&data);
-        for (fits, horse) in geared.iter_mut().enumerate() {
+        for horse in geared.iter_mut() {
             horse.gear[Slot::Body.index()] = Some(Gear {
                 name: "Test Blanket".into(),
                 slot: Slot::Body,
@@ -974,7 +973,6 @@ mod tests {
                     defense: 2,
                     elemental: 3,
                 },
-                fits,
             });
         }
 

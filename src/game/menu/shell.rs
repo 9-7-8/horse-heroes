@@ -31,6 +31,7 @@ use crate::game::{
 };
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
+use crate::sim::loot::gain;
 
 /// The map of the menus, from `assets/data/places.ron`.
 #[derive(Resource, Clone, Debug, Deserialize)]
@@ -1012,7 +1013,7 @@ fn on_activate(
         close_detail(&mut shell, &mut focus);
     } else if let Ok(button) = controls.get(entity) {
         match map.control(button.id).action {
-            Some(action) => game.act(action),
+            Some(action) => game.act(action, shell.horse()),
             // It shows something, or is not built and says so: either way
             // in the side panel of the page it is on.
             None => {
@@ -1473,7 +1474,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             )
         }
         Fact::Slot(slot) => match &selected.gear[slot] {
-            Some(gear) => gear.name.clone(),
+            Some(gear) => format!("{}   {}", gear.name, stats_line(gear.stats)),
             None => "nothing worn".into(),
         },
         Fact::Detail(place) => {
@@ -1513,23 +1514,24 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         }
         Fact::Cargo => match game.pending_drop() {
             Some(gear) => {
-                let horse = &game.party[gear.fits];
-                let worn = match &horse.gear[gear.slot.index()] {
+                // Against the selected horse, the one Equip puts it on.
+                let worn = match &selected.gear[gear.slot.index()] {
                     Some(worn) => format!("{}  {}", worn.name, stats_line(worn.stats)),
                     None => "nothing".into(),
                 };
+                let change = gain(&game.data, selected, gear);
                 format!(
-                    "{}\n{}, {}\n{}\nFits {}, who wears: {}{}",
+                    "{}\n{}, {}\n{}\n{} wears: {}\n{}",
                     gear.name,
                     game.data.gear.rarities[gear.rarity].name,
                     gear.slot.name(),
                     stats_line(gear.stats),
-                    horse.name,
+                    selected.name,
                     worn,
-                    if game.drop_is_upgrade() {
-                        "\nAn upgrade."
-                    } else {
-                        ""
+                    match change {
+                        1.. => format!("An upgrade for {}: +{change} points.", selected.name),
+                        0 => format!("No better for {}: the same points.", selected.name),
+                        _ => format!("Worse for {}: {change} points.", selected.name),
                     },
                 )
             }
@@ -1728,7 +1730,7 @@ mod tests {
             .find(|game| game.pending_drop().is_some())
             .expect("no seed under 50 brings a drop home");
         let mut on_the_road = Game::new(6);
-        on_the_road.act(Action::SetOut);
+        on_the_road.act(Action::SetOut, 0);
         vec![
             ("in town", Game::new(6)),
             ("in town with a drop", with_a_drop),
@@ -1808,7 +1810,7 @@ mod tests {
         assert_eq!(trail_stops(&game), vec![Ahead; total]);
 
         // On the road it follows the party, and a longer trail has more marks.
-        game.act(Action::SetOut);
+        game.act(Action::SetOut, 0);
         assert_eq!(trail_stops(&game), stops(total, 0));
         let Screen::Trail(expedition) = &mut game.screen else {
             unreachable!("the party set out");
@@ -1820,7 +1822,7 @@ mod tests {
 
         // A won trail is all behind, the boss too.
         let mut won = Game::new(6);
-        won.act(Action::SetOut);
+        won.act(Action::SetOut, 0);
         let Screen::Trail(expedition) = &mut won.screen else {
             unreachable!("the party set out");
         };

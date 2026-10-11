@@ -92,7 +92,7 @@
                 ),
             ],
             cargo: [
-                (name: "Equip", does: "Puts the piece the party brought back on the horse it fits.", action: EquipDrop, key: "E"),
+                (name: "Equip", does: "Puts the piece the party brought back on the selected horse.", action: EquipDrop, key: "E"),
                 (name: "List", does: "Lists the piece at the stall.", issue: 99),
                 (name: "Store", does: "Puts the piece in this town's stash.", issue: 202),
                 (name: "Lock", does: "Keeps the piece safe from every automatic action.", issue: 34),

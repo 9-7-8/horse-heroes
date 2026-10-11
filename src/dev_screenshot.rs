@@ -280,7 +280,7 @@ fn tour(
     }
     // The party leaves when the tour says so, not in the middle of it.
     match step {
-        Step::SetOut => game.act(Action::SetOut),
+        Step::SetOut => game.act(Action::SetOut, 0),
         _ => game.hold_in_town(),
     }
     let key = match step {
