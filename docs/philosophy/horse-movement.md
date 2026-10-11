@@ -13,6 +13,15 @@ The documents are kept whole, with their tables, equations and citations:
 any of this**: this file is the rules to judge by, and the numbers are
 there.
 
+The same day she took the figures of the horse as built
+([`docs/horse-rest-pose.md`](../horse-rest-pose.md)) back to where the
+mathematics came from, and returned with two more documents, about this
+model: [`docs/source/improving-our-model.md`](../source/improving-our-model.md)
+(what the model can and cannot do today, and how gait figures should be
+given for it) and
+[`docs/source/changing-our-model.md`](../source/changing-our-model.md) (the
+skeleton to build, with a first layout of joint positions).
+
 ## Principles
 
 ### Footfalls first, joints after
@@ -61,12 +70,69 @@ joint in a model. The rotation is the difference from that angle in the
 model's rest pose. And a minimum and a maximum do not make an animation: two
 gaits can reach the same extremes at different moments.
 
+### A skeleton first, then the mesh round it
+
+- **Cutting a rigid leg into pieces gives bending and nothing else.** A leg
+  needs its real chain: shoulder blade, shoulder, elbow, knee, fetlock,
+  hoof; pelvis, hip, stifle, hock, fetlock, hoof. The shoulder blade is not
+  a socket on the trunk but a control that slides on it. The hip is inside
+  the hindquarter, not at the point of hip or the croup.
+- **A landmark on the surface is not a joint's centre.** The point of
+  shoulder, of elbow, of hock and of hip, the coronet and the ground point
+  are things to see or to stand on; the pivot is somewhere near and not the
+  same. Keep joint centres, surface landmarks, hoof contact points and where
+  the mesh attaches as separate data, so that changing the mesh cannot move
+  the skeleton.
+- **One authority for the rest pose.** Either joint positions, with lengths
+  and angles worked out from them, or lengths and angles with positions
+  worked out. Never both by hand: they will come to disagree. The rest pose
+  carries a version, so a gait knows which skeleton it was fitted to.
+- **Joints are not free in every direction.** Elbow, knee, stifle and hock
+  are hinges for this purpose; shoulder and hip have a little sideways
+  freedom; the fetlock yields under load. Stifle and hock move together,
+  by a fitted relation and never by giving both the same angle.
+- **The hoof is rigid.** It turns on its own pivot, lands and leaves by
+  contact points at heel and toe, and rolls over the toe to leave. What
+  gives is above it.
+- **The upper limb is inside the body's outline**, as a shoulder mass and a
+  thigh mass, not as rods with hinges showing. Where pieces are rigid, they
+  overlap at the joints so that a deep fold opens no gap.
+
+### What must hold, and what may give
+
+A planted hoof, a segment's length, the direction a joint bends, the moments
+of contact and release, and the ground not being entered **must hold**. A
+study's joint extremes, the angles between them, how the upper limb leans,
+the body's height and pitch, and how high a hoof clears **may give**. Ask
+for every joint angle exactly and the hoof misses the ground; so in stance
+the leg is solved to keep the hoof planted while staying as near its target
+angles as it can, and in swing the fold and the hoof's path are set
+directly. **When a hoof cannot reach, the body, the speed, the stance or the
+landing place changes. Never a bone's length.**
+
+### Speed and cadence are separate
+
+Stride length is speed times stride duration, so at one ground speed a
+quicker cadence is a shorter stride whether the gait wants one or not. A
+gait has its own ground speed. Forcing every gait to cover ground at one
+speed, or letting the feet slide for style, are the alternatives, and the
+first is wrong for a gait known by its slow progress.
+
 ### Joints do not all move together
 
 - Stance and swing are each normalised on their own, and a joint's curve is
   written against them: its angle at contact, as load comes on, at
   mid-stance, at hoof-off, at its fold in swing, and reaching for the
-  ground.
+  ground. That is a table of events, one for fore and one for hind, and a
+  joint that folds deepest at its own moment gets its own event.
+- **An angle is turned into a rotation by signed leans, not by subtracting
+  included angles.** An included angle does not say which side of straight
+  the joint is on. A segment's lean is taken from straight down, a joint's
+  value is the lower segment's lean less the upper's, and the rotation is
+  the change in that from rest. A fetlock's directed angle rises as its
+  included angle falls: one convention to a curve.
+- A figure is measured only if a study measured that very thing. A value at
+  an event is not measured because it lies between a study's least and most.
 - **No joint is one sine wave.** A fetlock sinks under load in stance and
   can fold twice in swing.
 - The foreleg is not a pendulum on a fixed point: the shoulder blade slides
@@ -136,8 +202,30 @@ as a separate behaviour. Never a regular swish locked to the stride.
 - **Today a leg is one piece swinging from one joint**, diagonal pairs
   together, on a sine wave of the clock (`swing_legs` in
   `src/game/scene.rs`; `docs/horse-model.md` lists bending joints as not
-  built). That is none of the above. The first work is legs that bend and a
-  gait that is data.
+  built). That is none of the above. The first work is a skeleton, legs
+  that bend on it, and a gait that is data.
+- **The swing as built cannot plant a foot, and the sums say so.** In one
+  cycle of it (0.898 s) the ground travels 1.40 H; the whole sweep of a hoof
+  is 0.565 H; a walk's stance alone needs 1.07 H. And swinging from a pivot
+  of fixed height lifts the hoof at each end of the sweep, by up to 0.12 H
+  behind. The source worked these out from `docs/horse-rest-pose.md` and
+  they were checked here. No tuning of the sine wave fixes it.
+- **The horse has no shoulder blade, upper arm, pelvis, hip or thigh bone**,
+  and its "thigh" is the line from the top of the leg to the stifle. The
+  source proposes a first layout of joint centres in this model's own
+  coordinates. It is an animator's setting throughout, and **it moves the
+  hock to 0.32 H, below the window the owner's brief gives it** (0.345 to
+  0.382; `horse-shape.md`), and the knee to the top of its own. That is hers
+  to rule on (#278).
+- **The horse is rigid pieces, not a skinned mesh** (`docs/horse-model.md`).
+  So the source's advice for rigid pieces is the one that applies: pieces
+  that overlap at the joints. `--bare` already hides the hair, which is how
+  a fetlock is checked before feathering covers it.
+- **One ground speed is the game's own limit**, not the horse's. At it, the
+  quickest gait in the source would have to stride 0.58 H. A gait carries
+  its speed (#283).
+- The source lists reins and a bridle among things to attach. This game has
+  neither: halters, and saddles that seat pets (`vision.md`).
 - **The party is drawn in place and the trail scrolls** at one fixed speed
   (`SCROLL_SPEED`). So the planted-hoof rule is the form in which it applies
   here: the trail's speed, a gait's stride duration and its stride length
@@ -177,8 +265,10 @@ as a separate behaviour. Never a regular swish locked to the stride.
 
 ## Source
 
-Two documents received from the owner on 2026-10-11, written as answers to
-an animator: one on walk, trot, canter and gallop and the limb, head, neck
-and tail mechanics behind them, and one on the ambling gaits of the gaited
-breeds. Both cite the studies they draw on, and both end complete. They are
-kept unedited in `docs/source/`.
+Four documents received from the owner on 2026-10-11, written as answers to
+an animator. Two came first: one on walk, trot, canter and gallop and the
+limb, head, neck and tail mechanics behind them, and one on the ambling
+gaits of the gaited breeds. Two came after she sent back the figures of the
+horse as built: one on what that model can express and how gait figures
+should be given for it, and one on the skeleton to give it. All four end
+complete and are kept unedited in `docs/source/`.

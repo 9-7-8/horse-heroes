@@ -1,0 +1,39 @@
+ASKED
+  The figures of the existing mesh, to take back to where the gait
+  mathematics came from; then two documents that came back, on improving
+  and changing the model.
+
+DONE
+  - docs/horse-rest-pose.md: joint positions, segment lengths and rest
+    angles of the horse as built, worked out from horse_shape.ron.
+  - The two documents are in docs/source/, unedited.
+  - horse-movement.md gained: a skeleton before the mesh, what must hold
+    against what may give, speed apart from cadence, signed leans, and
+    what each means for the horse as built.
+  - Under epic #255: #278 (decision), #279 the skeleton as data, #280 the
+    hoof, #281 joint rules and the stifle and hock, #282 reshaping the
+    mesh, #283 a ground speed per gait, all 0.3.0; #284 pastern and coffin
+    joints, 0.10.0.
+  - #257 rewritten as the articulation alone. Comments on #258, #259,
+    #263, #264, #62 and #248.
+  (docs and issues only; nothing was built or run)
+
+DECIDED (for her)
+  - Until #278 is answered the skeleton keeps the brief's hock and knee.
+  - A gait has its own ground speed (#283), the source's first choice of
+    three.
+
+FOUND
+  - The source's sums about the present leg swing were checked and hold:
+    it cannot plant a foot at the trail's speed.
+  - The proposed hock, 0.32 H, is below the brief's window (0.345 to
+    0.382).
+  - The script that made horse-rest-pose.md is under target/, which is
+    ignored; #279 replaces it with something kept.
+
+NOT DONE
+  - #278 is hers.
+
+PICK UP
+  Run the menu tour (build-and-run.txt, IDLE_TOUR, --seed 6) and read its
+  last pictures, then #253, the first open issue of 0.2.1 to build.
