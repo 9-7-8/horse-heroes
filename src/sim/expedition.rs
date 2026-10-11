@@ -1147,4 +1147,152 @@ mod tests {
         }
         assert!(won > 0);
     }
+
+    /// A trail is ordinary pieces, none of them twice while there are enough
+    /// to go round, then one final. Over many seeds every piece comes up in
+    /// every place on the trail, and every final and every element comes up.
+    #[test]
+    fn a_trail_is_ordinary_pieces_in_a_rolled_order_then_a_final() {
+        let data = Data::load();
+        let (pieces, finals) = (&data.encounters.ordinary, &data.encounters.finals);
+        let ordinary = data.rules.ordinary_encounters;
+        let place = |among: &[Vec<String>], encounter: &[Spawn]| {
+            let ids: Vec<&str> = encounter.iter().map(|s| data.enemies[s.enemy].id.as_str()).collect();
+            among.iter().position(|piece| *piece == ids)
+        };
+        let mut met = vec![vec![false; pieces.len()]; ordinary];
+        let mut ended = vec![false; finals.len()];
+        let mut elements = [false; 3];
+        for seed in 0..500 {
+            let plan = Plan::generate(&data, seed, 0);
+            let (last, road) = plan.encounters.split_last().unwrap();
+            let drawn: Vec<usize> = road
+                .iter()
+                .map(|encounter| place(pieces, encounter).expect("an ordinary piece"))
+                .collect();
+            for (at, &piece) in drawn.iter().enumerate() {
+                met[at][piece] = true;
+                if ordinary <= pieces.len() {
+                    assert!(!drawn[..at].contains(&piece), "seed {seed}: a piece twice");
+                }
+            }
+            ended[place(finals, last).expect("a final")] = true;
+            for spawn in plan.encounters.iter().flatten() {
+                elements[spawn.element as usize] = true;
+            }
+        }
+        assert!(met.iter().flatten().all(|&seen| seen), "{met:?}");
+        assert!(ended.iter().all(|&seen| seen), "{ended:?}");
+        assert!(elements.iter().all(|&seen| seen), "{elements:?}");
+    }
+
+    /// The road to each encounter takes `travel_secs`, and no timer runs on
+    /// it: a hit or an ability is no nearer at the end of the road.
+    #[test]
+    fn the_road_takes_its_time_and_no_timer_runs_on_it() {
+        let data = Data::load();
+        let rules = &data.rules;
+        let plan = Plan::generate(&data, 3, 0);
+        let mut run = Expedition::new(&data, plan, &party(&data), Element::Fire);
+        let timers = |run: &Expedition| -> Vec<(f32, f32)> {
+            run.party.iter().map(|f| (f.attack_timer, f.ability_timer)).collect()
+        };
+        let walk = |run: &mut Expedition| {
+            let mut ticks = 0;
+            while run.phase == Phase::Travelling {
+                run.tick(&data, TICK);
+                ticks += 1;
+                assert!(ticks < 6000, "the road never ended");
+            }
+            ticks as f32 * TICK
+        };
+
+        assert_eq!((run.phase, run.encounter), (Phase::Travelling, 0));
+        assert!(run.foes.is_empty());
+        let mage = horse_of(&run, Class::Mage);
+        assert_eq!(run.party[mage].ability_timer, rules.ward_cooldown * 0.25);
+        assert!(run.party.iter().all(|f| f.attack_timer == rules.attack_interval));
+
+        let before = timers(&run);
+        assert!((walk(&mut run) - rules.travel_secs).abs() <= TICK);
+        assert_eq!(run.phase, Phase::Fighting);
+        assert_eq!(run.foes.len(), run.plan.encounters[0].len());
+        assert_eq!(lines_with(&run, "Encounter 1/"), 1);
+        assert_eq!(timers(&run), before);
+
+        run.foes.clear();
+        run.encounter_cleared(&data);
+        assert_eq!((run.phase, run.encounter), (Phase::Travelling, 1));
+        assert!((walk(&mut run) - rules.travel_secs).abs() <= TICK);
+        assert_eq!(run.phase, Phase::Fighting);
+        assert_eq!(lines_with(&run, "Encounter 2/"), 1);
+        assert_eq!(timers(&run), before);
+    }
+
+    /// An ordinary hit comes once every `attack_interval` from each horse,
+    /// and lands on the first enemy still standing and no other.
+    #[test]
+    fn each_horse_hits_the_first_standing_enemy_once_an_interval() {
+        let data = Data::load();
+        let rules = &data.rules;
+        use Element::Fire;
+        let mut run = fighting(
+            &data,
+            0,
+            &[&[("thornling", Fire), ("mire_toad", Fire), ("gloom_sprite", Fire)]],
+        );
+        for fighter in &mut run.party {
+            fighter.ability_timer = f32::MAX;
+        }
+        for foe in &mut run.foes {
+            foe.attack_timer = f32::MAX;
+            foe.health = i32::MAX;
+            foe.max_health = i32::MAX;
+        }
+        // The thornling fell earlier in this fight.
+        run.foes[0].health = 0;
+        let hits = |run: &Expedition, foe: usize| {
+            lines_with(run, &format!(" hits {} for", run.foes[foe].name))
+        };
+        let horses = run.party.len();
+
+        // Three and a half intervals: three hits from each horse.
+        for _ in 0..(rules.attack_interval * 3.5 / TICK).round() as usize {
+            run.tick(&data, TICK);
+        }
+        assert_eq!((hits(&run, 0), hits(&run, 1), hits(&run, 2)), (0, 3 * horses, 0));
+        assert_eq!(run.foes[2].health, run.foes[2].max_health);
+
+        // The toad falls, and the next round of hits goes to the sprite.
+        run.foes[1].health = 0;
+        for _ in 0..(rules.attack_interval / TICK).round() as usize {
+            run.tick(&data, TICK);
+        }
+        assert_eq!((hits(&run, 0), hits(&run, 1), hits(&run, 2)), (0, 3 * horses, horses));
+        assert_eq!(run.phase, Phase::Fighting);
+    }
+
+    /// A kill's coins are within its enemy's range in `enemies.ron`, and over
+    /// many kills they reach both ends of it.
+    #[test]
+    fn a_kill_drops_coins_within_its_enemys_range() {
+        let data = Data::load();
+        for enemy in &data.enemies {
+            let (lo, hi) = enemy.coins;
+            let (mut fewest, mut most) = (i32::MAX, i32::MIN);
+            for seed in 0..200 {
+                let mut run = fighting(&data, 0, &[&[(enemy.id.as_str(), Element::Fire)]]);
+                run.rng = Rng::new(seed);
+                run.foes[0].health = 1;
+                run.strike(&data.rules, 0, 0, 1.0, 0.0, "hits");
+                let kill = run.kills.pop().expect("the enemy fell");
+                assert!((lo..=hi).contains(&kill.coins), "{}: {}", enemy.id, kill.coins);
+                assert_eq!(run.coins, kill.coins);
+                assert!(run.kills.is_empty());
+                fewest = fewest.min(kill.coins);
+                most = most.max(kill.coins);
+            }
+            assert_eq!((fewest, most), (lo, hi), "{}", enemy.id);
+        }
+    }
 }
