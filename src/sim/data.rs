@@ -266,6 +266,19 @@ pub struct BeamDef {
 pub struct BaseDef {
     pub slot: Slot,
     pub names: Vec<String>,
+    pub picture: PictureDef,
+}
+
+/// The stand-in picture of a slot's gear: one flat shape. Plain values; the
+/// menus draw it.
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub struct PictureDef {
+    /// Its width and height, as shares of the picture's square.
+    pub wide: f32,
+    pub tall: f32,
+    /// How far each corner is rounded, as a share of the square: top left,
+    /// top right, bottom right, bottom left.
+    pub round: (f32, f32, f32, f32),
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -273,6 +286,17 @@ pub struct GearTable {
     pub health_per_point: i32,
     pub rarities: Vec<RarityDef>,
     pub bases: Vec<BaseDef>,
+}
+
+impl GearTable {
+    /// The stand-in picture of a slot's gear.
+    pub fn picture(&self, slot: Slot) -> PictureDef {
+        self.bases
+            .iter()
+            .find(|base| base.slot == slot)
+            .unwrap_or_else(|| panic!("gear.ron: no base for {slot:?}"))
+            .picture
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -387,6 +411,20 @@ mod tests {
         assert!(!gear.bases.is_empty());
         for base in &gear.bases {
             assert!(!base.names.is_empty(), "{:?}", base.slot);
+            let picture = base.picture;
+            assert!(0.0 < picture.wide && picture.wide <= 1.0, "{:?}", base.slot);
+            assert!(0.0 < picture.tall && picture.tall <= 1.0, "{:?}", base.slot);
+            let (a, b, c, d) = picture.round;
+            for round in [a, b, c, d] {
+                assert!((0.0..=0.5).contains(&round), "{:?}", base.slot);
+            }
+        }
+        // Every slot has a picture, and no two slots the same one: a slot
+        // is told by its outline with no word beside it (#286).
+        for (i, slot) in Slot::ALL.into_iter().enumerate() {
+            for other in &Slot::ALL[i + 1..] {
+                assert_ne!(gear.picture(slot), gear.picture(*other), "{slot:?} and {other:?}");
+            }
         }
 
         let rules = &data.rules;

@@ -21,6 +21,15 @@
         // 62, room for two always, the three slots no longer fit under the
         // scene at the smallest window.
         cell_height: 46,
+        // The stand-in picture of a piece of gear: the side of its square
+        // and the room left around the shape in it. It sits under the
+        // piece's name, beside the small lines, because the longest name
+        // needs a slot's whole width at the smallest window; at 24 the
+        // three slots still fit under the scene there. `picture_stamp` is
+        // how much of the shape's narrower side the tier's mark takes.
+        picture: 24,
+        picture_inset: 2,
+        picture_stamp: 0.8,
         side_panel_width: 280,
         confirm_width: 380,
         // Wide enough for the largest number shown, so a growing count never

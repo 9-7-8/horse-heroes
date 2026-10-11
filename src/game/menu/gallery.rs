@@ -14,7 +14,9 @@ use super::parts::{
     confirmation, counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
     trail_mark,
 };
+use super::picture;
 use super::tokens::Tokens;
+use crate::sim::data::{Data, Slot};
 
 const LABEL_WIDTH: f32 = 80.0;
 const CELL_WIDTH: f32 = 184.0;
@@ -181,6 +183,26 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                             trail.spawn(trail_mark(t, Stop::Here, true));
                             trail.spawn(trail_mark(t, Stop::Behind, true));
                         });
+                    // Every picture a piece of gear can have (#286).
+                    panel.spawn(dim(t, "gear pictures: empty, then each rarity"));
+                    let gear = Data::load().gear;
+                    for slot in Slot::ALL {
+                        panel
+                            .spawn(Node {
+                                align_items: AlignItems::Center,
+                                column_gap: Val::Px(t.space.s),
+                                ..default()
+                            })
+                            .with_children(|tiers| {
+                                let tiers_of = std::iter::once(None).chain(gear.rarities.iter().map(Some));
+                                for tier in tiers_of {
+                                    tiers.spawn(picture::square(t)).with_children(|square| {
+                                        picture::draw(square, t, gear.picture(slot), tier);
+                                    });
+                                }
+                                tiers.spawn(dim(t, slot.name()));
+                            });
+                    }
                 });
 
                 lower

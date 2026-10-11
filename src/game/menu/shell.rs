@@ -22,6 +22,7 @@ use bevy::{
 use serde::Deserialize;
 
 use super::card;
+use super::picture::{self, picture};
 use super::parts::{
     ClosePanel, CounterValue, NotBuilt, Part, RowValue, Stop, button, cell, counter, dim, panel,
     reason, row, side_panel, tab, text, title, trail_mark,
@@ -597,6 +598,7 @@ impl Plugin for ShellPlugin {
                     mark_chosen,
                     mark_wearer,
                     show_carried,
+                    picture::show_pictures,
                     show_reasons,
                     show_facts,
                     show_trail,
@@ -1071,14 +1073,20 @@ fn spawn_content(
                             slots.spawn((text(t, ""), Live(Fact::Wearer(horse))));
                             for slot in Slot::ALL {
                                 let slot = slot.index();
+                                let piece = Piece::Worn { horse, slot };
                                 slots
                                     .spawn((cell(t), SlotRow { place, tab, horse, slot }))
-                                    .with_children(|lines| {
-                                        lines.spawn((text(t, ""), Live(Fact::Worn(horse, slot))));
-                                        lines.spawn((
-                                            dim(t, ""),
-                                            Live(Fact::WornLine(horse, slot)),
+                                    .with_children(|cell| {
+                                        cell.spawn((
+                                            text(t, ""),
+                                            Live(Fact::Worn(horse, slot)),
                                         ));
+                                        spawn_pictured(cell, t, piece, |lines| {
+                                            lines.spawn((
+                                                dim(t, ""),
+                                                Live(Fact::WornLine(horse, slot)),
+                                            ));
+                                        });
                                     });
                             }
                         });
@@ -1125,11 +1133,42 @@ fn spawn_carried(
 ) {
     parent
         .spawn((cell(t), CarriedCell { place, tab }, WhenCarried(true)))
-        .with_children(|lines| {
-            lines.spawn((text(t, ""), Live(Fact::CarriedName)));
-            lines.spawn((dim(t, ""), Live(Fact::CarriedKind)));
-            lines.spawn((dim(t, ""), Live(Fact::CarriedVerdict)));
+        .with_children(|cell| {
+            cell.spawn((text(t, ""), Live(Fact::CarriedName)));
+            spawn_pictured(cell, t, Piece::Carried, |lines| {
+                lines.spawn((dim(t, ""), Live(Fact::CarriedKind)));
+                lines.spawn((dim(t, ""), Live(Fact::CarriedVerdict)));
+            });
         });
+}
+
+/// What a cell holds under the piece's name: its picture (#286), and beside
+/// it the lines that say what it is. The name has the cell's whole width,
+/// which the longest one needs at the smallest window (#287).
+fn spawn_pictured(
+    cell: &mut ChildSpawnerCommands,
+    t: &Tokens,
+    piece: Piece,
+    lines: impl FnOnce(&mut ChildSpawnerCommands),
+) {
+    cell.spawn(Node {
+        align_items: AlignItems::Center,
+        column_gap: Val::Px(t.space.s),
+        ..default()
+    })
+    .with_children(|across| {
+        across.spawn(picture(t, piece));
+        across
+            .spawn(Node {
+                flex_grow: 1.0,
+                flex_basis: Val::Px(0.0),
+                min_width: Val::Px(0.0),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(t.space.xs),
+                ..default()
+            })
+            .with_children(lines);
+    });
 }
 
 /// A control of the map, with the key that works it printed on it. One that
@@ -1815,7 +1854,8 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             None => "nothing worn".into(),
         },
         Fact::WornLine(horse, slot) => match &game.party[horse].gear[slot] {
-            Some(gear) => format!("{}  {}", Slot::ALL[slot].name(), stats_line(gear.stats)),
+            // Its picture says which slot; the room goes to what it adds.
+            Some(gear) => stats_line(gear.stats),
             None => Slot::ALL[slot].name().into(),
         },
         Fact::Detail(place) => {

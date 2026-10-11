@@ -24,6 +24,12 @@
 // stone, a sun with rays, and three stones for the herd.
 // No bridles, bits or reins: nobody rides these horses. The Saddle slot seats
 // a pet.
+// A base's `picture` is the stand-in the menus draw for a piece of that slot
+// until there is art: one flat shape, `wide` and `tall` as shares of the
+// picture's square, with each corner rounded by a share of it, `round` going
+// top left, top right, bottom right, bottom left. A tall shield for the head,
+// a wide blanket for the body, a low dome for the saddle. The tier's `shape`,
+// seen from above, is stamped on it.
 (
     health_per_point: 5,
     rarities: [
@@ -65,8 +71,11 @@
                 sound: "drop_set")),
     ],
     bases: [
-        (slot: Head,   names: ["Halter", "Fly Veil"]),
-        (slot: Body,   names: ["Blanket", "Barding"]),
-        (slot: Saddle, names: ["Saddle", "Saddle Pad"]),
+        (slot: Head,   names: ["Halter", "Fly Veil"],
+         picture: (wide: 0.7, tall: 1.0, round: (0.0, 0.0, 0.35, 0.35))),
+        (slot: Body,   names: ["Blanket", "Barding"],
+         picture: (wide: 1.0, tall: 0.7, round: (0.06, 0.06, 0.06, 0.06))),
+        (slot: Saddle, names: ["Saddle", "Saddle Pad"],
+         picture: (wide: 0.9, tall: 0.62, round: (0.45, 0.45, 0.0, 0.0))),
     ],
 )
