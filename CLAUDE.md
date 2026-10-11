@@ -91,6 +91,10 @@ RNG, so a drop table can be tested by rolling it a million times in a test.
    somewhere the player will meet it (`assets/data/lessons.ron`, #290;
    `docs/philosophy/onboarding.md`). A feature issue filed from then on says
    so under "Done when". (Owner, 2026-10-11.)
+   **A tutorial is interactive and taught through gameplay: "never, ever,
+   ever just a wall of text a player is expected to read."** The player
+   learns a thing by watching it happen or doing it, with at most a line
+   beside it.
 
 ---
 ## Planning (owner, 2026-10-09)

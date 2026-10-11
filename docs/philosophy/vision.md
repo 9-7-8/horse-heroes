@@ -538,6 +538,15 @@ Mine, not hers: the tier names are that game's; the exact hex values, drop
 weights, stat points and name prefixes in `gear.ron`; and that Legendary and
 Set are the tiers with a beam.
 
+## Tutorials (owner, 2026-10-11)
+
+- **Tutorials are interactive and taught through gameplay.** "Never, ever,
+  ever just a wall of text a player is expected to read."
+- **Once 0.2.2 has shipped, every new feature has a tutorial somewhere**, as
+  it has a test.
+- The opening is release 0.2.2 (#288). The advice on how to teach is
+  [onboarding.md](onboarding.md); those two lines are hers and outrank it.
+
 ## The design priority
 
 > Complexity through depth, not breadth.

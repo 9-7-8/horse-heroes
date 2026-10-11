@@ -5,9 +5,15 @@ the game, not a lecture before it. The word to hold on to is **confidence**:
 "my horses can handle the road; I can understand what happened and help them
 do better next time."
 
-Everything here is advice from the two source documents. None of it is the
-owner's decision; what she has decided is in [vision.md](vision.md), and the
-open questions are a `decision` issue (#289).
+**The owner's rule (2026-10-11), which outranks everything below:** tutorials
+are interactive and taught through gameplay, "never, ever, ever just a wall
+of text a player is expected to read". A lesson is something that happens or
+something the player does, with at most a line beside it. And once 0.2.2 has
+shipped, every new feature has a tutorial somewhere, as it has a test.
+
+The rest is advice from the two source documents and is not her decision;
+what she has decided is in [vision.md](vision.md), and the open questions
+are a `decision` issue (#289).
 
 ## Principles
 
