@@ -233,12 +233,13 @@ A control in the file is:
 | `proposed` | That issue is a proposal the owner has not decided |
 | `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut`, `Undo`, `Earlier`, `Later` |
 | `shows` | What a press opens in the side panel of its page: `Keys` |
+| `switch` | What a press turns on and off, of what is shown and not of the game: `ChangedOnly` |
 | `key` | The key that works it, printed on it: a letter, a digit, `[`, `]` or `Space` |
 
 A place, Settings and a tab have a `key` too, and `horse_keys` at the end of
 the file are the keys of the party's horses, in order (see Keys).
 
-- **A control with no `action` and no `shows` is not built.** It carries `NotBuilt`, which
+- **A control with no `action`, no `shows` and no `switch` is not built.** It carries `NotBuilt`, which
   draws it as unavailable, and it can still be pressed and reached with Tab.
   A press opens the side panel of the page it is on, with its name, "Not
   built yet.", what it will do and its issue. While that panel is open the
@@ -253,8 +254,13 @@ the file are the keys of the party's horses, in order (see Keys).
   its page with what it shows, and it carries the selected mark while that
   panel is open. It can always be used, so no reason line names it. Keys,
   in Settings, is the one there is (see Keys).
-- **When a system lands**, its control gets an `action` or a `shows` and
-  stays where it is.
+- **A control with a `switch` works too** (#349). A press turns a way of
+  showing things on or off (`Shell::press_switch`), and the control carries
+  the selected mark while it is on. It changes nothing in the game, so it
+  is not in `Game::act` and Undo does not see it. Changed only, on the
+  item card, is the one there is (item-card.md, "The comparison").
+- **When a system lands**, its control gets an `action`, a `shows` or a
+  `switch` and stays where it is.
 
 ## Why a control cannot be used
 
@@ -527,6 +533,7 @@ in the shell presses the thing when its key goes down, by the same
 | Z, X, C | The first, second and third horse | `horse_keys` |
 | F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
 | E | Equip the piece whose card is open, or the drop when none is, in town only | `key` of the control |
+| O | Changed only: the pinned comparison's table narrowed to the rows that differ, and back | `key` of the control |
 | U | Undo the last change of this town visit, in town only | `key` of the control |
 | [, ] | Earlier and Later: the report before, and after, the one the Journal shows | `key` of the control |
 | Space | Set out, in town only | `key` of the control |

@@ -98,19 +98,32 @@ beside Equip.
   horse's view there keeps the cargo's width and moves nothing. That is a
   call made for the owner: the other way was a second, narrower table of
   25 letters with shortened headings.
-- A "changed only" switch for the table is not built: #349.
+- **Changed only (O)** narrows the table to the stats that differ (#349):
+  a "same" row has none, the others keep their order, and a line under
+  the table says how many are left out ("Changed only: 1 same row
+  hidden.", or "no row is the same."), so the table itself says it is
+  narrowed. The lines above the table do not change. It is a control of
+  the card, beside Equip (`switch: ChangedOnly` in `places.ron`,
+  `card::Rows`, `Shell::press_switch`), marked as chosen while it is on.
+  It is one setting for every piece and place, the card under the pointer
+  follows it, and it changes nothing in the game, so Undo has nothing of
+  it. Its key does nothing while no piece's card is pinned in view. A
+  horse's own piece has no change column, so nothing of it is left out.
 - The stat's word takes its colour (#251) and the amounts are plain. The
   change is coloured by whether it is good (#313): see Colour.
 - At the smallest window the table is a press of PageDown, or a scroll of
   the wheel, away (see Fitting).
 
 Tests in `card.rs`: the table's columns line up and say new, lost and
-same; the comparison names the horse and both pieces, ends with what Equip
+same; narrowed, it leaves out only the rows that are the same and the lines
+above it are the same (`shell.rs` holds the switch from place to place and
+its key in the Keys list); the comparison names the horse and both pieces, ends with what Equip
 would do, follows the selected horse, and does not compare a horse's piece
 with itself; a piece has the same comparison carried and worn; under the
 pointer it is the pinned one as far as it goes.
 
-Pictures: `docs/gallery/2026-10-12-one-comparison`, at the smallest window.
+Pictures: `docs/gallery/2026-10-12-one-comparison`, at the smallest window;
+`docs/gallery/2026-10-12-changed-only` for the switch.
 
 ## Under the pointer
 
@@ -236,7 +249,8 @@ Under the card, in every place's side panel, are the `card` controls of
 planned control"): the same reason lines, the same keys, the same "not
 built" detail on a press. They show while the detail is a piece of gear.
 
-**Equip** (E) is the one that works. It is one action, `Action::Equip`,
+**Changed only** (O) is a switch on what the card shows (see The
+comparison). **Equip** (E) is the one action that works. It is one action, `Action::Equip`,
 done to the piece whose card is open (`Hand::open`):
 
 | The card is on | Equip |
@@ -259,7 +273,7 @@ that slot, which now holds the piece. A card on the carried piece is put
 away when nothing is carried any more (`follow_the_party`).
 
 List, Store, Lock, Favourite and Look are not built; the line under them
-says so, and a press on one says what it will do and names its issue. That
+says so ("All but Equip, Changed only: not built yet."), and a press on one says what it will do and names its issue. That
 press puts the card away, as a press on any unbuilt control replaces the
 detail.
 

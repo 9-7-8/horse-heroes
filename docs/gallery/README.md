@@ -3,6 +3,8 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-12, a Changed only switch on the comparison](2026-10-12-changed-only/README.md) (#349)
+- [2026-10-12, gain and loss in a comparison](2026-10-12-gain-and-loss/README.md) (#313)
 - [2026-10-12, one comparison wherever a piece is pinned](2026-10-12-one-comparison/README.md) (#312)
 - [2026-10-11, a press on the scene closes the place](2026-10-11-scene-press/README.md) (#307)
 - [2026-10-11, the fight log over the road](2026-10-11-fight-log/README.md) (#306)

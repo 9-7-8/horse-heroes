@@ -1,0 +1,63 @@
+SESSION 2026-10-12 08:12 - a Changed only switch on the comparison (#349)
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
+    #246 waits only on the owner; src/sim/ unchanged since its sweep). The
+    pick was #349, which PICK UP named.
+  - #349, closed by 1f3ab6c. "Changed only" is a control of the item card,
+    beside Equip, key O, in every place a piece is pinned. On, a stat that
+    is the same on both pieces has no row in the table, and a line under
+    the table says how many are left out. It is one setting for every
+    piece and place, the card under the pointer follows it, and it changes
+    nothing in the game. A control of places.ron can now be a switch
+    (`switch: ChangedOnly`), marked as chosen while it is on.
+    Tested (165 pass, no warning): the narrowed table against the whole
+    one, the lines above it unchanged, the pointed card, the key in the
+    Keys list, and the switch from place to place. Seen running, read by
+    the session (docs/gallery/2026-10-12-changed-only): the menu tour at
+    --seed 6 in the smallest window, 1120x640, on by its key and off by a
+    press of the pointer; the parts screen at 1280x900 for a row left out.
+  - docs/item-card.md, docs/menu-shell.md and docs/philosophy/inventory.md
+    brought up to date. The gallery's index had no line for gain and loss
+    (#313); it has one now.
+
+DECIDED (by the session, for her)
+  - The key is O, for "only". D was free too and is left for the Details
+    control the item card still wants.
+  - A narrowed table says so itself, in a line under it: "Changed only: 1
+    same row hidden.", or "Changed only: no row is the same." when nothing
+    is left out. Without it a narrowed table with nothing to hide looks
+    like the whole one, and the control is out of sight when the table is
+    scrolled to.
+  - The key does nothing while no piece's card is pinned in view, as the
+    fight log's key does nothing while the log is out of sight.
+  - It is beside Equip, second on the card, so the two controls that work
+    are together. The card's controls still take two rows.
+  - A horse's own piece has no change column, so the switch leaves its
+    table alone.
+  - No lesson for it: rule 5 starts once 0.2.2 has shipped.
+
+FOUND
+  - The menu tour never meets a "same" row, as it never meets a loss: its
+    party is bare. A row left out was seen on the parts screen only.
+  - A long here-document in the Bash tool failed twice more, both with
+    apostrophes or backticks in it; the scripts went through the Write
+    tool, under target/, as build-and-run notes.
+
+NOT DONE
+  - Nobody has pressed the control but the tour; a hand on a mouse has
+    not tried it.
+  - At 1120x640 the line under a narrowed table is two presses of
+    PageDown from the top of the card, in every place.
+  - The switch is not kept between runs of the game: nothing of the
+    shell is saved yet.
+  - screenshots/tour349 and parts349.png are left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so read #314 (Gear shows only
+  the selected horse's gear), the next 0.2.2 menus issue not built, and
+  build it, unless an open 0.2.1 menus issue (#228, #229, #230, #236,
+  #250, #253, #285) has a part of its "done when" that can be built now.
