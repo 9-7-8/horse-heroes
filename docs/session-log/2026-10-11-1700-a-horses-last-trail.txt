@@ -1,0 +1,47 @@
+SESSION 2026-10-11 17:00 - a horse's last trail
+===============================================
+
+ASKED
+  "next"
+
+DONE
+  - Tier 3 of next-thing, in 0.2.2 (tiers 1 and 2: build and tests green,
+    no warning; the one open bug, #246, waits only on the owner). #311's
+    last buildable line, the part PICK UP named, in 6fc96f4:
+      the sim keeps a tally for each horse of a trail: health taken off
+        enemies, kills, strong and resisted hits, health lost, Wards
+        raised, whether it fell; the outcome carries it;
+      a horse's view says it under LAST TRAIL, for the last trail the
+        party finished, in town and on the road; before the first trail
+        it says so.
+    Tested (155 pass): over 400 trails the horses' tallies add up to the
+    trail's kills, hits and the fallen enemies' health; the view's words
+    after a trail, no line wider than the stat table. Seen running, the
+    picture read by the session: the tour at --seed 6, 1120x640, which
+    now ends on Morrow's view scrolled to LAST TRAIL. The tour ran to its
+    end; Tab makes 34 stops, 0 out of sight.
+    Picture: docs/gallery/2026-10-11-horse-view, 04. docs/menu-shell.md,
+    "A horse's view".
+  - #311 stays open for its last line only: the owner pressing a horse.
+
+DECIDED
+  Made for the owner, none by her:
+    - Damage is counted as health really taken off, so a kill's overkill
+      is not credited and a won trail's sum is its enemies' health.
+    - LAST TRAIL stays at the end of the view, after the parts.
+    - On the road it is the trail before, not the fight going on.
+
+FOUND
+  - Remove-Item on a folder under screenshots/ is refused by the harness;
+    the tour went into a fresh folder instead (screenshots/tour311b).
+
+NOT DONE
+  - LAST TRAIL is below the fold at 1120x640: five PageDowns from the top.
+    Whether it should stand higher is the owner's to say when she looks.
+  - The owner has not pressed a horse.
+  - The walk of the click budget was not run again: no job changed.
+
+PICK UP
+  Run next-thing for 0.2.2: #308, the lowest-numbered menu issue (#312
+  depends on it; #290 holds #291, #296, #300 and #303; #305 waits on
+  #292).

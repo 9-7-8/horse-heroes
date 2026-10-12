@@ -416,6 +416,11 @@ shell, `card::horse_sheet` and `card::horse_wears`.
     [ Pet [H, 3] ]
     [ Look [H, 4] ]
     LAST TRAIL
+    Trail 2, won
+    Dealt 118, 1 kill
+    0 strong, 7 resisted
+    Took 30
+    Fell in the fight
 
 - **Every total is accounted for:** what the horse has by itself, what its
   gear adds, and the two together, a stat a line; under Gear each piece is
@@ -438,8 +443,15 @@ shell, `card::horse_sheet` and `card::horse_wears`.
   cargo, as every detail there does.
 - At the smallest window it is longer than the panel; PageDown reads on.
 
-Not here yet: what the horse did on the last trail (nothing is kept for
-each horse).
+- **LAST TRAIL is what that horse did** on the last trail the party
+  finished, on the road too: the trail's number and how it ended, the
+  health it took off enemies and its kills, its strong and resisted hits,
+  the health it lost, its Wards if it raised any, and whether it fell.
+  Before the first trail it says "No trail walked yet." The sim keeps the
+  tally (`Deeds` in `src/sim/expedition.rs`, carried by the `Outcome`);
+  `horse_trail` in the shell words it, a line a thing, no line longer
+  than the table. It is the end of the view, so at the smallest window it
+  is read by PageDown.
 
 ## A tab that does not fit
 

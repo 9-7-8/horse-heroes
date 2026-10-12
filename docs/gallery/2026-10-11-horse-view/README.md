@@ -16,3 +16,7 @@ window (1120x640), read by the session. How it works:
 **3.** Each part is headed by a button that goes to its tab. A press on Abilities in Morrow's view: the Horses place is on Abilities, Morrow still selected, and the view is put away.
 
 ![The Abilities tab, opened from Morrow's view.](03-a-part-goes-to-its-tab.png)
+
+**4.** The end of the view, LAST TRAIL: what Morrow did on the trail the party is back from. Read by PageDown at this window.
+
+![Morrow's view scrolled to its end: trail 2, won, dealt 118, 1 kill, took 30, fell in the fight.](04-last-trail.png)
