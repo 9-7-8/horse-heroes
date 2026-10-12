@@ -5,6 +5,64 @@ ASKED
 
 DONE
   - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
-    #246 waits only on the owner). The pick was #300, which PICK UP
+    #246 waits only on the owner). The pick was #300, which PICK UP named
+    and which is the lowest open menus issue of 0.2.3.
+  - #300, built in 475a570 and closed by it.
+    Journal, Hints (J, 4) lists every lesson that has become due, in the
+    order it came: its line, and under it what became of it (showing now,
+    done, put away, skipped with hints off, waiting its turn), where it
+    applies and what it is on. A press on a row shows that hint again on
+    its control, whether it was done or put away and with hints off. A row
+    that cannot be shown now is unavailable and says why.
+    Hints, in Settings, turns them off and on. Off, none is shown by
+    itself and the list is still read. Skip all hints turns the same
+    switch off.
+    Tested (190 pass, no warning): nothing is listed before its event;
+    the order is the order they came; a lesson asked for is shown again,
+    done or put away, with hints off, and not where it is not shown or
+    with its target gone; the switch; the list with a player at it, in
+    town and on the road.
+    Seen running, read by the session
+    (docs/gallery/2026-10-12-hints-found-again): IDLE_LESSON at --seed 6
+    in the smallest window now ends in the list, Enter on the piece's
+    row, Settings, Hints, and the list again.
+  - docs/lessons.md ("Put away, turned off, found again"),
+    docs/menu-shell.md, procedures/build-and-run.txt.
+
+DECIDED (by the session, for her; said on #300 for her to overrule)
+  - The player's word is "hint": the tab is Journal, Hints and the switch
+    is Hints, as Got it and Skip all hints already say.
+  - The list is a fourth tab of the Journal, key 4.
+  - Hints in Settings has no key of its own.
+  - Turned off in Settings, the hint showing is not put away: it is back
+    when hints are turned on. Skip all hints still puts it away.
+  - A lesson shown again is only shown where it is shown (a road lesson
+    on the road), not anywhere its control happens to be.
+
+FOUND
+  - The dev key (F6) was said to bring back every hint put away and did
+    so only after Skip all. It does now: what is put away is the shell's
+    to say, and the queue is told each frame.
+  - One chain of systems takes twenty; the new one is chained with
+    show_carried.
+  - A here-document in the Bash tool failed again on apostrophes; the
+    scripts were written under target/ with the Write tool.
+
+NOT DONE
+  - No hand on a mouse has pressed a row; the walk uses the arrows and
+    Enter.
+  - Nothing tells a player who pressed Skip all hints that the hints are
+    in the Journal: #350, filed in 0.2.3 on the owner's yes.
+  - With eight lessons due the list is longer than its page at the
+    smallest window and scrolls; that was seen, not walked to its end.
+  - A row shown again on a control in another place (Equip, with no card
+    open) names the control on the hint's line and has no mark in sight,
+    as that lesson already did.
+  - No lesson for this feature: 0.2.2 has not shipped (CLAUDE.md, rule 5).
+  - 0.2.2 was not released. Asked at the end of this session, the owner
+    said to release it next session.
+  - screenshots/h300 is left on disk (git-ignored).
+
+PICK UP
   Release 0.2.2 by release-a-build.txt (the owner, 2026-10-12: "Release
   next session"). #300 is a menu change and rides it.
