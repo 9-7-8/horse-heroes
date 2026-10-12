@@ -111,6 +111,13 @@ pub struct Colours {
     pub scrim: Hex,
     pub element: ElementColours,
     pub stat: StatColours,
+    pub change: ChangeColours,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ChangeColours {
+    pub gain: Hex,
+    pub loss: Hex,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -148,6 +155,8 @@ impl Colours {
             Ink::Stat(Stat::Attack) => self.stat.attack.0,
             Ink::Stat(Stat::Defense) => self.stat.defense.0,
             Ink::Stat(Stat::Elemental) => self.stat.elemental.0,
+            Ink::Gain => self.change.gain.0,
+            Ink::Loss => self.change.loss.0,
         }
     }
 }

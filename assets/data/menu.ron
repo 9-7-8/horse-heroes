@@ -131,5 +131,11 @@
         // orange, green), and a coloured line always keeps its word.
         element: (fire: "e64026", ice: "59a6f2", plant: "4dbf4d"),
         stat: (health: "ff8fb0", attack: "b99cff", defense: "45d0c0", elemental: "e56fdc"),
+        // Whether a change is good (#313): on the change of a comparison
+        // and on a verdict, never on an amount. A change always keeps its
+        // sign and its word. They keep clear of every colour above and of
+        // the rarities, stand 4.5 to 1 off the screen, a panel and a
+        // control, and differ from each other in grey.
+        change: (gain: "8cffaf", loss: "cd8778"),
     ),
 )

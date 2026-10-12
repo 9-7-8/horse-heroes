@@ -14,9 +14,11 @@ use super::parts::{
     card, confirmation, counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
     trail_mark,
 };
+use super::card::table;
+use super::ink;
 use super::picture;
 use super::tokens::Tokens;
-use crate::sim::data::{Data, Slot};
+use crate::sim::data::{Data, GearTable, Slot, Stats};
 
 const LABEL_WIDTH: f32 = 80.0;
 const CELL_WIDTH: f32 = 184.0;
@@ -98,6 +100,26 @@ fn sample<'a>(
             card
         }
     }
+}
+
+/// `words` as the shell shows a live text: what comes before the first
+/// colour, and each run after it a span in its colour (`ink`).
+fn inked(parent: &mut ChildSpawnerCommands, t: &Tokens, gear: &GearTable, words: &str) {
+    let mut rest = ink::runs(words, &ink::Names::of(gear));
+    let first = match rest.first() {
+        Some((_, None)) => rest.remove(0).0,
+        _ => "",
+    };
+    parent.spawn(text(t, first)).with_children(|runs| {
+        for (run, ink) in rest {
+            let colour = ink.map_or(t.colour.text.0, |ink| t.colour.ink(ink, gear));
+            let font = TextFont {
+                font_size: FontSize::Px(t.text.body),
+                ..default()
+            };
+            runs.spawn((TextSpan::new(run), font, TextColor(colour)));
+        }
+    });
 }
 
 fn spawn(commands: &mut Commands, t: &Tokens) {
@@ -295,6 +317,30 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                         });
                     });
             });
+
+            // A change that is a gain, a loss and neither (#313), in a
+            // comparison and in a verdict, at the comparison's width.
+            root.spawn(panel(t))
+                .insert(Node {
+                    width: Val::Px(t.size.compare_width),
+                    flex_direction: FlexDirection::Column,
+                    padding: UiRect::all(Val::Px(t.space.m)),
+                    row_gap: Val::Px(t.space.s),
+                    border: UiRect::all(Val::Px(t.size.border)),
+                    ..default()
+                })
+                .with_children(|compared| {
+                    compared.spawn(dim(t, "a comparison: gain, loss, same"));
+                    let adds = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
+                    let gear = Data::load().gear;
+                    for words in [
+                        "health 35 to 45 (+10)\nattack 5 to 3 (-2)".to_string(),
+                        table(adds(5, 3, 4, 2), adds(15, 1, 0, 2)),
+                        "Upgrade for Sable: +11\nNo better for Sable\nWorse for Sable: -3".to_string(),
+                    ] {
+                        inked(compared, t, &gear, &words);
+                    }
+                });
         });
 }
 

@@ -230,8 +230,10 @@ fn table_row(label: &str, equipped: &str, selected: &str, change: &str) -> Strin
 /// The comparison's table (docs/philosophy/inventory.md): each stat either
 /// piece adds to on one line, in one order, what each adds, and the change.
 /// A stat only the selected piece has is new, and one only the equipped
-/// piece has is lost. The sign and the word say it, not a colour.
-fn table(equipped: Stats, selected: Stats) -> String {
+/// piece has is lost. A change has its sign and a word for whether it is
+/// good, and `ink` colours it by those (#313); every stat there is today is
+/// better for being higher.
+pub(super) fn table(equipped: Stats, selected: Stats) -> String {
     let mut out = table_row("Piece", "Equipped", "Selected", "Change");
     let amount = |value: i32| if value == 0 { "-".to_string() } else { format!("+{value}") };
     for (label, off, on) in [
@@ -245,7 +247,8 @@ fn table(equipped: Stats, selected: Stats) -> String {
             (0, on) => format!("{on:+} new"),
             (off, 0) => format!("{:+} lost", -off),
             (off, on) if off == on => "same".to_string(),
-            (off, on) => format!("{:+}", on - off),
+            (off, on) if on > off => format!("{:+} better", on - off),
+            (off, on) => format!("{:+} worse", on - off),
         };
         out += &format!("\n{}", table_row(label, &amount(off), &amount(on), &change));
     }
@@ -390,7 +393,7 @@ mod tests {
         assert_eq!(rows.len(), 5);
         assert!(rows[0].starts_with("Piece") && rows[0].ends_with("Change"));
         for (row, (label, change)) in rows[1..].iter().zip([
-            ("health", "+10"),
+            ("health", "+10 better"),
             ("attack", "+2 new"),
             ("defense", "-4 lost"),
             ("elemental", "same"),

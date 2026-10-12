@@ -16,6 +16,10 @@ pub enum Ink {
     /// The name of a piece of gear, by its tier's place in
     /// `GearTable::rarities`.
     Rarity(usize),
+    /// A change for the better, or a verdict that a piece is one (#313).
+    Gain,
+    /// A change for the worse, or a verdict that a piece is one.
+    Loss,
 }
 
 /// Every name a piece of gear can have, each with its tier.
@@ -110,31 +114,105 @@ fn stat_start(text: &[u8], at: usize) -> usize {
     if signed && opens { sign } else { at }
 }
 
+/// Where the number ends that follows `before` at `at`, if one does.
+fn amount(text: &[u8], at: usize, before: &[u8]) -> Option<usize> {
+    let rest = text.get(at..)?.strip_prefix(before)?;
+    match number_after(rest) {
+        0 => None,
+        digits => Some(at + before.len() + digits),
+    }
+}
+
 /// Where a stat's run ends when its word ends at `at`: after the amount
-/// that follows it, as in "health 35", or the change that follows that, as
-/// in "health 35 to 50 (+15)", or at the word.
+/// that follows it, as in "health 35", or at the word.
 fn stat_end(text: &[u8], at: usize) -> usize {
-    let amount = |at: usize, before: &[u8]| {
-        let rest = text.get(at..)?.strip_prefix(before)?;
-        match number_after(rest) {
-            0 => None,
-            digits => Some(at + before.len() + digits),
+    amount(text, at, b" ").unwrap_or(at)
+}
+
+/// The change of a horse's stat whose word ends at `at`, as in "health 35
+/// to 50 (+15)": where its "(+15)" starts and ends, and whether it is a
+/// gain. Every stat there is today is better for being higher.
+fn horse_change(text: &[u8], at: usize) -> Option<(usize, usize, Ink)> {
+    let now = amount(text, at, b" ")?;
+    let then = amount(text, now, b" to ")?;
+    let gain = amount(text, then, b" (+").map(|by| (by, Ink::Gain));
+    let loss = amount(text, then, b" (-").map(|by| (by, Ink::Loss));
+    let (by, ink) = gain.or(loss)?;
+    (text.get(by) == Some(&b')')).then_some((then + 1, by + 1, ink))
+}
+
+/// The change column of a row of the comparison's table, whose stat's word
+/// is the start of a line and ends at `end`: after what the two pieces add,
+/// a signed amount and the word the card gives it ("+10 better", "+2 new",
+/// "-4 lost"). A change that is neither ("same") has none.
+fn piece_change(words: &str, start: usize, end: usize) -> Option<(usize, usize, Ink)> {
+    if start > 0 && words.as_bytes()[start - 1] != b'\n' {
+        return None;
+    }
+    let row = words[end..].lines().next()?;
+    let mut rest = row;
+    for _ in 0..2 {
+        rest = rest.trim_start_matches(' ');
+        let adds = rest.split(' ').next().filter(|adds| !adds.is_empty())?;
+        rest = &rest[adds.len()..];
+    }
+    let said = rest.trim_matches(' ');
+    let ends = |with: [&str; 2]| with.iter().any(|word| said.ends_with(word));
+    let ink = if said.starts_with('+') && ends([" better", " new"]) {
+        Ink::Gain
+    } else if said.starts_with('-') && ends([" worse", " lost"]) {
+        Ink::Loss
+    } else {
+        return None;
+    };
+    let at = end + row.len() - rest.trim_start_matches(' ').len();
+    Some((at, at + said.len(), ink))
+}
+
+/// Whether a line is a verdict on a piece, as the card words it: "Upgrade
+/// for Sable: +11" and "An upgrade: +6 points." are a gain, "Worse for
+/// Sable: -3" and "Worse: -3 points." a loss. "No better" is neither.
+fn verdict(line: &str) -> Option<Ink> {
+    let opens = |with: [&str; 2]| with.iter().any(|open| line.starts_with(open));
+    if opens(["Upgrade for ", "An upgrade: "]) && line.contains(": +") {
+        Some(Ink::Gain)
+    } else if opens(["Worse for ", "Worse: "]) && line.contains(": -") {
+        Some(Ink::Loss)
+    } else {
+        None
+    }
+}
+
+/// The first line of `words` that is a verdict: where it starts and ends,
+/// and which it is.
+fn first_verdict(words: &str) -> Option<(usize, usize, Ink)> {
+    let mut at = 0;
+    for line in words.split('\n') {
+        if let Some(ink) = verdict(line) {
+            return Some((at, at + line.len(), ink));
         }
-    };
-    let Some(now) = amount(at, b" ") else {
-        return at;
-    };
-    let change = amount(now, b" to ").and_then(|then| {
-        let by = [amount(then, b" (+"), amount(then, b" (")].into_iter().flatten().next()?;
-        (text.get(by) == Some(&b')')).then_some(by + 1)
-    });
-    change.unwrap_or(now)
+        at += line.len() + 1;
+    }
+    None
 }
 
 /// `words` cut into runs in order, each with what it is about. The runs put
-/// end to end are `words` exactly. A piece's name is one run, whatever words
-/// are in it.
+/// end to end are `words` exactly. A verdict is one run, the whole line, and
+/// a piece's name is one run, whatever words are in it.
 pub fn runs<'a>(words: &'a str, names: &Names) -> Vec<(&'a str, Option<Ink>)> {
+    let mut out = Vec::new();
+    let mut rest = words;
+    while let Some((from, to, ink)) = first_verdict(rest) {
+        out.extend(named_runs(&rest[..from], names));
+        out.push((&rest[from..to], Some(ink)));
+        rest = &rest[to..];
+    }
+    out.extend(named_runs(rest, names));
+    out
+}
+
+/// The runs of `words` that have no verdict in them.
+fn named_runs<'a>(words: &'a str, names: &Names) -> Vec<(&'a str, Option<Ink>)> {
     let mut out = Vec::new();
     let mut rest = words;
     while let Some((from, to, tier)) = names.first_in(rest) {
@@ -165,16 +243,29 @@ fn plain_runs(words: &str) -> Vec<(&str, Option<Ink>)> {
             continue;
         };
         let (from, to) = match ink {
-            Ink::Element(_) | Ink::Rarity(_) => (start, end),
             Ink::Stat(_) => (stat_start(text, start).max(done), stat_end(text, end)),
+            _ => (start, end),
         };
+        // A stat that is compared keeps its colour on its word alone: the
+        // amounts are plain, and the change after them is a gain or a loss
+        // (#313).
+        let change = match ink {
+            Ink::Stat(_) => horse_change(text, end).or_else(|| piece_change(words, start, end)),
+            _ => None,
+        };
+        let to = if change.is_some() { end } else { to };
         if from > done {
             out.push((&words[done..from], None));
         }
         out.push((&words[from..to], Some(ink)));
         done = to;
+        if let Some((at, until, judged)) = change {
+            out.push((&words[done..at], None));
+            out.push((&words[at..until], Some(judged)));
+            done = until;
+        }
         // The amount after a stat is part of its run, not the next word.
-        while starts.next_if(|(at, _)| *at < to).is_some() {}
+        while starts.next_if(|(at, _)| *at < done).is_some() {}
     }
     if done < words.len() {
         out.push((&words[done..], None));
@@ -225,6 +316,8 @@ mod tests {
                     Ink::Element(element) => element.name(),
                     Ink::Stat(stat) => stat.name(),
                     Ink::Rarity(tier) => &game.data.gear.rarities[tier].prefix,
+                    Ink::Gain => "+",
+                    Ink::Loss => "-",
                 };
                 assert!(run.contains(named), "`{run}` does not say {named}");
             }
@@ -252,15 +345,19 @@ mod tests {
         );
     }
 
-    /// A line of a comparison is one run, the change with it, and a horse's
-    /// stats are a run each with the amount.
+    /// A horse's stats are a run each with the amount. In a line of a
+    /// comparison the stat is its word alone, the two amounts are plain, and
+    /// the change is a gain or a loss (#313).
     #[test]
-    fn a_stat_takes_its_amount_and_its_change() {
+    fn a_stat_takes_its_amount_and_a_change_is_judged() {
         assert_eq!(
             inked("On Sable:\nhealth 35 to 50 (+15)\ndefense 5 to 2 (-3)\nAn upgrade: +11 points."),
             [
-                ("health 35 to 50 (+15)", Ink::Stat(Stat::Health)),
-                ("defense 5 to 2 (-3)", Ink::Stat(Stat::Defense)),
+                ("health", Ink::Stat(Stat::Health)),
+                ("(+15)", Ink::Gain),
+                ("defense", Ink::Stat(Stat::Defense)),
+                ("(-3)", Ink::Loss),
+                ("An upgrade: +11 points.", Ink::Gain),
             ]
         );
         assert_eq!(
@@ -271,9 +368,70 @@ mod tests {
             ]
         );
         // A number that is not the stat's is left alone.
-        assert_eq!(inked("Upgrade for Sable: +11"), []);
         assert_eq!(inked("3-15 attack"), [("attack", Ink::Stat(Stat::Attack))]);
         assert_eq!(inked("health 35 to town"), [("health 35", Ink::Stat(Stat::Health))]);
+    }
+
+    /// The comparison's table (#313): the stat's word in its colour, what
+    /// the two pieces add plain, and the change a gain or a loss by its sign
+    /// and its word. A change that is neither stays plain, and so does a
+    /// horse's own table, which has no change.
+    #[test]
+    fn the_change_column_is_a_gain_or_a_loss() {
+        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
+        let table = card::table(stats(5, 0, 4, 2), stats(15, 2, 0, 2));
+        assert_eq!(
+            inked(&table),
+            [
+                ("health", Ink::Stat(Stat::Health)),
+                ("+10 better", Ink::Gain),
+                ("attack", Ink::Stat(Stat::Attack)),
+                ("+2 new", Ink::Gain),
+                ("defense", Ink::Stat(Stat::Defense)),
+                ("-4 lost", Ink::Loss),
+                ("elemental", Ink::Stat(Stat::Elemental)),
+            ]
+        );
+        let table = card::table(stats(15, 0, 0, 0), stats(5, 0, 0, 0));
+        assert_eq!(inked(&table), [("health", Ink::Stat(Stat::Health)), ("-10 worse", Ink::Loss)]);
+
+        let mut game = Game::back_from_a_trail(6);
+        game.act(crate::game::Action::Equip, crate::game::Hand::horse(0));
+        let judged = |ink: &(&str, Ink)| matches!(ink.1, Ink::Gain | Ink::Loss);
+        assert!(!inked(&card::horse_sheet(&game, 0, "7/9")).iter().any(judged));
+    }
+
+    /// A verdict (#313) is one run, the whole line, with its word and its
+    /// sign; a piece that is no better has no colour. Said by the card
+    /// itself, so the two cannot drift apart.
+    #[test]
+    fn a_verdict_is_a_gain_or_a_loss() {
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let gear = game.pending_drop().unwrap().clone();
+        let worn = |attack: i32| crate::sim::loot::Gear {
+            name: "Old Thing".into(),
+            slot: gear.slot,
+            rarity: 0,
+            stats: Stats { attack, ..gear.stats },
+        };
+        for (attack, ink, sign) in [(-5, Some(Ink::Gain), ": +"), (0, None, ""), (5, Some(Ink::Loss), ": -")] {
+            game.party[0].gear[gear.slot.index()] = Some(worn(gear.stats.attack + attack));
+            let horse = &game.party[0];
+            let short = card::verdict(&game, horse, &gear);
+            let long = card::compare(&game, horse, &gear);
+            let long = long.lines().last().unwrap();
+            for said in [short.as_str(), long] {
+                assert!(said.contains(sign), "{said}");
+                let runs = inked(said);
+                match ink {
+                    Some(ink) => assert_eq!(runs, [(said, ink)]),
+                    None => assert_eq!(runs, []),
+                }
+            }
+        }
     }
 
     /// An element is its word wherever it is said, and only the whole word.
@@ -337,11 +495,15 @@ mod tests {
         for stat in Stat::ALL {
             inks.push((stat.name().into(), tokens.colour.ink(Ink::Stat(stat), &data.gear)));
         }
+        for (name, ink) in [("gain", Ink::Gain), ("loss", Ink::Loss)] {
+            inks.push((name.into(), tokens.colour.ink(ink, &data.gear)));
+        }
         // What an ink is seen beside: the others, the text it sits in, and
         // the rarities.
         let mut beside = inks.clone();
         beside.push(("text".into(), tokens.colour.text.0));
         beside.push(("dim text".into(), tokens.colour.text_dim.0));
+        beside.push(("a reason".into(), tokens.colour.reason.0));
         for rarity in &data.gear.rarities {
             let colour = Srgba::hex(&rarity.look.colour).expect("a rarity's colour");
             beside.push((rarity.name.clone(), colour.into()));
@@ -356,5 +518,36 @@ mod tests {
                 assert!(apart > 0.08, "{name} and {other_name} are {apart:.3} apart");
             }
         }
+    }
+
+    /// A gain and a loss (#313) are read on every surface a comparison or a
+    /// verdict rests on, at 4.5 to 1, and are told from each other with the
+    /// colour taken away, as well as by their sign and word.
+    #[test]
+    fn a_gain_and_a_loss_stand_out_from_their_surface() {
+        let tokens = Tokens::load();
+        let data = Data::load();
+        let colours = &tokens.colour;
+        let light = |colour: Color| {
+            let c = colour.to_linear();
+            0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue
+        };
+        let [gain, loss] = [Ink::Gain, Ink::Loss].map(|ink| colours.ink(ink, &data.gear));
+        for (name, ink) in [("gain", gain), ("loss", loss)] {
+            for (on, surface) in [
+                ("the screen", colours.screen.0),
+                ("a panel", colours.panel.0),
+                ("a control", colours.control.0),
+                ("a selected control", colours.selected.0),
+            ] {
+                let contrast = (light(ink) + 0.05) / (light(surface) + 0.05);
+                assert!(contrast >= 4.5, "{name} on {on}: {contrast:.2} to 1");
+            }
+        }
+        let grey = |colour: Color| {
+            let c = colour.to_srgba();
+            0.299 * c.red + 0.587 * c.green + 0.114 * c.blue
+        };
+        assert!((grey(gain) - grey(loss)).abs() >= 0.1);
     }
 }
