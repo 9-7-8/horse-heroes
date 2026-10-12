@@ -2,6 +2,7 @@
 //! Everything here follows from the seed, the party and the chosen element.
 
 use super::data::{Class, Data, Element, Rules};
+use super::lessons::Event;
 use super::loot::{Gear, Horse, roll_gear};
 use super::rng::Rng;
 
@@ -161,6 +162,9 @@ pub struct Expedition {
     pub log: Vec<String>,
     /// Kills not yet shown, oldest first. Whoever presents the run takes them.
     pub kills: Vec<Kill>,
+    /// What has happened that a lesson may wait for (#290), oldest first.
+    /// Whoever presents the run takes them, as it takes the kills.
+    pub events: Vec<Event>,
     pub outcome: Option<Outcome>,
     travel: f32,
     strong_hits: u32,
@@ -212,6 +216,7 @@ impl Expedition {
                 element.name()
             )],
             kills: Vec::new(),
+            events: Vec::new(),
             outcome: None,
             travel: rules.travel_secs,
             strong_hits: 0,
@@ -265,6 +270,7 @@ impl Expedition {
             self.plan.encounters.len(),
             names.join(", ")
         ));
+        self.events.push(Event::Fight);
         self.phase = Phase::Fighting;
     }
 
@@ -288,6 +294,7 @@ impl Expedition {
             }
 
             if self.party[i].ability_timer <= 0.0 {
+                self.events.push(Event::Ability);
                 let (attack, elemental) = self.power(i);
                 match self.party[i].class {
                     Class::Ranger => {
@@ -399,6 +406,9 @@ impl Expedition {
         if won && let Some(kill) = self.kills.last_mut() {
             kill.gear = drop.clone();
         }
+        if won {
+            self.events.push(Event::Win);
+        }
         self.phase = Phase::Finished;
         self.outcome = Some(Outcome {
             won,
@@ -450,6 +460,7 @@ impl Expedition {
         } else if elemental > 0.0 && multiplier < 1.0 {
             self.resisted_hits += 1;
             deeds.resisted_hits += 1;
+            self.events.push(Event::Resisted);
             note = "  Resisted";
         }
         self.log.push(format!(
@@ -463,6 +474,7 @@ impl Expedition {
             self.coins += coins;
             self.log
                 .push(format!("{} is defeated (+{} coins)", foe.name, coins));
+            self.events.push(Event::Kill);
             self.kills.push(Kill {
                 foe: target,
                 element: foe.element,

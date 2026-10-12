@@ -24,6 +24,7 @@ use bevy::{
 use serde::Deserialize;
 
 use super::card;
+use super::teach;
 use super::ink;
 use super::picture::{self, picture, picture_of, reported_picture};
 use super::parts::{
@@ -215,6 +216,24 @@ impl Places {
 
     pub fn control(&self, id: usize) -> &Control {
         &self.list[id]
+    }
+
+    /// The page of this name: a place, or settings.
+    pub fn page_named(&self, name: &str) -> Option<usize> {
+        self.pages().position(|page| page.name == name)
+    }
+
+    /// The tab of this name on the page of that name.
+    pub fn tab_named(&self, page: &str, tab: &str) -> Option<(usize, usize)> {
+        let page = self.page_named(page)?;
+        let tabs = &self.pages().nth(page)?.tabs;
+        Some((page, tabs.iter().position(|other| other.name == tab)?))
+    }
+
+    /// The `id` of the control of this name: the first, where two places
+    /// have one of the same name.
+    pub fn control_named(&self, name: &str) -> Option<usize> {
+        self.list.iter().position(|control| control.name == name)
     }
 
     /// The controls of the map in the groups they are drawn in: those of a
@@ -423,13 +442,15 @@ pub struct Detail {
 }
 
 /// The control a hint is about (#291): a place in the bar, a tab of a
-/// place, a horse in the strip, or a control of the map by its `id`.
+/// place, a horse in the strip, a control of the map by its `id`, or a
+/// piece of gear wherever it is listed (#290).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum About {
     Place(usize),
     Tab(usize, usize),
     Horse(usize),
     Control(usize),
+    Piece(Piece),
 }
 
 /// A lesson's one line (#291), on the hint's line under the status strip,
@@ -491,6 +512,16 @@ impl Shell {
 
     pub fn hint(&self) -> Option<&Hint> {
         self.hint.as_ref()
+    }
+
+    /// Whether the player put this lesson's hint away.
+    pub fn put_away(&self, lesson: &str) -> bool {
+        self.dismissed.iter().any(|put_away| put_away == lesson)
+    }
+
+    /// Whether the player skipped every hint.
+    pub fn hints_off(&self) -> bool {
+        self.hints_off
     }
 
     /// A lesson asks for its hint. It is shown, and true comes back, unless
@@ -972,7 +1003,7 @@ impl Plugin for ShellPlugin {
                     show_place,
                     see,
                     mark_chosen,
-                    (mark_unseen, point_out, show_hint).chain(),
+                    (mark_unseen, teach::teach, point_out, show_hint).chain(),
                     show_wearer,
                     show_carried,
                     show_hover_card,
@@ -2606,6 +2637,8 @@ fn point_out(
             Option<&TabButton>,
             Option<&HorseButton>,
             Option<&ControlButton>,
+            Option<&CarriedCell>,
+            Option<&SlotRow>,
             Has<Pointed>,
         ),
         Or<(
@@ -2613,16 +2646,24 @@ fn point_out(
             With<TabButton>,
             With<HorseButton>,
             With<ControlButton>,
+            With<CarriedCell>,
+            With<SlotRow>,
         )>,
     >,
 ) {
     let about = shell.hint().map(|hint| hint.about);
-    for (entity, place, tab, horse, control, pointed) in &controls {
+    for (entity, place, tab, horse, control, carried, slot, pointed) in &controls {
         let wanted = match about {
             Some(About::Place(p)) => place.is_some_and(|button| button.0 == p),
             Some(About::Tab(p, t)) => tab.is_some_and(|button| button.place == p && button.tab == t),
             Some(About::Horse(h)) => horse.is_some_and(|button| button.0 == h),
             Some(About::Control(id)) => control.is_some_and(|button| button.id == id),
+            // A piece is marked wherever it is listed: the cargo, the
+            // report, the Gear tab and the Inventory.
+            Some(About::Piece(Piece::Carried)) => carried.is_some(),
+            Some(About::Piece(Piece::Worn { horse, slot: s })) => {
+                slot.is_some_and(|row| row.horse == horse && row.slot == s)
+            }
             None => false,
         };
         if wanted && !pointed {
@@ -2654,6 +2695,7 @@ fn about_name(map: &Places, game: &Game, about: About) -> (String, Option<String
             .list
             .get(id)
             .map(|control| (control.name.clone(), key(control.key.as_deref()))),
+        About::Piece(piece) => game.piece(piece).map(|gear| (gear.name.clone(), None)),
     }
     .unwrap_or_default()
 }
@@ -2694,6 +2736,9 @@ fn show_hint(
 /// can be about.
 const SAMPLE_HINTS: usize = 4;
 
+/// What a sample hint has for its lesson. No lesson has this name.
+pub const SAMPLE: &str = "sample";
+
 /// A hint to look at the hint's line with, before any lesson raises one
 /// (the lessons are #290). The first is about the Journal, which is in the
 /// bar in both layouts; then Set out in the footer, the first horse in the
@@ -2708,14 +2753,14 @@ fn sample_hint(map: &Places, which: usize) -> Hint {
         _ => (About::Place(journal.unwrap_or(0)), "The report of every trail is kept here."),
     };
     Hint {
-        lesson: "sample".into(),
+        lesson: SAMPLE.into(),
         about,
         words: format!("A sample hint. {words}"),
     }
 }
 
 /// Dev aid: F6 shows a sample hint, whatever was put away or skipped
-/// before, and takes it away again. Each time it is about the next kind of
+/// before or is showing, and takes it away again. Each time it is about the next kind of
 /// control.
 fn dev_hint(
     keys: Res<ButtonInput<KeyCode>>,
@@ -2726,9 +2771,10 @@ fn dev_hint(
     if !keys.just_pressed(KeyCode::F6) {
         return;
     }
-    if shell.hint().is_some() {
-        shell.finish_hint();
-    } else {
+    let sample = shell.hint().is_some_and(|hint| hint.lesson == SAMPLE);
+    // A lesson's hint gives way to the sample, and comes back after it.
+    shell.finish_hint();
+    if !sample {
         shell.forget_hints();
         shell.raise_hint(sample_hint(&map, *shown));
         *shown += 1;

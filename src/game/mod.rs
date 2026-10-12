@@ -6,6 +6,7 @@ use serde::Deserialize;
 
 use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
+use crate::sim::lessons::{Event, Lessons};
 use crate::sim::loot::{Gear, Horse, best_wearer, swap_worn};
 
 pub mod menu;
@@ -255,6 +256,10 @@ pub struct Game {
     seen_report: u32,
     /// Whether the party leaves town by itself (#305). Off in a new game.
     keep_going: bool,
+    /// What the game explains, and how far the player is with each lesson
+    /// (#290). It is told what happens; nothing here asks it anything, so no
+    /// lesson can hold the party up or keep a control from being used.
+    pub lessons: Lessons,
 }
 
 impl Game {
@@ -280,6 +285,7 @@ impl Game {
             seen_drop: 0,
             seen_report: 0,
             keep_going: false,
+            lessons: Lessons::load(),
             data,
         }
     }
@@ -658,6 +664,7 @@ impl Game {
                     _ => self.equip_drop(hand.horse),
                 };
                 if let Some(text) = done {
+                    self.lessons.raise(Event::Equipped);
                     self.changes.push(before);
                     if let Screen::Camp { note, .. } = &mut self.screen {
                         *note = text;
@@ -683,6 +690,16 @@ impl Game {
                 self.reading = self.earlier().get(at + 1).map(|kept| kept.number);
             }
         }
+    }
+
+    /// The newest piece a trail brought back that the party still has, where
+    /// it is now: in the cargo, or on the horse that wears it. What a lesson
+    /// about a piece is about (#290).
+    pub fn newest_piece(&self) -> Option<Piece> {
+        self.reports
+            .iter()
+            .rev()
+            .find_map(|kept| self.find(kept.outcome.drop.as_ref()?))
     }
 
     /// The last trail's drop, while it waits in town to be equipped.
@@ -718,6 +735,9 @@ impl Game {
     fn return_to_camp(&mut self, outcome: Outcome) {
         self.arriving = None;
         self.coins += outcome.coins;
+        if outcome.drop.is_some() {
+            self.lessons.raise(Event::Gear);
+        }
         if outcome.won {
             self.level += 1;
         } else {
@@ -753,13 +773,22 @@ impl Game {
             let Screen::Trail(expedition) = &mut game.screen else {
                 unreachable!("the party set out");
             };
-            expedition.tick(&game.data, TICK);
+            step(expedition, &game.data, &mut game.lessons);
             if let Some(outcome) = expedition.outcome.clone() {
                 break outcome;
             }
         };
         game.return_to_camp(outcome);
         game
+    }
+}
+
+/// One step of a trail. What happened on it is told to the lessons, which
+/// are told and never asked (#290).
+fn step(expedition: &mut Expedition, data: &Data, lessons: &mut Lessons) {
+    expedition.tick(data, TICK);
+    for event in expedition.events.drain(..) {
+        lessons.raise(event);
     }
 }
 
@@ -779,7 +808,7 @@ pub fn advance(
             game.accumulator += dt;
             while game.accumulator >= TICK && expedition.phase != Phase::Finished {
                 game.accumulator -= TICK;
-                expedition.tick(&game.data, TICK);
+                step(expedition, &game.data, &mut game.lessons);
                 for kill in std::mem::take(&mut expedition.kills) {
                     fell = true;
                     uncollected.coins += kill.coins.max(0);
@@ -1274,7 +1303,7 @@ mod tests {
             let Screen::Trail(expedition) = &mut game.screen else {
                 unreachable!("the party set out");
             };
-            expedition.tick(&game.data, TICK);
+            step(expedition, &game.data, &mut game.lessons);
             if let Some(outcome) = expedition.outcome.clone() {
                 break outcome;
             }

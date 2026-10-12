@@ -10,6 +10,7 @@ pub mod ink;
 pub mod parts;
 pub mod picture;
 pub mod shell;
+mod teach;
 pub mod tokens;
 
 pub struct MenuPlugin {
