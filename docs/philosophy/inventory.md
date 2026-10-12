@@ -164,17 +164,14 @@ Checked against the game as built on 2026-10-11 (`docs/item-card.md`,
   recipient is the selected horse in the strip, which stays in view, and a
   horse's key compares the same piece there.
 - **Already in line.** One selected horse everywhere, undo over
-  confirmation, a reason for every refusal, a key for every action, and
-  a verdict that names its horse ("Upgrade for Sable: +11")
-  ([menus.md](menus.md)). One comparison in every place (#312). The change
-  and the verdict are coloured by gain or loss, with a sign and a word,
-  and the amounts are plain (#313). "Changed only" is a switch on the
+  confirmation, a reason for every refusal and a key for every action
+  ([menus.md](menus.md)). One comparison in every place (#312). Each
+  stat's change is coloured by gain or loss, with a sign and a word, and
+  the amounts are plain (#313). The card gives no verdict on the piece
+  (owner, 2026-10-12, #351). "Changed only" is a switch on the
   card, off until it is pressed, and the table says when it is narrowed
   (#349).
 - **Differs today.**
-  - The verdict is one number of points (`loot::gain`). Today a piece only
-    adds to four stats, so the number hides nothing; it must stop being the
-    last word when gear effects (#13), affixes (#69) and sets (#36) arrive.
   - Equip is acknowledged by a line in the report and nothing on the
     screen where it happened: #40, #43.
   - At the smallest window the comparison's table is a scroll away, and no

@@ -408,8 +408,8 @@ every place, tab and horse has a key, and no key means two things at once.
 - `Report`: the report the Journal is open at, in two halves of fixed
   width. The latest: in town, the last trail and the next trail; on the
   road, the fight, and beside it a line saying where its log is (see
-  "The fight log"). Under the last trail is what becomes of its
-  drop at setting out (item-card.md, "The appraisal in camp"), then the
+  "The fight log"). Under the last trail is what it brought
+  back (item-card.md, "The appraisal in camp"), then the
   drop as the cargo shows it, and a press opens its card in the Journal's
   side panel, where Equip works without going to the Horses place. An
   earlier one: see "The Journal's reports".
@@ -428,9 +428,8 @@ tab. It had the horses down its left too until #311: they were listed
 twice, and the strip is the list that stayed. The cargo keeps every piece (#352), newest
 first, on the road as in town; this column shows the newest, and the
 Inventory shows them all. The whole list here is #227.
-It is shown as the summary of its card: its name, what it is, and whether
-it is an upgrade for the selected horse, no better or worse, in points
-(`loot::gain`). Selecting another horse changes that line. A press opens
+It is shown as the summary of its card: its name and what it is, and no
+verdict on it (#351). A press opens
 its card, with Equip, which puts the piece on the selected horse (#250).
 The cargo's own controls are those of a list: Filter, Sort, Search.
 
@@ -770,17 +769,18 @@ marks, and the `tab` when the thing is on one.
 
 | `raise` | There is a mark while | It is seen when |
 | --- | --- | --- |
-| `Upgrade` | the piece in the cargo betters what some horse wears | the cargo column shows, or the Inventory, or the piece's card, or the report that shows the piece |
+| `NewGear` | the last trail brought back a piece that is still carried | the cargo column shows, or the Inventory, or the piece's card, or the report that shows the piece |
 | `Report(lost, rarity)` | the newest report kept is of a trail that was lost (`lost`), or that dropped a piece of at least `rarity` | that report shows, on its tab |
 
-Today: an upgrade marks Horses, and a lost trail or a Legendary piece or
-better marks Journal, Report. A trail simply won, a common drop and a
-piece that is no upgrade raise nothing.
+Today: new gear marks Horses, and a lost trail or a Legendary piece or
+better marks Journal, Report. A trail simply won that brought nothing back
+raises nothing. Until #351 the Horses mark was for an upgrade; the game no
+longer says which piece is one, so any piece brought back raises it.
 
 - **Seen is in view.** `in_view` in the shell says which of the two is
   showing, `see` tells the game each frame, and `Game::wants` is what
   `mark_unseen` asks for every place and tab. A slot's card standing over
-  the cargo hides the cargo, so the upgrade is not seen through it.
+  the cargo hides the cargo, so the piece is not seen through it.
 - **It does not come back for the same thing.** The game keeps the trail
   whose drop was seen and the newest report read. A piece equipped and
   taken back with Undo is the same piece.
@@ -800,7 +800,9 @@ goes when it is seen and stays gone; three hundred trails unwatched raise
 a report's mark only for the newest.
 
 Chosen without the owner: Legendary as the rarity, the dot and its blue,
-and that a report showing the piece counts as seeing the upgrade.
+that a report showing the piece counts as seeing it, and (2026-10-12)
+that any piece brought back marks Horses now that none is called an
+upgrade.
 
 Still to come, each with its system: a mark for an unspent ability point
 (#220), a new look (#92), a recruit to meet (#116) and a project that can

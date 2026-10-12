@@ -1,5 +1,7 @@
 # The first item's lessons, 2026-10-12
 
+Retaken 2026-10-12 for #351: nothing equips by itself, and the card has no verdict line.
+
 The town lessons of `assets/data/lessons.ron` (#296), each as the player
 meets it. Stills from `IDLE_LESSON` at `--seed 6` in the smallest window
 (1120x640): the walk does by keys what each lesson asks. Read by the
@@ -11,9 +13,9 @@ session. How it works: [lessons.md](../../lessons.md).
 
 **2.** The piece was pressed and its card is open. The next lesson is about the selected horse, with its mark on that horse in the strip: the card's comparison is its.
 
-![The card open for Juniper, the hint's line on Juniper saying the before, after and verdict are its.](02-whose-card.png)
+![The card open for Juniper, the hint's line on Juniper saying the before and after are its.](02-whose-card.png)
 
-**3.** Another horse was selected, and the card is now for Sable. Equip's lesson follows, its mark on Equip, with what happens to a piece left alone.
+**3.** Another horse was selected, and the card is now for Sable. Equip's lesson follows, its mark on Equip, saying a piece left alone stays carried.
 
 ![The card open for Sable, the hint's line on Equip saying you choose who wears it.](03-equip.png)
 

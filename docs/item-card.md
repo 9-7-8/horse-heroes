@@ -9,7 +9,7 @@ It hangs on the shell's side panel: [menu-shell.md](menu-shell.md).
 
 | File | What it holds |
 | --- | --- |
-| `src/game/menu/card.rs` | What the card says: `kind`, `verdict`, `compare`, `consequence`, `comparison`, `pointed_comparison`. Plain text from the game, tested without Bevy |
+| `src/game/menu/card.rs` | What the card says: `kind`, `consequence`, `comparison`, `pointed_comparison`. Plain text from the game, tested without Bevy |
 | `assets/data/places.ron`, `card` | The card's actions, in order: Equip, List, Store, Lock, Favourite, Look |
 | `src/game/mod.rs` | `Piece`, where a piece is; `Action::Equip`; `Game::piece` and `Game::equipped_at` |
 | `src/game/menu/picture.rs` | The stand-in picture: `stamp`, `picture`, `draw`, `show_pictures` |
@@ -22,10 +22,11 @@ From the owner's guide on menu design (#228): a summary, the detail on
 selection, and formulas behind a Details control. Two are built.
 
 **The summary** is what a list shows of a piece: its name, then its rarity,
-slot and what it adds (`kind`), then whether it matters to the selected
-horse now (`verdict`: "Upgrade for Sable: +11", "No better for Sable",
-"Worse for Sable: -3"; a word and a sign, never colour alone). The carried
-piece is shown this way in the cargo column and under the report. A slot of
+slot and what it adds (`kind`). It says nothing of whether the piece is
+better for a horse: the game gives the numbers and never a verdict (owner,
+2026-10-12, #351). The carried piece is shown this way in the cargo column
+and under the report, where a third line says where it is ("Carried in
+the cargo.", or the horse that wears it). A slot of
 the Gear tab shows the shorter form: the name, and the slot with what the
 piece adds. Its picture says which slot and which rarity.
 
@@ -60,7 +61,6 @@ beside Equip.
     health 40 to 50 (+10)
     attack 3 to 5 (+2)
     defense 5 to 1 (-4)
-    An upgrade: +6 points.
 
     Piece      Equipped  Selected  Change
     health           +5       +15  +10 better
@@ -163,7 +163,7 @@ What an item says is coloured by kind (#251), the same on every screen:
 | An element's name | `colour.element` | Fire red, Ice blue, Plant green: the colour of an enemy of that element in a fight, which the scene and the deaths take from the same token |
 | A stat, with its number | `colour.stat` | health pink, attack violet, defense teal, elemental magenta |
 | A piece's name | its rarity's `look.colour` in `gear.ron` | Normal white, Magic blue, Rare yellow, Legendary orange, Set green: the colour of its drop in the loot shower (#309) |
-| A change for the better or the worse, and a verdict | `colour.change` | gain mint, loss terracotta (#313) |
+| A change for the better or the worse | `colour.change` | gain mint, loss terracotta (#313) |
 
 No screen chooses a colour. `show_facts` (`shell.rs`) passes every live text
 through `ink::runs` (`src/game/menu/ink.rs`), which cuts it into runs: an
@@ -191,11 +191,10 @@ code.
   change alone: in "health 35 to 50 (+15)" the stat is its word, the two
   amounts are plain and "(+15)" is a gain; in the table the change column
   is ("+10 better", "+2 new" a gain; "-2 worse", "-4 lost" a loss; "same"
-  plain). A verdict is one run, the whole line: "Upgrade for Sable: +11"
-  and "An upgrade: +6 points." a gain, "Worse for Sable: -3" and "Worse:
-  -3 points." a loss, "No better" plain. `ink` reads the sign and the word
-  the card wrote, so a change is never told by colour alone, and the card
-  decides what is good; every stat today is better for being higher.
+  plain). No line is a verdict on the piece, and none is coloured as one
+  (#351): a stat's change is judged, the piece never is. `ink` reads the
+  sign and the word the card wrote, so a change is never told by colour
+  alone; every stat today is better for being higher.
 - Tests hold the two colours 4.5 to 1 off the screen, a panel, a control
   and a selected control, clear of every other ink, the text and the
   rarities, and apart from each other in grey. Under the pointer a control
@@ -280,35 +279,28 @@ detail.
 ## The appraisal in camp
 
 What the report says of the drop by itself, with no card opened and no
-input (#11; `card::appraisal`, shown by `report_text`). It is about the
-horse the piece goes on when the party sets out (`loot::best_wearer`),
-whoever is selected:
+input (#11; `card::appraisal`, shown by `report_text`). It says what was
+brought back and that it is carried, and nothing about where it should go:
+the game picks no horse for a piece (owner, 2026-10-12, #351).
 
-    NEW GEAR: Sunforged Halter, on setting out:
-    On Juniper, who wears nothing there:
-    health 40 to 55 (+15)
-    attack 6 to 8 (+2)
-    defense 1 to 5 (+4)
-    elemental 1 to 3 (+2)
-    An upgrade: +11 points.
-    E puts it on the selected horse instead.
+    NEW GEAR: Sunforged Halter
+    Carried until you put it on a horse.
 
-- The comparison is the card's own (`compare`). Over a worn piece its
-  heading names that piece, and a line says it goes to the cargo.
-- When no horse is better off: "kept in the cargo on setting out", then why, a
-  verdict per horse ("Worse for Juniper: -3"), and that E puts it on the
-  selected horse all the same.
-- The drop's cell is under it, with its verdict for the selected horse.
+- No horse is named, whoever is selected and whatever the horses wear.
+- The drop's cell is under it, with what it is and "Carried in the cargo.".
+  A press opens its card, where the comparison is.
 - It is said of the last trail's piece while that is the newest carried.
   Once the piece is on a horse the cargo's newest is an older piece, and
   nothing is appraised.
-- Once the piece is on, by E or at the gate, what happened is kept
-  (`card::equipped`): "Equipped A on Juniper, in place of B:", the same
-  lines per stat, and "B went to the cargo.". By E it is the report's note;
-  at the gate it is the first lines of the road's log, after "The party
-  sets out", so the Journal still says it on the road.
+- Nothing goes on at the gate. Setting out with the piece left alone
+  changes no horse and no cargo, and the road's log says nothing of gear
+  (`setting_out_equips_nothing`).
+- Once the piece is on, by E, what happened is kept (`card::equipped`):
+  "Equipped A on Juniper, in place of B:", a line per stat that changed,
+  and "B went to the cargo.". It is the report's note.
 
-Held by `camp_says_what_the_drop_replaces_or_why_it_is_not_used`.
+Held by `camp_says_what_was_brought_back_and_names_no_horse` and
+`the_card_gives_numbers_and_no_verdict`.
 
 ## Fitting
 
@@ -316,8 +308,7 @@ What a detail says scrolls, with its bar, where it does not fit; the actions
 under it do not, so Equip is always in view. At the smallest window
 (1120 x 640) a side panel shows whose the piece would be, both pieces,
 where the selected one is and the first of what changes; the rest and the
-table are a scroll of the wheel away, and the summary in the list has the
-verdict meanwhile.
+table are a scroll of the wheel away.
 
 PageUp and PageDown scroll the card (#304; `scroll` in the shell, the keys
 in `places.ron`, `scroll_keys`). A press moves by `size.scroll_page`, four

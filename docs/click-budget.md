@@ -47,9 +47,10 @@ nowhere else: the walk reads them there.
   element and no abilities yet (#220, #222). The count will be taken again
   when a horse has abilities of its own, and the budget of 3 is sized for
   that: the horse, the tab, the ability.
-- **Why a piece was left behind** is answered before it happens: the report
-  says what becomes of the drop at setting out, on which horse, and by how
-  many points ([item-card.md](item-card.md), "The appraisal in camp").
+- **Why a piece was left behind**: no piece is, since #352, and since #351
+  none goes on by itself either. The report says what was brought back and
+  that it is carried ([item-card.md](item-card.md), "The appraisal in
+  camp"). The job keeps its name until the owner renames it.
   After the party has left, the report is one more press behind the latest
   (Earlier, or `[`).
 

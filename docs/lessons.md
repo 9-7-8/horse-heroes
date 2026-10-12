@@ -34,7 +34,7 @@ Plain facts (`Event`), told to the queue with `Lessons::raise`:
 |---|---|
 | `Fight`, `Ability`, `Kill`, `Resisted`, `Win` | the trail: `Expedition::events`, which `game::step` hands on each tick as it does the kills |
 | `Gear` | `Game::return_to_camp`, when the trail brought a piece back |
-| `Equipped` | `Game::act`, when Equip did something. The gate's own equipping at setting out is not the player's and does not count |
+| `Equipped` | `Game::act`, when Equip did something. Nothing else equips (#351) |
 | `Card` | `teach::follow`, when a piece's card is pinned |
 | `Selected` | `teach::follow`, when the selected horse changes |
 | `Swapped` | `Game::act`, when Equip took a piece from the horse that wore it |
@@ -131,13 +131,14 @@ ability, until another is watched). The element's line is #299. `Kill`,
 **The first item** (#296), in town, each finished by doing the thing and
 none of which has to be done:
 
-1. The piece, where it is: press it and its card opens. If it went on at
-   the gate, its other line says so and the mark is on it where it is worn.
-2. The selected horse, in the strip: the card's before, after and verdict
-   are its. Finished by selecting another horse.
-3. Equip: you choose who wears it; left alone it goes where it helps most
-   or stays carried. That sentence is true only while `Game::depart`
-   equips the drop by itself, and comes out of the file when that goes.
+1. The piece, where it is: press it and its card opens. If the player put
+   it on a horse without opening its card, its other line says it is on a
+   horse and the mark is on it where it is worn.
+2. The selected horse, in the strip: the card's before and after are its.
+   Finished by selecting another horse.
+3. Equip: you choose who wears it; left alone it stays carried, and
+   nothing is lost. Nothing equips by itself and no lesson names a horse
+   for the piece (owner, 2026-10-12, #351).
 4. Once a piece is on, Undo: it takes it back until the party sets out.
    Finished by setting out.
 5. Only after Equip has taken a piece from the horse that wore it: the

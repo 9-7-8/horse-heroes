@@ -132,9 +132,8 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
 - **Nothing equips by itself** (owner, 2026-10-12, [vision.md](vision.md),
   "Builds are the player's"; #351). A drop left alone stays carried, and no
   lesson names a horse for it. Leaving it is still valid play; do not call
-  it a mistake. *Until #351 is built the game still puts a drop left alone
-  on the horse it helps most at setting out; this file used to call that
-  valid play.*
+  it a mistake. (Built 2026-10-12; this file used to call auto-equip at
+  setting out valid play.)
 - **A hint has to be met** (owner, 2026-10-12, #353): the line under the
   status strip was not noticed in 0.2.2. A lesson is a pop-up by the thing
   it is about, and the game pauses until it is answered, on the road too.
@@ -143,7 +142,7 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
 - **The card gives numbers, not a verdict** (owner, 2026-10-12, #351): no
   lesson or card says a piece is an upgrade.
 - **The 12 seconds are not a deadline to learn.** Setting out mid-read loses
-  nothing: the appraisal and the road's log say where the piece went, Equip
+  nothing: the piece stays carried, Equip
   says "in town only", and the lesson is offered again at the next town.
 - **Do not oversell an upgrade.** A win raises enemy health and attack by
   15%, and enemy elements are rolled per trail. The next trail is not a fair

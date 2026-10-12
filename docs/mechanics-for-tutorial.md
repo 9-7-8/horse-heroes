@@ -55,10 +55,10 @@ This is what a tutorial could be tested against now.
 | **Party element** | Fire, Ice or Plant (F, I, P), in town only | Fire beats Plant beats Ice beats Fire: x1.5 strong, x0.75 resisted. Enemy elements are rolled per trail |
 | **Winning and losing** | Nothing | A win raises the trail level: enemies +15% health and attack, drops +1 stat point. A loss costs nothing yet |
 | **The loot shower** | Nothing | A kill bursts coins that arc, bounce, settle and are vacuumed to the party; the boss gives the full fountain |
-| **Gear drop** | Whether to equip it, and on whom | One piece per run if any encounter was cleared. If left in cargo, it goes on the horse it helps most at setting out, or stays carried: the cargo keeps every piece (#352) |
+| **Gear drop** | Whether to equip it, and on whom | One piece per run if any encounter was cleared. Nothing equips by itself (#351): left in cargo it stays carried, and the cargo keeps every piece (#352) |
 | **Slots** | Which horse wears what | Three: Head, Body, Saddle. Any horse wears any piece |
 | **Rarity** | Nothing | Normal (white), Magic (blue), Rare (yellow), Legendary (orange), Set (green). Each also has its own shape, on the ground and in the menu. Today the top tiers are only more stat points and a beam |
-| **Item card** | Press a piece to pin its card; Equip (E) | Shows the piece, where it is, and each stat before and after on the selected horse, with a verdict: upgrade, no better, worse |
+| **Item card** | Press a piece to pin its card; Equip (E) | Shows the piece, where it is, and each stat before and after on the selected horse. The numbers only: no verdict, and no horse suggested (#351) |
 | **Swap** | Equip on a piece another horse wears | The two horses change pieces; nothing is lost |
 | **Camp appraisal** | Nothing | The report says where the drop will go and what it replaces, unprompted |
 | **Coins** | Nothing: there is nothing to spend them on | Counted in the status strip |
@@ -105,7 +105,7 @@ exists, but should not send a new player to press one.
 - **Undo** for everything reversible; confirmation only for what cannot be
   taken back (#230).
 - **A place says when it wants attention** and stops once seen (#232,
-  built: a dot on Horses for an upgrade in the cargo, on Journal for a
+  built: a dot on Horses for new gear in the cargo, on Journal for a
   lost trail or a Legendary drop).
 - **Journal** as the one home for reports, journal and codex (#231).
 - **Coloured text** per element and trait on items (#251).
@@ -330,10 +330,9 @@ asks. Steps 1 to 4 work in the game as built.
 - **The built element system will be replaced.** One element for the whole
   party (step 5) goes in 0.3.3, when elements move to abilities. Anything
   taught about it now is taught twice.
-- **Auto-equip hides the decision.** A drop left alone is equipped by itself
-  at setting out, so a new player can go several trails without opening a
-  card. Good for "no decisions on the first trail", and a reason step 3
-  needs a prompt (mine).
+- **Nothing equips by itself** (owner, 2026-10-12, #351). A drop left alone
+  stays carried, so a new player who never opens a card walks every trail
+  bare. That is a reason step 3 needs its prompt (mine).
 - **Legendary and Set promise more than they give** until #33.
 - **Reactions are for hard fights**: an easy fight may end before one fires,
   so step 8 cannot be taught on an easy trail.

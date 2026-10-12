@@ -12,8 +12,9 @@ element, equips early, or skips the wait.
 Keys, in camp only: `1` Fire, `2` Ice, `3` Plant, `E` equip the drop,
 `Space` set out. No town leaves by itself (#305): the party waits for
 Space unless Keep going (`G`, on the Map) is on, and then it leaves after
-12 s. Either way it equips the drop first if it is an upgrade. A lost
-trail turns Keep going off.
+12 s. Either way nothing is equipped at the gate (#351): a piece is worn
+only because the player put it on a horse. A lost trail turns Keep going
+off.
 
 A trail that is over, won or lost, ends with a walk back to town
 (`Game::secs_to_town`, as long as `travel_secs`): the party is in town only
@@ -53,12 +54,13 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 - One gear drop per run if at least one encounter was cleared; a win shifts
   the rarity weights up. Each piece fits one of three slots (Head, Body,
   Saddle) and any horse can wear it (owner, 2026-10-11, #250): Equip puts
-  it on the selected horse. A party that leaves town with the piece still
-  in cargo puts it on the horse it does most for (`loot::best_wearer`), if
-  it betters any of them; the report says which horse and what changes
-  before it happens (item-card.md). The cargo (`Game::cargo`) keeps every
-  piece, newest first, on the road as in town (#352): a piece no horse
-  takes stays carried, a worn piece that a carried one replaces takes its
+  it on the selected horse. Nothing equips by itself (owner, 2026-10-12,
+  #351): a party that leaves town with the piece still in cargo wears what
+  it wore and still carries the piece, and the game names no horse for it
+  (`setting_out_equips_nothing`). The report says what was brought back and
+  that it is carried (item-card.md). The cargo (`Game::cargo`) keeps every
+  piece, newest first, on the road as in town (#352): a piece left alone
+  stays carried, a worn piece that a carried one replaces takes its
   place in the cargo, and nothing leaves the cargo but onto a horse. It
   has no capacity yet (#34). On a win the piece comes out of the last
   enemy to fall (`Kill::gear`); on a loss it is only reported in town.

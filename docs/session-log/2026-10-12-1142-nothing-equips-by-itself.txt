@@ -1,0 +1,70 @@
+SESSION 2026-10-12 11:42 - Nothing equips by itself (#351)
+
+ASKED
+  /next, with no steer. Tier 1 was empty but for #246, which waits on
+  the owner watching a few trails. Tier 2 was swept last session and
+  src/sim/ had not changed. The feature was what PICK UP named, a menus
+  issue of 0.2.3: #351.
+
+DONE
+  - Setting out puts nothing on (9b1a062, closes #351). A piece is worn
+    only because the player put it on a horse; one left alone stays
+    carried. loot::best_wearer and loot::gain are gone with their uses.
+    Tested: setting_out_equips_nothing, by Set out and by Keep going's
+    own departure, ten trails each. 192 tests pass.
+  - No verdict anywhere: the line under the drop in the cargo, the
+    "An upgrade: +N points." line of the comparison and its colour are
+    gone. Each stat's change stays, with its sign, word and colour.
+    Tested: the_card_gives_numbers_and_no_verdict. Seen running: the
+    lesson walk and the menu tour at --seed 6 --cargo 7.
+  - The appraisal in the report is two lines: the piece's name, and
+    "Carried until you put it on a horse." No horse is named. Tested,
+    and seen in the tour's picture 50.
+  - The lessons: "the card's before and after are its", "Left alone, it
+    stays carried, and nothing is lost", and the piece's other line for
+    a piece put on with its card unopened. The first item's lessons
+    still walk (IDLE_LESSON, ten pictures, no warning); the gallery's
+    five pictures are retaken at 1120x640.
+  - The click-budget walk still finishes, nothing over budget.
+  - docs: expedition, item-card, lessons, mechanics-for-tutorial,
+    menu-shell, click-budget, philosophy/inventory and onboarding.
+
+DECIDED (by the session, for her)
+  - The points line of the comparison ("An upgrade: +6 points.") went
+    with the verdict line: one number for a piece is a verdict too.
+    The words "better", "worse", "new" and "lost" on a single stat's
+    change stay; they are about the stat, not the piece.
+  - The mark on Horses is now raised by any piece the last trail brought
+    back and that is still carried (Raise::NewGear), since the game no
+    longer says which piece is an upgrade. With #352's many drops it
+    will be raised after nearly every trail; it may want a rarity floor
+    like the Journal's, or to go.
+  - The cargo's cell has two lines now, name and kind; under a report
+    the third line says "Carried in the cargo." or who wears it.
+
+FOUND
+  - IDLE_LESSON names a folder, not a file prefix; given a prefix every
+    picture fails to save and the run still exits 0.
+  - A here-document in the Bash tool loses backslashes: scripts with
+    them go through the Write tool (build-and-run.txt says so; it was
+    forgotten once this session).
+  - With nothing worn by itself, the tour's second trail at --seed 6 is
+    harder: its picture 89, "a plain report raises no mark", now shows a
+    mark on the Journal.
+
+NOT DONE
+  - The tour's step names for pictures 49 and 89 were not checked
+    against what they now show, and the tour's other pictures were not
+    all read (16, 50 and 89 were).
+  - The soak run was not run. soak.rs compares the game's log with the
+    sim's and allowed for the gate's lines; there are none now.
+  - The jobs "Equip an upgrade the report just showed" and "Find out
+    why a piece was left behind" keep the owner's names (jobs.ron,
+    menus.md), though no piece is left behind any more.
+  - A bare party that never equips walks every trail without gear;
+    balance for that was not looked at.
+
+PICK UP
+  The rest of #352: every monster drops gear (a least and a most per
+  kill by enemy kind, in assets/data/, rolled in the sim), then the
+  rarity weights retuned with their test.
