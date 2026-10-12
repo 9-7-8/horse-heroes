@@ -769,6 +769,8 @@ enum Fact {
     /// A part of the horse's view open in a place: what the horse has of
     /// that tab of the horses' place.
     HorsePart(usize, usize),
+    /// What the horse whose view is open in a place did on the last trail.
+    HorseTrail(usize),
     /// The card of the piece the pointer rests on; in the Inventory, its
     /// comparison.
     Hovered,
@@ -1606,7 +1608,7 @@ fn spawn_horse_parts(parent: &mut ChildSpawnerCommands, t: &Tokens, map: &Places
                 parts.spawn((text(t, ""), Live(Fact::HorsePart(p, tab))));
             }
             parts.spawn(dim(t, "LAST TRAIL"));
-            parts.spawn(text(t, "What each horse did on a trail is not kept yet."));
+            parts.spawn((text(t, ""), Live(Fact::HorseTrail(p))));
         });
 }
 
@@ -2763,6 +2765,10 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             Some(Item::Horse(horse)) => horse_part(game, map, horse, tab),
             _ => String::new(),
         },
+        Fact::HorseTrail(place) => match shell.detail(place).map(|detail| detail.item) {
+            Some(Item::Horse(horse)) => horse_trail(game, horse),
+            _ => String::new(),
+        },
         Fact::Hovered => shell.pointed().map_or(String::new(), |(_, piece)| {
             match map.content(shell.place(), shell.tab(shell.place())) {
                 Content::Inventory => card::pointed_comparison(game, piece, shell.horse()),
@@ -2853,6 +2859,36 @@ fn horse_part(game: &Game, map: &Places, horse: usize, tab: usize) -> String {
         },
         None => String::new(),
     }
+}
+
+/// What a horse did on the last trail the party finished (#311), a short
+/// line a thing, for the narrowest side panel.
+fn horse_trail(game: &Game, horse: usize) -> String {
+    let Some(kept) = game.last_report() else {
+        return "No trail walked yet.".into();
+    };
+    let Some(deeds) = kept.outcome.deeds.get(horse) else {
+        return String::new();
+    };
+    let count = |n: u32, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
+    let mut lines = vec![
+        format!(
+            "Trail {}, {}",
+            kept.number,
+            if kept.outcome.won { "won" } else { "lost" }
+        ),
+        format!("Dealt {}, {}", deeds.dealt, count(deeds.kills, "kill", "kills")),
+        format!("{} strong, {} resisted", deeds.strong_hits, deeds.resisted_hits),
+        format!("Took {}", deeds.taken),
+    ];
+    if deeds.wards > 0 {
+        lines.push(format!("Raised {}", count(deeds.wards, "Ward", "Wards")));
+    }
+    if deeds.fell {
+        lines.push("Fell in the fight".into());
+    }
+    lines.join("
+")
 }
 
 /// The working controls among these that cannot be used now, gathered by the
@@ -3632,7 +3668,20 @@ mod tests {
             assert_eq!(part.contains("Head: nothing worn"), page.content == Content::Gear);
             assert_eq!(part.starts_with("Not built yet."), page.content == Content::Planned);
         }
+        assert_eq!(
+            fact(&game, &uncollected, &shell, &places, Fact::HorseTrail(0)),
+            "No trail walked yet."
+        );
         // A part is of the view that is open, and of nothing else.
+        assert_eq!(fact(&game, &uncollected, &shell, &places, Fact::HorseTrail(2)), "");
+        // Back from a trail, it is what that horse did on it.
+        let back = Game::back_from_a_trail(6);
+        let deeds = back.last_report().unwrap().outcome.deeds[1];
+        let said = fact(&back, &uncollected, &shell, &places, Fact::HorseTrail(0));
+        assert!(said.starts_with("Trail 1, won\n"), "{said}");
+        assert!(said.contains(&format!("Dealt {}, ", deeds.dealt)), "{said}");
+        assert!(said.contains(&format!("Took {}", deeds.taken)), "{said}");
+        assert!(said.lines().all(|line| line.len() <= 25), "{said}");
         assert_eq!(fact(&game, &uncollected, &shell, &places, Fact::HorsePart(2, 0)), "");
 
         // A press on a part goes to its tab, from another place too; the

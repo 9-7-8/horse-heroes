@@ -488,6 +488,15 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("a plain report raises no mark".into()),
         Step::Key(KeyCode::KeyH),
         Step::Shot("seen and the mark is gone".into()),
+        // What a horse did on the trail it is back from (#311), at the end
+        // of its view.
+        Step::Key(KeyCode::KeyX),
+        Step::Key(KeyCode::PageDown),
+        Step::Key(KeyCode::PageDown),
+        Step::Key(KeyCode::PageDown),
+        Step::Key(KeyCode::PageDown),
+        Step::Key(KeyCode::PageDown),
+        Step::Shot("a horse's last trail".into()),
     ]);
     tour.steps = steps;
 }

@@ -445,6 +445,11 @@ impl Game {
         self.find(self.open_report()?.outcome.drop.as_ref()?)
     }
 
+    /// The report of the last trail the party finished, if it has walked one.
+    pub fn last_report(&self) -> Option<&Kept> {
+        self.reports.last()
+    }
+
     /// The kept report the Journal is open at: an earlier one, or in town
     /// the last trail's. None on the road while the report is the fight's.
     fn open_report(&self) -> Option<&Kept> {

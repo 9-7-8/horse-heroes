@@ -64,6 +64,20 @@ impl Plan {
     }
 }
 
+/// What one horse did on a trail (#311), for its view. Damage is the
+/// health it took off or lost, so a trail's sums are its enemies' health and
+/// the party's.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Deeds {
+    pub dealt: i32,
+    pub kills: u32,
+    pub strong_hits: u32,
+    pub resisted_hits: u32,
+    pub taken: i32,
+    pub wards: u32,
+    pub fell: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct Fighter {
     pub name: String,
@@ -73,6 +87,7 @@ pub struct Fighter {
     pub attack: i32,
     pub defense: i32,
     pub elemental: i32,
+    pub deeds: Deeds,
     attack_timer: f32,
     ability_timer: f32,
 }
@@ -127,6 +142,8 @@ pub struct Outcome {
     pub resisted_hits: u32,
     pub coins: i32,
     pub drop: Option<Gear>,
+    /// What each horse did, in the party's order.
+    pub deeds: Vec<Deeds>,
 }
 
 #[derive(Clone, Debug)]
@@ -166,6 +183,7 @@ impl Expedition {
                     attack: stats.attack,
                     defense: stats.defense,
                     elemental: stats.elemental,
+                    deeds: Deeds::default(),
                     attack_timer: rules.attack_interval,
                     ability_timer: match horse.class {
                         Class::Ranger => rules.focused_shot_cooldown,
@@ -291,6 +309,7 @@ impl Expedition {
                     Class::Mage => {
                         self.party[i].ability_timer += rules.ward_cooldown;
                         self.ward = rules.ward_duration;
+                        self.party[i].deeds.wards += 1;
                         self.log
                             .push(format!("{} raises a Ward.", self.party[i].name));
                     }
@@ -321,6 +340,7 @@ impl Expedition {
                 damage *= 1.0 - rules.ward_reduction;
             }
             let damage = damage.round().max(1.0) as i32;
+            victim.deeds.taken += damage.min(victim.health);
             victim.health = (victim.health - damage).max(0);
             self.log.push(format!(
                 "{} hits {} for {}{}",
@@ -330,6 +350,7 @@ impl Expedition {
                 if warded { " (Warded)" } else { "" }
             ));
             if victim.health == 0 {
+                victim.deeds.fell = true;
                 self.log.push(format!("{} falls!", victim.name));
             }
         }
@@ -388,6 +409,7 @@ impl Expedition {
             resisted_hits: self.resisted_hits,
             coins: self.coins,
             drop,
+            deeds: self.party.iter().map(|fighter| fighter.deeds).collect(),
         });
     }
 
@@ -416,14 +438,18 @@ impl Expedition {
         let multiplier = rules.multiplier(self.element, foe.element);
         let damage = (physical - foe.defense as f32).max(0.0) + elemental * multiplier;
         let damage = damage.round().max(1.0) as i32;
+        let deeds = &mut self.party[horse].deeds;
+        deeds.dealt += damage.min(foe.health);
         foe.health = (foe.health - damage).max(0);
 
         let mut note = "";
         if elemental > 0.0 && multiplier > 1.0 {
             self.strong_hits += 1;
+            deeds.strong_hits += 1;
             note = "  Strong!";
         } else if elemental > 0.0 && multiplier < 1.0 {
             self.resisted_hits += 1;
+            deeds.resisted_hits += 1;
             note = "  Resisted";
         }
         self.log.push(format!(
@@ -432,6 +458,7 @@ impl Expedition {
         ));
 
         if foe.health == 0 {
+            self.party[horse].deeds.kills += 1;
             let coins = self.rng.range(foe.coins.0, foe.coins.1);
             self.coins += coins;
             self.log
@@ -1274,6 +1301,40 @@ mod tests {
 
     /// A kill's coins are within its enemy's range in `enemies.ron`, and over
     /// many kills they reach both ends of it.
+    /// What each horse did (#311) adds up to what happened on the trail.
+    #[test]
+    fn the_horses_deeds_add_up_to_the_trail() {
+        let data = Data::load();
+        let (mut won, mut lost) = (0, 0);
+        for seed in 0..200 {
+            for level in [0, 6] {
+                let run = run(&data, seed, level, Element::Fire);
+                let outcome = run.outcome.as_ref().unwrap();
+                let deeds = &outcome.deeds;
+                assert_eq!(deeds.len(), run.party.len());
+                assert_eq!(deeds.iter().map(|d| d.kills as usize).sum::<usize>(), run.kills.len());
+                assert_eq!(deeds.iter().map(|d| d.strong_hits).sum::<u32>(), outcome.strong_hits);
+                assert_eq!(deeds.iter().map(|d| d.resisted_hits).sum::<u32>(), outcome.resisted_hits);
+                let fallen: i32 = run.kills.iter().map(|kill| kill.max_health).sum();
+                let dealt: i32 = deeds.iter().map(|d| d.dealt).sum();
+                if outcome.won {
+                    assert_eq!(dealt, fallen, "seed {seed}");
+                    won += 1;
+                } else {
+                    assert!(dealt >= fallen, "seed {seed}");
+                    lost += 1;
+                }
+                for (fighter, deeds) in run.party.iter().zip(deeds) {
+                    assert_eq!(deeds.fell, fighter.health == 0, "seed {seed}");
+                    // The spring heals, so a horse may have lost more than it is short of.
+                    assert!(deeds.taken >= fighter.max_health - fighter.health, "seed {seed}");
+                    assert!(deeds.wards == 0 || fighter.class == Class::Mage);
+                }
+            }
+        }
+        assert!(won > 0 && lost > 0, "{won} won, {lost} lost");
+    }
+
     #[test]
     fn a_kill_drops_coins_within_its_enemys_range() {
         let data = Data::load();
