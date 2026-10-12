@@ -506,6 +506,12 @@ impl Shell {
         self.horse
     }
 
+    /// Whether the Gear tab shows this horse's gear (#314): the selected
+    /// horse's, and no other's.
+    pub fn wears(&self, horse: usize) -> bool {
+        horse == self.horse
+    }
+
     pub fn tab(&self, place: usize) -> usize {
         self.tabs[place]
     }
@@ -681,8 +687,9 @@ pub struct PartButton {
     pub tab: usize,
 }
 
-/// A gear slot of a horse in the overview. Opens the piece in the side
-/// panel, whoever is selected.
+/// A gear slot of a horse: on the Gear tab, where only the selected
+/// horse's are in view (#314), and a tile of the Inventory. Opens the piece
+/// in the side panel.
 #[derive(Component)]
 pub struct SlotRow {
     pub place: usize,
@@ -721,8 +728,8 @@ enum When {
     NoneHeld(usize),
 }
 
-/// A horse's column of the gear overview, outlined while it is the selected
-/// horse's.
+/// A horse's gear on the Gear tab: there while it is the selected horse's,
+/// and no other horse's is (#314).
 #[derive(Component)]
 struct Wearer(usize);
 
@@ -803,8 +810,6 @@ enum Fact {
     Health(usize),
     SelectedHorse,
     SelectedStats,
-    /// The heading of a horse's column in the overview.
-    Wearer(usize),
     /// The piece a horse wears in a slot, and the line under it.
     Worn(usize, usize),
     WornLine(usize, usize),
@@ -871,7 +876,7 @@ impl Plugin for ShellPlugin {
                     see,
                     mark_chosen,
                     mark_unseen,
-                    mark_wearer,
+                    show_wearer,
                     show_carried,
                     show_hover_card,
                     picture::show_pictures,
@@ -1406,55 +1411,35 @@ fn spawn_content(
         }
         Content::Gear => {
             page.spawn((text(t, ""), Live(Fact::SelectedStats)));
-            // The overview (#285): a column for each horse and a slot on
-            // each line, so everything worn is seen without selecting.
-            page.spawn(Node {
-                column_gap: Val::Px(t.space.s),
-                margin: UiRect::top(Val::Px(t.space.s)),
-                flex_shrink: 0.0,
-                ..default()
-            })
-            .with_children(|overview| {
-                for horse in 0..horses {
-                    overview
-                        .spawn((
-                            Node {
-                                flex_grow: 1.0,
-                                flex_basis: Val::Px(0.0),
-                                min_width: Val::Px(0.0),
-                                flex_direction: FlexDirection::Column,
-                                row_gap: Val::Px(t.space.s),
-                                padding: UiRect::all(Val::Px(t.space.xs)),
-                                border: UiRect::all(Val::Px(t.size.border)),
-                                border_radius: BorderRadius::all(Val::Px(t.size.radius)),
-                                ..default()
-                            },
-                            BorderColor::all(Color::NONE),
-                            Wearer(horse),
-                        ))
-                        .with_children(|slots| {
-                            slots.spawn((text(t, ""), Live(Fact::Wearer(horse))));
-                            for slot in Slot::ALL {
-                                let slot = slot.index();
-                                let piece = Piece::Worn { horse, slot };
-                                slots
-                                    .spawn((cell(t), SlotRow { place, tab, horse, slot }))
-                                    .with_children(|cell| {
-                                        cell.spawn((
-                                            text(t, ""),
-                                            Live(Fact::Worn(horse, slot)),
-                                        ));
-                                        spawn_pictured(cell, t, piece, |lines| {
-                                            lines.spawn((
-                                                dim(t, ""),
-                                                Live(Fact::WornLine(horse, slot)),
-                                            ));
-                                        });
-                                    });
-                            }
-                        });
-                }
-            });
+            // The selected horse's gear and no other's (#314): a row for
+            // each slot. Every horse's rows are here, and only the selected
+            // horse's show. All the party's gear at once is the Inventory.
+            for horse in 0..horses {
+                page.spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(t.space.s),
+                        margin: UiRect::top(Val::Px(t.space.s)),
+                        flex_shrink: 0.0,
+                        ..default()
+                    },
+                    Wearer(horse),
+                ))
+                .with_children(|slots| {
+                    for slot in Slot::ALL {
+                        let slot = slot.index();
+                        let piece = Piece::Worn { horse, slot };
+                        slots
+                            .spawn((cell(t), SlotRow { place, tab, horse, slot }))
+                            .with_children(|cell| {
+                                spawn_pictured(cell, t, piece, |lines| {
+                                    lines.spawn((text(t, ""), Live(Fact::Worn(horse, slot))));
+                                    lines.spawn((dim(t, ""), Live(Fact::WornLine(horse, slot))));
+                                });
+                            });
+                    }
+                });
+            }
         }
         Content::Inventory => {
             // A headed group for each type (#308). Every tile a group can
@@ -2539,21 +2524,22 @@ fn mark_unseen(
     }
 }
 
-/// Outline the selected horse's column of the overview: the horse a piece
-/// would go onto.
-fn mark_wearer(
-    shell: Res<Shell>,
-    tokens: Res<Tokens>,
-    mut columns: Query<(&Wearer, &mut BorderColor)>,
-) {
-    for (wearer, mut border) in &mut columns {
-        let wanted = BorderColor::all(if wearer.0 == shell.horse() {
-            tokens.colour.accent.0
+/// The Gear tab shows the selected horse's gear and no other's (#314).
+fn show_wearer(shell: Res<Shell>, mut horses: Query<(&Wearer, &mut Node, &mut Visibility)>) {
+    for (wearer, mut node, mut visibility) in &mut horses {
+        let shown = shell.wears(wearer.0);
+        let wanted = if shown { Display::Flex } else { Display::None };
+        if node.display != wanted {
+            node.display = wanted;
+        }
+        // Hidden too, so that Tab passes over it (#244).
+        let wanted = if shown {
+            Visibility::Inherited
         } else {
-            Color::NONE
-        });
-        if *border != wanted {
-            *border = wanted;
+            Visibility::Hidden
+        };
+        if *visibility != wanted {
+            *visibility = wanted;
         }
     }
 }
@@ -2763,17 +2749,13 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 selected.name, stats.health, stats.attack, stats.defense, stats.elemental
             )
         }
-        Fact::Wearer(horse) if horse == shell.horse() => {
-            format!("{}, selected", game.party[horse].name)
-        }
-        Fact::Wearer(horse) => game.party[horse].name.clone(),
         Fact::Worn(horse, slot) => match &game.party[horse].gear[slot] {
             Some(gear) => gear.name.clone(),
             None => "nothing worn".into(),
         },
         Fact::WornLine(horse, slot) => match &game.party[horse].gear[slot] {
-            // Its picture says which slot; the room goes to what it adds.
-            Some(gear) => stats_line(gear.stats),
+            // The slot, and what the piece in it adds.
+            Some(gear) => format!("{}: {}", Slot::ALL[slot].name(), stats_line(gear.stats)),
             None => Slot::ALL[slot].name().into(),
         },
         Fact::Detail(place) => {
@@ -4048,6 +4030,24 @@ mod tests {
     }
 
     /// Selecting a horse in one place selects it in all of them.
+    /// Gear is the selected horse's gear and no other horse's (#314), and
+    /// another horse's is one press away. A piece pinned there stays, to be
+    /// compared on the horse pressed.
+    #[test]
+    fn gear_shows_the_selected_horse_and_follows_a_press() {
+        let mut shell = Shell::new(6);
+        let shown = |shell: &Shell| (0..3).filter(|&horse| shell.wears(horse)).collect::<Vec<_>>();
+        assert_eq!(shown(&shell), [0]);
+        shell.inspect(2, None);
+        assert_eq!(shown(&shell), [2]);
+        shell.close_detail();
+        let worn = Item::Worn { horse: 2, slot: 0 };
+        shell.show_detail(0, Detail { tab: 0, item: worn, opener: None });
+        shell.inspect(1, None);
+        assert_eq!(shown(&shell), [1]);
+        assert_eq!(shell.detail(0).map(|detail| detail.item), Some(worn));
+    }
+
     #[test]
     fn one_horse_is_selected_everywhere() {
         let mut shell = Shell::new(5);

@@ -45,7 +45,7 @@
                 (
                     name: "Gear",
                     key: "1",
-                    job: "What every horse wears, beside what is carried.",
+                    job: "What the selected horse wears, beside what is carried.",
                     content: Gear,
                     controls: [
                         (name: "Take off", does: "Takes the piece in the open slot off the selected horse and puts it in the cargo.", issue: 227),

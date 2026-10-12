@@ -95,7 +95,7 @@ enum Step {
     Horse(usize),
     /// A part of a horse's view, by the tab of the horses' place it goes to.
     Part(usize),
-    /// A slot of the gear overview: the horse, then the slot.
+    /// A horse's slot, on Gear or in the Inventory: the horse, then the slot.
     Slot(usize, usize),
     /// Press the first control of that name.
     Control(&'static str),
@@ -420,10 +420,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::Escape),
         Step::Key(KeyCode::ArrowLeft),
         Step::Shot("by arrows across to the horses".into()),
-        // Past the three horses of the overview.
-        Step::Key(KeyCode::ArrowRight),
-        Step::Key(KeyCode::ArrowRight),
-        Step::Key(KeyCode::ArrowRight),
+        // The slots are one horse's (#314), so the cargo is next to them.
         Step::Key(KeyCode::ArrowRight),
         Step::Shot("by arrows across to the cargo".into()),
         // Space presses what has the focus, so let go of it before Space
@@ -434,10 +431,19 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         // Worn, it is still in its group of the Inventory, under its horse.
         Step::Key(KeyCode::KeyB),
         Step::Shot("inventory with the drop worn".into()),
+        // Gear is the selected horse's gear and no other's (#314), and it
+        // follows a press on another horse.
         Step::Key(KeyCode::KeyH),
-        // The overview (#285): with the first horse selected, open what
-        // the third wears on its head and equip it: the two change places.
+        Step::Shot("gear is the selected horse's".into()),
+        Step::Key(KeyCode::KeyX),
+        Step::Shot("gear follows a press on another horse".into()),
+        Step::Key(KeyCode::Escape),
+        // Another horse's piece is in the Inventory: with the first horse
+        // selected, open what the third wears on its head and equip it, and
+        // the two change places.
+        Step::Key(KeyCode::KeyB),
         Step::Key(KeyCode::KeyZ),
+        Step::Key(KeyCode::Escape),
         Step::Point,
         Step::Slot(2, 0),
         Step::Shot("the pointer on another horse's piece".into()),
@@ -456,6 +462,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyU),
         Step::Shot("nothing left to undo".into()),
         Step::Key(KeyCode::Escape),
+        Step::Key(KeyCode::KeyH),
         Step::Key(KeyCode::KeyC),
         Step::Key(KeyCode::Digit2),
         Step::Key(KeyCode::KeyI),
@@ -691,8 +698,8 @@ fn tour(
             .filter(|(_, b)| b.tab == *t)
             .min_by_key(|(e, _)| !seen(*e))
             .map(|(e, _)| e),
-        // The one in sight: the Inventory shows the same pieces as the
-        // overview and the cargo.
+        // The one in sight: the Inventory shows the same pieces as Gear
+        // and the cargo.
         Step::Slot(h, s) => slots
             .iter()
             .filter(|(_, b)| b.horse == *h && b.slot == *s)
