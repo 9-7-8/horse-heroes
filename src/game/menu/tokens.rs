@@ -42,7 +42,6 @@ pub struct Sizes {
     pub focus_ring: f32,
     pub focus_gap: f32,
     pub card_width: f32,
-    pub hover_card_width: f32,
     pub cell_height: f32,
     pub inventory_cell: f32,
     pub inventory_picture: f32,

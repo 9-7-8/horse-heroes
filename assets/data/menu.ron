@@ -16,9 +16,6 @@
         focus_ring: 2,
         focus_gap: 2,
         card_width: 164,
-        // The card the pointer shows beside a piece of gear: wide enough
-        // for the heading of the comparison on one line at the body size.
-        hover_card_width: 320,
         // A slot in the gear overview: room for a piece's name and one line
         // under it. A piece that adds to many stats takes a second line; at
         // 62, room for two always, the three slots no longer fit under the
@@ -29,9 +26,10 @@
         // Wide enough for "Carried" and a horse's name on one line.
         inventory_cell: 104,
         inventory_picture: 56,
-        // The comparison beside the Inventory's grid: wide enough for its
-        // table of four columns. It keeps its room whether or not a piece
-        // is open, so the grid never moves.
+        // The comparison of a piece, pinned in a side panel or under the
+        // pointer, in every place (#312): wide enough for its table of four
+        // columns. Beside the Inventory's grid it keeps its room whether or
+        // not a piece is open, so the grid never moves.
         compare_width: 420,
         // The stand-in picture of a piece of gear: the side of its square
         // and the room left around the shape in it. It sits under the

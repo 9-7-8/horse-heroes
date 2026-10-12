@@ -771,8 +771,7 @@ enum Fact {
     HorsePart(usize, usize),
     /// What the horse whose view is open in a place did on the last trail.
     HorseTrail(usize),
-    /// The card of the piece the pointer rests on; in the Inventory, its
-    /// comparison.
+    /// The comparison of the piece the pointer rests on.
     Hovered,
     /// What the comparison's room says while no piece is open in it.
     CompareHint,
@@ -1088,9 +1087,10 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                             });
 
                             if place.horse_columns {
-                                // The detail opens in the cargo's room and
-                                // at its width, so opening one moves nothing
-                                // on the tab beside it (#287).
+                                // The detail opens in the cargo's room, and
+                                // a horse's view at its width, so opening
+                                // one moves nothing on the tab beside it
+                                // (#287). A piece's comparison is wider.
                                 body.spawn((panel(t), Page::Cargo(p)))
                                     .insert(column(t.size.cargo_width))
                                     .with_children(|cargo| {
@@ -1241,7 +1241,8 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
     .insert(Node {
         position_type: PositionType::Absolute,
         display: Display::None,
-        width: Val::Px(t.size.hover_card_width),
+        // It is the comparison, which has a table to fit.
+        width: Val::Px(t.size.compare_width),
         flex_direction: FlexDirection::Column,
         padding: UiRect::all(Val::Px(t.space.m)),
         border: UiRect::all(Val::Px(t.size.border)),
@@ -2221,7 +2222,6 @@ fn beside(cell: Rect, window: Vec2, gap: f32) -> UiRect {
 fn show_hover_card(
     tokens: Res<Tokens>,
     shell: Res<Shell>,
-    map: Res<Places>,
     window: Single<&Window, With<PrimaryWindow>>,
     cells: Query<(&ComputedNode, &UiGlobalTransform)>,
     card: Single<(&mut Node, &mut Visibility), With<HoverCard>>,
@@ -2250,14 +2250,6 @@ fn show_hover_card(
         && (node.left, node.right, node.top, node.bottom) != (at.left, at.right, at.top, at.bottom)
     {
         (node.left, node.right, node.top, node.bottom) = (at.left, at.right, at.top, at.bottom);
-    }
-    // In the Inventory it is the comparison, which has a table to fit.
-    let width = Val::Px(match map.content(shell.place(), shell.tab(shell.place())) {
-        Content::Inventory => tokens.size.compare_width,
-        _ => tokens.size.hover_card_width,
-    });
-    if node.width != width {
-        node.width = width;
     }
 }
 
@@ -2310,10 +2302,14 @@ fn show_place(
         if node.display != wanted {
             node.display = wanted;
         }
-        // A piece pinned in the Inventory has the comparison's width.
+        // A pinned piece has the comparison's width, wherever it is pinned
+        // (#312), and the Inventory keeps that room for it.
         if let Page::Detail(place) = *page {
             let columns = map.pages().nth(place).is_some_and(|page| page.horse_columns);
-            let width = Val::Px(match (inventory(place), columns) {
+            let piece = shell
+                .detail(place)
+                .is_some_and(|detail| detail.item.piece().is_some());
+            let width = Val::Px(match (inventory(place) || piece, columns) {
                 (true, _) => tokens.size.compare_width,
                 (false, true) => tokens.size.cargo_width,
                 (false, false) => tokens.size.side_panel_width,
@@ -2734,11 +2730,8 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 return String::new();
             };
             match detail.item.piece() {
-                // In the Inventory a piece is pinned to be compared.
-                Some(piece) if map.content(place, detail.tab) == Content::Inventory => {
-                    card::comparison(game, piece, shell.hand())
-                }
-                Some(piece) => card::pinned(game, piece, shell.hand()),
+                // A piece is pinned to be compared, in every place (#312).
+                Some(piece) => card::comparison(game, piece, shell.hand()),
                 None => {
                     let id = match detail.item {
                         Item::Control(id) => id,
@@ -2770,10 +2763,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             _ => String::new(),
         },
         Fact::Hovered => shell.pointed().map_or(String::new(), |(_, piece)| {
-            match map.content(shell.place(), shell.tab(shell.place())) {
-                Content::Inventory => card::pointed_comparison(game, piece, shell.horse()),
-                _ => card::hovered(game, piece, shell.horse()),
-            }
+            card::pointed_comparison(game, piece, shell.horse())
         }),
         Fact::CompareHint => card::compare_hint(selected),
         // Against the selected horse, the one Equip puts it on.
@@ -4041,7 +4031,7 @@ mod tests {
     fn the_hover_card_is_beside_its_piece_and_in_the_window() {
         let t = Tokens::load();
         let window = Vec2::new(t.layout.min_width, t.layout.min_height);
-        let width = t.size.hover_card_width;
+        let width = t.size.compare_width;
         let size = Vec2::new(t.size.cargo_width, t.size.cell_height);
         for x in [0.0, 300.0, window.x / 2.0, 700.0, window.x - size.x] {
             for y in [0.0, 200.0, window.y / 2.0, window.y - size.y] {

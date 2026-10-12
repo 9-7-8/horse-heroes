@@ -1,8 +1,9 @@
 //! The item card (#228): the one way a piece of gear is described, wherever
-//! it is shown. The summary is what a list shows of it; the pinned card is
-//! what the side panel shows when it is pressed, with the comparison against
-//! the selected horse and what Equip would do. Its actions are the `card`
-//! controls of `assets/data/places.ron`. How it works: docs/item-card.md.
+//! it is shown. The summary is what a list shows of it; the comparison is
+//! what the side panel shows when it is pressed, against the selected horse
+//! and with what Equip would do, the same in every place (#312). Its actions
+//! are the `card` controls of `assets/data/places.ron`. How it works:
+//! docs/item-card.md.
 
 use crate::game::{Action, Game, Hand, Piece, stats_line};
 use crate::sim::data::{Slot, Stats};
@@ -187,57 +188,29 @@ pub fn consequence(game: &Game, hand: Hand) -> String {
     }
 }
 
-/// The card pinned in the side panel: what the piece is and where, how it
-/// compares on the selected horse, and what Equip would do.
-pub fn pinned(game: &Game, piece: Piece, hand: Hand) -> String {
-    let selected = &game.party[hand.horse.min(game.party.len() - 1)];
+/// What the side panel says where there is no piece to compare: whose
+/// empty slot it is and what Equip would put there, or what belongs in an
+/// empty cargo.
+fn empty(game: &Game, piece: Piece, hand: Hand) -> String {
     let wearer = match piece {
         Piece::Worn { horse, .. } => game.party.get(horse),
         Piece::Carried => None,
     };
-    let Some(gear) = game.piece(piece) else {
-        return match (piece, wearer) {
-            (Piece::Worn { slot, .. }, Some(wearer)) => {
-                let mut out = format!(
-                    "{} slot of {}\nNothing worn.\nGear comes from the trail.",
-                    Slot::ALL[slot].name(),
-                    wearer.name,
-                );
-                let does = consequence(game, hand);
-                if !does.is_empty() {
-                    out += &format!("\n\n{does}");
-                }
-                out
+    match (piece, wearer) {
+        (Piece::Worn { slot, .. }, Some(wearer)) => {
+            let mut out = format!(
+                "{} slot of {}\nNothing worn.\nGear comes from the trail.",
+                Slot::ALL[slot].name(),
+                wearer.name,
+            );
+            let does = consequence(game, hand);
+            if !does.is_empty() {
+                out += &format!("\n\n{does}");
             }
-            _ => NOTHING_CARRIED.into(),
-        };
-    };
-    let mut out = face(game, gear, wearer, selected);
-    let does = consequence(game, hand);
-    if !does.is_empty() {
-        out += &format!("\n{does}");
+            out
+        }
+        _ => NOTHING_CARRIED.into(),
     }
-    out
-}
-
-/// What every card says of a piece: what it is, where it is, and how it
-/// compares on the selected horse.
-fn face(game: &Game, gear: &Gear, wearer: Option<&Horse>, selected: &Horse) -> String {
-    let mut out = format!(
-        "{}\n{}\n{}",
-        gear.name,
-        kind(game, gear),
-        match wearer {
-            Some(wearer) => format!("Worn by {}.", wearer.name),
-            None => "Carried in the cargo.".into(),
-        },
-    );
-    // Against the selected horse, the one Equip puts it on. A horse is not
-    // compared with what it wears already.
-    if !wearer.is_some_and(|wearer| std::ptr::eq(wearer, selected)) {
-        out += &format!("\n\n{}", compare(game, selected, gear));
-    }
-    out
 }
 
 /// What the comparison's room says in the Inventory while no piece is open.
@@ -279,14 +252,15 @@ fn table(equipped: Stats, selected: Stats) -> String {
     out
 }
 
-/// The comparison the Inventory pins on a piece (#308): whose it would be
-/// and in which slot, the piece equipped there and the piece selected, what
-/// equipping changes for that horse, the two pieces stat by stat, and what
-/// Equip would do. The horse is the selected one; another horse's key
-/// compares the same piece there, and nothing else on the panel moves.
+/// The comparison a press pins on a piece, wherever the piece is (#308,
+/// #312): whose it would be and in which slot, the piece equipped there and
+/// the piece selected, what equipping changes for that horse, the two pieces
+/// stat by stat, and what Equip would do. The horse is the selected one;
+/// another horse's key compares the same piece there, and nothing else on
+/// the panel moves.
 pub fn comparison(game: &Game, piece: Piece, hand: Hand) -> String {
     let Some(mut out) = weighed(game, piece, hand.horse) else {
-        return pinned(game, piece, hand);
+        return empty(game, piece, hand);
     };
     let does = consequence(game, hand);
     if !does.is_empty() {
@@ -295,8 +269,8 @@ pub fn comparison(game: &Game, piece: Piece, hand: Hand) -> String {
     out
 }
 
-/// The comparison under the pointer in the Inventory (#308): the pinned
-/// one's own lines, and how to pin it. What Equip would do is said beside
+/// The comparison under the pointer (#228, #308): the pinned one's own
+/// lines, and how to pin it. What Equip would do is said beside
 /// Equip, never only here. Empty where there is no piece.
 pub fn pointed_comparison(game: &Game, piece: Piece, horse: usize) -> String {
     weighed(game, piece, horse).map_or(String::new(), |said| format!("{said}\n\n{PRESS_PINS}"))
@@ -394,22 +368,6 @@ pub fn horse_wears(game: &Game, horse: usize) -> String {
 
 /// Under the card the pointer shows: how to get the rest of it.
 pub const PRESS_PINS: &str = "A press pins it, with its actions.";
-
-/// The card under the pointer (#228): the pinned card's own lines of what
-/// the piece is, where, and how it compares on the selected horse. What an
-/// action would do is on the pinned card, beside the action, and never only
-/// here. Empty where there is no piece to show.
-pub fn hovered(game: &Game, piece: Piece, horse: usize) -> String {
-    let Some(gear) = game.piece(piece) else {
-        return String::new();
-    };
-    let selected = &game.party[horse.min(game.party.len() - 1)];
-    let wearer = match piece {
-        Piece::Worn { horse, .. } => game.party.get(horse),
-        Piece::Carried => None,
-    };
-    format!("{}\n\n{PRESS_PINS}", face(game, gear, wearer, selected))
-}
 
 #[cfg(test)]
 mod tests {
@@ -516,39 +474,46 @@ mod tests {
         assert!(wears.contains(&format!("{}: {}\n  {}", gear.slot.name(), gear.name, stats_line(gear.stats))));
     }
 
-    /// The card is the same wherever the piece is (#228): carried or worn,
-    /// it opens with the same name and the same line of what it is.
+    /// The card is the same wherever the piece is (#228, #312): carried or
+    /// worn, a press shows its comparison, which names it with its rarity,
+    /// says where it is and whose it would be.
     #[test]
     fn a_piece_has_one_card_wherever_it_is() {
         let mut game = home();
         let gear = game.pending_drop().unwrap().clone();
-        let head = format!("{}\n{}\n", gear.name, kind(&game, &gear));
+        let named = format!("{} ({})", gear.name, game.data.gear.rarities[gear.rarity].name);
         let carried = Hand {
             horse: 0,
             open: Some(Piece::Carried),
         };
-        assert!(pinned(&game, Piece::Carried, carried).starts_with(&head));
+        let card = comparison(&game, Piece::Carried, carried);
+        assert!(card.contains(&format!("\nSelected: {named}\nCarried in the cargo.")), "{card}");
 
         let at = game.equipped_at(carried).unwrap();
         game.act(Action::Equip, carried);
+        let wearer = game.party[0].name.clone();
         for selected in 0..game.party.len() {
             let hand = Hand {
                 horse: selected,
                 open: Some(at),
             };
-            let card = pinned(&game, at, hand);
+            let card = comparison(&game, at, hand);
+            let head = format!("For {}, {}\n", game.party[selected].name, gear.slot.name());
             assert!(card.starts_with(&head), "{card}");
-            assert!(card.contains(&format!("Worn by {}.", game.party[0].name)));
             // Compared on the selected horse, unless it is the one wearing it.
-            assert_eq!(card.contains("\nOn "), selected != 0, "{card}");
+            let own = format!("\nEquipped: {named}\n{wearer} wears it.");
+            let other = format!("\nSelected: {named}\nWorn by {wearer}.");
+            assert_eq!(card.contains(&own), selected == 0, "{card}");
+            assert_eq!(card.contains(&other), selected != 0, "{card}");
+            assert_eq!(card.contains("AFTER EQUIPPING"), selected != 0, "{card}");
         }
     }
 
-    /// The card under the pointer (#228) is the pinned card as far as it
+    /// The card under the pointer (#228) is the pinned one as far as it
     /// goes: the same lines, for whichever horse is selected, and then how
     /// to pin it. What Equip would do is said only where Equip is.
     #[test]
-    fn the_hovered_card_is_the_start_of_the_pinned_one() {
+    fn the_pointed_card_is_the_start_of_the_pinned_one() {
         let mut game = home();
         let carried = Hand {
             horse: 1,
@@ -561,11 +526,12 @@ mod tests {
                     horse: selected,
                     open: Some(piece),
                 };
-                let said = hovered(&game, piece, selected);
+                let said = pointed_comparison(&game, piece, selected);
                 let lines = said.strip_suffix(&format!("\n\n{PRESS_PINS}")).expect(&said);
-                assert!(pinned(&game, piece, hand).starts_with(lines), "{said}");
-                assert_eq!(lines.contains("\nOn "), piece != Piece::Worn { horse: selected, slot: gear_slot(&game, piece) }, "{said}");
-                assert!(!said.contains("Equip"), "{said}");
+                assert!(comparison(&game, piece, hand).starts_with(lines), "{said}");
+                let own = piece == Piece::Worn { horse: selected, slot: gear_slot(&game, piece) };
+                assert_eq!(lines.contains("AFTER EQUIPPING"), !own, "{said}");
+                assert!(!said.contains("Equip puts"), "{said}");
             }
             game.act(Action::Equip, carried);
         }
@@ -573,8 +539,8 @@ mod tests {
         let empty = (0..Slot::ALL.len())
             .find(|slot| game.party[0].gear[*slot].is_none())
             .unwrap();
-        assert!(hovered(&game, Piece::Worn { horse: 0, slot: empty }, 0).is_empty());
-        assert!(hovered(&game, Piece::Carried, 0).is_empty());
+        assert!(pointed_comparison(&game, Piece::Worn { horse: 0, slot: empty }, 0).is_empty());
+        assert!(pointed_comparison(&game, Piece::Carried, 0).is_empty());
     }
 
     fn gear_slot(game: &Game, piece: Piece) -> usize {
@@ -661,7 +627,7 @@ mod tests {
             stats: Stats::default(),
         });
         assert!(consequence(&again, carried(0)).contains("Old Thing is thrown away"));
-        assert!(pinned(&again, Piece::Carried, carried(0)).contains("Old Thing is thrown away"));
+        assert!(comparison(&again, Piece::Carried, carried(0)).contains("Old Thing is thrown away"));
     }
 
     /// Camp appraisal (#11): with no input the report says where the drop
@@ -751,9 +717,9 @@ mod tests {
         let slot = Piece::Worn { horse: 0, slot: 0 };
         let mut bare = Game::back_from_a_trail(6);
         bare.party[0].gear[0] = None;
-        assert!(pinned(&bare, slot, hand).contains("Gear comes from the trail"));
+        assert!(comparison(&bare, slot, hand).contains("Gear comes from the trail"));
         let mut empty = home();
         empty.act(Action::Equip, hand);
-        assert_eq!(pinned(&empty, Piece::Carried, hand), NOTHING_CARRIED);
+        assert_eq!(comparison(&empty, Piece::Carried, hand), NOTHING_CARRIED);
     }
 }
