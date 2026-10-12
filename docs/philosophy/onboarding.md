@@ -143,7 +143,7 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
   Legendary and Set are more stat points and a beam until #33; do not
   promise powers or set bonuses.
 - **Coins are named, not taught.** There is nothing to spend them on.
-- **The party element is temporary.** It goes in 0.3.1 when elements move to
+- **The party element is temporary.** It goes in 0.3.3 when elements move to
   abilities. One short line at the first resisted fight; no branch of the
   tutorial is built on it.
 - **The permanent frame is the map.** Every place and planned button is
@@ -153,7 +153,7 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
   teach Escape as "back one level" where it is first useful. Never send a
   new player to press an unbuilt control.
 - **Nobody dies; say it early.** The costs of failure are taught when they
-  exist (0.3.1), in the tone of [failure.md](failure.md).
+  exist (0.3.2), in the tone of [failure.md](failure.md).
 - **Later systems join at their own first event:** route choice, a real
   Primer-to-Finisher reaction (it needs a fight long enough to happen),
   potions and failure, listing at the stall, cargo, prices, ability points,

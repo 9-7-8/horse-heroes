@@ -261,7 +261,7 @@ as a separate behaviour. Never a regular swish locked to the stride.
 - **The drawing is presentation; the gait is not only that.** *(Revised
   2026-10-11. This read "the sim decides how long a walk between two
   encounters takes; a gait must not change it".)* That still holds for the
-  locomotion work of 0.5.0 (#283). Once breeds exist, a gait's travel speed
+  locomotion work of 0.5.1 (#283). Once breeds exist, a gait's travel speed
   is sim data and the party travels at the average (#334), and a gait
   boosts the pet with that horse (#335). Gait arithmetic is plain numbers
   with no rendering in it, and is unit-tested like the sim: which feet are

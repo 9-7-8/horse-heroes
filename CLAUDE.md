@@ -113,6 +113,12 @@ Releases are GitHub milestones named `x.y.z Theme` (owner, 2026-10-10), built
 in order. Every issue has its release's milestone and the matching `vX.Y.Z`
 label; a new issue gets both when it is filed.
 
+**A release holds at most ten issues** (owner, 2026-10-12: "too many pieces
+are in each patch/release before I can test them"). A theme that needs more
+is split into patches, `x.y.0`, `x.y.1` and on, each with its own milestone
+and label. A release that would pass ten gets a new patch, not an eleventh
+issue.
+
 A release's description always has pictures, ideally one to three for each
 feature it names (owner, 2026-10-11; `procedures/release-a-build.txt`).
 

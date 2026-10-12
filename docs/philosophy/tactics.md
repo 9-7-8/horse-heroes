@@ -182,7 +182,7 @@ can be skipped and the preset still works.
 - **Today there is nothing to prioritise.** Each horse has one ability,
   fired on cooldown (`docs/expedition.md`). Tactics needs a horse with more
   than one equipped ability (#222) and the default choice among them (#93,
-  #97), which are 0.6.0 and 0.3.1.
+  #97), which are 0.6.1 and 0.3.3.
 - **The default is already specified as cooperative.** #93 and #97 give a
   Finisher on a primed target, then a Primer, then the best match-up, with
   a brief bounded wait. Tactics sits above that and falls back to it; it

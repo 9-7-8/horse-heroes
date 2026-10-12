@@ -9,14 +9,14 @@ is my reading and not the owner's words, it says "mine".
 For each mechanic: **what the player decides**, **what happens by itself**,
 and **status** (Built, or the release it is planned for).
 
-The existing issue for tutorial pacing is **#47, Opening pacing** (0.3.1): an
+The existing issue for tutorial pacing is **#47, Opening pacing** (0.3.3): an
 unlock order in one data file, one new thing at a time, each tied to the
 event that makes it relevant, and "the first trail needs no decisions at
 all". A tutorial design should become that file.
 
 **Since this was written (2026-10-11):** the tutorial documents written from
 it are taken in. The guidance is `philosophy/onboarding.md`; the opening is
-release 0.2.2, epic #288; #47 is now the lessons of the later systems.
+releases 0.2.2 to 0.2.4, epic #288; #47 is now the lessons of the later systems.
 
 ## 1. The one thing to teach first
 
@@ -111,7 +111,7 @@ exists, but should not send a new player to press one.
 - **Coloured text** per element and trait on items (#251).
 - **Click budget** for the common jobs (#236).
 
-### 0.3.1 The road
+### 0.3.2 to 0.3.4 The road (failure and saving, fighting together, the road)
 
 Combat stops being one element for the party and becomes cooperation.
 
@@ -149,7 +149,7 @@ Combat stops being one element for the party and becomes cooperation.
 - **Towns** as the place decisions are made (#98). **Save and load** (#44).
 - Seen, not taught: gaits and a bending horse (#255), parallax, sounds.
 
-### 0.4.0 Cargo and town
+### 0.4.0 to 0.4.2 Cargo and town (cargo, the stall, pets and a roster)
 
 The second half of the loop: selling.
 
@@ -173,7 +173,7 @@ The second half of the loop: selling.
 - **Adopt a pet and assign it to a horse** (#106).
 - **Health returns over time while waiting in town** (#218), not instantly.
 
-### 0.3.0 Every hit and choice felt (ahead of the road since 2026-10-11)
+### 0.3.0 and 0.3.1 Every hit and choice felt (ahead of the road since 2026-10-11)
 
 Mostly feedback, and the release the tutorial itself belongs to.
 
@@ -186,7 +186,7 @@ Mostly feedback, and the release the tutorial itself belongs to.
   time. **Trail report** (#51): what happened and why.
 - **Feel settings** (#45): turn down shake, flash and effects.
 
-### 0.6.0 Gear that matters
+### 0.6.0 to 0.6.2 Gear that matters
 
 Where builds begin. "Town is mostly about assigning gear."
 
@@ -222,7 +222,7 @@ Where builds begin. "Town is mostly about assigning gear."
   alongside gear in a drop (#5); one item list with the same filter, sort
   and search everywhere (#235).
 
-### 0.7.0 A wider world
+### 0.7.0 to 0.7.3 A wider world
 
 - **Itinerary** (#201): queue destinations. After a success the party sells
   until sold out or a set time passes, then leaves by itself. With an empty
@@ -245,7 +245,7 @@ Where builds begin. "Town is mostly about assigning gear."
 - **Run setup** (#216): world size and corruption reach. "Classic" (all but
   the starting town corrupted) is the balanced one.
 
-### 0.8.0 The gaggle
+### 0.8.0 to 0.8.4 The gaggle
 
 - **Crescendos** (#96), same-element payoffs so that mixed is not always
   best: Flare (Fire, a burn), Deep Frost (Ice, a burst and a brief slow),
@@ -264,7 +264,7 @@ Where builds begin. "Town is mostly about assigning gear."
   (#22 to #25, #49).
 - **Events that remember** (#108).
 
-### 0.9.0 Town life
+### 0.9.0 to 0.9.2 Town life
 
 - **Trade goods** (#209): wood, iron, apples and the like, bought in one
   town and listed at the stall in another. They ride in the **caravan hold**
@@ -315,20 +315,20 @@ asks. Steps 1 to 4 work in the game as built.
 | 3 | Press a piece, read its card, Equip on the selected horse | First gear drop | Yes |
 | 4 | The trail tracker, and that a win makes the next trail harder | Second trail | Yes |
 | 5 | Elements: what beats what | First loss, or first resisted fight | Yes, as a party element |
-| 6 | Failure is cheap and the party waits for you | First loss | 0.3.1 |
-| 7 | Choosing a destination; corrupt towns end in a boss | First town reached | 0.3.1 |
-| 8 | Primer then Finisher makes a reaction | First hard fight | 0.3.1 |
-| 9 | Cargo, and listing at the stall | First bag with spare gear | 0.4.0 |
-| 10 | Prices and goodwill | First sale | 0.4.0 |
-| 11 | Slots have jobs; ability points and loadouts | First level up | 0.6.0 |
+| 6 | Failure is cheap and the party waits for you | First loss | 0.3.2 |
+| 7 | Choosing a destination; corrupt towns end in a boss | First town reached | 0.3.4 |
+| 8 | Primer then Finisher makes a reaction | First hard fight | 0.3.3 |
+| 9 | Cargo, and listing at the stall | First bag with spare gear | 0.4.0, 0.4.1 |
+| 10 | Prices and goodwill | First sale | 0.4.1 |
+| 11 | Slots have jobs; ability points and loadouts | First level up | 0.6.0, 0.6.1 |
 | 12 | The itinerary: queue towns and leave it running | Second liberated town | 0.7.0 |
-| 13 | Trade goods and the hold | Second town | 0.9.0 |
-| 14 | Pets, recruits, looks, families | As each first appears | 0.4.0 to 0.12.0 |
+| 13 | Trade goods and the hold | Second town | 0.9.1 |
+| 14 | Pets, recruits, looks, families | As each first appears | 0.4.2 to 0.12.0 |
 
 ## 6. Things a tutorial design will run into
 
 - **The built element system will be replaced.** One element for the whole
-  party (step 5) goes in 0.3.1, when elements move to abilities. Anything
+  party (step 5) goes in 0.3.3, when elements move to abilities. Anything
   taught about it now is taught twice.
 - **Auto-equip hides the decision.** A drop left alone is equipped by itself
   at setting out, so a new player can go several trails without opening a

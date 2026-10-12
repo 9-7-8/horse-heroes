@@ -557,7 +557,7 @@ Set are the tiers with a beam.
 - **The game starts on the road.** The player learns the basics of combat by
   watching them happen. In 0.2.2 that is what is built, the three abilities
   and the loot; "they see the setup, they see the finishers" holds once
-  0.3.1 ships them, and they join the watched opening then.
+  0.3.3 ships them, and they join the watched opening then.
 - **The first town does not leave by itself.** "You need to give the player
   a chance to breathe, to get acquainted... that point in the town will
   really be their first chance to explore the UI, so we need to not rush
@@ -578,7 +578,7 @@ Set are the tiers with a beam.
   designed in #293). She chose this over a first trail rolled from a gentle
   pool and over one rolled like any other. Whether it can be lost is a
   separate question and still open (#289, question 3).
-- The opening is release 0.2.2 (#288). The advice on how to teach is
+- The opening is releases 0.2.2 to 0.2.4 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
 ## Leaving town (owner, testing 0.2.1, 2026-10-11)
@@ -724,7 +724,7 @@ leaves to flesh out (#316: how complex a signature may be, each breed's
 pools; #267: the colour genetics of a breed, the body loci, which gait
 boosts what in a pet), and the tactics proposal, which is advice she handed
 over and not yet her decision (#338, [tactics.md](tactics.md)). Of the
-opening (#289), two questions are left for 0.2.2: whether the tutorial trail
+opening (#289), two questions are left for 0.2.4: whether the tutorial trail
 can be lost (3), and whether lessons play again on every launch until saving
 exists (5).
 
