@@ -1,0 +1,55 @@
+SESSION 2026-10-12 10:40 - Release 0.2.2
+
+ASKED
+  "/next". PICK UP named the release, on the owner's word the session
+  before: "Release next session".
+
+DONE
+  - Tiers 1 and 2 of next-thing were empty (green, 190 pass, no warning;
+    #246 waits only on the owner). The 0.2.2 milestone had no open issue.
+  - Released 0.2.2 by release-a-build.txt:
+    https://github.com/9-7-8/horse-heroes/releases/tag/v0.2.2
+    - Version 0.2.2 in Cargo.toml (1375f47); the tag v0.2.2 is that commit.
+    - installer/build.ps1 built, staged and packaged. SHA-256 of the
+      installer: 5939d245...d3cb1ed3.
+    - The staged game, started from an unrelated directory at --seed 6
+      --keep-going in the smallest window: a picture of the first fight
+      at 17 s, with the first lesson on the hint's line and the fight log
+      over the road, was read by this session.
+    - The installer, silently, /CURRENTUSER, into a scratch folder (Horse
+      Heroes was not installed on this machine): the five files and the
+      uninstaller were there; the installed game's picture of the town at
+      3 s, waiting for Set out, was read; its process had exited before
+      the uninstall, which returned 0 and left no folder and no entry.
+    - Published, then downloaded again: the hash matches the one built;
+      the release is "Horse Heroes 0.2.2", not a draft, with both assets.
+      Its notes name twelve features with 26 pictures from docs/gallery,
+      pinned to 1375f47; every address answered.
+  - The 0.2.2 milestone is closed, as 0.2.0's was.
+
+DECIDED (by the session, for her; hers to overrule)
+  - The notes' wording, and that they name everything built since 0.2.1,
+    not only the 0.2.2 milestone's issues: the Inventory, a horse's view,
+    one horse's gear and the hints' list are 0.2.3 issues that rode this
+    release as menu changes.
+
+FOUND
+  - Nothing new. The procedure held as written.
+
+NOT DONE
+  - No clean-machine test (#198): this machine has developer tools.
+  - The default install under Program Files, the wizard, the shortcuts
+    and the SmartScreen warning need a person: the owner's test.
+  - Installing 0.2.2 over 0.2.1 was not tried.
+  - Nothing is signed (#189).
+  - The release page was not opened in a browser: the pictures were
+    checked by asking for each address.
+  - Carried from the session before: no hand on a mouse has pressed a row
+    of the hints' list.
+
+PICK UP
+  The next thing by next-thing.txt. 0.2.2 has shipped, so CLAUDE.md rule
+  5 holds from here: a feature is not finished without its lesson. The
+  earliest milestone with open issues is 0.2.1 (eight open; #228 is the
+  lowest, and #246, #250, #253 and #285 wait on what the owner sees in a
+  release).
