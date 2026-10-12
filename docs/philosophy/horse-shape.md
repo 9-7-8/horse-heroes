@@ -152,7 +152,75 @@ fine legs from a lighter type.**
 - **Mane, tail hair and feathering are separate geometry from the body**, so
   they never hide whether the anatomy underneath is right.
 
+### A breed is a profile of ratios
+
+*From the owner's document on breed mathematics, 2026-10-11. The figures
+are art starting values, not measurements of any breed.*
+
+- **"Build" means conformation**, not a combat loadout. A breed is a
+  distribution of the same ratios of H that describe the base horse, with
+  its own reference height and its own interval of heights.
+- **A small breed is not a big breed scaled down.** A Shetland has its own
+  ratios: less clearance, a longer body, a proportionally larger head.
+- **The silhouettes differ where it reads**: a Quarter Horse in the width
+  of chest and hindquarters, a Gypsy Vanner in depth and bone, a
+  Thoroughbred in clearance and narrow volumes, a Friesian in a long raised
+  neck. A Mustang varies more widely than the others.
+- **Hair is an envelope, not a sphere.** How far the mane falls and how far
+  the feathering stands off the lower leg are maximum controls; feathering
+  tapers and follows where it attaches.
+- **Shape never sets a combat number.** Any lean a breed might have is
+  generated and balanced separately.
+
+### Variation is correlated
+
+Do not roll every dimension independently. A few bounded traits (size,
+breadth and substance, relative leg length, neck expression, head
+expression) each move several dimensions together, with a small residual on
+each. Linked values stay linked. A value outside the breed's window is
+truncated or the horse is rejected.
+
+### Crossbreeds are bred, not blended
+
+The owner's rule: a crossbred foal's build follows inherited genetics, not
+an average of two breeds' profiles weighted by ancestry. Each parent has two
+alleles at each body locus and gives one. The genotype maps to the traits
+above, and the traits to dimensions, inside the anatomical constraints. A
+breed's profile describes its founders; a foal is not rerolled into one
+breed's window. The loci and the maps are a game abstraction, not a claim
+about real genes.
+
+### Joint centres, masses and a curve
+
+Landmark heights differ by breed and are heights only; the joints are
+generated together as one constrained skeleton, and segment lengths come
+from it and never change in motion. The torso is overlapping shoulder,
+ribcage and hindquarter masses, blended so they do not read as three balls.
+The neck follows a curve from root to poll with a bounded arch and a taper
+to the throat; its stated length is the straight line, not the length along
+the curve.
+
+### Check before accepting
+
+Every generated horse: positive dimensions; depth plus clearance equal to
+H; joint heights rising in order; the resting skeleton the same on both
+sides; hooves that reach the ground; gear sockets placed from the horse's
+own landmarks.
+
 ## For Horse Heroes
+
+- **The breed profiles fit the data that exists.**
+  `assets/data/horse_shape.ron` already holds each dimension as a base with
+  a window, in ratios of H, with depth and clearance linked. The Friesian
+  column of the owner's breed table agrees with that file's base values for
+  the main dimensions (checked), so the Friesian is the first profile
+  unchanged, and the other five are new records (#327).
+- **The windows in that file become one breed's windows**, and #63's
+  variation is rolled through the correlated traits (#328), not one
+  dimension at a time.
+- **Body genetics sit beside the coat genetics** (#332, #171), and both end
+  in the same saved, resolved appearance.
+- The work for breeds is under #266; what is still hers to answer is #267.
 
 - **This is the first thing in the project that describes a specific
   horse.** Pillar 3 says primitive meshes until the loop is fun, and that
@@ -194,3 +262,9 @@ A base-model brief for the horse, received from the owner 2026-10-09. Its
 breed descriptions come from the Friesian studbook's published breeding goal
 and related breed-society pages; the centimetre values are the brief's own
 modelling choices.
+
+The sections on breeds, correlated variation, crossbreeds, the skeleton and
+the acceptance check are from the owner's working design "procedural
+abilities and breed mathematics", received 2026-10-11 and kept unedited as
+`docs/source/procedural-abilities-and-breed-mathematics.md`, where the
+tables of ratios, landmark heights and the deformation formulas are.

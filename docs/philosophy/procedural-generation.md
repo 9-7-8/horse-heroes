@@ -164,6 +164,12 @@ collection, save migration.
 - A horse's look is seeded from its position in the party, in the rendering
   code. It has no stable ID and no spec, and nothing is saved. That is fine
   for boxes and wrong for a horse a player has come to like.
+- **A horse's two signatures are the first generated thing that is rules
+  and not looks** ([signatures.md](signatures.md), #315). The same pipeline
+  applies: an authored vocabulary of typed parts, validity before
+  acceptance, a seed domain for each slot, resolved numbers saved with a
+  version. A breed's build and a foal's body genetics are
+  [horse-shape.md](horse-shape.md).
 - Read the pinned Bevy version's docs and its custom-mesh example before
   writing any mesh code (`CLAUDE.md`, Stack). The source is an architecture
   proposal and says so; none of it is checked against Bevy 0.20.

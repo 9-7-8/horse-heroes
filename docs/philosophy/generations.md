@@ -29,6 +29,13 @@ over (2026-10-09):
 6. **Breeding is background flavour, not an important mechanic.** Everything
    it affects is aesthetic.
 
+*Revised by her, 2026-10-11.* Points 5 and 6 no longer hold as worded. A
+foal also inherits its **two signatures, part by part** from its parents',
+and its **build through abstract body loci**, beside the coat
+([signatures.md](signatures.md), [horse-shape.md](horse-shape.md),
+[vision.md](vision.md)). What stands: breeding is optional flavour, never
+needed for the main loop, and no guarantee of anything new.
+
 ## Principles
 
 ### Retirement turns party overflow into world continuity
@@ -137,8 +144,15 @@ visible in its town, counts in its population, and can be met on a visit.
   magical affinity. Those would be gameplay inheritance, and she has ruled
   that out. A family name, an origin and a keepsake are fine: they are
   flavour.
-- A child is **not a copy and not an optimal recruit**. Class, attunement,
-  trait and gear are its own.
+- *(Revised 2026-10-11.)* The two bullets above are superseded on one
+  point: **signatures are inherited**, each part from one parent or the
+  other with a 1% mutation, numbers taken exactly, rerolled until valid
+  (#336), and the build comes from the parents' body alleles (#332). She
+  has reversed the ruling, so this is gameplay inheritance by her choice.
+  A family name, an origin and a keepsake remain flavour.
+- A child is **not an optimal recruit**. Its signatures sit inside the same
+  budgets as any founder's, its stat lean and gear are its own, and a clone
+  of a parent's signature is allowed but never aimed for.
 - **Breeding is background flavour.** The player never needs to arrange a
   pairing or raise a foal to have a viable party, and no system should push
   them to optimise it.
@@ -239,6 +253,12 @@ not.
   of the guardrail is the part about depth: it is still not built ahead of
   the loop, it still starts as the bounded prototype, and it never becomes a
   system the player must work.
+- **The guardrail moved again on 2026-10-11.** Signatures and build are
+  now inherited, so a pairing has a gameplay result. What keeps it from
+  becoming a system the player must work: the player still never arranges a
+  pairing (#120), a foal is no stronger on average (#321), a clone is as
+  likely as the dice make it, and nothing in the main journey needs a
+  descendant.
 - **The genetics are borrowed, not designed here.** The source is the owner's
   own mod. Its folder is one this project's rules say not to touch, so
   reading it to port the system needs her say-so first. Until then the horse
@@ -272,4 +292,5 @@ Owner's proposal on retirement, town life and a multigenerational world, as
 developed in a design document received 2026-10-09 (all sections); a second
 document on retirement, residents and generations, same date, which carries
 her confirmed points; and her own statement on breeding and genetics when
-handing the second one over.
+handing the second one over. The 2026-10-11 revisions are from her working
+design `docs/source/procedural-abilities-and-breed-mathematics.md`.

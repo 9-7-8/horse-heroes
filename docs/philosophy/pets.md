@@ -234,6 +234,13 @@ trees.
   shared cargo over its limit. That is settled in town before leaving, like
   any other change of capacity.
 - Idle-first: a pet never needs commanding.
+- **A horse's gait boosts its pet** (owner, 2026-10-11): different gaits
+  boost different sides of a pet, each as an explicit rule and never as a
+  side effect of faster legs. It makes "which horse does this pet ride" a
+  question about breed as well. Which gait boosts what, which pets, and
+  whether only while travelling are open (#267); the work is #335. It goes
+  through the same pipeline and limits as the pet's own ability, and a pet
+  on the "wrong" horse must stay viable.
 
 ## Source
 

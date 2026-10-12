@@ -116,6 +116,11 @@ which item families exist without listing every drop rate.
   recovery routing would start.
 - A party of three makes formation and focus real choices without inventing a
   movement system.
+- **A later note proposes the shape policies should take**: not one rule on
+  each ability but a short ordered list of priorities on each horse, over
+  default behaviour that already works ([tactics.md](tactics.md), #337).
+  "A short list is play, a scripting language is work" is the limit it
+  keeps. Proposed, not decided (#338).
 
 ## Source
 

@@ -78,6 +78,7 @@ rest are consulted when their particular system is being built.
 | **Stardew Valley** | Returning from danger with rewards, town relationships, recoverable collapse | Dynamics, aesthetics, mechanics | The rhythm of adventure and then familiar community. Its setbacks are a comparison; this game's are gentler, with no loss of equipped or protected gear |
 | **Pokémon** | Team identity and nonlethal failure: fainting leads to recovery | Mechanics, aesthetics | The emotional contract that favourite horses and pets are safe even when an expedition fails |
 | **Terra Nil** | Restoring damaged environments, wildlife returning, and leaving a recovered ecosystem | Aesthetics, dynamics, mechanics | The ending: success visibly removes the need for further intervention. The world becomes peaceful and does not grow another tier of corruption to keep farming alive |
+| **Siralim Ultimate** | Macros: an in-game builder of ordered "if this, do that" rules for a creature, checked top to bottom | Mechanics, dynamics | The one problem of letting a player say what a horse should prioritise without code: order as the "else", and the trap of two "any ally" checks matching different creatures. Here the rules sit over defaults that already work and are never needed (added 2026-10-11) |
 
 ## One that is not a video game
 
@@ -132,7 +133,8 @@ Questions worth asking:
 | Path of Exile 2 | [gear.md](gear.md), [cargo.md](cargo.md), [travel.md](travel.md), [pets.md](pets.md) |
 | Warframe | [pets.md](pets.md), [travel.md](travel.md) |
 | RimWorld, Pathfinder First Edition | [travel.md](travel.md) |
-| Melvor Idle | [failure.md](failure.md), [travel.md](travel.md) |
+| Melvor Idle | [failure.md](failure.md), [travel.md](travel.md), [tactics.md](tactics.md) (time away runs the same rules) |
+| Siralim Ultimate | [tactics.md](tactics.md) |
 | Pokémon, Stardew Valley | [failure.md](failure.md) |
 | Tiny Bookshop, Teddy's Haven, Loot Shop Simulator | [town.md](town.md) |
 | Wildermyth | [generations.md](generations.md), [vision.md](vision.md) |

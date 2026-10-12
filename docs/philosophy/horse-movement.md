@@ -118,6 +118,33 @@ gait has its own ground speed. Forcing every gait to cover ground at one
 speed, or letting the feet slide for style, are the alternatives, and the
 first is wrong for a gait known by its slow progress.
 
+### Stride is the breed's, cadence follows
+
+*From the owner's document on breed mathematics, 2026-10-11; the figures
+are animation proposals, not measurements of these breeds.*
+
+Give a breed a preferred stride length for each gait as a multiple of its
+height, and work the stride's duration out from the speed. Cadence is then a
+consequence, not another random number: at one speed a Shetland takes more
+steps than a Friesian, with no skating and no extra action in a fight. A
+horse varies a little round its breed's stride. Cadence envelopes are
+controller settings, not speed limits. Pick the gait that keeps stride and
+cadence inside their envelopes, with some hysteresis, so a small horse may
+trot beside a tall one that still walks. Keep the phase continuous when the
+cadence changes: accumulate it, do not recompute it from the clock.
+
+### What a gait is worth
+
+The owner's rule (2026-10-11): a breed's gaits affect travel speed and boost
+pets, and there is no travel-efficiency stat. So a gait has two records that
+must not be confused. Its **gameplay values**, a travel speed and a pet
+boost, are data the sim reads. Its **animation settings**, contact phases,
+duty factors and limb curves, are how that motion is shown. The party
+travels at the arithmetic average of its horses' speeds. Gameplay never
+counts hoofbeats or frames: no cooldown, award or boost is paid per
+footfall. The drawn cadence must stay consistent with the motion and cannot
+overrule the sim's progress.
+
 ### Joints do not all move together
 
 - Stance and swing are each normalised on their own, and a joint's curve is
@@ -231,11 +258,15 @@ as a separate behaviour. Never a regular swish locked to the stride.
   here: the trail's speed, a gait's stride duration and its stride length
   have to agree, and a change of gait is a change of the trail's speed
   (#248).
-- **This is presentation.** The sim decides how long a walk between two
-  encounters takes; a gait must not change it. Gait arithmetic, though, is
-  plain numbers with no rendering in it, and is unit-tested like the sim:
-  which feet are down at a phase, when there is suspension, whether a gait
-  keeps a foot on the ground.
+- **The drawing is presentation; the gait is not only that.** *(Revised
+  2026-10-11. This read "the sim decides how long a walk between two
+  encounters takes; a gait must not change it".)* That still holds for the
+  locomotion work of 0.5.0 (#283). Once breeds exist, a gait's travel speed
+  is sim data and the party travels at the average (#334), and a gait
+  boosts the pet with that horse (#335). Gait arithmetic is plain numbers
+  with no rendering in it, and is unit-tested like the sim: which feet are
+  down at a phase, when there is suspension, whether a gait keeps a foot on
+  the ground.
 - **Numbers are data** (pillar 4). A gait, a breed's presentation and a
   horse's own variation are three data records, matching the three layers.
   The source's presets are where their first values come from, each marked
@@ -249,8 +280,14 @@ as a separate behaviour. Never a regular swish locked to the stride.
   long hair doing most of the moving.
 - **Breeds are the owner's, and later.** A breed decides a horse's colours
   and its gaits (`vision.md`). Coat colour already has a home in the
-  genetics (#171), so how a breed and a genotype meet is an open question,
-  as is whether a gait is only looks.
+  genetics (#171), so how a breed and a genotype meet is an open question
+  (#267). Whether a gait is only looks is settled: it is not.
+- **Her document works with six breeds that walk, trot, canter and
+  gallop** (Mustang, Friesian, Quarter Horse, Gypsy Vanner, Shetland,
+  Thoroughbred), and says an optional gait variant can come later instead
+  of giving a breed an amble to tell it apart. So the ambling family above,
+  and #269 and #273 to #276, serve no starting breed; whether they move to
+  a later release is asked on #267. Stride by breed is #333.
 - **The source has footage as its last word**, for every gap. There is no
   footage in this project and no one to track it. Until there is, a gap
   stays an animator's setting, labelled as one, and the owner's eye is the
@@ -272,3 +309,9 @@ gaits of the gaited breeds. Two came after she sent back the figures of the
 horse as built: one on what that model can express and how gait figures
 should be given for it, and one on the skeleton to give it. All four end
 complete and are kept unedited in `docs/source/`.
+
+A fifth, her working design "procedural abilities and breed mathematics",
+came the same day: stride length by breed, footfall presets for canter and
+gallop, breed presentation figures, a swing path, and her rule on what a
+gait is worth. It is
+`docs/source/procedural-abilities-and-breed-mathematics.md`.

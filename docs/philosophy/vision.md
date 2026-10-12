@@ -69,12 +69,16 @@ No avatar and no explanation for the organiser is required.
 - **Breeding exists as background flavour.** It has genetics, superficial and
   for colour only for now, borrowed from the horse breeding mod she has
   already made. It is not an important mechanic and everything it affects is
-  aesthetic.
+  aesthetic. *(Revised 2026-10-11: a foal's two signatures and its build
+  are inherited as well. Still optional flavour. See "Signatures, breeds
+  and gaits".)*
 - **There will be breeds, later, and a breed decides a horse's colours and
   its gaits** (owner, 2026-10-11: "We will later have different breeds of
-  horses in the game, which will dictate their colors and gaits"). Which
-  breeds, how a breed meets the colour genetics above, and whether a gait is
-  only looks are open (#267). How a horse moves: `horse-movement.md`.
+  horses in the game, which will dictate their colors and gaits"). How a
+  horse moves: `horse-movement.md`. *(Later the same day she settled that a
+  gait is more than looks, and that a breed also has its own build and its
+  own pool of signature parts: see "Signatures, breeds and gaits". How a
+  breed meets the colour genetics is still open, #267.)*
 - Pets are collectible companions assigned to individual horses. What they
   do in play is open; the recommendation she was given is in
   [pets.md](pets.md).
@@ -205,7 +209,8 @@ recommendation, this section is the newer statement.
 - *(Replaced the same day: there are no classes and no innate element.)*
 - A horse's identity: name, appearance, a stat lean, one modest signature
   trait, a record of notable events. Personality is expressive only; a horse
-  always goes where it is sent.
+  always goes where it is sent. *(2026-10-11: the trait is read as replaced
+  by two generated signatures; see "Signatures, breeds and gaits" and #316.)*
 
 ### The road (#82, #153, #88)
 
@@ -264,6 +269,8 @@ recommendation, this section is the newer statement.
 
 - One automatic signature ability each, and nothing beside it. One collar
   slot specialises it. The pet saddle is seating and looks only.
+  *(2026-10-11: the gait of the horse a pet is with now boosts it; see
+  "Signatures, breeds and gaits".)*
 - Reassigning is free in town. Pets never own a Finisher, are never captured
   by defeat, and are not exhausted to begin with. *(Revised the same day:
   pets do fetch the loot; see "The loop as she tuned it".)*
@@ -584,6 +591,63 @@ Set are the tiers with a beam.
   and heal numbers, and moves out of the Journal (#306).
 - **A press on the road where the horses are closes the open place** (#307).
 
+## Signatures, breeds and gaits (owner, 2026-10-11)
+
+From her working design on procedural abilities and breed mathematics,
+which marks these as settled. Newer than everything above. It replaces
+three earlier lines: "one modest signature trait", "everything breeding
+affects is aesthetic", and the open question of whether a gait is only
+looks. The reasoning is in [signatures.md](signatures.md),
+[horse-shape.md](horse-shape.md) and [horse-movement.md](horse-movement.md).
+
+### Two signatures on every horse
+
+- **Every horse has exactly two permanent, procedurally generated
+  signatures: one for combat and one for town.** They are assembled from a
+  small vocabulary of parts, never chosen from a list of finished
+  abilities. Neither takes a loadout slot, and a town benefit never
+  replaces the combat signature.
+- **Town means everything that is not combat:** travel, forage, recovery,
+  construction, trading and other systems to come.
+- **A town signature is active for every horse physically in the town**,
+  resident or visitor. Permanent residency or an assignment is not needed.
+- **Town signatures stack.** Tuning residents can be optional endgame
+  content and must not become necessary for the main adventure. No
+  strongest-only rule and no global diminishing return without her say.
+- **Each breed has its own pool of parts.** Pools may overlap; "breed is a
+  way to deliberately search for particular predicates".
+
+### What a foal inherits
+
+- **Each part of each signature comes from one parent or the other**, half
+  and half, after a 1% chance that the part mutates. A foal does not copy a
+  whole signature or the pair.
+- **Numbers are exact parental values**, never blended, placed only where
+  they mean the same thing. The foal rerolls until both signatures are
+  valid.
+- **A clone of a parent is allowed.** No forced mutation and no novelty
+  requirement.
+- **Crossbreeds follow inherited genetics, not an average of two breeds.**
+  The real coat genetics stay, and beside them are abstract heritable loci
+  for body type, limb proportions, height and related dimensions.
+- **Breeding is optional flavour**: not needed for the main loop, and no
+  guarantee of novelty.
+
+### Gaits
+
+- **Breed gaits affect travel speed and give a boost to pets.** There is no
+  travel-efficiency stat.
+- **The party travels at the arithmetic average** of its horses' speeds,
+  not the slowest horse's and not a chosen leader's.
+- **Different gaits boost different aspects of pets.** Each boost is an
+  explicit rule, never a side effect of how fast the legs are drawn.
+
+Mine, not hers: that the two signatures replace the signature trait (#316);
+that the six breeds her document works with (Mustang, Friesian, Quarter
+Horse, Gypsy Vanner, Shetland, Thoroughbred, with walk, trot, canter and
+gallop) are the answer to "which breeds" (#267); and every release these
+were filed under. Every number in the document is a proposal.
+
 ## The design priority
 
 > Complexity through depth, not breadth.
@@ -646,6 +710,12 @@ after the main loop works.
 Every `decision` issue was answered on 2026-10-10. What is left is tuning and
 content, and lives on the implementing issues: reaction timings, journey
 length, purity gained per boss, which pet abilities come first.
+
+*Open again since 2026-10-11:* what her document on signatures and breeds
+leaves to flesh out (#316: how complex a signature may be, each breed's
+pools; #267: the colour genetics of a breed, the body loci, which gait
+boosts what in a pet), and the tactics proposal, which is advice she handed
+over and not yet her decision (#338, [tactics.md](tactics.md)).
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,

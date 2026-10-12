@@ -35,6 +35,8 @@ Read the relevant file before designing or tuning the system it covers.
 | [loot-fountain.md](loot-fountain.md) | The reward ceremony: its seven beats, what makes it land, and why drops must stay relevant |
 | [combat-rhythm.md](combat-rhythm.md) | Attack phases, keeping timings separate, and response before polish (incomplete, see the file) |
 | [build-laboratory.md](build-laboratory.md) | What an idle game keeps from an action RPG: the five promises, policies in place of execution, bounded runs, difficulty as a choice, targeted farming (incomplete, see the file) |
+| [tactics.md](tactics.md) | A horse's priorities (a proposal): defaults that already work, a few ordered rules over them, first usable wins, the condition bound to its target, explanations for every decision, a sentence-based editor, and depth kept apart from configuration |
+| [signatures.md](signatures.md) | A horse's two generated abilities, one for combat and one for everything else: the owner's settled rules, a typed grammar of parts, events and limits, budgets, breed pools, inheritance by part, and what is saved |
 | [items-and-builds.md](items-and-builds.md) | What an item must be: a rarity ladder with jobs, rule-changing powers, relevance as a mix, sets without uniforms |
 | [procedural-generation.md](procedural-generation.md) | How anything is generated: authored vocabulary, four layers that agree, one pipeline, seeds and stable identity, constraints and fallbacks, testing, order of work |
 | [fairyland-content.md](fairyland-content.md) | The rules for each generated thing: horses, enemies, gear, trails, corruption, and readability above detail |
