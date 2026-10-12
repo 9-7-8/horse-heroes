@@ -1,0 +1,46 @@
+SESSION 2026-10-11 17:44 - the horse's build: four rules tested
+===============================================================
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 2 of next-thing (tier 1 was empty: build and tests green, no
+    warning, and the one open bug, #246, waits only on the owner). The
+    part of tier 2 the 15:06 log left unswept: src/sim/horse_shape.rs read
+    against docs/horse-model.md and assets/data/horse_shape.ron. Four
+    rules they state that no test asserted now have one each, in ac21341:
+      the tail's length, which is not chosen, is inside its window at the
+        corners of the croup's, the dock's and the hair's clearance's
+        windows and for 2000 horses between (only the base horse was
+        checked before);
+      the pieces are the ones the doc counts, each on its joint, and a
+        hoof is the last piece of a leg and of nothing else;
+      the far side is the near side turned over: legs of a pair and the
+        two ears differ only in their side, the trunk is on the middle;
+      a leg is level sections at its landmarks from the top down, a
+        foreleg straight as far as the fetlock, a hind leg back from the
+        stifle to the hock and down from there.
+    Tested (159 pass, no warning). All four passed as written, so no bug
+    was found. Nothing visible changed, so nothing was run.
+    docs/horse-model.md, "Tests".
+
+DECIDED
+  Nothing.
+
+FOUND
+  - #308, which the last PICK UP named, is built; it is open only for
+    the owner finding a piece without help.
+  - The shape file's base for tail_length is 0.85 H and the base horse's
+    tail comes out at 0.86 H. Both are inside the window; nothing reads
+    the base.
+
+NOT DONE
+  - No feature: one part, one session.
+  - The 0.2.1 menu issues still open (#228, #229, #230, #236, #250, #253,
+    #285) were not read to see which wait only on the owner.
+
+PICK UP
+  Run next-thing; tiers 1 and 2 are swept, so it is tier 3: read #312
+  (the comparison table wherever a card is pinned), the lowest-numbered
+  0.2.2 menu issue that is not built, and build it.

@@ -90,7 +90,17 @@ underneath.
   height, the tail's hair ends at its clearance and the poll is where the
   neck's length and carriage put it;
 - a horse at another height is the same horse, every point scaled;
-- the hair is separate from the body.
+- the hair is separate from the body;
+- the tail that comes out is inside its window, at the corners of the
+  croup's, the dock's and the hair's clearance's windows and anywhere
+  between;
+- the pieces are the ones counted above, each on its joint, and a hoof is
+  the last piece of a leg and of nothing else;
+- the far side is the near side turned over: the legs of a pair and the two
+  ears differ only in their side, and the trunk is on the middle;
+- a leg is level sections at its landmarks from the top down, a foreleg
+  straight as far as the fetlock, a hind leg back from the stifle to the
+  hock and down from there.
 
 ## Not built
 
