@@ -7,7 +7,7 @@ use serde::Deserialize;
 use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
 use crate::sim::lessons::{Event, Lessons};
-use crate::sim::loot::{Gear, Horse, best_wearer, roll_gear, swap_worn};
+use crate::sim::loot::{Gear, Horse, roll_gear, swap_worn};
 use crate::sim::rng::Rng;
 
 pub mod menu;
@@ -160,8 +160,9 @@ pub enum Action {
 /// seen. Which place it marks is `marks` in `assets/data/places.ron`.
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub enum Raise {
-    /// The piece in the cargo is an upgrade for some horse.
-    Upgrade,
+    /// The last trail brought back a piece that is still carried. Whether
+    /// it is any good is the player's to say (#351).
+    NewGear,
     /// The newest report kept is worth opening: its trail was lost (`lost`),
     /// or dropped a piece of at least this rarity, by its name in `gear.ron`.
     /// Only the newest, so a long absence leaves one thing to read, and it is
@@ -358,7 +359,7 @@ impl Game {
     /// cargo, so nothing is lost (#352). Returns what happened.
     fn equip_carried(&mut self, horse: usize, at: usize) -> Option<String> {
         // Said of the horse as it is before the piece goes on (#11).
-        let note = menu::card::equipped(self, self.party.get(horse)?, self.cargo.get(at)?);
+        let note = menu::card::equipped(self.party.get(horse)?, self.cargo.get(at)?);
         let slot = self.cargo[at].slot.index();
         let gear = match self.party[horse].gear[slot].take() {
             Some(worn) => std::mem::replace(&mut self.cargo[at], worn),
@@ -389,11 +390,6 @@ impl Game {
             other.name,
             wears(other),
         ))
-    }
-
-    /// The horse the pending drop does most for, if it betters any of them.
-    pub fn drop_best_wearer(&self) -> Option<usize> {
-        best_wearer(&self.data, &self.party, self.pending_drop()?)
     }
 
     /// Every coin the party has earned, the current trail's included.
@@ -530,7 +526,11 @@ impl Game {
     /// the same thing.
     pub fn wants(&self, raise: &Raise) -> bool {
         match raise {
-            Raise::Upgrade => self.trails > self.seen_drop && self.drop_best_wearer().is_some(),
+            Raise::NewGear => {
+                let brought = self.last_report().and_then(|kept| kept.outcome.drop.as_ref());
+                self.trails > self.seen_drop
+                    && brought.is_some_and(|gear| self.cargo.contains(gear))
+            }
             Raise::Report { lost, rarity } => {
                 let Some(kept) = self.reports.last() else {
                     return false;
@@ -726,21 +726,13 @@ impl Game {
     }
 
     fn depart(&mut self) {
-        // Idle first: an unattended camp still takes the upgrade, on the
-        // horse it does most for.
-        let taken = self
-            .drop_best_wearer()
-            .and_then(|horse| self.equip_carried(horse, 0));
+        // Nothing is put on at the gate (#351): a piece is worn only because
+        // the player put it on a horse, and one left alone stays carried.
         self.accumulator = 0.0;
         // The visit is over: nothing done in it can be taken back now.
         self.changes.clear();
-        let mut expedition =
+        let expedition =
             Expedition::new(&self.data, self.plan.clone(), &self.party, self.element);
-        // What was put on at the gate opens the road's log, so the report
-        // that said it would happen is not the last word on it (#11).
-        if let Some(taken) = taken {
-            expedition.log.extend(taken.lines().map(String::from));
-        }
         self.screen = Screen::Trail(expedition);
         self.lessons.raise(Event::SetOut);
     }
@@ -1314,6 +1306,44 @@ mod tests {
         assert_eq!(game.pending_drop(), Some(&over));
     }
 
+    /// Nothing equips by itself (#351). A party that sets out with a piece
+    /// carried and nothing pressed wears what it wore before and still
+    /// carries the piece, trail after trail, whatever the piece would do
+    /// for a horse; and the road's log says nothing of gear at the gate.
+    #[test]
+    fn setting_out_equips_nothing() {
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let worn = |game: &Game| -> Vec<[Option<Gear>; 3]> {
+            game.party.iter().map(|horse| horse.gear.clone()).collect()
+        };
+        let bare = worn(&game);
+        assert!(bare.iter().flatten().all(|slot| slot.is_none()), "nothing is worn at first");
+        for by_itself in [false, true] {
+            for _ in 0..10 {
+                let carried = game.cargo().to_vec();
+                assert!(!carried.is_empty());
+                if by_itself {
+                    // Keep going's own departure, with nobody at it.
+                    game.depart();
+                } else {
+                    game.act(Action::SetOut, Hand::default());
+                }
+                assert_eq!(worn(&game), bare, "a piece went on at the gate");
+                assert_eq!(game.cargo(), carried, "the cargo changed at the gate");
+                let Screen::Trail(expedition) = &game.screen else {
+                    unreachable!("the party set out");
+                };
+                assert!(!expedition.log.iter().any(|line| line.starts_with("Equipped ")));
+                walk_home(&mut game);
+                assert_eq!(worn(&game), bare);
+            }
+        }
+        assert!(game.cargo().len() > 1, "and what the trails brought back is all carried");
+    }
+
     /// The cargo keeps every piece (#352). What a trail brings back is
     /// carried, newest first, until it is put on a horse; setting out loses
     /// nothing; a piece taken off for another takes that one's place in the
@@ -1466,7 +1496,7 @@ mod tests {
     /// report raises one, so a long absence leaves one thing to read.
     #[test]
     fn a_mark_is_raised_until_its_thing_is_seen() {
-        let upgrade = Raise::Upgrade;
+        let upgrade = Raise::NewGear;
         let lost = Raise::Report { lost: true, rarity: None };
         let any_drop = Raise::Report { lost: false, rarity: Some("Normal".into()) };
         let unknown = Raise::Report { lost: false, rarity: Some("No such".into()) };
@@ -1479,7 +1509,7 @@ mod tests {
             assert!(!game.wants(raise), "{raise:?} before any trail");
         }
 
-        // The first drop home is an upgrade: nothing is worn yet.
+        // The first drop home is new gear, carried.
         let mut game = (0..50)
             .map(Game::back_from_a_trail)
             .find(|game| game.pending_drop().is_some())

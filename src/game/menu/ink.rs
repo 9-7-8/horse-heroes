@@ -16,9 +16,9 @@ pub enum Ink {
     /// The name of a piece of gear, by its tier's place in
     /// `GearTable::rarities`.
     Rarity(usize),
-    /// A change for the better, or a verdict that a piece is one (#313).
+    /// A change for the better (#313).
     Gain,
-    /// A change for the worse, or a verdict that a piece is one.
+    /// A change for the worse.
     Loss,
 }
 
@@ -169,50 +169,11 @@ fn piece_change(words: &str, start: usize, end: usize) -> Option<(usize, usize, 
     Some((at, at + said.len(), ink))
 }
 
-/// Whether a line is a verdict on a piece, as the card words it: "Upgrade
-/// for Sable: +11" and "An upgrade: +6 points." are a gain, "Worse for
-/// Sable: -3" and "Worse: -3 points." a loss. "No better" is neither.
-fn verdict(line: &str) -> Option<Ink> {
-    let opens = |with: [&str; 2]| with.iter().any(|open| line.starts_with(open));
-    if opens(["Upgrade for ", "An upgrade: "]) && line.contains(": +") {
-        Some(Ink::Gain)
-    } else if opens(["Worse for ", "Worse: "]) && line.contains(": -") {
-        Some(Ink::Loss)
-    } else {
-        None
-    }
-}
-
-/// The first line of `words` that is a verdict: where it starts and ends,
-/// and which it is.
-fn first_verdict(words: &str) -> Option<(usize, usize, Ink)> {
-    let mut at = 0;
-    for line in words.split('\n') {
-        if let Some(ink) = verdict(line) {
-            return Some((at, at + line.len(), ink));
-        }
-        at += line.len() + 1;
-    }
-    None
-}
-
 /// `words` cut into runs in order, each with what it is about. The runs put
-/// end to end are `words` exactly. A verdict is one run, the whole line, and
-/// a piece's name is one run, whatever words are in it.
+/// end to end are `words` exactly. A piece's name is one run, whatever words
+/// are in it. No line is coloured as a verdict on a piece: the card gives
+/// none (#351).
 pub fn runs<'a>(words: &'a str, names: &Names) -> Vec<(&'a str, Option<Ink>)> {
-    let mut out = Vec::new();
-    let mut rest = words;
-    while let Some((from, to, ink)) = first_verdict(rest) {
-        out.extend(named_runs(&rest[..from], names));
-        out.push((&rest[from..to], Some(ink)));
-        rest = &rest[to..];
-    }
-    out.extend(named_runs(rest, names));
-    out
-}
-
-/// The runs of `words` that have no verdict in them.
-fn named_runs<'a>(words: &'a str, names: &Names) -> Vec<(&'a str, Option<Ink>)> {
     let mut out = Vec::new();
     let mut rest = words;
     while let Some((from, to, tier)) = names.first_in(rest) {
@@ -351,13 +312,12 @@ mod tests {
     #[test]
     fn a_stat_takes_its_amount_and_a_change_is_judged() {
         assert_eq!(
-            inked("On Sable:\nhealth 35 to 50 (+15)\ndefense 5 to 2 (-3)\nAn upgrade: +11 points."),
+            inked("On Sable:\nhealth 35 to 50 (+15)\ndefense 5 to 2 (-3)"),
             [
                 ("health", Ink::Stat(Stat::Health)),
                 ("(+15)", Ink::Gain),
                 ("defense", Ink::Stat(Stat::Defense)),
                 ("(-3)", Ink::Loss),
-                ("An upgrade: +11 points.", Ink::Gain),
             ]
         );
         assert_eq!(
@@ -401,36 +361,12 @@ mod tests {
         assert!(!inked(&card::horse_sheet(&game, 0, "7/9")).iter().any(judged));
     }
 
-    /// A verdict (#313) is one run, the whole line, with its word and its
-    /// sign; a piece that is no better has no colour. Said by the card
-    /// itself, so the two cannot drift apart.
+    /// No line is a verdict on a piece (#351): what the card used to say of
+    /// one is plain text now, were it ever said again.
     #[test]
-    fn a_verdict_is_a_gain_or_a_loss() {
-        let mut game = (0..50)
-            .map(Game::back_from_a_trail)
-            .find(|game| game.pending_drop().is_some())
-            .expect("no seed under 50 brings a drop home");
-        let gear = game.pending_drop().unwrap().clone();
-        let worn = |attack: i32| crate::sim::loot::Gear {
-            name: "Old Thing".into(),
-            slot: gear.slot,
-            rarity: 0,
-            stats: Stats { attack, ..gear.stats },
-        };
-        for (attack, ink, sign) in [(-5, Some(Ink::Gain), ": +"), (0, None, ""), (5, Some(Ink::Loss), ": -")] {
-            game.party[0].gear[gear.slot.index()] = Some(worn(gear.stats.attack + attack));
-            let horse = &game.party[0];
-            let short = card::verdict(&game, horse, &gear);
-            let long = card::compare(&game, horse, &gear);
-            let long = long.lines().last().unwrap();
-            for said in [short.as_str(), long] {
-                assert!(said.contains(sign), "{said}");
-                let runs = inked(said);
-                match ink {
-                    Some(ink) => assert_eq!(runs, [(said, ink)]),
-                    None => assert_eq!(runs, []),
-                }
-            }
+    fn no_line_is_coloured_as_a_verdict() {
+        for said in ["Upgrade for Sable: +11", "An upgrade: +6 points.", "Worse for Sable: -3"] {
+            assert_eq!(inked(said), [], "{said}");
         }
     }
 
@@ -520,8 +456,8 @@ mod tests {
         }
     }
 
-    /// A gain and a loss (#313) are read on every surface a comparison or a
-    /// verdict rests on, at 4.5 to 1, and are told from each other with the
+    /// A gain and a loss (#313) are read on every surface a comparison
+    /// rests on, at 4.5 to 1, and are told from each other with the
     /// colour taken away, as well as by their sign and word.
     #[test]
     fn a_gain_and_a_loss_stand_out_from_their_surface() {

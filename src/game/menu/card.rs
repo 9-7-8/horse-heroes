@@ -7,7 +7,7 @@
 
 use crate::game::{Action, Game, Hand, Piece, stats_line};
 use crate::sim::data::{Slot, Stats};
-use crate::sim::loot::{Gear, Horse, gain};
+use crate::sim::loot::{Gear, Horse};
 
 /// What a list says where the cargo is empty.
 pub const NOTHING_CARRIED: &str = "Nothing here yet.\nGear the horses bring back is carried here.";
@@ -15,6 +15,9 @@ pub const NOTHING_CARRIED: &str = "Nothing here yet.\nGear the horses bring back
 /// What a tile of the Inventory says of a piece in the cargo, where a worn
 /// piece names its horse.
 pub const CARRIED: &str = "Carried";
+
+/// Where a carried piece is, as its card and its report say it.
+pub const IN_CARGO: &str = "Carried in the cargo.";
 
 /// What the Inventory says under a type the party has no piece of.
 pub fn none_held(kind: &str) -> String {
@@ -34,30 +37,10 @@ pub fn kind(game: &Game, gear: &Gear) -> String {
     )
 }
 
-/// Whether a piece matters to a horse now, short enough for a list: a word
-/// and, where there is a difference, its sign.
-pub fn verdict(game: &Game, horse: &Horse, gear: &Gear) -> String {
-    match gain(&game.data, horse, gear) {
-        change @ 1.. => format!("Upgrade for {}: +{change}", horse.name),
-        0 => format!("No better for {}", horse.name),
-        change => format!("Worse for {}: {change}", horse.name),
-    }
-}
-
-/// A piece on a horse in place of what it wears in that slot: each stat of
-/// the horse that would change, as it is and as it would be, and whether
-/// that is an upgrade, in points.
-pub fn compare(game: &Game, horse: &Horse, gear: &Gear) -> String {
-    let head = match &horse.gear[gear.slot.index()] {
-        Some(worn) => format!("On {}, in place of {}:", horse.name, worn.name),
-        None => format!("On {}, who wears nothing there:", horse.name),
-    };
-    head + &changes(game, horse, gear)
-}
-
-/// The lines of a comparison under its heading: a line per stat that
-/// changes, then the points.
-fn changes(game: &Game, horse: &Horse, gear: &Gear) -> String {
+/// The lines of a comparison under its heading: a line per stat of the horse
+/// that would change, as it is and as it would be. The numbers and nothing
+/// more: the card never says a piece is better (#351).
+fn changes(horse: &Horse, gear: &Gear) -> String {
     let worn = horse.gear[gear.slot.index()].as_ref();
     let mut out = String::new();
     let now = horse.stats();
@@ -73,20 +56,18 @@ fn changes(game: &Game, horse: &Horse, gear: &Gear) -> String {
             out += &format!("\n{label} {now} to {} ({change:+})", now + change);
         }
     }
-    let change = gain(&game.data, horse, gear);
-    out += &match change {
-        1.. => format!("\nAn upgrade: +{change} points."),
-        0 => "\nNo better: the same points.".to_string(),
-        _ => format!("\nWorse: {change} points."),
-    };
+    if out.is_empty() {
+        out += "\nNo stat changes.";
+    }
     out
 }
 
-/// What camp says of the drop by itself, with no card opened (#11): the
-/// horse it goes on when the party sets out, what it changes there and what
-/// it replaces, or why no horse takes it and it stays carried. It is said
-/// of the last trail's piece while that is the newest carried, and is empty
-/// once the piece is on a horse: what is carried then is not new.
+/// What camp says of the drop by itself, with no card opened (#11): what
+/// the trail brought back, and that it is carried until the player puts it
+/// on a horse. Nothing about where it should go: the game picks no horse
+/// for a piece (#351). It is said of the last trail's piece while that is
+/// the newest carried, and is empty once the piece is on a horse: what is
+/// carried then is not new.
 pub fn appraisal(game: &Game) -> String {
     let Some(gear) = game.pending_drop() else {
         return String::new();
@@ -95,36 +76,13 @@ pub fn appraisal(game: &Game) -> String {
     if !game.in_town() || dropped != Some(gear) {
         return String::new();
     }
-    match game.drop_best_wearer() {
-        Some(best) => {
-            let horse = &game.party[best];
-            let mut out = format!(
-                "NEW GEAR: {}, on setting out:\n{}",
-                gear.name,
-                compare(game, horse, gear),
-            );
-            if let Some(worn) = &horse.gear[gear.slot.index()] {
-                out += &format!("\n{} goes to the cargo.", worn.name);
-            }
-            out + "\nE puts it on the selected horse instead."
-        }
-        None => {
-            let mut out = format!(
-                "NEW GEAR: {}, kept in the cargo on setting out.\n\
-                 No horse is better off with it:",
-                gear.name
-            );
-            for horse in &game.party {
-                out += &format!("\n{}", verdict(game, horse, gear));
-            }
-            out + "\nE puts it on the selected horse all the same."
-        }
-    }
+    // What it is and what it adds is on its cell, under this.
+    format!("NEW GEAR: {}\nCarried until you put it on a horse.", gear.name)
 }
 
 /// What is said once a carried piece has been put on a horse, written
 /// before it is: what it replaced and what it changed.
-pub fn equipped(game: &Game, horse: &Horse, gear: &Gear) -> String {
+pub fn equipped(horse: &Horse, gear: &Gear) -> String {
     let worn = horse.gear[gear.slot.index()].as_ref();
     let mut out = match worn {
         Some(worn) => format!(
@@ -136,7 +94,7 @@ pub fn equipped(game: &Game, horse: &Horse, gear: &Gear) -> String {
             gear.name, horse.name
         ),
     };
-    out += &changes(game, horse, gear);
+    out += &changes(horse, gear);
     if let Some(worn) = worn {
         out += &format!("\n{} went to the cargo.", worn.name);
     }
@@ -343,9 +301,9 @@ fn weighed(game: &Game, piece: Piece, horse: usize, rows: Rows) -> Option<String
     out += &format!("\nSelected: {} ({})", gear.name, rarity(gear));
     out += &match piece {
         Piece::Worn { horse, .. } => format!("\nWorn by {}.", game.party[horse].name),
-        Piece::Carried(_) => "\nCarried in the cargo.".to_string(),
+        Piece::Carried(_) => format!("\n{IN_CARGO}"),
     };
-    out += &format!("\n\nAFTER EQUIPPING, {}:{}", selected.name, changes(game, selected, gear));
+    out += &format!("\n\nAFTER EQUIPPING, {}:{}", selected.name, changes(selected, gear));
     out += &format!(
         "\n\n{}",
         table(worn.map_or(Stats::default(), |worn| worn.stats), gear.stats, rows)
@@ -654,16 +612,52 @@ mod tests {
         };
         let horse = &game.party[0];
         let now = horse.stats();
-        let said = compare(&game, horse, &gear);
-        assert!(said.starts_with(&format!("On {}, in place of Old Thing:", horse.name)));
-        assert!(said.contains(&format!("attack {} to {} (+3)", now.attack, now.attack + 3)));
-        assert!(said.contains(&format!("defense {} to {} (-1)", now.defense, now.defense - 1)));
-        assert!(!said.contains("health") && !said.contains("elemental"), "{said}");
-        assert!(said.ends_with("An upgrade: +2 points."), "{said}");
-        assert_eq!(verdict(&game, horse, &gear), format!("Upgrade for {}: +2", horse.name));
+        let said = changes(horse, &gear);
+        assert_eq!(
+            said,
+            format!(
+                "\nattack {} to {} (+3)\ndefense {} to {} (-1)",
+                now.attack,
+                now.attack + 3,
+                now.defense,
+                now.defense - 1
+            )
+        );
+        // A piece that changes nothing says so, and no more.
+        let same = horse.gear[slot.index()].clone().unwrap();
+        assert_eq!(changes(horse, &same), "\nNo stat changes.");
+    }
 
-        let bare = &game.party[1];
-        assert!(compare(&game, bare, &gear).contains("who wears nothing there"));
+    /// The card gives the numbers and never says a piece is better (#351):
+    /// no line of it, under the pointer or pinned, in the report or after
+    /// Equip, is a verdict on the piece, for a better piece or a worse one.
+    #[test]
+    fn the_card_gives_numbers_and_no_verdict() {
+        use crate::game::report_text;
+
+        let gear = home().pending_drop().unwrap().clone();
+        for worn in [-5, 0, 5] {
+            let mut game = home();
+            let mut old = gear.clone();
+            old.name = "Old Thing".into();
+            old.stats.attack += worn;
+            game.party[0].gear[gear.slot.index()] = Some(old);
+            let hand = Hand { horse: 0, open: Some(Piece::Carried(0)) };
+            let mut said = vec![
+                comparison(&game, Piece::Carried(0), hand, Rows::All),
+                pointed_comparison(&game, Piece::Carried(0), 0, Rows::All),
+                appraisal(&game),
+                report_text(&game),
+            ];
+            game.act(Action::Equip, hand);
+            said.push(report_text(&game));
+            for said in said {
+                let low = said.to_lowercase();
+                for word in ["upgrade", "no better", "worse for", "points"] {
+                    assert!(!low.contains(word), "`{word}` in:\n{said}");
+                }
+            }
+        }
     }
 
     /// A consequence is never left unsaid: the card says what Equip does
@@ -709,28 +703,25 @@ mod tests {
         assert!(comparison(&again, Piece::Carried(0), carried(0), Rows::All).contains("Old Thing goes to the cargo."));
     }
 
-    /// Camp appraisal (#11): with no input the report says where the drop
-    /// goes and what it changes there, names the piece it replaces, and
-    /// when no horse takes it says why, horse by horse. Once it is on, what
-    /// it replaced is still said, and it opens the road's log.
+    /// Camp appraisal (#11, #351): with no input the report says what the
+    /// trail brought back and that it is carried, and names no horse for
+    /// it. Setting out with nothing pressed puts nothing on. By hand, what
+    /// the piece replaced is still said once it is on.
     #[test]
-    fn camp_says_what_the_drop_replaces_or_why_it_is_not_used() {
+    fn camp_says_what_was_brought_back_and_names_no_horse() {
         use crate::game::{Screen, report_text};
 
         let game = home();
         let gear = game.pending_drop().unwrap().clone();
-        let best = game.drop_best_wearer().expect("a bare party takes any piece");
-        let name = game.party[best].name.clone();
         let said = appraisal(&game);
-        assert!(said.starts_with(&format!(
-            "NEW GEAR: {}, on setting out:\nOn {name}, who wears nothing there:",
-            gear.name
-        )));
-        assert!(said.contains("An upgrade: +"), "{said}");
-        assert!(!said.contains("goes to the cargo"), "{said}");
+        assert_eq!(said, format!("NEW GEAR: {}\nCarried until you put it on a horse.", gear.name));
+        for horse in &game.party {
+            assert!(!said.contains(&horse.name), "{said}");
+        }
         assert!(report_text(&game).contains(&said), "the report shows it by itself");
 
-        // Every horse wears something in that slot, one of them worse.
+        // One horse wears something worse there, the others better: the
+        // game still names none of them, and setting out moves nothing.
         let old = |name: &str, points: i32| Gear {
             name: name.into(),
             slot: gear.slot,
@@ -747,36 +738,16 @@ mod tests {
         }
         over.party[1].gear[slot] = Some(old("Old Thing", 0));
         let said = appraisal(&over);
-        let second = over.party[1].name.clone();
-        assert!(said.contains(&format!("On {second}, in place of Old Thing:")), "{said}");
-        assert!(said.contains("Old Thing goes to the cargo."), "{said}");
-
-        // Set out with no input: it is on that horse, and the log says so.
+        for horse in &over.party {
+            assert!(!said.contains(&horse.name), "{said}");
+        }
         over.act(Action::SetOut, Hand::horse(0));
-        assert_eq!(over.party[1].gear[slot].as_ref(), Some(&gear));
+        assert_eq!(over.party[1].gear[slot].as_ref().unwrap().name, "Old Thing");
+        assert_eq!(over.pending_drop(), Some(&gear), "and it is still carried on the road");
         let Screen::Trail(expedition) = &over.screen else {
             panic!("the party set out");
         };
-        assert_eq!(
-            expedition.log[1],
-            format!("Equipped {} on {second}, in place of Old Thing:", gear.name)
-        );
-        assert!(expedition.log.iter().any(|line| line.starts_with("Old Thing went to the cargo.")));
-        assert_eq!(over.pending_drop().map(|gear| gear.name.as_str()), Some("Old Thing"));
-
-        // No horse better off: it stays carried, and each horse's reason.
-        let mut none = home();
-        for horse in &mut none.party {
-            horse.gear[slot] = Some(old("Fine Thing", 99));
-        }
-        let said = appraisal(&none);
-        assert!(said.contains("kept in the cargo on setting out"), "{said}");
-        for horse in &none.party {
-            assert!(said.contains(&format!("Worse for {}: -", horse.name)), "{said}");
-        }
-        none.act(Action::SetOut, Hand::horse(0));
-        assert!(none.party.iter().all(|horse| horse.gear[slot].as_ref().unwrap().name == "Fine Thing"));
-        assert_eq!(none.pending_drop(), Some(&gear), "and it is still carried on the road");
+        assert!(!expedition.log.iter().any(|line| line.contains(&gear.name)), "{:?}", expedition.log);
 
         // By hand, onto a horse of the player's choosing: the note keeps
         // what it replaced after the piece is on.

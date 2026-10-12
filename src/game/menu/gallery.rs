@@ -399,7 +399,7 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
             });
 
             // A change that is a gain, a loss and neither (#313), in a
-            // comparison and in a verdict, at the comparison's width.
+            // comparison, at the comparison's width.
             root.spawn(panel(t))
                 .insert(Node {
                     width: Val::Px(t.size.compare_width),
@@ -417,7 +417,6 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                         "health 35 to 45 (+10)\nattack 5 to 3 (-2)".to_string(),
                         table(adds(5, 3, 4, 2), adds(15, 1, 0, 2), Rows::All),
                         table(adds(5, 3, 4, 2), adds(15, 1, 0, 2), Rows::Changed),
-                        "Upgrade for Sable: +11\nNo better for Sable\nWorse for Sable: -3".to_string(),
                     ] {
                         inked(compared, t, &gear, &words);
                     }

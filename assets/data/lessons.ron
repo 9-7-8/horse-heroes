@@ -74,25 +74,24 @@
         target: Drop,
         words: "The trail brought this back. Press it and its card opens.",
         done: Did(Card),
-        // Explained from where it is now: the gate's line opens the road's log.
-        instead: "It went on at the gate, where it helps most, as the log said. Press it to read it.",
+        // Said when it was put on a horse without its card being opened.
+        instead: "It is on a horse now. Press it and its card opens.",
     ),
     (
         id: "the card is about the selected horse",
         due: Card,
         shown: Town,
         target: Selected,
-        words: "The selected horse: the card's before, after and verdict are its. Choose another.",
+        words: "The selected horse: the card's before and after are its. Choose another.",
         done: Did(Selected),
     ),
-    // The second sentence is true only while a piece left in the cargo goes on
-    // by itself at setting out (Game::depart). Take it out when that goes.
+    // Nothing equips by itself (#351): leaving it is valid, and loses nothing.
     (
         id: "equip or leave it",
         due: Card,
         shown: Town,
         target: Control("Equip"),
-        words: "You choose who wears it. Left alone, it goes where it helps most or stays carried.",
+        words: "You choose who wears it. Left alone, it stays carried, and nothing is lost.",
         done: Did(Equipped),
     ),
     // Only once a swap has been done: never before one is tried.

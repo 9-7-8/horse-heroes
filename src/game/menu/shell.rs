@@ -981,11 +981,9 @@ enum Fact {
     Hovered,
     /// What the comparison's room says while no piece is open in it.
     CompareHint,
-    /// The carried piece as a list shows it: its name, what it is, and
-    /// whether it matters to the selected horse.
+    /// The carried piece as a list shows it: its name and what it is.
     CarriedName,
     CarriedKind,
-    CarriedVerdict,
     /// On a tile of the Inventory: whose a worn piece is.
     WornBy(usize),
     /// The piece of the report that is showing: its name, what it is, and
@@ -1794,7 +1792,6 @@ fn spawn_carried(
             cell.spawn((text(t, ""), Live(Fact::CarriedName)));
             spawn_pictured(cell, t, Piece::Carried(0), |lines| {
                 lines.spawn((dim(t, ""), Live(Fact::CarriedKind)));
-                lines.spawn((dim(t, ""), Live(Fact::CarriedVerdict)));
             });
         });
 }
@@ -3242,16 +3239,12 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             card::pointed_comparison(game, piece, shell.horse(), shell.rows())
         }),
         Fact::CompareHint => card::compare_hint(selected),
-        // Against the selected horse, the one Equip puts it on.
         Fact::CarriedName => game
             .pending_drop()
             .map_or(String::new(), |gear| gear.name.clone()),
         Fact::CarriedKind => game
             .pending_drop()
             .map_or(String::new(), |gear| card::kind(game, gear)),
-        Fact::CarriedVerdict => game
-            .pending_drop()
-            .map_or(String::new(), |gear| card::verdict(game, selected, gear)),
         Fact::WornBy(horse) => game.party[horse].name.clone(),
         Fact::ReportedName | Fact::ReportedKind | Fact::ReportedWhere => {
             let Some(at) = game.reported_piece() else {
@@ -3263,9 +3256,8 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             match (fact, at) {
                 (Fact::ReportedName, _) => gear.name.clone(),
                 (Fact::ReportedKind, _) => card::kind(game, gear),
-                // Carried, it is what the cargo says of it: against the
-                // selected horse, the one Equip puts it on.
-                (_, Piece::Carried(_)) => card::verdict(game, selected, gear),
+                // Where it is, and nothing of where it should go (#351).
+                (_, Piece::Carried(_)) => card::IN_CARGO.into(),
                 (_, Piece::Worn { horse, .. }) => format!("{} wears it.", game.party[horse].name),
             }
         }
@@ -4439,7 +4431,7 @@ mod tests {
         let say = |game: &Game, what| fact(game, &uncollected, &shell, &places, what);
         assert_eq!(say(&game, Fact::ReportedName), name);
         assert_eq!(say(&game, Fact::ReportedKind), say(&game, Fact::CarriedKind));
-        assert_eq!(say(&game, Fact::ReportedWhere), say(&game, Fact::CarriedVerdict));
+        assert_eq!(say(&game, Fact::ReportedWhere), card::IN_CARGO);
 
         game.act(Action::Equip, Hand::horse(2));
         assert_eq!(say(&game, Fact::ReportedName), name);
@@ -4456,8 +4448,8 @@ mod tests {
         assert!(say(&game, Fact::ReportSide).starts_with("REPORTS KEPT"));
     }
 
-    /// The marks of the map (#232) are on places that show their thing: an
-    /// upgrade where the cargo is, a report on the tab that shows reports,
+    /// The marks of the map (#232) are on places that show their thing: new
+    /// gear where the cargo is, a report on the tab that shows reports,
     /// and a rarity is one `gear.ron` has.
     #[test]
     fn every_mark_is_on_a_place_that_shows_its_thing() {
@@ -4470,7 +4462,7 @@ mod tests {
             };
             let page = &places.places[place];
             match &rule.raise {
-                Raise::Upgrade => assert!(page.horse_columns && tab.is_none(), "{rule:?}"),
+                Raise::NewGear => assert!(page.horse_columns && tab.is_none(), "{rule:?}"),
                 Raise::Report { rarity, .. } => {
                     let content = tab.map(|tab| page.tabs[tab].content);
                     assert_eq!(content, Some(Content::Report), "{rule:?}");

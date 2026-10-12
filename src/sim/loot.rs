@@ -43,28 +43,6 @@ pub fn score(data: &Data, stats: Stats) -> i32 {
     stats.attack + stats.defense + stats.elemental + stats.health / data.gear.health_per_point
 }
 
-/// What a horse gains by wearing a piece in place of what it wears in that
-/// slot now, in `score` points. Any horse can wear any piece (#250).
-pub fn gain(data: &Data, horse: &Horse, gear: &Gear) -> i32 {
-    let worn = horse.gear[gear.slot.index()]
-        .as_ref()
-        .map_or(Stats::default(), |worn| worn.stats);
-    score(data, gear.stats) - score(data, worn)
-}
-
-/// The horse a piece does most for, if it is an upgrade for any of them. The
-/// earlier horse takes a tie.
-pub fn best_wearer(data: &Data, party: &[Horse], gear: &Gear) -> Option<usize> {
-    let mut best: Option<(usize, i32)> = None;
-    for (index, horse) in party.iter().enumerate() {
-        let gain = gain(data, horse, gear);
-        if gain > best.map_or(0, |(_, most)| most) {
-            best = Some((index, gain));
-        }
-    }
-    best.map(|(index, _)| index)
-}
-
 /// Two horses change what they wear in one slot. Any horse can wear any
 /// piece (#250), so nothing is refused and nothing is lost: an empty slot
 /// changes places like a piece does. Returns whether anything moved.
@@ -201,34 +179,6 @@ mod tests {
             slots[gear.slot.index()] = true;
         }
         assert!(slots.iter().all(|&seen| seen));
-    }
-
-    /// Any horse can wear a piece, and by itself it goes to the horse it
-    /// does most for: never to one already wearing better.
-    #[test]
-    fn a_piece_goes_where_it_does_most() {
-        let data = Data::load();
-        let mut party: Vec<Horse> = data.horses.iter().map(Horse::new).collect();
-        let piece = |points: i32| Gear {
-            name: "Test Halter".into(),
-            slot: Slot::Head,
-            rarity: 0,
-            stats: Stats {
-                attack: points,
-                ..Stats::default()
-            },
-        };
-        let head = Slot::Head.index();
-        assert_eq!(best_wearer(&data, &party, &piece(3)), Some(0), "a tie goes to the first");
-        party[0].gear[head] = Some(piece(5));
-        party[1].gear[head] = Some(piece(1));
-        assert_eq!(gain(&data, &party[0], &piece(3)), -2);
-        assert_eq!(gain(&data, &party[1], &piece(3)), 2);
-        assert_eq!(gain(&data, &party[2], &piece(3)), 3);
-        assert_eq!(best_wearer(&data, &party, &piece(3)), Some(2));
-        party[2].gear[head] = Some(piece(5));
-        assert_eq!(best_wearer(&data, &party, &piece(3)), Some(1));
-        assert_eq!(best_wearer(&data, &party, &piece(1)), None, "an upgrade for nobody");
     }
 
     #[test]

@@ -525,22 +525,25 @@ mod tests {
     }
 
     /// A town lesson the party walks away from waits for the next town, and
-    /// then finds its piece where it is now: on the horse it went on at the
-    /// gate, with the line for that. The dev key's sample is left alone.
+    /// then finds its piece where it is now: on the horse the player put it
+    /// on with its card unopened, with the line for that. The dev key's
+    /// sample is left alone.
     #[test]
     fn a_lesson_left_in_town_finds_its_piece_again() {
         let map = Places::load();
         let (mut shell, mut held) = (shell(&map), Held::default());
         let mut game = (0..50)
             .map(Game::back_from_a_trail)
-            .find(|game| game.drop_best_wearer().is_some())
-            .expect("no seed under 50 brings an upgrade home");
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
         game.lessons = lessons();
         game.lessons.raise(Event::Gear);
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("piece"));
         assert_eq!(shell.hint().unwrap().words, "piece.");
 
+        // Equip by its key, the card never opened, and away.
+        game.act(Action::Equip, Hand::horse(1));
         game.act(Action::SetOut, Hand::default());
         follow(&mut game, &mut shell, &map, &mut held);
         assert_ne!(hinted(&shell), Some("piece"), "a town lesson on the road");

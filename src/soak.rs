@@ -678,7 +678,7 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
                     }
                     again.tick(data, TICK);
                 }
-                // What was put on at the gate is said after the first line.
+                // Lines the game adds after the first are allowed for.
                 let extra = trail.lines.len().saturating_sub(again.log.len());
                 let same_lines = trail.lines.len() >= again.log.len()
                     && trail.lines.first() == again.log.first().map(String::as_str).as_ref()
