@@ -48,15 +48,17 @@ raises every one of them.
 
 `Lessons` keeps four facts for each lesson and keeps them apart
 (`Progress`): **due**, **seen** (it has been shown), **done** (watched or
-did), **skipped** (put away). A lesson can be done without having been seen:
+did), **skipped** (put away). It also keeps the order in which lessons came
+due (`listed`), for the Journal. A lesson can be done without having been seen:
 a player who equips a piece unprompted is not then told how.
 
 `Lessons::show(in_town, found)` is asked every frame which lesson to show.
 `found` is where each lesson's target is at that moment, so the game is
 looked at again every time:
 
-- A lesson fits when it is due, not done, not skipped, this is where it is
-  shown, and its target is there.
+- A lesson fits when it is due, not done, not skipped, lessons are not
+  turned off, this is where it is shown, and its target is there. One the
+  player asked for again fits whatever was done, put away or turned off.
 - One that is showing and no longer fits goes back to waiting, and is not
   counted as put away: a town lesson when the party sets out, or one whose
   target has gone.
@@ -79,14 +81,42 @@ first trail and town visit with no input goes tick for tick as it does with
 every lesson skipped, and every action can be done or not for the same
 reason whatever the lessons' state.
 
-## Put away, skipped, found again
+## Put away, turned off, found again
 
-Got it (or Escape) and Skip all hints are the shell's controls;
-`teach::follow` tells the queue what was pressed (`dismiss`, `skip_all`).
-With all skipped, lessons still become due and done behind it.
-`Lessons::restore` shows them again, those put away too; the control for
-that, and finding a lesson in the Journal, is #300. Progress is kept in
-memory only, so the lessons play again on each launch until saving (#44).
+Guidance that can be skipped can be found afterwards (#300;
+`philosophy/onboarding.md`, principle 10).
+
+- **Got it** (or Escape) puts the hint showing away. **Skip all hints**
+  puts it away and turns hints off. Both are the shell's controls, and what
+  is put away and whether hints are off is the shell's to say:
+  `teach::follow` tells the queue each frame (`put_away`, `turn_off`).
+- **Hints**, in Settings, is the same switch (`Switch::Hints` in
+  `places.ron`), marked as chosen while hints are on. Turned off there, the
+  hint showing leaves its line without being put away, so it is back when
+  they are turned on. Off, lessons still become due and done behind it.
+- **Journal, Hints** (J, 4; `content: Hints`) lists every lesson that has
+  become due, in the order it came and never before its event: its line
+  as it would be said now, and under it what became of it (`State`:
+  showing now, done, put away, skipped with hints off, waiting its turn),
+  where it applies and what it is on. Until saving (#44) the list starts
+  empty on each launch, and says so.
+- **A press on a row shows that hint again** on its control
+  (`teach::again`, `Lessons::again`), in the place of any other, whether
+  it was done or put away and with hints off too. It is then a hint like
+  any other: it goes when its thing is done, when it is put away, or when
+  its target is no longer there, and one that was done does not come back
+  by itself.
+- **A row that cannot be shown now says why** and is drawn as unavailable
+  (`mark_lessons`): "A press shows it again on the road.", "... in town.",
+  or "What it is about is not there now." A press on it changes nothing.
+- A row for every lesson in the file is spawned once and shows while the
+  list is that long (`When::Listed`), as the rest of the shell is shown
+  and hidden and never rebuilt. `teach::listed` is what a row says.
+
+Chosen without the owner: the player's word is "hint" throughout (the tab,
+the switch), since that is what Got it and Skip all hints already call it;
+the list is a fourth tab of the Journal; Hints in Settings has no key; a
+row's second line and its wording.
 
 ## The lessons in the file
 
@@ -127,4 +157,7 @@ road, at 24 the second, at 80 the piece's in town
 keys and saves a picture of each
 ([gallery](gallery/2026-10-12-first-item/README.md)). F6 puts a sample hint
 over whatever lesson is showing and takes it away again; the lesson comes
-back after it. The dev key also brings back every lesson put away.
+back after it. The dev key also brings back every lesson put away. The
+walk then opens Journal, Hints, shows the piece's hint again with Enter,
+turns hints off in Settings and goes back to the list
+([gallery](gallery/2026-10-12-hints-found-again/README.md)).

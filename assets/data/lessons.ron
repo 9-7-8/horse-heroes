@@ -7,8 +7,7 @@
 // 2026-10-11). It never holds the party up and never makes a control
 // unavailable.
 //
-//   id       its name: how it is known once put away, and to the Journal
-//            later (#300). No two the same.
+//   id       its name: how it is known once put away. No two the same.
 //   due      what has to happen first. It counts the first time it happens
 //            and never again, so a return to town does not replay a lesson.
 //              Fight     an encounter began
@@ -35,7 +34,8 @@
 //                                      that the party still has, where it is
 //                                      now: in the cargo, or on a horse
 //            A lesson whose target is not there waits until it is.
-//   words    its one line, said after the target's name and key. Short: at
+//   words    its one line, said after the target's name and key, and by
+//            itself in the Journal's list of hints (#300). Short: at
 //            the smallest window the line has room for about a hundred
 //            letters, the name included, and a piece's name is long.
 //   done     what finishes it:

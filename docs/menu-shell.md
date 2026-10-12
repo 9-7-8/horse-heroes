@@ -134,7 +134,9 @@ smallest window.
   lesson's hint is not shown again by itself. Escape takes the hint first,
   as the innermost level, before a side panel or a place.
 - **Skip all hints** puts it away and every later one (`Shell::skip_hints`).
-  Turning them back on, and finding a lesson again in the Journal, is #300.
+  Hints, in Settings, turns them back on, and every hint given is found
+  again on Journal, Hints, where a press shows it (#300,
+  [lessons.md](lessons.md), "Put away, turned off, found again").
 - Both controls are reached with Tab and the arrows and pressed with
   Enter, as every control is. A hint never makes a control unavailable and
   never holds the party up.
@@ -309,7 +311,7 @@ A control in the file is:
 | `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut`, `KeepGoing`, `Undo`, `Earlier`, `Later` |
 | `note` | A line that stays under its group of controls, whether or not it can be used |
 | `shows` | What a press opens in the side panel of its page: `Keys` |
-| `switch` | What a press turns on and off, of what is shown and not of the game: `ChangedOnly` |
+| `switch` | What a press turns on and off, of what is shown and not of the game: `ChangedOnly`, `Hints` |
 | `key` | The key that works it, printed on it: a letter, a digit, `[`, `]` or `Space` |
 
 A place, Settings and a tab have a `key` too, and `horse_keys` at the end of
@@ -333,8 +335,9 @@ the file are the keys of the party's horses, in order (see Keys).
 - **A control with a `switch` works too** (#349). A press turns a way of
   showing things on or off (`Shell::press_switch`), and the control carries
   the selected mark while it is on. It changes nothing in the game, so it
-  is not in `Game::act` and Undo does not see it. Changed only, on the
-  item card, is the one there is (item-card.md, "The comparison").
+  is not in `Game::act` and Undo does not see it. There are two: Changed
+  only, on the item card (item-card.md, "The comparison"), and Hints, in
+  Settings (lessons.md).
 - **When a system lands**, its control gets an `action`, a `shows` or a
   `switch` and stays where it is.
 
@@ -412,6 +415,9 @@ every place, tab and horse has a key, and no key means two things at once.
 - `Inventory`: every piece the party has, worn or carried, in a grid by
   type (#308): see "The Inventory" below. It is the `content` of a place
   without tabs, which a place may have as a tab does.
+- `Hints`: every hint the game has given, a row each, to show again
+  (#300, [lessons.md](lessons.md)). Its rows are its controls, so the tab
+  has none of the map's.
 - none: the tab says what will be decided there and that it is not built.
 
 Under whatever a tab shows come its controls.

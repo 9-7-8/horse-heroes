@@ -73,7 +73,9 @@ Use the cheapest step that can prove the change:
    piece's in town. F6 puts the sample over a lesson that is showing.
    IDLE_LESSON walks the first item's lessons by keys (#296): home from
    the first trail it opens the piece's card, selects another horse,
-   equips, swaps, and saves a picture of each lesson (about 80 s):
+   equips, swaps, and saves a picture of each lesson; then the
+   Journal's list of hints, one shown again, and hints turned off in
+   Settings (#300; about 85 s in all):
        $env:IDLE_LESSON = "screenshots/lesson"; cargo run -- --seed 6 *> run.log
    Sound cannot be checked by a picture. --mute plays nothing, for a run
    that is only for a picture. To read what was played, in order:
