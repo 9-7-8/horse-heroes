@@ -1,0 +1,55 @@
+SESSION 2026-10-12 11:13 - The cargo keeps every piece (part of #352)
+
+ASKED
+  /next, with no steer. Tier 1 was empty but for #246, which waits on
+  the owner watching a few trails. Tier 2 found nothing untested worth
+  a test. The feature was what PICK UP named: the cargo that keeps
+  every piece, the part of #352 that #351 needs.
+
+DONE
+  - The cargo is a list, newest first (6f50fb5). A trail's piece goes
+    into it and stays, on the road as in town. Setting out loses
+    nothing. A carried piece put over a worn one sends the worn one to
+    its place in the cargo. Undo puts the cargo back with the horses.
+    Tested: the_cargo_keeps_every_piece, and 191 tests pass.
+  - The Inventory has a tile for every carried piece, made as the cargo
+    grows; any of them opens its card and can be equipped. Seen
+    running: the menu tour at --seed 6 --cargo 7, pictures 16 and 56.
+  - The card, the report and the Equip lesson no longer say a piece is
+    thrown away or left behind. Tested, and seen in the tour.
+  - --cargo N, a dev flag: a run starts with N pieces carried.
+  - The click-budget walk and the first item's lesson walk both still
+    finish (run, counts read; nothing over budget).
+  - docs: expedition, item-card, menu-shell, lessons,
+    mechanics-for-tutorial, build-and-run.
+
+DECIDED (by the session, for her)
+  - Newest first, so the one cargo cell beside Gear keeps showing the
+    newest piece without being rebuilt.
+  - A displaced piece takes the place of the one that replaced it, so
+    the places of the other carried pieces do not move under a card.
+  - The appraisal in the report is said only while the last trail's
+    piece is the newest carried.
+
+FOUND
+  - A here-document in the Bash tool also turns two backslashes into
+    one, quoted or not. Scripts with a backslash in them go through the
+    Write tool (build-and-run.txt already says to).
+
+NOT DONE
+  - #352 stays open: every monster dropping gear, the rates as data
+    with their tests, the lesson for a choice among pieces, the frame
+    time of a trail's worth of pieces, and the soak run. The soak was
+    not run this session.
+  - The cargo column beside Gear shows only the newest piece; the whole
+    list there is #227. The Inventory is where they all are.
+  - The Inventory was not looked at with more pieces than fit its
+    height; it scrolls, as it did.
+  - The game still equips by itself at the gate and still shows the
+    verdict line: that is #351.
+
+PICK UP
+  #351: take out Game::depart's equip_carried and loot::best_wearer
+  with their uses (the appraisal, Raise::Upgrade, the verdict line and
+  Fact::CarriedVerdict), and rewrite the Equip lesson. Then the rest of
+  #352.

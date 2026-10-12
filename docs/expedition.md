@@ -56,7 +56,11 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
   it on the selected horse. A party that leaves town with the piece still
   in cargo puts it on the horse it does most for (`loot::best_wearer`), if
   it betters any of them; the report says which horse and what changes
-  before it happens (item-card.md). On a win the piece comes out of the last
+  before it happens (item-card.md). The cargo (`Game::cargo`) keeps every
+  piece, newest first, on the road as in town (#352): a piece no horse
+  takes stays carried, a worn piece that a carried one replaces takes its
+  place in the cargo, and nothing leaves the cargo but onto a horse. It
+  has no capacity yet (#34). On a win the piece comes out of the last
   enemy to fall (`Kill::gear`); on a loss it is only reported in town.
 - A rarity is a line in `gear.ron`, lowest first, and a piece names its
   tier by its place in that list. There is no rarity enum in the code.

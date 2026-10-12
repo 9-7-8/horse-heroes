@@ -67,7 +67,7 @@ looked at again every time:
 
 A `Drop` is the newest piece a kept report dropped that the party still
 has (`Game::newest_piece`): in the cargo it is `Here`; on a horse it is
-`Moved`, and the lesson says its `instead`; left behind it is `Gone`, and
+`Moved`, and the lesson says its `instead`; no longer the party's it is `Gone`, and
 the lesson waits for the next piece. Its mark goes on the piece wherever it
 is listed (`About::Piece`): the cargo, the report, the Gear tab, the
 Inventory.
@@ -136,7 +136,7 @@ none of which has to be done:
 2. The selected horse, in the strip: the card's before, after and verdict
    are its. Finished by selecting another horse.
 3. Equip: you choose who wears it; left alone it goes where it helps most
-   or is left behind. That sentence is true only while `Game::depart`
+   or stays carried. That sentence is true only while `Game::depart`
    equips the drop by itself, and comes out of the file when that goes.
 4. Once a piece is on, Undo: it takes it back until the party sets out.
    Finished by setting out.

@@ -55,7 +55,7 @@ This is what a tutorial could be tested against now.
 | **Party element** | Fire, Ice or Plant (F, I, P), in town only | Fire beats Plant beats Ice beats Fire: x1.5 strong, x0.75 resisted. Enemy elements are rolled per trail |
 | **Winning and losing** | Nothing | A win raises the trail level: enemies +15% health and attack, drops +1 stat point. A loss costs nothing yet |
 | **The loot shower** | Nothing | A kill bursts coins that arc, bounce, settle and are vacuumed to the party; the boss gives the full fountain |
-| **Gear drop** | Whether to equip it, and on whom | One piece per run if any encounter was cleared. If left in cargo, it goes on the horse it helps most at setting out, or is left behind |
+| **Gear drop** | Whether to equip it, and on whom | One piece per run if any encounter was cleared. If left in cargo, it goes on the horse it helps most at setting out, or stays carried: the cargo keeps every piece (#352) |
 | **Slots** | Which horse wears what | Three: Head, Body, Saddle. Any horse wears any piece |
 | **Rarity** | Nothing | Normal (white), Magic (blue), Rare (yellow), Legendary (orange), Set (green). Each also has its own shape, on the ground and in the menu. Today the top tiers are only more stat points and a beam |
 | **Item card** | Press a piece to pin its card; Equip (E) | Shows the piece, where it is, and each stat before and after on the selected horse, with a verdict: upgrade, no better, worse |

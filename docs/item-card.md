@@ -68,7 +68,7 @@ beside Equip.
     defense          +4         -  -4 lost
     elemental        +2        +2  same
 
-    Equip puts it on Sable. Plain Halter is thrown away: ...
+    Equip puts it on Sable. Plain Halter goes to the cargo.
 
 - **Context first:** who would receive it and in which slot, then the
   piece equipped there ("nothing" for an empty slot) and the piece
@@ -87,8 +87,8 @@ beside Equip.
   it, and what it adds.
 - The last line (`consequence`) is what Equip would do, and it is there
   exactly when Equip can be done. It names the displaced piece: "Old Halter
-  is thrown away: the cargo cannot hold it yet." (a carried piece put over a
-  worn one; the cargo holds one thing until #227) or "Equip puts A on
+  goes to the cargo." (a carried piece put over a worn one: the worn one
+  takes its place in the cargo, #352) or "Equip puts A on
   Juniper, and B on Sable." (two horses changing places). The card's
   actions are under it.
 - **Its width is its own** (`size.compare_width`, 420), wherever it is
@@ -294,14 +294,17 @@ whoever is selected:
     E puts it on the selected horse instead.
 
 - The comparison is the card's own (`compare`). Over a worn piece its
-  heading names that piece, and a line says it is thrown away.
-- When no horse is better off: "left behind on setting out", then why, a
+  heading names that piece, and a line says it goes to the cargo.
+- When no horse is better off: "kept in the cargo on setting out", then why, a
   verdict per horse ("Worse for Juniper: -3"), and that E puts it on the
   selected horse all the same.
 - The drop's cell is under it, with its verdict for the selected horse.
+- It is said of the last trail's piece while that is the newest carried.
+  Once the piece is on a horse the cargo's newest is an older piece, and
+  nothing is appraised.
 - Once the piece is on, by E or at the gate, what happened is kept
   (`card::equipped`): "Equipped A on Juniper, in place of B:", the same
-  lines per stat, and "B was thrown away". By E it is the report's note;
+  lines per stat, and "B went to the cargo.". By E it is the report's note;
   at the gate it is the first lines of the road's log, after "The party
   sets out", so the Journal still says it on the road.
 

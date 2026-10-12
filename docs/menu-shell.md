@@ -368,8 +368,9 @@ is open in the side panel, where that piece is (`Piece`, from
 selected horse, from the cargo or from another horse: see
 [item-card.md](item-card.md). From another horse the two change places
 (`loot::swap_worn`), an empty slot like a piece, so nothing is lost. The
-displaced piece goes to the other horse and not to the cargo because the
-cargo holds one thing until 0.4.0 (#227).
+displaced piece goes to the other horse and not to the cargo: a swap is
+between two horses. A carried piece put over a worn one sends the worn one
+to the cargo (#352).
 
 An empty list says what belongs in it: the cargo, an empty slot's side
 panel, and the report before any trail. A tab with no content says "This
@@ -424,8 +425,9 @@ Under whatever a tab shows come its controls.
 
 A place marked `horse_columns` keeps the cargo down its right on every
 tab. It had the horses down its left too until #311: they were listed
-twice, and the strip is the list that stayed. Until 0.4.0 the cargo holds one thing: the
-piece the last trail dropped, until it is equipped or the party leaves.
+twice, and the strip is the list that stayed. The cargo keeps every piece (#352), newest
+first, on the road as in town; this column shows the newest, and the
+Inventory shows them all. The whole list here is #227.
 It is shown as the summary of its card: its name, what it is, and whether
 it is an upgrade for the selected horse, no better or worse, in points
 (`loot::gain`). Selecting another horse changes that line. A press opens
@@ -466,8 +468,11 @@ comparisons when you hover an item".
   for the keyboard.
 - **Every cell a group can hold is spawned once** and shows while its piece
   is held (`When::Held`, `When::NoneHeld`, in `show_carried`), as the rest
-  of the shell is shown and hidden and never rebuilt. When the cargo holds
-  more than one piece (#227) this is the part that changes.
+  of the shell is shown and hidden and never rebuilt. The cargo has no most
+  it can hold, so its tiles are made as it grows (`grow_cargo`, #352): each
+  group gets a tile for every place in the cargo, `Piece::Carried(at)`
+  counted from the newest, and a tile shows while the piece at its place
+  is of its group's type. A tile is never taken away.
 - **The grid** is a CSS grid of as many columns as fit, each
   `size.inventory_cell` wide (104): six at the smallest window.
 - **It has the place's width.** The place has no horses column and no

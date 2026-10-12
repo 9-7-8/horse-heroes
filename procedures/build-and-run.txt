@@ -28,7 +28,9 @@ Use the cheapest step that can prove the change:
    run; --parts opens the menu parts screen (docs/menu-parts.md), which
    has every gear picture, slot by rarity, at IDLE_SHOT_AT=3;
    --window WxH opens the window at that size in logical pixels (the
-   smallest allowed is 1120x640). No town leaves by itself (#305), so
+   smallest allowed is 1120x640). --cargo N starts with N pieces
+   carried, rolled from the seed: the menu tour with --cargo 7 has the
+   Inventory's tiles for them in its picture 16. No town leaves by itself (#305), so
    a run with nobody at it stays in town: --keep-going starts it with
    Keep going on, and then the party sets out 12 s after launch, so
    --keep-going at IDLE_SHOT_AT=17 is a picture of the road view in a
