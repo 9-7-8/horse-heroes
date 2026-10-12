@@ -665,6 +665,9 @@ impl Game {
                 };
                 if let Some(text) = done {
                     self.lessons.raise(Event::Equipped);
+                    if matches!(hand.open, Some(Piece::Worn { .. })) {
+                        self.lessons.raise(Event::Swapped);
+                    }
                     self.changes.push(before);
                     if let Screen::Camp { note, .. } = &mut self.screen {
                         *note = text;
@@ -730,6 +733,7 @@ impl Game {
             expedition.log.extend(taken.lines().map(String::from));
         }
         self.screen = Screen::Trail(expedition);
+        self.lessons.raise(Event::SetOut);
     }
 
     fn return_to_camp(&mut self, outcome: Outcome) {

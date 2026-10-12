@@ -19,6 +19,10 @@
 //              Gear      the party came back to town with a piece
 //              Card      the player opened a piece's card
 //              Equipped  the player put a piece on a horse
+//              Selected  the player selected another horse
+//              Swapped   the player's Equip took a piece from the horse that
+//                        wore it
+//              SetOut    the party left town
 //   shown    where: Town, Road, or left out for either. A Town lesson that
 //            is showing when the party sets out waits for the next town.
 //   target   the control its mark is on, named as places.ron names it:
@@ -26,6 +30,7 @@
 //              Tab("Horses", "Gear")   a tab of a place
 //              Control("Equip")        a control, wherever it is drawn
 //              Horse(0)                a horse of the party, counted from 0
+//              Selected                the horse that is selected, in the strip
 //              Drop                    the newest piece a trail brought back
 //                                      that the party still has, where it is
 //                                      now: in the cargo, or on a horse
@@ -40,8 +45,10 @@
 //   instead  the line to say when the state has moved on: when a Drop is
 //            no longer in the cargo but on a horse.
 //
-// These four are a starting set, from docs/philosophy/onboarding.md. The
-// first trail's lessons are #295, the first item's #296, the element's #299.
+// The first two are a starting set, from docs/philosophy/onboarding.md; the
+// first trail's lessons are #295 and the element's #299. The rest are the
+// first item's (#296): the piece, whose stats its card is about, Equip, and
+// what came of it. Each is finished by doing the thing, and none has to be.
 #![enable(implicit_some)]
 [
     (
@@ -61,20 +68,48 @@
         done: Watched(Ability),
     ),
     (
-        id: "read the piece",
+        id: "press the piece",
         due: Gear,
         shown: Town,
         target: Drop,
-        words: "Press it to read it against what the selected horse wears.",
+        words: "The trail brought this back. Press it and its card opens.",
         done: Did(Card),
-        instead: "It went on at the gate, on the horse it helps most. Press it to read it.",
+        // Explained from where it is now: the gate's line opens the road's log.
+        instead: "It went on at the gate, where it helps most, as the log said. Press it to read it.",
     ),
+    (
+        id: "the card is about the selected horse",
+        due: Card,
+        shown: Town,
+        target: Selected,
+        words: "The selected horse: the card's before, after and verdict are its. Choose another.",
+        done: Did(Selected),
+    ),
+    // The second sentence is true only while a piece left in the cargo goes on
+    // by itself at setting out (Game::depart). Take it out when that goes.
     (
         id: "equip or leave it",
         due: Card,
         shown: Town,
         target: Control("Equip"),
-        words: "Puts the open piece on the selected horse. Left alone, it goes where it helps most.",
+        words: "You choose who wears it. Left alone, it goes where it helps most or is left behind.",
         done: Did(Equipped),
+    ),
+    // Only once a swap has been done: never before one is tried.
+    (
+        id: "a swap loses nothing",
+        due: Swapped,
+        shown: Town,
+        target: Selected,
+        words: "The two horses exchanged pieces. Nothing is lost.",
+        done: Did(SetOut),
+    ),
+    (
+        id: "it is on",
+        due: Equipped,
+        shown: Town,
+        target: Control("Undo"),
+        words: "It is on, and its card shows it so. This takes it back until the party sets out.",
+        done: Did(SetOut),
     ),
 ]

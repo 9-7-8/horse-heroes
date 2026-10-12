@@ -14,6 +14,9 @@
 //! presses a pointer makes and once by keys, counts the presses, checks in
 //! the game that the job was done, and writes the counts to `counts.txt` in
 //! the folder (procedures/walk-the-click-budget.txt).
+//!
+//! `IDLE_LESSON=<folder>` walks the first item's lessons (#296): home from
+//! the first trail, it does what each asks and saves a picture of the next.
 
 use bevy::{
     input::InputSystems,
@@ -65,6 +68,11 @@ impl Plugin for DevScreenshotPlugin {
         } else if let Ok(folder) = std::env::var("IDLE_WALK") {
             app.insert_resource(Tour::new(folder))
                 .add_systems(Startup, plan_walk)
+                .add_systems(PreUpdate, tour_keys.after(InputSystems))
+                .add_systems(Update, tour);
+        } else if let Ok(folder) = std::env::var("IDLE_LESSON") {
+            app.insert_resource(Tour::new(folder))
+                .add_systems(Startup, plan_lesson)
                 .add_systems(PreUpdate, tour_keys.after(InputSystems))
                 .add_systems(Update, tour);
         }
@@ -546,6 +554,31 @@ const EQUIP: &str = "Equip an upgrade the report just showed";
 const ABILITY: &str = "Give a horse a different ability";
 const SET_OUT: &str = "Set out for the next town";
 const LEFT_BEHIND: &str = "Find out why a piece was left behind";
+
+/// The first item's lessons (#296), each as the player meets it: home from
+/// the first trail with a piece, its card opened, another horse selected,
+/// Equip, and then the piece taken from the horse that wears it. The keys
+/// are those of `places.ron`.
+fn plan_lesson(mut tour: ResMut<Tour>) {
+    tour.steps = vec![
+        Step::SetOut,
+        Step::Town,
+        Step::Wait(SETTLE),
+        Step::Shot("the piece the trail brought back".into()),
+        Step::Carried(0),
+        Step::Shot("its card is about the selected horse".into()),
+        Step::Key(KeyCode::KeyC),
+        Step::Shot("another horse selected and then equip".into()),
+        Step::Key(KeyCode::KeyE),
+        Step::Shot("it is on".into()),
+        Step::Key(KeyCode::KeyZ),
+        Step::Key(KeyCode::KeyE),
+        Step::Key(KeyCode::Escape),
+        Step::Shot("a swap loses nothing".into()),
+        Step::Key(KeyCode::Escape),
+        Step::Shot("put away and nothing follows".into()),
+    ];
+}
 
 fn plan_walk(mut tour: ResMut<Tour>, places: Res<Places>) {
     tour.steps = walk_steps(&places);

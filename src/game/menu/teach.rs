@@ -15,7 +15,7 @@ use crate::sim::lessons::{Event, Found, Target};
 /// Where a lesson's target is now: the control its mark goes on, and
 /// whether that is where the lesson's words expect it. None when it is not
 /// there, and the lesson waits.
-pub fn find(target: &Target, map: &Places, game: &Game) -> Option<(About, Found)> {
+pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Option<(About, Found)> {
     let about = match target {
         Target::Place(name) => About::Place(map.page_named(name)?),
         Target::Tab(place, tab) => {
@@ -25,6 +25,8 @@ pub fn find(target: &Target, map: &Places, game: &Game) -> Option<(About, Found)
         Target::Control(name) => About::Control(map.control_named(name)?),
         Target::Horse(horse) if *horse < game.party.len() => About::Horse(*horse),
         Target::Horse(_) => return None,
+        Target::Selected if selected < game.party.len() => About::Horse(selected),
+        Target::Selected => return None,
         // The piece is found where it is now: carried, worn, or not at all.
         Target::Drop => {
             let piece = game.newest_piece()?;
@@ -38,16 +40,28 @@ pub fn find(target: &Target, map: &Places, game: &Game) -> Option<(About, Found)
     Some((about, Found::Here))
 }
 
+/// What the player's hands held when the lessons last looked: whether a
+/// piece's card was open, and which horse was selected.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Held {
+    card: bool,
+    horse: usize,
+}
+
 /// Keep the hint's line to the lessons. The queue hears what the player's
-/// hands did here: a piece's card opened, a hint put away, every hint
-/// skipped. Then the game is looked at again, and the lesson to show now is
+/// hands did here: a piece's card opened, another horse selected, a hint put
+/// away, every hint skipped. Then the game is looked at again, and the lesson to show now is
 /// the hint. A sample hint (the dev key's) is left alone.
-pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, card_open: &mut bool) {
-    let open = shell.hand().open.is_some();
-    if open && !*card_open {
+pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held) {
+    let hand = shell.hand();
+    let open = hand.open.is_some();
+    if open && !held.card {
         game.lessons.raise(Event::Card);
     }
-    *card_open = open;
+    if hand.horse != held.horse {
+        game.lessons.raise(Event::Selected);
+    }
+    *held = Held { card: open, horse: hand.horse };
 
     if shell.hints_off() != game.lessons.is_off() {
         match shell.hints_off() {
@@ -63,7 +77,7 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, card_open: &mut 
         .lessons
         .defs()
         .iter()
-        .map(|def| find(&def.target, map, game))
+        .map(|def| find(&def.target, map, game, hand.horse))
         .collect();
     let places: Vec<Found> = found
         .iter()
@@ -94,9 +108,9 @@ pub fn teach(
     mut game: ResMut<Game>,
     mut shell: ResMut<Shell>,
     map: Res<Places>,
-    mut card_open: Local<bool>,
+    mut held: Local<Held>,
 ) {
-    follow(&mut game, &mut shell, &map, &mut card_open);
+    follow(&mut game, &mut shell, &map, &mut held);
 }
 
 #[cfg(test)]
@@ -176,15 +190,15 @@ mod tests {
                     let id = map.control_named(name).unwrap();
                     assert!(map.control(id).built(), "{}: `{name}` is not built", def.id);
                 }
-                target => assert!(find(target, &map, &game).is_some(), "{}: {target:?}", def.id),
+                target => assert!(find(target, &map, &game, 0).is_some(), "{}: {target:?}", def.id),
             }
         }
 
-        assert_eq!(find(&Target::Drop, &map, &game), None, "no trail walked");
-        assert_eq!(find(&Target::Horse(3), &map, &game), None);
-        assert_eq!(find(&Target::Place("Nowhere".into()), &map, &game), None);
-        assert_eq!(find(&Target::Tab("Horses".into(), "Nowhere".into()), &map, &game), None);
-        assert_eq!(find(&Target::Control("Nothing".into()), &map, &game), None);
+        assert_eq!(find(&Target::Drop, &map, &game, 0), None, "no trail walked");
+        assert_eq!(find(&Target::Horse(3), &map, &game, 0), None);
+        assert_eq!(find(&Target::Place("Nowhere".into()), &map, &game, 0), None);
+        assert_eq!(find(&Target::Tab("Horses".into(), "Nowhere".into()), &map, &game, 0), None);
+        assert_eq!(find(&Target::Control("Nothing".into()), &map, &game, 0), None);
 
         let mut game = (0..50)
             .map(Game::back_from_a_trail)
@@ -192,21 +206,22 @@ mod tests {
             .expect("no seed under 50 brings a drop home");
         let slot = game.pending_drop().unwrap().slot.index();
         let carried = (About::Piece(Piece::Carried), Found::Here);
-        assert_eq!(find(&Target::Drop, &map, &game), Some(carried));
+        assert_eq!(find(&Target::Drop, &map, &game, 0), Some(carried));
         game.act(Action::Equip, Hand::horse(1));
         let worn = (About::Piece(Piece::Worn { horse: 1, slot }), Found::Moved);
-        assert_eq!(find(&Target::Drop, &map, &game), Some(worn));
+        assert_eq!(find(&Target::Drop, &map, &game, 0), Some(worn));
         game.party[1].gear[slot] = None;
-        assert_eq!(find(&Target::Drop, &map, &game), None, "left behind");
+        assert_eq!(find(&Target::Drop, &map, &game, 0), None, "left behind");
     }
 
     /// Every event a lesson can wait for is one the game raises: the trail
-    /// and the town by themselves, and the player's hands for the last two.
+    /// and the town by themselves, and the player's hands for the rest.
     /// So every lesson in the file names a trigger that can happen.
     #[test]
     fn the_game_raises_every_event_a_lesson_can_wait_for() {
         let map = Places::load();
-        let by_itself = |event: &Event| !matches!(event, Event::Card | Event::Equipped);
+        let by_hand = [Event::Card, Event::Equipped, Event::Selected, Event::Swapped];
+        let by_itself = |event: &Event| !by_hand.contains(event);
         let mut game = Game::new(0);
         'seeds: for seed in 0..40 {
             game = Game::new(seed);
@@ -227,14 +242,23 @@ mod tests {
             .map(Game::back_from_a_trail)
             .find(|game| game.pending_drop().is_some())
             .expect("no seed under 50 brings a drop home");
-        let (mut shell, mut card_open) = (shell(&map), false);
-        follow(&mut game, &mut shell, &map, &mut card_open);
-        assert!(!game.lessons.happened(Event::Card) && !game.lessons.happened(Event::Equipped));
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(by_hand.iter().all(|event| !game.lessons.happened(*event)));
         open_carried(&mut shell);
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert!(game.lessons.happened(Event::Card));
+        shell.inspect(1, None);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(game.lessons.happened(Event::Selected));
         game.act(Action::Equip, shell.hand());
         assert!(game.lessons.happened(Event::Equipped));
+        // Putting the carried piece on is not a swap; taking it from the
+        // horse that wears it is.
+        assert!(!game.lessons.happened(Event::Swapped));
+        let slot = game.party[1].gear.iter().position(|worn| worn.is_some()).unwrap();
+        game.act(Action::Equip, Hand { horse: 0, open: Some(Piece::Worn { horse: 1, slot }) });
+        assert!(game.lessons.happened(Event::Swapped));
 
         for def in game.lessons.defs() {
             assert!(Event::ALL.contains(&def.due), "{}", def.id);
@@ -257,7 +281,7 @@ mod tests {
             }
             let mut untaught = Game::new(seed);
             untaught.lessons.skip_all();
-            let (mut shell, mut card_open) = (shell(&map), false);
+            let (mut shell, mut held) = (shell(&map), Held::default());
             let mut shown: Vec<String> = Vec::new();
             let (mut departed, mut in_town_for) = (false, 0.0);
             for game in [&mut taught, &mut untaught] {
@@ -268,7 +292,7 @@ mod tests {
                 let was_in_town = taught.in_town();
                 pass(&mut taught);
                 pass(&mut untaught);
-                follow(&mut taught, &mut shell, &map, &mut card_open);
+                follow(&mut taught, &mut shell, &map, &mut held);
                 if let Some(lesson) = hinted(&shell)
                     && shown.last().map(String::as_str) != Some(lesson)
                 {
@@ -343,9 +367,9 @@ mod tests {
                 game.lessons.raise(event);
             }
             assert_eq!(can(&game), wanted, "{place}: lessons due");
-            let (mut shell, mut card_open) = (shell(&map), false);
+            let (mut shell, mut held) = (shell(&map), Held::default());
             let before = shell.clone();
-            follow(&mut game, &mut shell, &map, &mut card_open);
+            follow(&mut game, &mut shell, &map, &mut held);
             assert!(shell.hint().is_some(), "{place}: no lesson shows");
             assert_eq!(can(&game), wanted, "{place}: a lesson showing");
             // The hint is all that changed in the menus.
@@ -354,7 +378,7 @@ mod tests {
             assert_eq!(without, before, "{place}");
 
             shell.skip_hints();
-            follow(&mut game, &mut shell, &map, &mut card_open);
+            follow(&mut game, &mut shell, &map, &mut held);
             assert!(shell.hint().is_none() && game.lessons.is_off());
             assert_eq!(can(&game), wanted, "{place}: every lesson skipped");
 
@@ -371,20 +395,20 @@ mod tests {
     #[test]
     fn the_first_trail_and_town_are_taught_one_lesson_at_a_time() {
         let map = Places::load();
-        let (mut shell, mut card_open) = (shell(&map), false);
+        let (mut shell, mut held) = (shell(&map), Held::default());
         let seed = (0..50)
             .find(|seed| Game::back_from_a_trail(*seed).pending_drop().is_some())
             .expect("no seed under 50 brings a drop home");
         let mut game = Game::new(seed);
         game.lessons = lessons();
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), None, "nothing has happened yet");
 
         game.act(Action::SetOut, Hand::default());
         let mut shown: Vec<String> = Vec::new();
         while !game.in_town() {
             pass(&mut game);
-            follow(&mut game, &mut shell, &map, &mut card_open);
+            follow(&mut game, &mut shell, &map, &mut held);
             if let Some(lesson) = hinted(&shell)
                 && shown.last().map(String::as_str) != Some(lesson)
             {
@@ -399,14 +423,14 @@ mod tests {
         assert_eq!(hinted(&shell), Some("piece"));
         assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried));
         open_carried(&mut shell);
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("equip"));
         let equip = map.control_named("Equip").unwrap();
         assert_eq!(shell.hint().unwrap().about, About::Control(equip));
 
         // Got it puts it away, and it does not come back.
         assert!(shell.dismiss_hint());
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), None);
         assert_eq!(game.lessons.progress(3), Progress { due: true, seen: true, done: false, skipped: true });
     }
@@ -417,19 +441,19 @@ mod tests {
     #[test]
     fn a_lesson_left_in_town_finds_its_piece_again() {
         let map = Places::load();
-        let (mut shell, mut card_open) = (shell(&map), false);
+        let (mut shell, mut held) = (shell(&map), Held::default());
         let mut game = (0..50)
             .map(Game::back_from_a_trail)
             .find(|game| game.drop_best_wearer().is_some())
             .expect("no seed under 50 brings an upgrade home");
         game.lessons = lessons();
         game.lessons.raise(Event::Gear);
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("piece"));
         assert_eq!(shell.hint().unwrap().words, "piece.");
 
         game.act(Action::SetOut, Hand::default());
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_ne!(hinted(&shell), Some("piece"), "a town lesson on the road");
         assert!(!game.lessons.progress(2).skipped && !game.lessons.progress(2).done);
 
@@ -445,7 +469,7 @@ mod tests {
         };
         outcome.drop = None;
         game.return_to_camp(outcome);
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("piece"));
         assert!(matches!(shell.hint().unwrap().about, About::Piece(Piece::Worn { .. })));
         assert_eq!(shell.hint().unwrap().words, "piece, moved.");
@@ -454,10 +478,100 @@ mod tests {
         shell.finish_hint();
         let sample = Hint { lesson: SAMPLE.into(), about: About::Place(0), words: "A sample.".into() };
         assert!(shell.raise_hint(sample.clone()));
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(shell.hint(), Some(&sample));
         shell.finish_hint();
-        follow(&mut game, &mut shell, &map, &mut card_open);
+        follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("piece"));
+    }
+
+    /// The lessons of the file itself, in a first town with a piece (#296),
+    /// by what each waits for and never by its name or words. Nothing about
+    /// a swap is said before a swap is done; nothing about Equip's result
+    /// before Equip; a lesson on the selected horse follows the selection;
+    /// and a player who presses nothing is shown one lesson and no second.
+    #[test]
+    fn the_first_item_is_taught_by_what_the_player_does() {
+        let map = Places::load();
+        let home = || {
+            let mut game = (0..50)
+                .map(Game::back_from_a_trail)
+                .find(|game| game.pending_drop().is_some())
+                .expect("no seed under 50 brings a drop home");
+            // Whatever the road taught is not this test's.
+            game.lessons = Lessons::load();
+            game.lessons.raise(Event::Gear);
+            game
+        };
+        let due = |game: &Game| game.lessons.showing().map(|def| def.due);
+        let waits_for = |game: &Game, event: Event| game.lessons.defs().iter().any(|def| def.due == event);
+
+        // Nobody at it: one lesson, about the piece, for as long as the
+        // party is in town, and the party leaves as it would have.
+        let mut game = home();
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        game.act(Action::KeepGoing, Hand::default());
+        let mut shown: Vec<String> = Vec::new();
+        while game.in_town() {
+            follow(&mut game, &mut shell, &map, &mut held);
+            if let Some(lesson) = hinted(&shell)
+                && shown.last().map(String::as_str) != Some(lesson)
+            {
+                shown.push(lesson.into());
+            }
+            pass(&mut game);
+        }
+        assert_eq!(shown.len(), 1, "{shown:?}");
+        assert!(game.lessons.defs().iter().all(|def| def.id != shown[0] || def.target == Target::Drop));
+
+        // With a player at it.
+        let mut game = home();
+        (shell, held) = (Shell::new(map.pages().count()), Held::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(due(&game), Some(Event::Gear));
+        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried));
+
+        // The card opens: whose stats it is about, on the selected horse,
+        // and on the next one when that is selected.
+        open_carried(&mut shell);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(due(&game), Some(Event::Card));
+        assert_eq!(shell.hint().unwrap().about, About::Horse(0));
+        assert!(game.lessons.showing().is_some_and(|def| def.done == Done::Did(Event::Selected)));
+        shell.inspect(2, None);
+        follow(&mut game, &mut shell, &map, &mut held);
+        let equip = map.control_named("Equip").unwrap();
+        assert_eq!(shell.hint().unwrap().about, About::Control(equip));
+
+        // Equip: the carried piece goes on. That is no swap.
+        let hand = shell.hand();
+        assert_eq!(hand, Hand { horse: 2, open: Some(Piece::Carried) });
+        game.act(Action::Equip, hand);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(due(&game), Some(Event::Equipped));
+        assert!(waits_for(&game, Event::Swapped), "the swap's lesson is gone from the file");
+
+        // Put away, and nothing about a swap comes after it.
+        assert!(shell.dismiss_hint());
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None);
+
+        // A piece taken from the horse that wears it: now it is said, on
+        // the horse that has it.
+        let slot = game.party[2].gear.iter().position(|worn| worn.is_some()).unwrap();
+        shell.inspect(0, None);
+        game.act(Action::Equip, Hand { horse: 0, open: Some(Piece::Worn { horse: 2, slot }) });
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(due(&game), Some(Event::Swapped));
+        assert_eq!(shell.hint().unwrap().about, About::Horse(0));
+
+        // Setting out finishes what was only to be seen in town.
+        game.act(Action::SetOut, Hand::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        for (lesson, def) in game.lessons.defs().iter().enumerate() {
+            if def.done == Done::Did(Event::SetOut) {
+                assert!(game.lessons.progress(lesson).done, "{}", def.id);
+            }
+        }
     }
 }

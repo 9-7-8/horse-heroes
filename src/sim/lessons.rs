@@ -32,11 +32,17 @@ pub enum Event {
     Card,
     /// The player put a piece on a horse.
     Equipped,
+    /// The player selected another horse.
+    Selected,
+    /// The player's Equip took a piece from the horse that wore it.
+    Swapped,
+    /// The party left town.
+    SetOut,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 8] = [
+    pub const ALL: [Event; 11] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -45,6 +51,9 @@ impl Event {
         Event::Gear,
         Event::Card,
         Event::Equipped,
+        Event::Selected,
+        Event::Swapped,
+        Event::SetOut,
     ];
 }
 
@@ -66,6 +75,8 @@ pub enum Target {
     Control(String),
     /// A horse of the party, by its place in it.
     Horse(usize),
+    /// The horse that is selected, whichever it is now.
+    Selected,
     /// The newest piece a trail brought back that the party still has,
     /// where it is now.
     Drop,
