@@ -27,8 +27,9 @@ use super::card;
 use super::ink;
 use super::picture::{self, picture, picture_of, reported_picture};
 use super::parts::{
-    ClosePanel, CounterValue, NotBuilt, Part, PartText, RowValue, Stop, Unseen, button, cell, counter, dim,
-    panel, reason, row, side_panel, tab, text, title, trail_mark,
+    ClosePanel, CounterValue, DismissHint, HintText, NotBuilt, Part, PartText, Pointed, RowValue, SkipHints,
+    Stop, Unseen, button, cell, counter, dim, hint, panel, reason, row, side_panel, tab, text, title,
+    trail_mark,
 };
 use super::tokens::Tokens;
 use crate::game::{
@@ -417,6 +418,28 @@ pub struct Detail {
     pub opener: Option<Entity>,
 }
 
+/// The control a hint is about (#291): a place in the bar, a tab of a
+/// place, a horse in the strip, or a control of the map by its `id`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum About {
+    Place(usize),
+    Tab(usize, usize),
+    Horse(usize),
+    Control(usize),
+}
+
+/// A lesson's one line (#291), on the hint's line under the status strip,
+/// with a mark on the control it is about. It stays until its lesson says
+/// the thing was done, or the player puts it away; never for a time.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Hint {
+    /// The lesson it belongs to, by which a dismissed one is known again.
+    pub lesson: String,
+    pub about: About,
+    /// What is said beside the control's name and key: one short line.
+    pub words: String,
+}
+
 /// Where the player is in the menus. One selected horse for every place;
 /// each place keeps its own tab and its own open detail.
 #[derive(Resource, Clone, Debug, PartialEq)]
@@ -436,6 +459,13 @@ pub struct Shell {
     /// Which rows the comparison's table has (#349): one setting for every
     /// piece and every place.
     rows: card::Rows,
+    /// The hint that is showing (#291): one at a time.
+    hint: Option<Hint>,
+    /// The lessons whose hint the player put away. None of them is shown
+    /// again unless the player asks.
+    dismissed: Vec<String>,
+    /// The player skipped every hint: none is shown.
+    hints_off: bool,
 }
 
 impl Shell {
@@ -449,7 +479,56 @@ impl Shell {
             pointed: None,
             log_hidden: false,
             rows: card::Rows::All,
+            hint: None,
+            dismissed: Vec::new(),
+            hints_off: false,
         }
+    }
+
+    pub fn hint(&self) -> Option<&Hint> {
+        self.hint.as_ref()
+    }
+
+    /// A lesson asks for its hint. It is shown, and true comes back, unless
+    /// another is showing (one at a time: the lesson asks again), or the
+    /// player put this lesson's hint away, or skipped them all.
+    pub fn raise_hint(&mut self, hint: Hint) -> bool {
+        if self.hints_off || self.hint.is_some() || self.dismissed.contains(&hint.lesson) {
+            return false;
+        }
+        self.hint = Some(hint);
+        true
+    }
+
+    /// The player puts the hint away: Got it, or Escape. Its lesson's hint
+    /// does not come back by itself. False when no hint was showing.
+    pub fn dismiss_hint(&mut self) -> bool {
+        match self.hint.take() {
+            Some(hint) => {
+                self.dismissed.push(hint.lesson);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// The thing the hint was about has been done: it goes, and its lesson
+    /// is not counted as put away.
+    pub fn finish_hint(&mut self) {
+        self.hint = None;
+    }
+
+    /// Skip all hints: the one showing goes, and none is shown after it.
+    pub fn skip_hints(&mut self) {
+        self.dismiss_hint();
+        self.hints_off = true;
+    }
+
+    /// Hints are shown again, those put away too. Turning lessons back on
+    /// from the Journal is #300; until then this is the dev key's.
+    pub fn forget_hints(&mut self) {
+        self.dismissed.clear();
+        self.hints_off = false;
     }
 
     /// Which rows the comparison's table has, pinned and under the pointer.
@@ -764,9 +843,16 @@ enum Page {
     /// The parts of a horse's view, in a place's side panel: there while
     /// the detail is a horse (#311).
     HorseParts(usize),
-    /// What is left between the strip and the footer with every place closed.
+    /// What the hint's line says with every place closed and no hint: how
+    /// to open a place.
     RoadView,
+    /// The hint, on its line (#291).
+    Hint,
 }
+
+/// The shell's hint: the one whose words follow `Shell::hint`.
+#[derive(Component)]
+struct HintLine;
 
 /// What a scroll key moves (#304): the page of a tab, or what a place's side
 /// panel says.
@@ -853,12 +939,19 @@ struct FightLog;
 #[derive(Component)]
 struct LogLine(usize, String, f32);
 
-pub struct ShellPlugin;
+pub struct ShellPlugin {
+    /// Start with the sample hint showing (`--hint`). F6 toggles it.
+    pub hint: bool,
+}
 
 impl Plugin for ShellPlugin {
     fn build(&self, app: &mut App) {
         let places = Places::load();
-        app.insert_resource(Shell::new(places.pages().count()))
+        let mut shell = Shell::new(places.pages().count());
+        if self.hint {
+            shell.raise_hint(sample_hint(&places, 0));
+        }
+        app.insert_resource(shell)
             .insert_resource(places)
             .add_systems(Startup, spawn)
             .add_systems(
@@ -867,7 +960,7 @@ impl Plugin for ShellPlugin {
                     lose_hidden_focus,
                     arrows,
                     // Twenty is as many as one chain takes.
-                    (keys, scroll, log_key).chain(),
+                    (keys, scroll, log_key, dev_hint).chain(),
                     escape,
                     follow_the_party,
                     point,
@@ -875,7 +968,7 @@ impl Plugin for ShellPlugin {
                     show_place,
                     see,
                     mark_chosen,
-                    mark_unseen,
+                    (mark_unseen, point_out, show_hint).chain(),
                     show_wearer,
                     show_carried,
                     show_hover_card,
@@ -1009,6 +1102,36 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                     strip.spawn(counter(t, "day", "-"));
                 });
 
+            // The hint's line (#291): one line under the strip that keeps
+            // its height whatever it holds, so a hint coming or going moves
+            // nothing. With every place closed it is all that is left
+            // between the strip and the footer, and without a hint it says
+            // there how to open a place.
+            root.spawn(Node {
+                height: Val::Px(t.size.hint_height),
+                flex_shrink: 0.0,
+                ..default()
+            })
+            .with_children(|line| {
+                line.spawn((
+                    Page::RoadView,
+                    Node {
+                        width: Val::Percent(100.0),
+                        align_items: AlignItems::Center,
+                        padding: UiRect::horizontal(Val::Px(t.space.l)),
+                        display: Display::None,
+                        ..default()
+                    },
+                ))
+                .with_children(|road| {
+                    road.spawn(dim(
+                        t,
+                        "On the road. Open a place to look and plan; press it again, the scene, or Escape, to give the scene its room back.",
+                    ));
+                });
+                line.spawn((hint(t, "", None, ""), Page::Hint, HintLine));
+            });
+
             // The places. All of them exist all the time; one is shown. The
             // area is clipped, so a place is covered and uncovered as the
             // scene moves instead of being squeezed.
@@ -1019,22 +1142,6 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                 ..default()
             })
             .with_children(|area| {
-                area.spawn((
-                    Page::RoadView,
-                    Node {
-                        width: Val::Percent(100.0),
-                        align_items: AlignItems::Center,
-                        padding: UiRect::horizontal(Val::Px(t.space.l)),
-                        display: Display::None,
-                        ..default()
-                    },
-                ))
-                .with_children(|line| {
-                    line.spawn(dim(
-                        t,
-                        "On the road. Open a place to look and plan; press it again, the scene, or Escape, to give the scene its room back.",
-                    ));
-                });
                 for (p, place) in places.pages().enumerate() {
                     area.spawn((
                         Page::Place(p),
@@ -1049,7 +1156,6 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                         if !place.tabs.is_empty() {
                             page.spawn(Node {
                                 padding: UiRect::horizontal(Val::Px(t.space.l)),
-                                margin: UiRect::top(Val::Px(t.space.s)),
                                 flex_shrink: 0.0,
                                 ..default()
                             })
@@ -1067,7 +1173,11 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                             flex_grow: 1.0,
                             min_height: Val::Px(0.0),
                             column_gap: gap,
-                            padding: UiRect::all(Val::Px(t.space.m)),
+                            // No room above: the hint's line is there (#291).
+                            padding: UiRect {
+                                top: Val::Px(0.0),
+                                ..UiRect::all(Val::Px(t.space.m))
+                            },
                             ..default()
                         })
                         .with_children(|body| {
@@ -1730,12 +1840,18 @@ fn on_activate(
     slots: Query<&SlotRow>,
     cells: (Query<&CarriedCell>, Query<&ReportedCell>),
     closes: Query<(), With<ClosePanel>>,
+    hints: (Query<(), With<DismissHint>>, Query<(), With<SkipHints>>),
     controls: Query<&ControlButton>,
 ) {
     let (carried, reported) = cells;
     let (horses, parts) = horses;
+    let (dismisses, skips) = hints;
     let entity = activate.entity;
-    if let Ok(place) = places.get(entity) {
+    if dismisses.contains(entity) {
+        shell.dismiss_hint();
+    } else if skips.contains(entity) {
+        shell.skip_hints();
+    } else if let Ok(place) = places.get(entity) {
         shell.press(place.0, game.in_town());
     } else if let Ok(tab) = tabs.get(entity) {
         shell.choose_tab(tab.place, tab.tab);
@@ -2133,15 +2249,23 @@ fn close_detail(shell: &mut Shell, focus: &mut InputFocus) {
     }
 }
 
-/// Escape goes back one level: it closes the side panel, and on the road,
-/// with no side panel open, the place.
+/// Escape goes back one level: it puts a hint away; with none showing it
+/// closes the side panel, and on the road, with no side panel open, the
+/// place.
 fn escape(
     keys: Res<ButtonInput<KeyCode>>,
     game: Res<Game>,
     mut shell: ResMut<Shell>,
     mut focus: ResMut<InputFocus>,
 ) {
-    if !keys.just_pressed(KeyCode::Escape) || !shell.is_open() {
+    if !keys.just_pressed(KeyCode::Escape) {
+        return;
+    }
+    if shell.hint().is_some() {
+        shell.dismiss_hint();
+        return;
+    }
+    if !shell.is_open() {
         return;
     }
     if shell.detail(shell.place()).is_some() {
@@ -2329,7 +2453,8 @@ fn show_place(
             Page::HorseParts(place) => shell
                 .detail(place)
                 .is_some_and(|detail| matches!(detail.item, Item::Horse(_))),
-            Page::RoadView => !place_in_view,
+            Page::RoadView => !place_in_view && shell.hint().is_none(),
+            Page::Hint => shell.hint().is_some(),
         };
         let wanted = if shown { Display::Flex } else { Display::None };
         if node.display != wanted {
@@ -2458,6 +2583,147 @@ fn mark_chosen(
         } else if !blocked && disabled {
             commands.entity(entity).remove::<InteractionDisabled>();
         }
+    }
+}
+
+/// Put the hint's mark on the control the hint is about (#291), wherever
+/// that control is drawn, and take it off when the hint goes.
+fn point_out(
+    mut commands: Commands,
+    shell: Res<Shell>,
+    controls: Query<
+        (
+            Entity,
+            Option<&PlaceButton>,
+            Option<&TabButton>,
+            Option<&HorseButton>,
+            Option<&ControlButton>,
+            Has<Pointed>,
+        ),
+        Or<(
+            With<PlaceButton>,
+            With<TabButton>,
+            With<HorseButton>,
+            With<ControlButton>,
+        )>,
+    >,
+) {
+    let about = shell.hint().map(|hint| hint.about);
+    for (entity, place, tab, horse, control, pointed) in &controls {
+        let wanted = match about {
+            Some(About::Place(p)) => place.is_some_and(|button| button.0 == p),
+            Some(About::Tab(p, t)) => tab.is_some_and(|button| button.place == p && button.tab == t),
+            Some(About::Horse(h)) => horse.is_some_and(|button| button.0 == h),
+            Some(About::Control(id)) => control.is_some_and(|button| button.id == id),
+            None => false,
+        };
+        if wanted && !pointed {
+            commands.entity(entity).insert(Pointed);
+        } else if !wanted && pointed {
+            commands.entity(entity).remove::<Pointed>();
+        }
+    }
+}
+
+/// What the control a hint is about is called, and the key printed on it.
+fn about_name(map: &Places, game: &Game, about: About) -> (String, Option<String>) {
+    let key = |key: Option<&str>| key.map(String::from);
+    match about {
+        About::Place(p) => map
+            .pages()
+            .nth(p)
+            .map(|page| (page.name.clone(), key(page.key.as_deref()))),
+        About::Tab(p, t) => map
+            .pages()
+            .nth(p)
+            .and_then(|page| page.tabs.get(t))
+            .map(|tab| (tab.name.clone(), key(tab.key.as_deref()))),
+        About::Horse(h) => game
+            .party
+            .get(h)
+            .map(|horse| (horse.name.clone(), key(map.horse_key(h)))),
+        About::Control(id) => map
+            .list
+            .get(id)
+            .map(|control| (control.name.clone(), key(control.key.as_deref()))),
+    }
+    .unwrap_or_default()
+}
+
+/// The hint's line says what the hint showing says: its control's name,
+/// that control's key, and its words.
+fn show_hint(
+    shell: Res<Shell>,
+    game: Res<Game>,
+    map: Res<Places>,
+    line: Single<Entity, With<HintLine>>,
+    children: Query<&Children>,
+    mut texts: Query<(&HintText, &mut Text)>,
+) {
+    let (about, key, words) = match shell.hint() {
+        Some(hint) => {
+            let (about, key) = about_name(&map, &game, hint.about);
+            let key = key.map(|key| format!("[{key}]")).unwrap_or_default();
+            (about, key, hint.words.clone())
+        }
+        None => Default::default(),
+    };
+    for child in children.iter_descendants(*line) {
+        if let Ok((which, mut text)) = texts.get_mut(child) {
+            let wanted = match which {
+                HintText::About => &about,
+                HintText::Key => &key,
+                HintText::Words => &words,
+            };
+            if text.0 != *wanted {
+                text.0 = wanted.clone();
+            }
+        }
+    }
+}
+
+/// How many sample hints there are: one for each kind of control a hint
+/// can be about.
+const SAMPLE_HINTS: usize = 4;
+
+/// A hint to look at the hint's line with, before any lesson raises one
+/// (the lessons are #290). The first is about the Journal, which is in the
+/// bar in both layouts; then Set out in the footer, the first horse in the
+/// strip, and the first tab of the first place.
+fn sample_hint(map: &Places, which: usize) -> Hint {
+    let journal = map.places.iter().position(|place| place.name == "Journal");
+    let set_out = map.list.iter().find(|control| control.action == Some(Action::SetOut));
+    let (about, words) = match (which % SAMPLE_HINTS, set_out) {
+        (1, Some(control)) => (About::Control(control.id), "The party leaves town when this is pressed."),
+        (2, _) => (About::Horse(0), "A press opens everything about this horse."),
+        (3, _) => (About::Tab(0, 0), "What the selected horse wears is here."),
+        _ => (About::Place(journal.unwrap_or(0)), "The report of every trail is kept here."),
+    };
+    Hint {
+        lesson: "sample".into(),
+        about,
+        words: format!("A sample hint. {words}"),
+    }
+}
+
+/// Dev aid: F6 shows a sample hint, whatever was put away or skipped
+/// before, and takes it away again. Each time it is about the next kind of
+/// control.
+fn dev_hint(
+    keys: Res<ButtonInput<KeyCode>>,
+    map: Res<Places>,
+    mut shell: ResMut<Shell>,
+    mut shown: Local<usize>,
+) {
+    if !keys.just_pressed(KeyCode::F6) {
+        return;
+    }
+    if shell.hint().is_some() {
+        shell.finish_hint();
+    } else {
+        shell.forget_hints();
+        shell.raise_hint(sample_hint(&map, *shown));
+        *shown += 1;
     }
 }
 
@@ -3083,6 +3349,86 @@ mod tests {
             if !control.built() {
                 assert!(not_built(control).contains("Not built yet."));
             }
+        }
+    }
+
+    fn a_hint(lesson: &str, about: About) -> Hint {
+        Hint {
+            lesson: lesson.into(),
+            about,
+            words: "One line.".into(),
+        }
+    }
+
+    /// The hint (#291): one shows at a time; one the player put away does
+    /// not come back by itself, and one whose thing was done may; after
+    /// Skip all, none is shown.
+    #[test]
+    fn a_hint_put_away_does_not_come_back_by_itself() {
+        let places = Places::load();
+        let mut shell = Shell::new(places.pages().count());
+        assert!(shell.hint().is_none());
+        assert!(!shell.dismiss_hint(), "nothing to put away");
+
+        assert!(shell.raise_hint(a_hint("first", About::Place(0))));
+        assert!(!shell.raise_hint(a_hint("second", About::Horse(1))), "one at a time");
+        assert_eq!(shell.hint().map(|hint| hint.lesson.as_str()), Some("first"));
+
+        assert!(shell.dismiss_hint());
+        assert!(shell.hint().is_none());
+        assert!(!shell.raise_hint(a_hint("first", About::Place(0))), "it came back");
+        assert!(shell.raise_hint(a_hint("second", About::Horse(1))));
+
+        // Done, not put away: its lesson may show it again.
+        shell.finish_hint();
+        assert!(shell.raise_hint(a_hint("second", About::Horse(1))));
+
+        shell.skip_hints();
+        assert!(shell.hint().is_none());
+        assert!(!shell.raise_hint(a_hint("second", About::Horse(1))));
+        assert!(!shell.raise_hint(a_hint("third", About::Place(1))));
+
+        shell.forget_hints();
+        assert!(shell.raise_hint(a_hint("first", About::Place(0))));
+    }
+
+    /// A hint names its control as the control names itself, and prints
+    /// the key printed on it (#291), for every kind of control it can be
+    /// about. One about something that is not there says nothing.
+    #[test]
+    fn a_hint_names_its_control_and_prints_its_key() {
+        let places = Places::load();
+        let game = Game::new(6);
+        let named = |about| about_name(&places, &game, about);
+        for (p, page) in places.pages().enumerate() {
+            assert_eq!(named(About::Place(p)), (page.name.clone(), page.key.clone()));
+            for (t, tab) in page.tabs.iter().enumerate() {
+                assert_eq!(named(About::Tab(p, t)), (tab.name.clone(), tab.key.clone()));
+            }
+        }
+        for (h, horse) in game.party.iter().enumerate() {
+            let key = places.horse_key(h).map(String::from);
+            assert!(key.is_some());
+            assert_eq!(named(About::Horse(h)), (horse.name.clone(), key));
+        }
+        for control in places.controls() {
+            assert_eq!(
+                named(About::Control(control.id)),
+                (control.name.clone(), control.key.clone())
+            );
+        }
+        assert_eq!(named(About::Control(usize::MAX)), Default::default());
+        assert_eq!(named(About::Horse(99)), Default::default());
+
+        // Every sample is about something the map has, and no two about
+        // the same thing.
+        let samples: Vec<String> = (0..SAMPLE_HINTS)
+            .map(|which| named(sample_hint(&places, which).about).0)
+            .collect();
+        assert_eq!(samples[0], "Journal");
+        for (i, name) in samples.iter().enumerate() {
+            assert!(!name.is_empty());
+            assert!(!samples[..i].contains(name), "{name} twice");
         }
     }
 

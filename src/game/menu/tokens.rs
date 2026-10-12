@@ -62,6 +62,9 @@ pub struct Sizes {
     pub fight_log_width: f32,
     pub fight_log_lines: usize,
     pub fight_log_fade: f32,
+    pub hint_height: f32,
+    pub hint_control: f32,
+    pub pointer: f32,
 }
 
 /// The split of the window between the scene and the menus.
@@ -195,5 +198,19 @@ mod tests {
         assert_eq!(layout.share(0.0), layout.town_share);
         assert_eq!(layout.share(1.0), layout.road_share);
         assert!(layout.min_width > 0.0 && layout.min_height > 0.0);
+    }
+
+    /// The hint's line (#291) is there at the smallest window too: the bar,
+    /// the status strip, that line and the footer fit under the road's
+    /// scene, so a hint pushes nothing out of the window.
+    #[test]
+    fn the_hints_line_fits_under_the_road_scene_at_the_smallest_window() {
+        let Tokens { size, space, layout, .. } = Tokens::load();
+        let bar = size.control_height + 2.0 * size.border;
+        let strip = size.row_height + 2.0 * space.s + size.border;
+        let footer = size.control_height + 2.0 * space.s + size.border;
+        let room = layout.min_height * (1.0 - layout.road_share);
+        assert!(bar + strip + size.hint_height + footer <= room + 0.01);
+        assert!(size.hint_control <= size.hint_height);
     }
 }

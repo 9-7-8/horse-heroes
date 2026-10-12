@@ -35,6 +35,7 @@ use crate::game::menu::shell::{
     CarriedCell, Content, ControlButton, HorseButton, PartButton, PlaceButton, Places, ReportedCell, Shell,
     SlotRow, TabButton,
 };
+use crate::game::menu::parts::SkipHints;
 use crate::game::{Action, Game, Hand};
 use crate::sim::data::Element;
 
@@ -113,6 +114,8 @@ enum Step {
     Carried(usize),
     /// Press the piece of the report that is showing, in the report.
     Reported,
+    /// Press Skip all hints, on the hint that is showing (#291).
+    SkipHints,
     /// Move the pointer onto what the next step names, which that step
     /// then does not press: the pointer is Bevy's own, moved as the mouse
     /// moves it, so what it rests on is hovered as by hand.
@@ -258,6 +261,15 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
     let mut steps = vec![
         Step::Shot("town opens on horses".into()),
         Step::TabRound,
+        // The hint (#291), by the dev key that shows a sample: about a
+        // place, put away by Escape, then about a control.
+        Step::Key(KeyCode::F6),
+        Step::Shot("a hint about a place".into()),
+        Step::Key(KeyCode::Escape),
+        Step::Shot("escape puts the hint away and nothing has moved".into()),
+        Step::Key(KeyCode::F6),
+        Step::Shot("a hint about a control".into()),
+        Step::Key(KeyCode::F6),
         // A press on a horse opens everything about it (#311).
         Step::Horse(1),
         Step::Shot("a horse's view".into()),
@@ -311,6 +323,11 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyL),
         Step::Shot("the fight log hidden by its key".into()),
         Step::Key(KeyCode::KeyL),
+        // On the road the hint has the one line, and Skip all puts it away.
+        Step::Key(KeyCode::F6),
+        Step::Shot("a hint in the one line on the road".into()),
+        Step::SkipHints,
+        Step::Shot("skip all and the line says what it said".into()),
         Step::PlaceMidway(0),
         Step::Shot("opening a place on the road midway".into()),
         Step::Wait(SETTLE),
@@ -634,6 +651,7 @@ fn tour(
     cells: (
         Query<(Entity, &CarriedCell)>,
         Query<(Entity, &ReportedCell)>,
+        Query<Entity, With<SkipHints>>,
     ),
     controls: Query<(Entity, &ControlButton)>,
     menus: (Res<Places>, Res<Shell>),
@@ -649,7 +667,7 @@ fn tour(
     ),
 ) {
     let (mut exit, mut pointer, window, transforms) = out;
-    let (carried, reported) = cells;
+    let (carried, reported, skips) = cells;
     let (horses, parts) = horses;
     let (map, shell) = menus;
     // Its fields one by one: the step is read while the counts are kept.
@@ -711,6 +729,7 @@ fn tour(
             .min_by_key(|(e, b)| (!seen(*e), b.tab.is_some()))
             .map(|(e, _)| e),
         Step::Reported => reported.iter().map(|(e, _)| e).min_by_key(|e| !seen(*e)),
+        Step::SkipHints => skips.iter().min_by_key(|e| !seen(*e)),
         // The one in sight, where a control is in more than one place.
         Step::Control(name) => controls
             .iter()

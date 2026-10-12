@@ -10,9 +10,9 @@ use bevy::{
 };
 
 use super::parts::{
-    self, ConfirmAction, ConfirmCancel, CounterValue, Look, Part, ShowLook, Stop, Unseen, button,
-    card, confirmation, counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
-    trail_mark,
+    self, ConfirmAction, ConfirmCancel, CounterValue, Look, Part, Pointed, ShowLook, Stop, Unseen,
+    button, card, confirmation, counter, dim, hint, panel, reason, row, scrim, side_panel,
+    small_button, tab, text, title, trail_mark,
 };
 use super::card::{Rows, table};
 use super::ink;
@@ -242,19 +242,99 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                     }
                 });
 
+                // The side panel and the one modal, and under them the hint.
                 lower
-                    .spawn(side_panel(t, "Side panel", t.size.side_panel_width))
-                    .with_children(|side| {
-                        side.spawn(text(t, "Detail about one thing,"));
-                        side.spawn(text(t, "beside its list."));
-                    });
+                    .spawn(Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(t.space.l),
+                        flex_shrink: 0.0,
+                        ..default()
+                    })
+                    .with_children(|middle| {
+                        middle
+                            .spawn(Node {
+                                column_gap: Val::Px(t.space.l),
+                                align_items: AlignItems::FlexStart,
+                                ..default()
+                            })
+                            .with_children(|pair| {
+                                pair
+                                    .spawn(side_panel(t, "Side panel", t.size.side_panel_width))
+                                    .with_children(|side| {
+                                        side.spawn(text(t, "Detail about one thing,"));
+                                        side.spawn(text(t, "beside its list."));
+                                    });
 
-                lower.spawn(confirmation(
-                    t,
-                    "Retire Juniper?",
-                    "This cannot be taken back.",
-                    "Retire Juniper",
-                ));
+                                pair.spawn(confirmation(
+                                    t,
+                                    "Retire Juniper?",
+                                    "This cannot be taken back.",
+                                    "Retire Juniper",
+                                ));
+                            });
+                        // The hint (#291): its line, its two controls in every
+                        // state, and its mark on the control it is about.
+                        middle
+                            .spawn(panel(t))
+                            .insert(Node {
+                                width: Val::Px(t.size.side_panel_width + t.size.confirm_width + t.space.l),
+                                flex_direction: FlexDirection::Column,
+                                padding: UiRect::all(Val::Px(t.space.m)),
+                                row_gap: Val::Px(t.space.s),
+                                border: UiRect::all(Val::Px(t.size.border)),
+                                ..default()
+                            })
+                            .with_children(|hints| {
+                                hints.spawn(dim(t, "the hint: with a key, without one, and a line too long for its room"));
+                                hints.spawn(hint(t, "Equip", Some("E"), "Put the open piece on the selected horse."));
+                                hints.spawn(hint(t, "Sable", None, "A press opens everything about this horse."));
+                                hints.spawn(hint(
+                                    t,
+                                    "Journal",
+                                    Some("J"),
+                                    "A line too long for its room is cut where the room ends, and the two controls that put it away keep their places at the far end of it.",
+                                ));
+                                hints.spawn(dim(t, "its controls, in each state"));
+                                hints.spawn(line(gap)).with_children(|states| {
+                                    for (_, look) in parts::six() {
+                                        states
+                                            .spawn((small_button(t, "Got it", Some("Esc")), ShowLook(look)))
+                                            .remove::<TabIndex>();
+                                    }
+                                });
+                                hints.spawn(dim(
+                                    t,
+                                    "its mark on the control it is about: default, with the attention mark, a row, selected, pressed",
+                                ));
+                                hints.spawn(line(gap)).with_children(|marked| {
+                                    let selected = Look {
+                                        selected: true,
+                                        ..default()
+                                    };
+                                    let pressed = Look {
+                                        hovered: true,
+                                        pressed: true,
+                                        ..default()
+                                    };
+                                    marked
+                                        .spawn((button(t, "Equip", Some("E")), ShowLook(Look::default()), Pointed))
+                                        .remove::<TabIndex>();
+                                    marked
+                                        .spawn((tab(t, "Journal", Some("J")), ShowLook(Look::default()), Pointed, Unseen))
+                                        .remove::<TabIndex>();
+                                    marked.spawn(cell(150.0)).with_children(|cell| {
+                                        cell.spawn((row(t, "Sable", Some("Z"), "35/35"), ShowLook(Look::default()), Pointed))
+                                            .remove::<TabIndex>();
+                                    });
+                                    marked
+                                        .spawn((tab(t, "Gear", Some("1")), ShowLook(selected), Pointed))
+                                        .remove::<TabIndex>();
+                                    marked
+                                        .spawn((button(t, "Equip", Some("E")), ShowLook(pressed), Pointed))
+                                        .remove::<TabIndex>();
+                                });
+                            });
+                    });
 
                 lower
                     .spawn(panel(t))

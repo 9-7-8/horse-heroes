@@ -71,6 +71,15 @@
         fight_log_width: 440,
         fight_log_lines: 6,
         fight_log_fade: 0.3,
+        // The hint (#291). Its line under the status strip keeps this
+        // height whether or not a hint shows, so nothing moves when one
+        // comes or goes: 22 is what is left under the road's scene at the
+        // smallest window. `hint_control` is the height of the two controls
+        // on it, and `pointer` the side of the square, stood on a corner,
+        // that marks the control a hint is about.
+        hint_height: 22,
+        hint_control: 20,
+        pointer: 6,
     ),
 
     // The split of the window between the 3D scene, at the top, and the
@@ -119,7 +128,8 @@
         text_dim: "9aa7b4",
         reason: "d9b96e",
         // Attention: "something here has not been seen". A round dot, where
-        // the accent's mark is a bar.
+        // the accent's mark is a bar. A hint's mark has this colour too,
+        // and is a square stood on a corner (#291).
         attention: "5cc8ff",
         scrim: "000000b0",
 

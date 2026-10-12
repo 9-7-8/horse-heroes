@@ -48,6 +48,31 @@ pub struct Unseen;
 #[derive(Component)]
 pub struct Attention;
 
+/// On a part a hint is about (#291). It shows the part's `Pointer` mark.
+#[derive(Component)]
+pub struct Pointed;
+
+/// The mark that shows a hint is about a part: a square stood on a corner.
+#[derive(Component)]
+pub struct Pointer;
+
+/// The texts of a `hint`: the control it is about, that control's key, and
+/// the line said beside them.
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HintText {
+    About,
+    Key,
+    Words,
+}
+
+/// The control of a hint that puts it away.
+#[derive(Component)]
+pub struct DismissHint;
+
+/// The control of a hint that puts it away and every hint after it.
+#[derive(Component)]
+pub struct SkipHints;
+
 /// The number inside a `counter`.
 #[derive(Component)]
 pub struct CounterValue;
@@ -252,6 +277,39 @@ fn attention(t: &Tokens) -> impl Bundle + use<> {
     )
 }
 
+/// The square on a corner that a hint and its control share (#291). It has
+/// the attention mark's colour and neither its shape nor the selected
+/// mark's, so the three are told apart with the colour taken away.
+fn diamond(t: &Tokens) -> impl Bundle + use<> {
+    (
+        BackgroundColor(pointer_colour(&t.colour)),
+        UiTransform::from_rotation(Rot2::degrees(45.0)),
+    )
+}
+
+pub fn pointer_colour(c: &Colours) -> Color {
+    c.attention.0
+}
+
+/// The hint's mark on a part: in its top left corner, clear of its label,
+/// there while the part carries `Pointed`. Out of the layout, so it moves
+/// nothing.
+fn pointer(t: &Tokens) -> impl Bundle + use<> {
+    (
+        Pointer,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(t.space.s),
+            left: Val::Px(t.space.s),
+            width: Val::Px(t.size.pointer),
+            height: Val::Px(t.size.pointer),
+            ..default()
+        },
+        diamond(t),
+        Visibility::Hidden,
+    )
+}
+
 /// The key that works a control, printed on it. Takes no room when absent.
 fn key_hint(t: &Tokens, key: Option<&str>) -> impl Bundle + use<> {
     (
@@ -285,6 +343,35 @@ pub fn button(t: &Tokens, label: &str, key: Option<&str>) -> impl Bundle + use<>
         children![
             text(t, label),
             key_hint(t, key),
+            mark(t, Part::Button),
+            pointer(t)
+        ],
+    )
+}
+
+/// A button on a line that has less than a control's height: a hint's.
+pub fn small_button(t: &Tokens, label: &str, key: Option<&str>) -> impl Bundle + use<> {
+    (
+        interactive(t, Part::Button),
+        Node {
+            height: Val::Px(t.size.hint_control),
+            padding: UiRect::horizontal(Val::Px(t.space.m)),
+            column_gap: Val::Px(t.space.s),
+            border: UiRect::all(Val::Px(t.size.border)),
+            border_radius: BorderRadius::all(Val::Px(t.size.radius)),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            flex_shrink: 0.0,
+            ..default()
+        },
+        children![
+            (
+                Text::new(label),
+                sized(t.text.small),
+                TextColor(t.colour.text.0),
+                PartText::Main,
+            ),
+            key_hint(t, key),
             mark(t, Part::Button)
         ],
     )
@@ -310,7 +397,8 @@ pub fn tab(t: &Tokens, label: &str, key: Option<&str>) -> impl Bundle + use<> {
             text(t, label),
             key_hint(t, key),
             mark(t, Part::Tab),
-            attention(t)
+            attention(t),
+            pointer(t)
         ],
     )
 }
@@ -341,7 +429,8 @@ pub fn row(t: &Tokens, name: &str, key: Option<&str>, value: &str) -> impl Bundl
                 children![text(t, name), key_hint(t, key)],
             ),
             (dim(t, value), RowValue),
-            mark(t, Part::Row)
+            mark(t, Part::Row),
+            pointer(t)
         ],
     )
 }
@@ -361,7 +450,7 @@ pub fn card(t: &Tokens, name: &str, kind: &str) -> impl Bundle + use<> {
             flex_shrink: 0.0,
             ..default()
         },
-        children![text(t, name), dim(t, kind), mark(t, Part::Card)],
+        children![text(t, name), dim(t, kind), mark(t, Part::Card), pointer(t)],
     )
 }
 
@@ -390,7 +479,7 @@ pub fn cell(t: &Tokens) -> impl Bundle + use<> {
             flex_shrink: 0.0,
             ..default()
         },
-        children![mark(t, Part::Card)],
+        children![mark(t, Part::Card), pointer(t)],
     )
 }
 
@@ -550,6 +639,54 @@ pub fn reason(t: &Tokens, why: &str) -> impl Bundle + use<> {
     )
 }
 
+/// A lesson's one line (#291): the mark its control carries, that control's
+/// name and key, what is said about it, and the two controls that put it
+/// away. It has one line's height whatever it says, so a line that is too
+/// long is cut and never pushes anything down.
+pub fn hint(t: &Tokens, about: &str, key: Option<&str>, words: &str) -> impl Bundle + use<> {
+    (
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Px(t.size.hint_height),
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(t.space.m),
+            padding: UiRect::horizontal(Val::Px(t.space.l)),
+            flex_shrink: 0.0,
+            ..default()
+        },
+        children![
+            (
+                Node {
+                    width: Val::Px(t.size.pointer),
+                    height: Val::Px(t.size.pointer),
+                    flex_shrink: 0.0,
+                    ..default()
+                },
+                diamond(t),
+            ),
+            (text(t, about), HintText::About, TextLayout::no_wrap()),
+            (
+                dim(t, &key.map(|k| format!("[{k}]")).unwrap_or_default()),
+                HintText::Key,
+                TextLayout::no_wrap(),
+            ),
+            (
+                Node {
+                    flex_grow: 1.0,
+                    min_width: Val::Px(0.0),
+                    height: Val::Percent(100.0),
+                    align_items: AlignItems::Center,
+                    overflow: Overflow::clip(),
+                    ..default()
+                },
+                children![(text(t, words), HintText::Words, TextLayout::no_wrap())],
+            ),
+            (small_button(t, "Got it", Some("Esc")), DismissHint),
+            (small_button(t, "Skip all hints", None), SkipHints),
+        ],
+    )
+}
+
 /// The one kind of modal: confirming something that cannot be taken back.
 /// The action button names what it does; Cancel abandons it.
 pub fn confirmation(t: &Tokens, heading: &str, body: &str, action: &str) -> impl Bundle + use<> {
@@ -615,6 +752,7 @@ pub fn style_parts(
             Has<InteractionDisabled>,
             Has<NotBuilt>,
             Has<Unseen>,
+            Has<Pointed>,
             Option<&ShowLook>,
             &mut BackgroundColor,
             &mut BorderColor,
@@ -626,7 +764,8 @@ pub fn style_parts(
     children: Query<&Children>,
     mut texts: Query<(&PartText, &mut TextColor)>,
     mut marks: Query<&mut BackgroundColor, (With<Mark>, Without<Part>)>,
-    mut attentions: Query<&mut Visibility, With<Attention>>,
+    mut attentions: Query<&mut Visibility, (With<Attention>, Without<Pointer>)>,
+    mut pointers: Query<&mut Visibility, (With<Pointer>, Without<Attention>)>,
 ) {
     let ease = if tokens.time.hover > 0.0 {
         (time.delta_secs() / tokens.time.hover).min(1.0)
@@ -643,6 +782,7 @@ pub fn style_parts(
         disabled,
         not_built,
         unseen,
+        pointed,
         shown,
         mut fill,
         mut border,
@@ -711,6 +851,16 @@ pub fn style_parts(
                 };
                 if *attention != wanted {
                     *attention = wanted;
+                }
+            }
+            if let Ok(mut pointer) = pointers.get_mut(child) {
+                let wanted = if pointed {
+                    Visibility::Inherited
+                } else {
+                    Visibility::Hidden
+                };
+                if *pointer != wanted {
+                    *pointer = wanted;
                 }
             }
             stack.extend(children.get(child).into_iter().flatten());
@@ -831,6 +981,20 @@ mod tests {
             let fill = if grey(fill).is_some() { fill } else { colours.panel.0 };
             assert!(differ(colours.attention.0, fill), "{name}");
         }
+    }
+
+    /// The control a hint is about is found with the colour taken away
+    /// (#291): its mark stands off every fill a part can have.
+    #[test]
+    fn the_hints_mark_stands_off_every_fill() {
+        let colours = Tokens::load().colour;
+        let mark = pointer_colour(&colours);
+        for (name, look) in six() {
+            let fill = paint(&colours, look).fill;
+            let fill = if grey(fill).is_some() { fill } else { colours.panel.0 };
+            assert!(differ(mark, fill), "{name}");
+        }
+        assert!(differ(mark, colours.screen.0));
     }
 
     /// Text stays readable against its fill in every state that can be used.

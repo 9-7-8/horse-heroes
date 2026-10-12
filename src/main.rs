@@ -42,6 +42,7 @@ fn main() {
         })
         .add_plugins(game::menu::MenuPlugin {
             show_parts: std::env::args().any(|arg| arg == "--parts"),
+            hint: std::env::args().any(|arg| arg == "--hint"),
         })
         .add_plugins(fx::FxPlugin {
             burst: std::env::args().any(|arg| arg == "--burst"),

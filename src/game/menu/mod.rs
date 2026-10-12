@@ -15,13 +15,15 @@ pub mod tokens;
 pub struct MenuPlugin {
     /// Open the parts screen at startup (`--parts`). F2 toggles it either way.
     pub show_parts: bool,
+    /// Start with the sample hint showing (`--hint`). F6 toggles it.
+    pub hint: bool,
 }
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(tokens::Tokens::load())
             .add_plugins(TabNavigationPlugin)
-            .add_plugins(shell::ShellPlugin)
+            .add_plugins(shell::ShellPlugin { hint: self.hint })
             .add_plugins(gallery::GalleryPlugin {
                 open: self.show_parts,
             })
