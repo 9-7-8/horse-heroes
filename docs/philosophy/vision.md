@@ -673,7 +673,10 @@ were filed under. Every number in the document is a proposal.
 - **Far more drops, chaff and all.** "We need to massively increase the
   drop rate of all loot. It's okay if there's lots and lots of chaff, I
   want players to have more agency in changing their builds by giving them
-  more options." (#352.) Options come before tidiness: the answer to too
+  more options." (#352.) How much, the same day: "Every monster should
+  drop at least one piece of gear, often multiple. Rare gear is still
+  rare, but you get a lot more options among common gear, especially early
+  on." Options come before tidiness: the answer to too
   much loot is tools for sorting it, not fewer drops.
 - **A hint has to be met.** "The hints are definitely not obvious enough
   for them to ever be encountered, you'll likely need to make them overlays

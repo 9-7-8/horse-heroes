@@ -105,7 +105,9 @@ ceremony alone does not last.
   horse for a piece (owner, 2026-10-12, #351): the appraisal says what came
   back, and the player decides.
 - Far more gear drops, chaff included (owner, 2026-10-12, #352): the point
-  is options for builds, so a trail brings back many pieces, not one.
+  is options for builds. Every monster drops at least one piece, often
+  several; rare gear stays rare, and the plenty is common gear, most of
+  all early on.
 - All of it is data (pillar 4): rarity tiers, weights, colours, fountain sizes.
 - Huge drops are a confirmed goal ([vision.md](vision.md)), and so is low
   management. The owner's rule settles how: the party keeps the best cargo

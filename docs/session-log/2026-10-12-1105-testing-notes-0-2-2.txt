@@ -32,6 +32,11 @@ DECIDED (by the owner, through the question tool)
     town, until it is answered. This overrules "never holding the party
     up" (#290) for a lesson that is showing.
 
+DECIDED (by the owner, said afterwards, written into #352)
+  - "Every monster should drop at least one piece of gear, often
+    multiple. Rare gear is still rare, but you get a lot more options
+    among common gear, especially early on"
+
 DECIDED (by the session, for her; said on the issues)
   - #352 includes the smallest cargo that keeps more than one piece;
     capacity, locking and keep rules stay with #34, #100 and #167.
