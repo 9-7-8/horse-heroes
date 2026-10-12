@@ -379,7 +379,7 @@ mod tests {
     #[test]
     fn the_change_column_is_a_gain_or_a_loss() {
         let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
-        let table = card::table(stats(5, 0, 4, 2), stats(15, 2, 0, 2));
+        let table = card::table(stats(5, 0, 4, 2), stats(15, 2, 0, 2), card::Rows::All);
         assert_eq!(
             inked(&table),
             [
@@ -392,7 +392,7 @@ mod tests {
                 ("elemental", Ink::Stat(Stat::Elemental)),
             ]
         );
-        let table = card::table(stats(15, 0, 0, 0), stats(5, 0, 0, 0));
+        let table = card::table(stats(15, 0, 0, 0), stats(5, 0, 0, 0), card::Rows::All);
         assert_eq!(inked(&table), [("health", Ink::Stat(Stat::Health)), ("-10 worse", Ink::Loss)]);
 
         let mut game = Game::back_from_a_trail(6);

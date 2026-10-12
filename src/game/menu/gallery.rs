@@ -14,7 +14,7 @@ use super::parts::{
     card, confirmation, counter, dim, panel, reason, row, scrim, side_panel, tab, text, title,
     trail_mark,
 };
-use super::card::table;
+use super::card::{Rows, table};
 use super::ink;
 use super::picture;
 use super::tokens::Tokens;
@@ -330,12 +330,13 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                     ..default()
                 })
                 .with_children(|compared| {
-                    compared.spawn(dim(t, "a comparison: gain, loss, same"));
+                    compared.spawn(dim(t, "a comparison: gain, loss, same; then changed only"));
                     let adds = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
                     let gear = Data::load().gear;
                     for words in [
                         "health 35 to 45 (+10)\nattack 5 to 3 (-2)".to_string(),
-                        table(adds(5, 3, 4, 2), adds(15, 1, 0, 2)),
+                        table(adds(5, 3, 4, 2), adds(15, 1, 0, 2), Rows::All),
+                        table(adds(5, 3, 4, 2), adds(15, 1, 0, 2), Rows::Changed),
                         "Upgrade for Sable: +11\nNo better for Sable\nWorse for Sable: -3".to_string(),
                     ] {
                         inked(compared, t, &gear, &words);

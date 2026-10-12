@@ -370,6 +370,10 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("inventory by arrows onto the grid".into()),
         Step::Enter,
         Step::Shot("inventory a piece's card from the grid".into()),
+        // Changed only (#349), by its key: it is marked on the card, and
+        // the table says it is narrowed.
+        Step::Key(KeyCode::KeyO),
+        Step::Shot("changed only on by its key".into()),
         // The scroll keys (#304): the rest of the comparison, then back.
         Step::Key(KeyCode::PageDown),
         Step::Shot("inventory the comparison scrolled by a key".into()),
@@ -385,6 +389,9 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::PointAway,
         Step::Carried(0),
         Step::Shot("the drop's card from the cargo".into()),
+        // It is as it was set in the Inventory; a press turns it off.
+        Step::Control("Changed only"),
+        Step::Shot("changed only off by a press".into()),
         Step::Key(KeyCode::PageDown),
         Step::Shot("the card scrolled by a key".into()),
         Step::Key(KeyCode::PageDown),

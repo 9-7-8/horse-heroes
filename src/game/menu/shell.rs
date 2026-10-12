@@ -103,8 +103,8 @@ pub struct Tab {
     pub controls: Vec<Control>,
 }
 
-/// A control planned for the menus. One with an `action` or a `shows` works;
-/// one with neither is not built yet, and a press on it says so.
+/// A control planned for the menus. One with an `action`, a `shows` or a
+/// `switch` works; one with none is not built yet, and a press on it says so.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Control {
     pub name: String,
@@ -124,15 +124,19 @@ pub struct Control {
     /// What a press opens in the side panel of its page.
     #[serde(default)]
     pub shows: Option<Shows>,
+    /// What a press turns on and off, of what is shown.
+    #[serde(default)]
+    pub switch: Option<Switch>,
     /// Its number among all the controls of the map, set on loading.
     #[serde(skip)]
     pub id: usize,
 }
 
 impl Control {
-    /// Whether a press does what the control says: it acts, or it shows.
+    /// Whether a press does what the control says: it acts, it shows, or
+    /// it switches.
     pub fn built(&self) -> bool {
-        self.action.is_some() || self.shows.is_some()
+        self.action.is_some() || self.shows.is_some() || self.switch.is_some()
     }
 }
 
@@ -151,6 +155,14 @@ pub struct MarkRule {
 pub enum Shows {
     /// Every key, and what it works.
     Keys,
+}
+
+/// What a control turns on and off: a way of showing things, which changes
+/// nothing in the game.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+pub enum Switch {
+    /// The comparison's table has only the rows that differ (#349).
+    ChangedOnly,
 }
 
 /// What a tab shows, or a place without tabs. `Planned` is one whose system
@@ -421,6 +433,9 @@ pub struct Shell {
     pointed: Option<(Entity, Piece)>,
     /// The fight log over the road scene has been put away by its key (#306).
     log_hidden: bool,
+    /// Which rows the comparison's table has (#349): one setting for every
+    /// piece and every place.
+    rows: card::Rows,
 }
 
 impl Shell {
@@ -433,6 +448,34 @@ impl Shell {
             details: vec![None; places],
             pointed: None,
             log_hidden: false,
+            rows: card::Rows::All,
+        }
+    }
+
+    /// Which rows the comparison's table has, pinned and under the pointer.
+    pub fn rows(&self) -> card::Rows {
+        self.rows
+    }
+
+    /// Whether a switch is on.
+    pub fn is_on(&self, switch: Switch) -> bool {
+        match switch {
+            Switch::ChangedOnly => self.rows == card::Rows::Changed,
+        }
+    }
+
+    /// A press of a switch (#349). Changed only does nothing while no
+    /// piece's card is pinned in view, where it would change something the
+    /// player cannot see.
+    pub fn press_switch(&mut self, switch: Switch) {
+        match switch {
+            Switch::ChangedOnly if self.hand().open.is_some() => {
+                self.rows = match self.rows {
+                    card::Rows::All => card::Rows::Changed,
+                    card::Rows::Changed => card::Rows::All,
+                };
+            }
+            Switch::ChangedOnly => {}
         }
     }
 
@@ -1751,7 +1794,12 @@ fn on_activate(
     } else if closes.contains(entity) {
         close_detail(&mut shell, &mut focus);
     } else if let Ok(button) = controls.get(entity) {
-        match map.control(button.id).action {
+        let control = map.control(button.id);
+        if let Some(switch) = control.switch {
+            shell.press_switch(switch);
+            return;
+        }
+        match control.action {
             Some(action) => {
                 let hand = shell.hand();
                 // A card that is open stays on its piece when the piece
@@ -2398,14 +2446,17 @@ fn mark_chosen(
     }
 
     // A control that acts is unavailable while its action cannot be done.
-    // Any other is chosen while the panel it opened is showing.
+    // A switch is chosen while it is on. Any other is chosen while the
+    // panel it opened is showing.
     for (entity, button, selected, disabled) in &planned {
-        let (chosen, blocked) = match map.control(button.id).action {
-            Some(action) => (
+        let control = map.control(button.id);
+        let (chosen, blocked) = match (control.action, control.switch) {
+            (Some(action), _) => (
                 action == Action::Element(game.element),
                 game.can(action, shell.hand()).is_err(),
             ),
-            None => (
+            (None, Some(switch)) => (shell.is_on(switch), false),
+            (None, None) => (
                 shell
                     .detail(button.place.unwrap_or(shell.place()))
                     .is_some_and(|detail| detail.item == Item::Control(button.id)),
@@ -2731,7 +2782,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             };
             match detail.item.piece() {
                 // A piece is pinned to be compared, in every place (#312).
-                Some(piece) => card::comparison(game, piece, shell.hand()),
+                Some(piece) => card::comparison(game, piece, shell.hand(), shell.rows()),
                 None => {
                     let id = match detail.item {
                         Item::Control(id) => id,
@@ -2763,7 +2814,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             _ => String::new(),
         },
         Fact::Hovered => shell.pointed().map_or(String::new(), |(_, piece)| {
-            card::pointed_comparison(game, piece, shell.horse())
+            card::pointed_comparison(game, piece, shell.horse(), shell.rows())
         }),
         Fact::CompareHint => card::compare_hint(selected),
         // Against the selected horse, the one Equip puts it on.
@@ -3204,7 +3255,7 @@ mod tests {
         }
         let cargo = &places.places[0].cargo;
         assert_eq!(unbuilt_line(cargo, false), "None of these is built yet.");
-        assert!(unbuilt_line(&places.card, false).starts_with("All but Equip: "));
+        assert!(unbuilt_line(&places.card, false).starts_with("All but Equip, Changed only: "));
         assert_eq!(
             unbuilt_line(&places.footer, false),
             "Planned changes: not built yet."
@@ -3381,6 +3432,75 @@ mod tests {
         assert!(said.contains(&format!("{up}, {down}: scroll")), "{said}");
         assert!(scroll_hint(&places).starts_with(&format!("{up}, {down}")));
         assert!(said.contains(&format!("{}: hide or show the fight log", places.log_key)), "{said}");
+    }
+
+    /// Changed only (#349) is a control of the card with its key, in the
+    /// Keys list. A press narrows the table of the pinned comparison and of
+    /// the one under the pointer, changes nothing in the game, and stays as
+    /// it was set from piece to piece and place to place. It does nothing
+    /// while no piece's card is pinned in view.
+    #[test]
+    fn changed_only_is_one_switch_for_every_piece_and_place() {
+        let places = Places::load();
+        let switches: Vec<&Control> =
+            places.controls().iter().filter(|control| control.switch.is_some()).collect();
+        assert_eq!(switches.len(), 1);
+        let control = switches[0];
+        assert_eq!(control.switch, Some(Switch::ChangedOnly));
+        assert!(places.card.iter().any(|on_card| on_card.id == control.id), "it is on the card");
+        assert!(control.built() && control.action.is_none() && control.shows.is_none());
+        let key = control.key.as_deref().expect("its key is printed on it");
+        let listed = keys_list(&places, &[]);
+        assert!(listed.contains(&format!("{key} {}", control.name)), "{listed}");
+
+        // A piece with one stat the same as what the selected horse wears.
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .unwrap();
+        let gear = game.pending_drop().unwrap().clone();
+        let mut worn = gear.clone();
+        worn.name = "Old Thing".into();
+        worn.stats.health += 3;
+        game.party[0].gear[gear.slot.index()] = Some(worn.clone());
+        let uncollected = Uncollected::default();
+        let same = |shell: &Shell, place: usize| {
+            fact(&game, &uncollected, shell, &places, Fact::Detail(place))
+                .lines()
+                .filter(|row| row.ends_with("  same"))
+                .count()
+        };
+
+        let mut shell = Shell::new(places.pages().count());
+        shell.press_switch(Switch::ChangedOnly);
+        assert!(!shell.is_on(Switch::ChangedOnly), "nothing is pinned");
+        let pin = |shell: &mut Shell, place: usize| {
+            shell.open(place);
+            let tab = shell.tab(place);
+            shell.show_detail(place, Detail { tab, item: Item::Carried, opener: None });
+        };
+        pin(&mut shell, 0);
+        assert!(same(&shell, 0) > 0);
+        shell.press_switch(Switch::ChangedOnly);
+        assert!(shell.is_on(Switch::ChangedOnly));
+        assert_eq!(same(&shell, 0), 0);
+        let said = fact(&game, &uncollected, &shell, &places, Fact::Detail(0));
+        assert!(said.contains("Changed only: "), "{said}");
+
+        // Another place, the card put away, and the card under the pointer.
+        pin(&mut shell, 1);
+        assert_eq!(same(&shell, 1), 0);
+        shell.close_detail();
+        assert!(shell.is_on(Switch::ChangedOnly));
+        shell.point(Some((Entity::PLACEHOLDER, Piece::Carried)));
+        let pointed = fact(&game, &uncollected, &shell, &places, Fact::Hovered);
+        assert!(pointed.contains("Changed only: "), "{pointed}");
+        pin(&mut shell, 1);
+        shell.press_switch(Switch::ChangedOnly);
+        assert!(same(&shell, 1) > 0 && same(&shell, 0) > 0);
+        // A switch changes nothing in the game.
+        assert_eq!(game.party[0].gear[gear.slot.index()].as_ref(), Some(&worn));
+        assert_eq!(game.pending_drop(), Some(&gear));
     }
 
     /// The fight log (#306) is over the scene on the road with every place
