@@ -1,0 +1,69 @@
+SESSION 2026-10-12 10:19 - Releases of at most ten issues
+
+ASKED
+  "too many pieces are in each patch/release before I can test them. Can
+  you rearrange the releases, adding more patches, so that there's at most
+  10 issues on each patch/release?"
+
+DONE
+  - The 14 unshipped milestones are now 37, none with more than ten open
+    issues. Checked on GitHub after the moves: every milestone's count,
+    and every issue's vX.Y.Z label against its milestone (none differ).
+      0.2.2 The first lessons (0 open, 11 built), 0.2.3 Horses and
+        inventory (8), 0.2.4 The opening (8)
+      0.3.0 Every hit felt (8), 0.3.1 Every choice felt (8)
+      0.3.2 Failure and saving (9), 0.3.3 Fighting together (8),
+        0.3.4 The road (10)
+      0.4.0 Cargo (9), 0.4.1 The stall (6), 0.4.2 Pets and a roster (5)
+      0.5.0 The horse's skeleton (8), 0.5.1 How a horse moves (9)
+      0.6.0 Gear that matters (8), 0.6.1 Abilities and levels (8),
+        0.6.2 Loot worth chasing (10)
+      0.7.0 A wider world (8), 0.7.1 Generated enemies (9), 0.7.2 Trails
+        worth choosing (7), 0.7.3 On the road (5)
+      0.8.0 The gaggle (8), 0.8.1 Signatures (9), 0.8.2 Tactics (8),
+        0.8.3 The build laboratory (9), 0.8.4 Deeper combat (7)
+      0.9.0 Town life (7), 0.9.1 Trade between towns (7), 0.9.2 Towns
+        that grow (8)
+      0.10.0 Horses you can see (9), 0.10.1 Breeds (7), 0.10.2 The
+        ambling gaits (8), 0.10.3 A horse's own way of going (6),
+        0.10.4 Gear you can see (5)
+    0.2.1, 0.11.0, 0.12.0, 0.13.0 and 1.0.0 were under ten and are as
+    they were.
+  - CLAUDE.md, Planning: a release holds at most ten issues.
+  - The docs that named a release name the new patch
+    (mechanics-for-tutorial.md, vision.md, onboarding.md, tactics.md,
+    horse-movement.md). Session logs are history and were left.
+  - No code changed. cargo check and cargo test green (186 pass).
+
+DECIDED
+  The owner: at most ten issues on each release. She read the result and
+  said "Perfect".
+  By the session, for her:
+  - 0.2.2 is cut off at what is built: its 11 closed issues stay (one
+    over the cap, nothing left to build), and its 16 open ones went to
+    0.2.3 (the menu work, first) and 0.2.4 (the tutorial trail).
+    Rule 5's "once 0.2.2 has shipped" still stands: lessons as data
+    (#290) is in 0.2.2.
+  - The cap counts open issues. Epics and play tests count and sit in the
+    last patch of their theme; closed "Decide" issues stay put and do
+    not count.
+  - The road went from 0.3.1 to 0.3.2-0.3.4, since feel needed 0.3.1.
+    The old milestone is 0.3.4 The road and keeps the closed decisions.
+  - The grouping inside each theme, from titles and stated dependencies.
+
+FOUND
+  - GitHub answered three calls with a server error mid-run (a label
+    create, two issue edits); each was redone and the final check is
+    clean.
+  - gh issue edit takes several issue numbers in one call.
+
+NOT DONE
+  - 0.2.2 was not released.
+  - The eight open 0.2.1 issues still sit on a shipped milestone.
+  - Issue bodies that name a release in their text were not searched.
+
+PICK UP
+  Ask the owner, through the question tool, whether to release 0.2.2 now
+  (11 built, none open; release-a-build.txt). If not, run next-thing:
+  #300 (a lesson can be skipped, turned off and found again in the
+  Journal), now in 0.2.3.
