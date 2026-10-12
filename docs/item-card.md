@@ -63,7 +63,7 @@ beside Equip.
     An upgrade: +6 points.
 
     Piece      Equipped  Selected  Change
-    health           +5       +15  +10
+    health           +5       +15  +10 better
     attack            -        +2  +2 new
     defense          +4         -  -4 lost
     elemental        +2        +2  same
@@ -78,8 +78,9 @@ beside Equip.
   own stats as they are and would be (the card's `changes`); the table is
   the two pieces, a stat on one line for both, amounts right-aligned (the
   menus' font is monospaced), and the change. A stat only the selected
-  piece has is "new", one only the equipped piece has is "lost", and an
-  equal one is "same"; a stat neither has gets no row.
+  piece has is "new", one only the equipped piece has is "lost", a higher
+  one is "better", a lower one "worse", and an equal one is "same"; a stat
+  neither has gets no row.
 - **The recipient is the selected horse.** Another horse's key compares
   the same piece there, and nothing else on the panel moves.
 - **A horse's own piece** is not compared with itself: it says who wears
@@ -98,9 +99,8 @@ beside Equip.
   call made for the owner: the other way was a second, narrower table of
   25 letters with shortened headings.
 - A "changed only" switch for the table is not built: #349.
-- The stat's word takes its colour (#251); the amounts in the table are
-  plain. Gain and loss are said by sign and word and have no colour yet:
-  #313.
+- The stat's word takes its colour (#251) and the amounts are plain. The
+  change is coloured by whether it is good (#313): see Colour.
 - At the smallest window the table is a press of PageDown, or a scroll of
   the wheel, away (see Fitting).
 
@@ -150,11 +150,12 @@ What an item says is coloured by kind (#251), the same on every screen:
 | An element's name | `colour.element` | Fire red, Ice blue, Plant green: the colour of an enemy of that element in a fight, which the scene and the deaths take from the same token |
 | A stat, with its number | `colour.stat` | health pink, attack violet, defense teal, elemental magenta |
 | A piece's name | its rarity's `look.colour` in `gear.ron` | Normal white, Magic blue, Rare yellow, Legendary orange, Set green: the colour of its drop in the loot shower (#309) |
+| A change for the better or the worse, and a verdict | `colour.change` | gain mint, loss terracotta (#313) |
 
 No screen chooses a colour. `show_facts` (`shell.rs`) passes every live text
 through `ink::runs` (`src/game/menu/ink.rs`), which cuts it into runs: an
 element is its whole word ("Fire"), and a stat is its word with the number
-that belongs to it ("+15 health", "health 35", "health 35 to 50 (+15)"). The
+that belongs to it ("+15 health", "health 35"). The
 text itself is what comes before the first colour and each run after it is a
 `TextSpan` under it; an uncoloured run keeps following the state of the part
 it is in. So a new screen that says "+2 attack" has it in violet with no
@@ -173,8 +174,25 @@ code.
   carries the rarity into rows and reports that have no card.
 - No other name is coloured: a test runs every horse, enemy and rarity name
   in the data through `runs`, and another every piece name.
+- **Gain and loss (#313).** Colour says whether a change is good, on the
+  change alone: in "health 35 to 50 (+15)" the stat is its word, the two
+  amounts are plain and "(+15)" is a gain; in the table the change column
+  is ("+10 better", "+2 new" a gain; "-2 worse", "-4 lost" a loss; "same"
+  plain). A verdict is one run, the whole line: "Upgrade for Sable: +11"
+  and "An upgrade: +6 points." a gain, "Worse for Sable: -3" and "Worse:
+  -3 points." a loss, "No better" plain. `ink` reads the sign and the word
+  the card wrote, so a change is never told by colour alone, and the card
+  decides what is good; every stat today is better for being higher.
+- Tests hold the two colours 4.5 to 1 off the screen, a panel, a control
+  and a selected control, clear of every other ink, the text and the
+  rarities, and apart from each other in grey. Under the pointer a control
+  is lighter and a loss falls to 2.8 to 1 there, as the element and stat
+  colours do.
 - A new kind of line (#69's affixes) is a variant of `Ink`, its words in
   `ink`, and a token.
+
+Pictures: `docs/gallery/2026-10-12-gain-and-loss`, in colour and in grey.
+The parts screen (`--parts`) has a sample with a gain, a loss and "same".
 
 Not coloured: the labels of controls (the Fire, Ice and Plant buttons) and
 the reason lines, which have their own colour by state. Items carry no

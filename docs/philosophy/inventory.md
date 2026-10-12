@@ -166,12 +166,10 @@ Checked against the game as built on 2026-10-11 (`docs/item-card.md`,
 - **Already in line.** One selected horse everywhere, undo over
   confirmation, a reason for every refusal, a key for every action, and
   a verdict that names its horse ("Upgrade for Sable: +11")
-  ([menus.md](menus.md)).
+  ([menus.md](menus.md)). One comparison in every place (#312). The change
+  and the verdict are coloured by gain or loss, with a sign and a word,
+  and the amounts are plain (#313).
 - **Differs today.**
-  - The comparison in the Gear tab and the Journal is still the older card
-    of lines ("health 35 to 50 (+15)"), not the table: #312.
-  - Stats are coloured by which stat they are (#251), on the amounts as
-    well as the label, and no colour says gain or loss: #313.
   - The verdict is one number of points (`loot::gain`). Today a piece only
     adds to four stats, so the number hides nothing; it must stop being the
     last word when gear effects (#13), affixes (#69) and sets (#36) arrive.

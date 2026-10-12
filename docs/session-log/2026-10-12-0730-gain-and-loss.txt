@@ -1,0 +1,55 @@
+SESSION 2026-10-12 07:30 - gain and loss coloured in a comparison (#313)
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
+    #246 waits only on the owner; src/sim/ unchanged since its sweep). The
+    pick was #313, which PICK UP named.
+  - #313, closed by 0e3867b. The change of a comparison and a verdict are
+    coloured by whether they are good: two tokens, colour.change.gain
+    (mint, 8cffaf) and colour.change.loss (terracotta, cd8778). The
+    stat's colour is on its word alone and the two amounts are plain.
+    Tested (163 pass, no warning): the runs of a comparison, of the table
+    and of each verdict as the card itself words them; the two colours
+    4.5 to 1 off the screen, a panel, a control and a selected control,
+    clear of every other ink, the text, a reason line and the rarities,
+    and apart in grey. Seen running, read by the session, in colour and
+    in grey (docs/gallery/2026-10-12-gain-and-loss): the menu tour at
+    --seed 6 and the parts screen, both 1280x900.
+  - The parts screen (--parts) has a comparison sample: a gain, a loss
+    and a change that is neither.
+  - docs/item-card.md and docs/philosophy/inventory.md brought up to date.
+
+DECIDED (by the session, for her)
+  - A change in the table now has a word as well as its sign: "+10
+    better", "-2 worse", beside "new", "lost" and "same". The issue asks
+    for a word, and inventory.md for one that says good, not more.
+  - A verdict is coloured whole, the horse's name with it ("Upgrade for
+    Sable: +11"), not its number alone.
+  - In "health 35 to 50 (+15)" only "(+15)" is coloured and it has no
+    word; the sign and "35 to 50" say it. This line is also in camp's
+    appraisal and the road's log, so those are coloured the same.
+  - The colours were picked by search: the furthest from every colour
+    already in use that still reads as green and as red. The loss is a
+    muted red for that reason; fire red and legendary orange hold the
+    brighter ones.
+
+FOUND
+  - The menu tour never meets a loss: its party is bare, so every piece is
+    an upgrade. A loss was seen on the parts screen only.
+  - On a control under the pointer (the hover fill) a loss is 2.8 to 1.
+    The element, stat and most rarity colours are under 4.5 there too;
+    nothing tests coloured text against the hover fill.
+
+NOT DONE
+  - Nobody has looked at the two colours but the session; nothing was
+    tried under colour-vision simulation, only in grey.
+  - No tour step shows a loss in the game itself.
+  - #349, the "changed only" switch.
+  - screenshots/tour312 and tour313 are left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so read #349 (a "changed only"
+  switch on the comparison's table) and build it.
