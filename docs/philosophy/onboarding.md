@@ -159,6 +159,10 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
   potions and failure, listing at the stall, cargo, prices, ability points,
   slot identities, the itinerary, offline progress, trade goods. The table
   is in the source document, section 8, and on #47.
+- **Lessons are data.** They are a list in `assets/data/lessons.ron`,
+  queued and shown one at a time, told what happens and never asked
+  anything (#290; how it works is `docs/lessons.md`). The four in the file
+  are a starting set from this page, to be replaced by #295, #296 and #299.
 - **Progress is not kept** until saving exists (#44): the opening plays
   again on each launch, and nothing may claim otherwise.
 

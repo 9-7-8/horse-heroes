@@ -121,8 +121,8 @@ bar, the strip, the line and the footer fit under the road's scene at the
 smallest window.
 
 - **What a hint is** (`Hint` in the shell): the lesson it belongs to, the
-  control it is about (`About`: a place, a tab, a horse, or a control of
-  `places.ron`), and its words. The line names the control and prints its
+  control it is about (`About`: a place, a tab, a horse, a control of
+  `places.ron`, or a piece of gear wherever it is listed), and its words. The line names the control and prints its
   key from the map (`about_name`), and `point_out` puts the mark
   (`Pointed`) on that control wherever it is drawn.
 - **One at a time.** `Shell::raise_hint` refuses a second while one shows;
@@ -138,11 +138,12 @@ smallest window.
 - Both controls are reached with Tab and the arrows and pressed with
   Enter, as every control is. A hint never makes a control unavailable and
   never holds the party up.
-- **Nothing raises one yet.** The lessons and their queue are #290. Until
-  then: `--hint` starts with a sample hint showing, and F6 shows a sample
-  and takes it away, each time about the next kind of control (the
-  Journal, Set out, the first horse, the first tab), whatever was put away
-  or skipped before.
+- **The lessons raise it** (#290, [lessons.md](lessons.md)): `teach` asks
+  the queue which lesson to show and makes that the hint. For looking at
+  the line by itself, `--hint` starts with a sample hint showing, and F6
+  shows a sample and takes it away, each time about the next kind of
+  control (the Journal, Set out, the first horse, the first tab), whatever
+  was put away or skipped before and over whatever lesson is showing.
 
 Chosen without the owner: a line of its own that is empty most of the
 time, and not a line over the scene or in the footer; that Escape takes

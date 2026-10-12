@@ -1,0 +1,71 @@
+SESSION 2026-10-12 09:45 - Lessons as data (#290)
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
+    #246 waits only on the owner). The pick was #290, which PICK UP named.
+  - #290, built in 9dbdf1e and closed by it. assets/data/lessons.ron
+    lists the lessons in order; a queue in src/sim/lessons.rs is told
+    what happens and asked which one to show; src/game/menu/teach.rs
+    makes that one the hint (#291). The trail reports Fight, Ability,
+    Kill, Resisted and Win as it reports its kills; the game adds Gear
+    and Equipped, the menus Card. A hint can now be about a piece of
+    gear, and its mark goes on the piece wherever it is listed.
+    Tested (185 pass, no warning): with every lesson due one shows and
+    the rest wait; the order is the file's; a trigger fires once; seen,
+    done and skipped are kept apart; a town lesson waits for the next
+    town; a lesson follows its target (here, moved, gone); a first trail
+    and town visit with no input goes tick for tick as with every lesson
+    skipped; every action can be done or not for the same reason whatever
+    the lessons' state; the game raises every event; every target in the
+    file exists. The tests use lessons of their own, not the file's.
+    Seen running, read by the session (docs/gallery/2026-10-12-lessons),
+    at --seed 6 --keep-going in the smallest window: the first lesson in
+    the first fight (17 s), the second after the first kill (24 s), the
+    piece's in town with its mark on the piece in the cargo (80 s). The
+    tour runs to its end as before (91 pictures; Tab makes 28 stops, none
+    out of sight).
+  - docs/lessons.md written; menu-shell.md ("The hint's line"),
+    philosophy/onboarding.md, gallery/README.md and
+    procedures/build-and-run.txt brought up to date.
+
+DECIDED (by the session, for her; said on #290 for her to overrule)
+  - Four starter lessons, worded from philosophy/onboarding.md. #295,
+    #296 and #299 write the real ones.
+  - A lesson is finished by something watched (while it shows) or
+    something done (once it is due, shown or not).
+  - A road lesson's mark goes on a horse in the strip: a hint is about a
+    control, and nothing in the menus stands for the fight.
+  - No lesson for the first kill.
+  - A lesson about a piece is about the newest piece the party still has
+    from a trail; left behind, it waits for the next one.
+  - A lesson's line is 85 letters at most.
+
+FOUND
+  - The first wording of the piece's lesson ran off the hint's line at
+    the smallest window: the line has room for about a hundred letters,
+    the control's name included, and a piece's name is long.
+  - F6 used to take away whatever hint was showing; with lessons raising
+    hints it now puts the sample over a lesson, and the lesson comes back
+    after it. It also brings back every lesson put away.
+  - The PowerShell tool refused a whole command over a
+    "Remove-Item Env:NAME" line in it; setting the variable to $null
+    does the same and is let through.
+
+NOT DONE
+  - A hand on a mouse or a keyboard has not put a lesson away or pressed
+    the piece under one. The tests do it through the shell's own calls;
+    the tour presses Got it and Skip all on the sample hint only.
+  - The Equip lesson and the "went on at the gate" line have not been
+    seen in a picture, only in tests.
+  - The tour skips all hints part way along the first road, so its town
+    pictures show no lesson.
+  - Lessons cannot be turned back on by the player (#300); F6 does it.
+  - screenshots/h290 and tour290 are left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so build #296 (the first-item
+  lesson), the lowest open menus issue of 0.2.2 that waits on nobody; it
+  is now a change to lessons.ron and whatever it needs of the card.
