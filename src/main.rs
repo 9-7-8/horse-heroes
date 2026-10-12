@@ -40,6 +40,7 @@ fn main() {
             seed: seed(),
             bare: std::env::args().any(|arg| arg == "--bare"),
             keep_going: std::env::args().any(|arg| arg == "--keep-going"),
+            cargo: cargo(),
         })
         .add_plugins(game::menu::MenuPlugin {
             show_parts: std::env::args().any(|arg| arg == "--parts"),
@@ -71,6 +72,18 @@ fn seed() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |since| since.as_secs())
+}
+
+/// `--cargo N` starts the game with N pieces carried, rolled from the seed.
+/// A dev aid, for looking at a cargo that holds many pieces (#352).
+fn cargo() -> usize {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--cargo" {
+            return args.next().and_then(|value| value.parse().ok()).unwrap_or(0);
+        }
+    }
+    0
 }
 
 /// `--burst-at SECONDS` moves the test burst of `--burst` and `--pickup` to

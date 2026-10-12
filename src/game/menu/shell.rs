@@ -393,10 +393,10 @@ impl Place {
 
 /// Every piece the party has of one type, in the order the Inventory shows
 /// them (#308): what each horse wears in that slot, in the party's order,
-/// and then the piece in the cargo when it is of that type.
+/// and then every piece in the cargo of that type, newest first (#352).
 pub fn held(game: &Game, slot: usize) -> Vec<Piece> {
     let worn = (0..game.party.len()).map(|horse| Piece::Worn { horse, slot });
-    worn.chain([Piece::Carried])
+    worn.chain((0..game.cargo().len()).map(Piece::Carried))
         .filter(|piece| game.piece(*piece).is_some_and(|gear| gear.slot.index() == slot))
         .collect()
 }
@@ -406,8 +406,8 @@ pub fn held(game: &Game, slot: usize) -> Vec<Piece> {
 pub enum Item {
     /// A gear slot of a horse, and the piece worn in it.
     Worn { horse: usize, slot: usize },
-    /// The piece carried in the cargo.
-    Carried,
+    /// A piece carried in the cargo, counted from the newest.
+    Carried(usize),
     /// A control, by its `id`: what it shows, or, for one that is not
     /// built, what it will do.
     Control(usize),
@@ -420,7 +420,7 @@ impl Item {
     pub fn piece(self) -> Option<Piece> {
         match self {
             Item::Worn { horse, slot } => Some(Piece::Worn { horse, slot }),
-            Item::Carried => Some(Piece::Carried),
+            Item::Carried(at) => Some(Piece::Carried(at)),
             Item::Control(_) | Item::Horse(_) => None,
         }
     }
@@ -430,7 +430,7 @@ impl From<Piece> for Item {
     fn from(piece: Piece) -> Item {
         match piece {
             Piece::Worn { horse, slot } => Item::Worn { horse, slot },
-            Piece::Carried => Item::Carried,
+            Piece::Carried(at) => Item::Carried(at),
         }
     }
 }
@@ -765,15 +765,11 @@ impl Shell {
         }
     }
 
-    /// Whether a card is open on this, in any place.
-    pub fn shows(&self, item: Item) -> bool {
-        self.details.iter().flatten().any(|detail| detail.item == item)
-    }
-
-    /// Put away every detail about this, in every place.
-    pub fn forget(&mut self, item: Item) {
+    /// Put away every card open on a place in the cargo that holds
+    /// nothing: the cargo has `carried` pieces.
+    pub fn forget_carried_from(&mut self, carried: usize) {
         for detail in &mut self.details {
-            if detail.is_some_and(|detail| detail.item == item) {
+            if detail.is_some_and(|detail| matches!(detail.item, Item::Carried(at) if at >= carried)) {
                 *detail = None;
             }
         }
@@ -832,13 +828,25 @@ pub struct SlotRow {
     pub slot: usize,
 }
 
-/// The carried piece, where a list shows it: in the cargo column, which is
-/// beside every tab of its place, and in the report, which is on one. A
-/// press pins its card in the side panel, as a press on a slot does.
+/// A carried piece, where a list shows it: the newest in the cargo column,
+/// which is beside every tab of its place, and each of them in the
+/// Inventory. A press pins its card in the side panel, as a press on a slot
+/// does. `at` is where the piece is in the cargo, from the newest.
 #[derive(Component)]
 pub struct CarriedCell {
     pub place: usize,
     pub tab: Option<usize>,
+    pub at: usize,
+}
+
+/// A type's group of the Inventory: where the tiles of the carried pieces
+/// of that type go. `grow_cargo` gives it a tile for every place in the
+/// cargo, since the cargo has no most it can hold (#352).
+#[derive(Component)]
+struct CarriedGrid {
+    place: usize,
+    tab: usize,
+    slot: usize,
 }
 
 /// The piece dropped by the trail whose report is showing, in that report
@@ -1038,7 +1046,7 @@ impl Plugin for ShellPlugin {
                     mark_chosen,
                     (mark_unseen, teach::teach, point_out, show_hint).chain(),
                     show_wearer,
-                    (show_carried, mark_lessons).chain(),
+                    (grow_cargo, show_carried, mark_lessons).chain(),
                     show_hover_card,
                     picture::show_pictures,
                     show_reasons,
@@ -1639,17 +1647,6 @@ fn spawn_content(
             // the grid follows the game with nothing rebuilt. A tile is the
             // piece's picture and whose it is; the pointer on it says the
             // rest, against what the selected horse wears.
-            let tile = || Node {
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                padding: UiRect::all(Val::Px(t.space.s)),
-                row_gap: Val::Px(t.space.xs),
-                border: UiRect::all(Val::Px(t.size.border)),
-                border_radius: BorderRadius::all(Val::Px(t.size.radius)),
-                overflow: Overflow::clip(),
-                ..default()
-            };
             for slot in Slot::ALL {
                 let name = slot.name();
                 let slot = slot.index();
@@ -1658,7 +1655,9 @@ fn spawn_content(
                     ..default()
                 });
                 page.spawn((dim(t, &card::none_held(name)), When::NoneHeld(slot)));
-                page.spawn(Node {
+                page.spawn((
+                    CarriedGrid { place, tab, slot },
+                    Node {
                     display: Display::Grid,
                     grid_template_columns: RepeatedGridTrack::minmax(
                         GridTrackRepetition::AutoFill,
@@ -1669,7 +1668,8 @@ fn spawn_content(
                     row_gap: Val::Px(t.space.s),
                     flex_shrink: 0.0,
                     ..default()
-                })
+                    },
+                ))
                 .with_children(|grid| {
                     for horse in 0..horses {
                         let piece = Piece::Worn { horse, slot };
@@ -1678,22 +1678,14 @@ fn spawn_content(
                             SlotRow { place, tab, horse, slot },
                             When::Held(piece, slot),
                         ))
-                        .insert(tile())
+                        .insert(tile(t))
                         .with_children(|cell| {
                             cell.spawn(picture_of(t, piece, t.size.inventory_picture));
                             cell.spawn((dim(t, ""), Live(Fact::WornBy(horse))));
                         });
                     }
-                    grid.spawn((
-                        cell(t),
-                        CarriedCell { place, tab: Some(tab) },
-                        When::Held(Piece::Carried, slot),
-                    ))
-                    .insert(tile())
-                    .with_children(|cell| {
-                        cell.spawn(picture_of(t, Piece::Carried, t.size.inventory_picture));
-                        cell.spawn(dim(t, card::CARRIED));
-                    });
+                    // The carried pieces' tiles come after these, as the
+                    // cargo comes to hold them (`grow_cargo`).
                 });
             }
         }
@@ -1736,8 +1728,60 @@ fn spawn_content(
     }
 }
 
-/// The carried piece as a list shows it: the summary of its card. There
-/// only while something is carried.
+/// How a tile of the Inventory is laid out: a picture over a line.
+fn tile(t: &Tokens) -> Node {
+    Node {
+        flex_direction: FlexDirection::Column,
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        padding: UiRect::all(Val::Px(t.space.s)),
+        row_gap: Val::Px(t.space.xs),
+        border: UiRect::all(Val::Px(t.size.border)),
+        border_radius: BorderRadius::all(Val::Px(t.size.radius)),
+        overflow: Overflow::clip(),
+        ..default()
+    }
+}
+
+/// Every group of the Inventory has a tile for every place in the cargo
+/// (#352). A tile shows while the piece at its place is of its group's type
+/// (`show_carried`), so a tile is made once and never taken away: the cargo
+/// only says which of them are in sight.
+fn grow_cargo(
+    mut commands: Commands,
+    tokens: Res<Tokens>,
+    game: Res<Game>,
+    mut made: Local<usize>,
+    grids: Query<(Entity, &CarriedGrid)>,
+) {
+    let wanted = game.cargo().len();
+    if wanted <= *made || grids.is_empty() {
+        return;
+    }
+    let t = &*tokens;
+    for (entity, grid) in &grids {
+        commands.entity(entity).with_children(|tiles| {
+            for at in *made..wanted {
+                let piece = Piece::Carried(at);
+                tiles
+                    .spawn((
+                        cell(t),
+                        CarriedCell { place: grid.place, tab: Some(grid.tab), at },
+                        When::Held(piece, grid.slot),
+                    ))
+                    .insert(tile(t))
+                    .with_children(|cell| {
+                        cell.spawn(picture_of(t, piece, t.size.inventory_picture));
+                        cell.spawn(dim(t, card::CARRIED));
+                    });
+            }
+        });
+    }
+    *made = wanted;
+}
+
+/// The newest carried piece as a list shows it: the summary of its card.
+/// There only while something is carried.
 fn spawn_carried(
     parent: &mut ChildSpawnerCommands,
     t: &Tokens,
@@ -1745,10 +1789,10 @@ fn spawn_carried(
     tab: Option<usize>,
 ) {
     parent
-        .spawn((cell(t), CarriedCell { place, tab }, When::Carried(true)))
+        .spawn((cell(t), CarriedCell { place, tab, at: 0 }, When::Carried(true)))
         .with_children(|cell| {
             cell.spawn((text(t, ""), Live(Fact::CarriedName)));
-            spawn_pictured(cell, t, Piece::Carried, |lines| {
+            spawn_pictured(cell, t, Piece::Carried(0), |lines| {
                 lines.spawn((dim(t, ""), Live(Fact::CarriedKind)));
                 lines.spawn((dim(t, ""), Live(Fact::CarriedVerdict)));
             });
@@ -1964,7 +2008,7 @@ fn on_activate(
             cell.place,
             Detail {
                 tab,
-                item: Item::Carried,
+                item: Item::Carried(cell.at),
                 opener: Some(entity),
             },
         );
@@ -1996,7 +2040,7 @@ fn on_activate(
                 let moved = match action {
                     Action::Equip => game
                         .equipped_at(hand)
-                        .map(|to| (hand.open.unwrap_or(Piece::Carried), to)),
+                        .map(|to| (hand.open.unwrap_or(Piece::Carried(0)), to)),
                     Action::Undo => game.can(action, hand).ok().and(game.undone_move()),
                     _ => None,
                 };
@@ -2388,11 +2432,9 @@ fn follow_the_party(
             shell.close();
         }
     }
-    // A card open on the carried piece goes when the piece does: the party
-    // has left with it or without it.
-    if game.pending_drop().is_none() && shell.shows(Item::Carried) {
-        shell.forget(Item::Carried);
-    }
+    // A card open on a carried piece goes when there is no piece at its
+    // place in the cargo any more.
+    shell.forget_carried_from(game.cargo().len());
 }
 
 /// The pointer resting on a piece shows its card (#228). The first card
@@ -2425,7 +2467,7 @@ fn point(
                 horse: row.horse,
                 slot: row.slot,
             },
-            (None, Some(_)) => Piece::Carried,
+            (None, Some(cell)) => Piece::Carried(cell.at),
             (None, None) => game.reported_piece()?,
         };
         shell.points_at(&game, piece).map(|piece| (entity, piece))
@@ -2625,7 +2667,7 @@ fn mark_chosen(
             })
             || carried.is_some_and(|cell| {
                 shell.detail(cell.place).is_some_and(|detail| {
-                    detail.item == Item::Carried && cell.tab.is_none_or(|tab| tab == detail.tab)
+                    detail.item == Item::Carried(cell.at) && cell.tab.is_none_or(|tab| tab == detail.tab)
                 })
             })
             || reported.is_some_and(|cell| {
@@ -2709,7 +2751,7 @@ fn point_out(
             Some(About::Control(id)) => control.is_some_and(|button| button.id == id),
             // A piece is marked wherever it is listed: the cargo, the
             // report, the Gear tab and the Inventory.
-            Some(About::Piece(Piece::Carried)) => carried.is_some(),
+            Some(About::Piece(Piece::Carried(at))) => carried.is_some_and(|cell| cell.at == at),
             Some(About::Piece(Piece::Worn { horse, slot: s })) => {
                 slot.is_some_and(|row| row.horse == horse && row.slot == s)
             }
@@ -2844,12 +2886,12 @@ fn in_view(shell: &Shell, map: &Places, game: &Game) -> (bool, bool) {
         .get(shell.tab(place))
         .is_some_and(|tab| tab.content == Content::Report);
     let carried = match shell.detail(place) {
-        Some(detail) => detail.item == Item::Carried,
+        Some(detail) => matches!(detail.item, Item::Carried(_)),
         // With no detail over it, the cargo is beside every tab; and the
         // Inventory shows every piece.
         None => page.horse_columns || page.content == Content::Inventory,
     };
-    let reported = report && game.reported_piece() == Some(Piece::Carried);
+    let reported = report && matches!(game.reported_piece(), Some(Piece::Carried(_)));
     (report, carried || reported)
 }
 
@@ -3223,7 +3265,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 (Fact::ReportedKind, _) => card::kind(game, gear),
                 // Carried, it is what the cargo says of it: against the
                 // selected horse, the one Equip puts it on.
-                (_, Piece::Carried) => card::verdict(game, selected, gear),
+                (_, Piece::Carried(_)) => card::verdict(game, selected, gear),
                 (_, Piece::Worn { horse, .. }) => format!("{} wears it.", game.party[horse].name),
             }
         }
@@ -3999,7 +4041,7 @@ mod tests {
         let pin = |shell: &mut Shell, place: usize| {
             shell.open(place);
             let tab = shell.tab(place);
-            shell.show_detail(place, Detail { tab, item: Item::Carried, opener: None });
+            shell.show_detail(place, Detail { tab, item: Item::Carried(0), opener: None });
         };
         pin(&mut shell, 0);
         assert!(same(&shell, 0) > 0);
@@ -4014,7 +4056,7 @@ mod tests {
         assert_eq!(same(&shell, 1), 0);
         shell.close_detail();
         assert!(shell.is_on(Switch::ChangedOnly));
-        shell.point(Some((Entity::PLACEHOLDER, Piece::Carried)));
+        shell.point(Some((Entity::PLACEHOLDER, Piece::Carried(0))));
         let pointed = fact(&game, &uncollected, &shell, &places, Fact::Hovered);
         assert!(pointed.contains("Changed only: "), "{pointed}");
         pin(&mut shell, 1);
@@ -4218,7 +4260,7 @@ mod tests {
             .find(|game| game.pending_drop().is_some())
             .expect("no seed under 50 brings a drop home");
         let everything = |game: &Game| {
-            let mut all = vec![Piece::Carried];
+            let mut all = vec![Piece::Carried(0)];
             for horse in 0..game.party.len() {
                 all.extend((0..Slot::ALL.len()).map(|slot| Piece::Worn { horse, slot }));
             }
@@ -4241,12 +4283,12 @@ mod tests {
             shown.len()
         };
         let slot = game.pending_drop().unwrap().slot.index();
-        assert_eq!(held(&game, slot).last(), Some(&Piece::Carried));
+        assert_eq!(held(&game, slot).last(), Some(&Piece::Carried(0)));
         let before = check(&game);
         let replaced = game.party[0].gear[slot].is_some();
         game.act(Action::Equip, Hand::horse(0));
         assert!(held(&game, slot).contains(&Piece::Worn { horse: 0, slot }));
-        assert!(!held(&game, slot).contains(&Piece::Carried));
+        assert!(!held(&game, slot).contains(&Piece::Carried(0)));
         assert_eq!(check(&game), before - usize::from(replaced));
 
         // A type nobody has a piece of is an empty group that says so.
@@ -4347,7 +4389,7 @@ mod tests {
         assert_eq!(shell.detail(2).map(|detail| detail.item), Some(Item::Horse(2)));
 
         // A pinned piece is the handle: it stays, and the horse changes.
-        let pinned = Detail { tab: 0, item: Item::Carried, opener: None };
+        let pinned = Detail { tab: 0, item: Item::Carried(0), opener: None };
         shell.open(0);
         shell.show_detail(0, pinned);
         shell.inspect(0, None);
@@ -4670,20 +4712,20 @@ mod tests {
         let empty = (0..Slot::ALL.len())
             .find(|slot| game.party[0].gear[*slot].is_none())
             .unwrap();
-        assert_eq!(shell.points_at(&game, Piece::Carried), Some(Piece::Carried));
+        assert_eq!(shell.points_at(&game, Piece::Carried(0)), Some(Piece::Carried(0)));
         assert_eq!(shell.points_at(&game, Piece::Worn { horse: 0, slot: empty }), None);
         shell.show_detail(
             0,
             Detail {
                 tab: 0,
-                item: Item::Carried,
+                item: Item::Carried(0),
                 opener: None,
             },
         );
-        assert_eq!(shell.points_at(&game, Piece::Carried), None);
+        assert_eq!(shell.points_at(&game, Piece::Carried(0)), None);
         // Pinned in a place that is not showing, it is not beside it.
         shell.open(1);
-        assert_eq!(shell.points_at(&game, Piece::Carried), Some(Piece::Carried));
+        assert_eq!(shell.points_at(&game, Piece::Carried(0)), Some(Piece::Carried(0)));
     }
 
     /// The hover card is beside its piece, never over it, and on the side

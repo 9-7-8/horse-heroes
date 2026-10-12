@@ -180,7 +180,7 @@ fn wanted(game: &Game, of: Of) -> Option<(usize, Option<usize>)> {
         Piece::Worn { horse, slot } => {
             (horse < game.party.len() && slot < Slot::ALL.len()).then_some((slot, tier))
         }
-        Piece::Carried => game.pending_drop().map(|gear| (gear.slot.index(), tier)),
+        Piece::Carried(_) => game.piece(piece).map(|gear| (gear.slot.index(), tier)),
     }
 }
 
@@ -253,7 +253,7 @@ mod tests {
         let slot = gear.slot.index();
         let worn = Piece::Worn { horse: 0, slot };
         assert_eq!(wanted(&game, Of::At(worn)), Some((slot, None)));
-        assert_eq!(wanted(&game, Of::At(Piece::Carried)), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&game, Of::At(Piece::Carried(0))), Some((slot, Some(gear.rarity))));
 
         let mut on = home();
         on.party[0].gear[slot] = Some(gear.clone());
@@ -261,7 +261,7 @@ mod tests {
 
         let mut away = home();
         away.act(crate::game::Action::Equip, crate::game::Hand::horse(0));
-        assert_eq!(wanted(&away, Of::At(Piece::Carried)), None);
+        assert_eq!(wanted(&away, Of::At(Piece::Carried(0))), None);
         // The report's piece is pictured where it is: carried, then worn.
         assert_eq!(wanted(&game, Of::Reported), Some((slot, Some(gear.rarity))));
         assert_eq!(wanted(&away, Of::Reported), Some((slot, Some(gear.rarity))));

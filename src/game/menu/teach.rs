@@ -31,7 +31,7 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
         Target::Drop => {
             let piece = game.newest_piece()?;
             let found = match piece {
-                Piece::Carried => Found::Here,
+                Piece::Carried(_) => Found::Here,
                 Piece::Worn { .. } => Found::Moved,
             };
             return Some((About::Piece(piece), found));
@@ -259,7 +259,7 @@ mod tests {
     fn open_carried(shell: &mut Shell) {
         let place = shell.place();
         let tab = shell.tab(place);
-        shell.show_detail(place, Detail { tab, item: Item::Carried, opener: None });
+        shell.show_detail(place, Detail { tab, item: Item::Carried(0), opener: None });
     }
 
     /// Every lesson in the file names a target that exists: a place, a tab
@@ -294,13 +294,13 @@ mod tests {
             .find(|game| game.pending_drop().is_some())
             .expect("no seed under 50 brings a drop home");
         let slot = game.pending_drop().unwrap().slot.index();
-        let carried = (About::Piece(Piece::Carried), Found::Here);
+        let carried = (About::Piece(Piece::Carried(0)), Found::Here);
         assert_eq!(find(&Target::Drop, &map, &game, 0), Some(carried));
         game.act(Action::Equip, Hand::horse(1));
         let worn = (About::Piece(Piece::Worn { horse: 1, slot }), Found::Moved);
         assert_eq!(find(&Target::Drop, &map, &game, 0), Some(worn));
         game.party[1].gear[slot] = None;
-        assert_eq!(find(&Target::Drop, &map, &game, 0), None, "left behind");
+        assert_eq!(find(&Target::Drop, &map, &game, 0), None, "the party no longer has it");
     }
 
     /// Every event a lesson can wait for is one the game raises: the trail
@@ -442,7 +442,7 @@ mod tests {
         };
         for (place, make) in [("in town", &home as &dyn Fn() -> Game), ("on the road", &on_the_road)] {
             let plain = make();
-            let hands = [Hand::default(), Hand { horse: 1, open: Some(Piece::Carried) }];
+            let hands = [Hand::default(), Hand { horse: 1, open: Some(Piece::Carried(0)) }];
             let can = |game: &Game| {
                 hands.map(|hand| actions.map(|action| game.can(action, hand)))
             };
@@ -510,7 +510,7 @@ mod tests {
 
         // In town: the piece, in the cargo.
         assert_eq!(hinted(&shell), Some("piece"));
-        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried));
+        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried(0)));
         open_carried(&mut shell);
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("equip"));
@@ -610,7 +610,7 @@ mod tests {
         assert!(again(&mut game, &mut shell, &map, 0));
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("piece"));
-        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried));
+        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried(0)));
         assert!(!shell.put_away("piece"));
 
         // Its thing done: the next comes due, and the first is listed done.
@@ -702,7 +702,7 @@ mod tests {
         (shell, held) = (Shell::new(map.pages().count()), Held::default());
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(due(&game), Some(Event::Gear));
-        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried));
+        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried(0)));
 
         // The card opens: whose stats it is about, on the selected horse,
         // and on the next one when that is selected.
@@ -718,7 +718,7 @@ mod tests {
 
         // Equip: the carried piece goes on. That is no swap.
         let hand = shell.hand();
-        assert_eq!(hand, Hand { horse: 2, open: Some(Piece::Carried) });
+        assert_eq!(hand, Hand { horse: 2, open: Some(Piece::Carried(0)) });
         game.act(Action::Equip, hand);
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(due(&game), Some(Event::Equipped));

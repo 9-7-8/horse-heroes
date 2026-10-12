@@ -84,11 +84,17 @@ fn changes(game: &Game, horse: &Horse, gear: &Gear) -> String {
 
 /// What camp says of the drop by itself, with no card opened (#11): the
 /// horse it goes on when the party sets out, what it changes there and what
-/// it replaces, or why no horse takes it. Empty when nothing is carried.
+/// it replaces, or why no horse takes it and it stays carried. It is said
+/// of the last trail's piece while that is the newest carried, and is empty
+/// once the piece is on a horse: what is carried then is not new.
 pub fn appraisal(game: &Game) -> String {
     let Some(gear) = game.pending_drop() else {
         return String::new();
     };
+    let dropped = game.last_report().and_then(|kept| kept.outcome.drop.as_ref());
+    if !game.in_town() || dropped != Some(gear) {
+        return String::new();
+    }
     match game.drop_best_wearer() {
         Some(best) => {
             let horse = &game.party[best];
@@ -98,16 +104,13 @@ pub fn appraisal(game: &Game) -> String {
                 compare(game, horse, gear),
             );
             if let Some(worn) = &horse.gear[gear.slot.index()] {
-                out += &format!(
-                    "\n{} is thrown away: the cargo cannot hold it yet.",
-                    worn.name
-                );
+                out += &format!("\n{} goes to the cargo.", worn.name);
             }
             out + "\nE puts it on the selected horse instead."
         }
         None => {
             let mut out = format!(
-                "NEW GEAR: {}, left behind on setting out.\n\
+                "NEW GEAR: {}, kept in the cargo on setting out.\n\
                  No horse is better off with it:",
                 gear.name
             );
@@ -135,10 +138,7 @@ pub fn equipped(game: &Game, horse: &Horse, gear: &Gear) -> String {
     };
     out += &changes(game, horse, gear);
     if let Some(worn) = worn {
-        out += &format!(
-            "\n{} was thrown away: the cargo cannot hold it yet.",
-            worn.name
-        );
+        out += &format!("\n{} went to the cargo.", worn.name);
     }
     out
 }
@@ -171,15 +171,14 @@ pub fn consequence(game: &Game, hand: Hand) -> String {
                 wearer.name,
             )
         }
-        Some(Piece::Carried) | None => {
-            let Some(gear) = game.pending_drop() else {
+        open => {
+            let Some(gear) = game.piece(open.unwrap_or(Piece::Carried(0))) else {
                 return String::new();
             };
-            // The cargo holds one piece until it is built (#227), so there
-            // is nowhere for the displaced one to go. Say so before it goes.
+            // What it displaces takes its place in the cargo (#352).
             match &selected.gear[gear.slot.index()] {
                 Some(worn) => format!(
-                    "Equip puts it on {}. {} is thrown away: the cargo cannot hold it yet.",
+                    "Equip puts it on {}. {} goes to the cargo.",
                     selected.name, worn.name,
                 ),
                 None => format!("Equip puts it on {}.", selected.name),
@@ -194,7 +193,7 @@ pub fn consequence(game: &Game, hand: Hand) -> String {
 fn empty(game: &Game, piece: Piece, hand: Hand) -> String {
     let wearer = match piece {
         Piece::Worn { horse, .. } => game.party.get(horse),
-        Piece::Carried => None,
+        Piece::Carried(_) => None,
     };
     match (piece, wearer) {
         (Piece::Worn { slot, .. }, Some(wearer)) => {
@@ -344,7 +343,7 @@ fn weighed(game: &Game, piece: Piece, horse: usize, rows: Rows) -> Option<String
     out += &format!("\nSelected: {} ({})", gear.name, rarity(gear));
     out += &match piece {
         Piece::Worn { horse, .. } => format!("\nWorn by {}.", game.party[horse].name),
-        Piece::Carried => "\nCarried in the cargo.".to_string(),
+        Piece::Carried(_) => "\nCarried in the cargo.".to_string(),
     };
     out += &format!("\n\nAFTER EQUIPPING, {}:{}", selected.name, changes(game, selected, gear));
     out += &format!(
@@ -470,9 +469,9 @@ mod tests {
         worn.name = "Old Thing".into();
         worn.stats.health += 3;
         game.party[0].gear[gear.slot.index()] = Some(worn.clone());
-        let hand = Hand { horse: 0, open: Some(Piece::Carried) };
-        let full = comparison(&game, Piece::Carried, hand, Rows::All);
-        let narrow = comparison(&game, Piece::Carried, hand, Rows::Changed);
+        let hand = Hand { horse: 0, open: Some(Piece::Carried(0)) };
+        let full = comparison(&game, Piece::Carried(0), hand, Rows::All);
+        let narrow = comparison(&game, Piece::Carried(0), hand, Rows::Changed);
         let at = full.find("\nPiece ").unwrap();
         assert_eq!(full[..at], narrow[..at], "the lines above the table do not change");
         assert!(full.contains(&table(worn.stats, gear.stats, Rows::All)));
@@ -480,7 +479,7 @@ mod tests {
         assert!(full.lines().any(|row| row.ends_with("  same")), "{full}");
         assert!(!narrow.lines().any(|row| row.ends_with("  same")), "{narrow}");
         assert!(narrow.ends_with(&consequence(&game, hand)));
-        let pointed = pointed_comparison(&game, Piece::Carried, 0, Rows::Changed);
+        let pointed = pointed_comparison(&game, Piece::Carried(0), 0, Rows::Changed);
         assert!(narrow.starts_with(pointed.strip_suffix(&format!("\n\n{PRESS_PINS}")).unwrap()));
     }
 
@@ -493,9 +492,9 @@ mod tests {
         let mut game = home();
         let gear = game.pending_drop().unwrap().clone();
         let slot = gear.slot.index();
-        let hand = Hand { horse: 0, open: Some(Piece::Carried) };
+        let hand = Hand { horse: 0, open: Some(Piece::Carried(0)) };
         let horse = game.party[0].name.clone();
-        let said = comparison(&game, Piece::Carried, hand, Rows::All);
+        let said = comparison(&game, Piece::Carried(0), hand, Rows::All);
         assert!(said.starts_with(&format!("For {horse}, {}\nEquipped: ", gear.slot.name())), "{said}");
         assert!(said.contains(&format!("\nSelected: {} (", gear.name)), "{said}");
         assert!(said.contains("\nCarried in the cargo."));
@@ -508,7 +507,7 @@ mod tests {
         assert!(said.ends_with(&consequence(&game, hand)) && !consequence(&game, hand).is_empty());
 
         // On another horse it is the same piece against that horse.
-        let other = comparison(&game, Piece::Carried, Hand { horse: 1, ..hand }, Rows::All);
+        let other = comparison(&game, Piece::Carried(0), Hand { horse: 1, ..hand }, Rows::All);
         assert!(other.starts_with(&format!("For {}, ", game.party[1].name)));
 
         game.act(Action::Equip, hand);
@@ -525,7 +524,7 @@ mod tests {
         assert!(!does.is_empty() && swap.ends_with(&does));
         let pointed = pointed_comparison(&game, worn, 1, Rows::All);
         assert_eq!(pointed, format!("{}\n\n{PRESS_PINS}", swap.strip_suffix(&does).unwrap().trim_end()));
-        assert!(pointed_comparison(&game, Piece::Carried, 1, Rows::All).is_empty());
+        assert!(pointed_comparison(&game, Piece::Carried(0), 1, Rows::All).is_empty());
     }
 
     /// A horse's view (#311) accounts for every total: what the horse has
@@ -564,9 +563,9 @@ mod tests {
         let named = format!("{} ({})", gear.name, game.data.gear.rarities[gear.rarity].name);
         let carried = Hand {
             horse: 0,
-            open: Some(Piece::Carried),
+            open: Some(Piece::Carried(0)),
         };
-        let card = comparison(&game, Piece::Carried, carried, Rows::All);
+        let card = comparison(&game, Piece::Carried(0), carried, Rows::All);
         assert!(card.contains(&format!("\nSelected: {named}\nCarried in the cargo.")), "{card}");
 
         let at = game.equipped_at(carried).unwrap();
@@ -597,10 +596,10 @@ mod tests {
         let mut game = home();
         let carried = Hand {
             horse: 1,
-            open: Some(Piece::Carried),
+            open: Some(Piece::Carried(0)),
         };
         let at = game.equipped_at(carried).unwrap();
-        for piece in [Piece::Carried, at] {
+        for piece in [Piece::Carried(0), at] {
             for selected in 0..game.party.len() {
                 let hand = Hand {
                     horse: selected,
@@ -620,7 +619,7 @@ mod tests {
             .find(|slot| game.party[0].gear[*slot].is_none())
             .unwrap();
         assert!(pointed_comparison(&game, Piece::Worn { horse: 0, slot: empty }, 0, Rows::All).is_empty());
-        assert!(pointed_comparison(&game, Piece::Carried, 0, Rows::All).is_empty());
+        assert!(pointed_comparison(&game, Piece::Carried(0), 0, Rows::All).is_empty());
     }
 
     fn gear_slot(game: &Game, piece: Piece) -> usize {
@@ -676,7 +675,7 @@ mod tests {
         let name = game.pending_drop().unwrap().name.clone();
         let carried = |horse: usize| Hand {
             horse,
-            open: Some(Piece::Carried),
+            open: Some(Piece::Carried(0)),
         };
         let first = game.party[0].name.clone();
         assert_eq!(consequence(&game, carried(0)), format!("Equip puts it on {first}."));
@@ -697,7 +696,7 @@ mod tests {
         );
 
         // A second drop onto the horse that wears the first: the card says
-        // the worn one is thrown away.
+        // the worn one goes to the cargo.
         let mut again = home();
         let slot = again.pending_drop().unwrap().slot.index();
         again.party[0].gear[slot] = Some(Gear {
@@ -706,8 +705,8 @@ mod tests {
             rarity: 0,
             stats: Stats::default(),
         });
-        assert!(consequence(&again, carried(0)).contains("Old Thing is thrown away"));
-        assert!(comparison(&again, Piece::Carried, carried(0), Rows::All).contains("Old Thing is thrown away"));
+        assert!(consequence(&again, carried(0)).contains("Old Thing goes to the cargo."));
+        assert!(comparison(&again, Piece::Carried(0), carried(0), Rows::All).contains("Old Thing goes to the cargo."));
     }
 
     /// Camp appraisal (#11): with no input the report says where the drop
@@ -728,7 +727,7 @@ mod tests {
             gear.name
         )));
         assert!(said.contains("An upgrade: +"), "{said}");
-        assert!(!said.contains("thrown away"), "{said}");
+        assert!(!said.contains("goes to the cargo"), "{said}");
         assert!(report_text(&game).contains(&said), "the report shows it by itself");
 
         // Every horse wears something in that slot, one of them worse.
@@ -750,7 +749,7 @@ mod tests {
         let said = appraisal(&over);
         let second = over.party[1].name.clone();
         assert!(said.contains(&format!("On {second}, in place of Old Thing:")), "{said}");
-        assert!(said.contains("Old Thing is thrown away"), "{said}");
+        assert!(said.contains("Old Thing goes to the cargo."), "{said}");
 
         // Set out with no input: it is on that horse, and the log says so.
         over.act(Action::SetOut, Hand::horse(0));
@@ -762,20 +761,22 @@ mod tests {
             expedition.log[1],
             format!("Equipped {} on {second}, in place of Old Thing:", gear.name)
         );
-        assert!(expedition.log.iter().any(|line| line.starts_with("Old Thing was thrown away")));
+        assert!(expedition.log.iter().any(|line| line.starts_with("Old Thing went to the cargo.")));
+        assert_eq!(over.pending_drop().map(|gear| gear.name.as_str()), Some("Old Thing"));
 
-        // No horse better off: left behind, and each horse's reason.
+        // No horse better off: it stays carried, and each horse's reason.
         let mut none = home();
         for horse in &mut none.party {
             horse.gear[slot] = Some(old("Fine Thing", 99));
         }
         let said = appraisal(&none);
-        assert!(said.contains("left behind on setting out"), "{said}");
+        assert!(said.contains("kept in the cargo on setting out"), "{said}");
         for horse in &none.party {
             assert!(said.contains(&format!("Worse for {}: -", horse.name)), "{said}");
         }
         none.act(Action::SetOut, Hand::horse(0));
         assert!(none.party.iter().all(|horse| horse.gear[slot].as_ref().unwrap().name == "Fine Thing"));
+        assert_eq!(none.pending_drop(), Some(&gear), "and it is still carried on the road");
 
         // By hand, onto a horse of the player's choosing: the note keeps
         // what it replaced after the piece is on.
@@ -784,7 +785,7 @@ mod tests {
         by_hand.act(Action::Equip, Hand::horse(2));
         let report = report_text(&by_hand);
         assert!(report.contains("in place of Old Thing:"), "{report}");
-        assert!(report.contains("Old Thing was thrown away"), "{report}");
+        assert!(report.contains("Old Thing went to the cargo."), "{report}");
         assert!(!report.contains("NEW GEAR"), "{report}");
         assert_eq!(appraisal(&by_hand), "");
     }
@@ -800,6 +801,6 @@ mod tests {
         assert!(comparison(&bare, slot, hand, Rows::All).contains("Gear comes from the trail"));
         let mut empty = home();
         empty.act(Action::Equip, hand);
-        assert_eq!(comparison(&empty, Piece::Carried, hand, Rows::All), NOTHING_CARRIED);
+        assert_eq!(comparison(&empty, Piece::Carried(0), hand, Rows::All), NOTHING_CARRIED);
     }
 }

@@ -92,7 +92,7 @@
         due: Card,
         shown: Town,
         target: Control("Equip"),
-        words: "You choose who wears it. Left alone, it goes where it helps most or is left behind.",
+        words: "You choose who wears it. Left alone, it goes where it helps most or stays carried.",
         done: Did(Equipped),
     ),
     // Only once a swap has been done: never before one is tried.

@@ -7,7 +7,8 @@ use serde::Deserialize;
 use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
 use crate::sim::lessons::{Event, Lessons};
-use crate::sim::loot::{Gear, Horse, best_wearer, swap_worn};
+use crate::sim::loot::{Gear, Horse, best_wearer, roll_gear, swap_worn};
+use crate::sim::rng::Rng;
 
 pub mod menu;
 pub mod scene;
@@ -107,12 +108,20 @@ pub struct GamePlugin {
     /// Start with Keep going on (`--keep-going`), so that a run nobody is
     /// at leaves town at a known time. A new game has it off.
     pub keep_going: bool,
+    /// Start with this many pieces carried (`--cargo N`), rolled from the
+    /// seed. A new game carries nothing.
+    pub cargo: usize,
 }
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         let mut game = Game::new(self.seed);
         game.keep_going = self.keep_going;
+        let mut rng = Rng::new(self.seed);
+        for _ in 0..self.cargo {
+            let gear = roll_gear(&game.data, &mut rng, false, 0);
+            game.cargo.insert(0, gear);
+        }
         app.insert_resource(game)
             .init_resource::<SceneView>()
             .init_resource::<Uncollected>()
@@ -178,8 +187,9 @@ pub struct Kept {
 /// Where a piece of gear is. One card shows it wherever that is (#228).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Piece {
-    /// In the cargo: the last trail's drop, until it is equipped.
-    Carried,
+    /// In the cargo, counted from the newest piece: 0 is the last one a
+    /// trail brought back or a horse took off (#352).
+    Carried(usize),
     /// On a horse, in a slot. The slot may be empty.
     Worn { horse: usize, slot: usize },
 }
@@ -205,7 +215,7 @@ struct Change {
     /// What was done, as Undo says it: "Ice for the next trail".
     what: String,
     party: Vec<Horse>,
-    drop: Option<Gear>,
+    cargo: Vec<Gear>,
     element: Element,
     /// Where the change took a piece from and to, when it moved one.
     moved: Option<(Piece, Piece)>,
@@ -227,6 +237,9 @@ pub enum Screen {
 pub struct Game {
     pub data: Data,
     pub party: Vec<Horse>,
+    /// Every piece carried and not worn, newest first. Nothing leaves it
+    /// but onto a horse (#352); capacity and a keep rule are #34 and #167.
+    cargo: Vec<Gear>,
     pub element: Element,
     pub level: u32,
     pub coins: i32,
@@ -267,6 +280,7 @@ impl Game {
         let data = Data::load();
         Game {
             party: data.horses.iter().map(Horse::new).collect(),
+            cargo: Vec::new(),
             element: Element::Fire,
             level: 0,
             coins: 0,
@@ -296,7 +310,7 @@ impl Game {
         Change {
             what,
             party: self.party.clone(),
-            drop: self.pending_drop().cloned(),
+            cargo: self.cargo.clone(),
             element: self.element,
             moved,
         }
@@ -309,9 +323,10 @@ impl Game {
             Some(Piece::Worn { horse, .. }) => {
                 format!("the swap between {} and {}", name(hand.horse), name(horse))
             }
-            _ => format!(
+            open => format!(
                 "{} on {}",
-                self.pending_drop().map_or("", |gear| gear.name.as_str()),
+                self.piece(open.unwrap_or(Piece::Carried(0)))
+                    .map_or("", |gear| gear.name.as_str()),
                 name(hand.horse),
             ),
         }
@@ -324,11 +339,9 @@ impl Game {
             return;
         };
         self.party = change.party;
+        self.cargo = change.cargo;
         self.element = change.element;
-        if let Screen::Camp { last, note, .. } = &mut self.screen {
-            if let Some(outcome) = last {
-                outcome.drop = change.drop;
-            }
+        if let Screen::Camp { note, .. } = &mut self.screen {
             *note = format!("Taken back: {}.", change.what);
         }
     }
@@ -340,22 +353,18 @@ impl Game {
         Some((to, from))
     }
 
-    /// Put the last run's drop on a horse. Any horse can wear any piece
-    /// (#250). Returns what happened.
-    fn equip_drop(&mut self, horse: usize) -> Option<String> {
+    /// Put a piece of the cargo on a horse. Any horse can wear any piece
+    /// (#250). What the horse wore there takes the piece's place in the
+    /// cargo, so nothing is lost (#352). Returns what happened.
+    fn equip_carried(&mut self, horse: usize, at: usize) -> Option<String> {
         // Said of the horse as it is before the piece goes on (#11).
-        let note = menu::card::equipped(self, self.party.get(horse)?, self.pending_drop()?);
-        let Screen::Camp {
-            last: Some(outcome),
-            ..
-        } = &mut self.screen
-        else {
-            return None;
+        let note = menu::card::equipped(self, self.party.get(horse)?, self.cargo.get(at)?);
+        let slot = self.cargo[at].slot.index();
+        let gear = match self.party[horse].gear[slot].take() {
+            Some(worn) => std::mem::replace(&mut self.cargo[at], worn),
+            None => self.cargo.remove(at),
         };
-        let horse = self.party.get_mut(horse)?;
-        let gear = outcome.drop.take()?;
-        let slot = gear.slot.index();
-        horse.gear[slot] = Some(gear);
+        self.party[horse].gear[slot] = Some(gear);
         Some(note)
     }
 
@@ -484,8 +493,8 @@ impl Game {
     /// horse that wears it. Pieces have no identity of their own yet, so a
     /// piece exactly like it counts as it.
     pub fn find(&self, gear: &Gear) -> Option<Piece> {
-        if self.pending_drop() == Some(gear) {
-            return Some(Piece::Carried);
+        if let Some(at) = self.cargo.iter().position(|carried| carried == gear) {
+            return Some(Piece::Carried(at));
         }
         let slot = gear.slot.index();
         self.party
@@ -570,9 +579,9 @@ impl Game {
             Action::Earlier | Action::Later => return Ok(()),
             _ => {}
         }
-        let Screen::Camp { last, .. } = &self.screen else {
+        if !self.in_town() {
             return Err("In town only.");
-        };
+        }
         match action {
             Action::Element(_)
             | Action::SetOut
@@ -603,10 +612,9 @@ impl Game {
                             Err("Neither horse wears anything there.")
                         }
                     }
-                    Some(Piece::Carried) | None => match last {
-                        Some(outcome) if outcome.drop.is_some() => Ok(()),
-                        _ => Err("Nothing to equip."),
-                    },
+                    Some(Piece::Carried(at)) if at < self.cargo.len() => Ok(()),
+                    None if !self.cargo.is_empty() => Ok(()),
+                    Some(Piece::Carried(_)) | None => Err("Nothing to equip."),
                 }
             }
         }
@@ -615,7 +623,7 @@ impl Game {
     /// The piece that is somewhere, if anything is there.
     pub fn piece(&self, piece: Piece) -> Option<&Gear> {
         match piece {
-            Piece::Carried => self.pending_drop(),
+            Piece::Carried(at) => self.cargo.get(at),
             Piece::Worn { horse, slot } => self.party.get(horse)?.gear.get(slot)?.as_ref(),
         }
     }
@@ -633,7 +641,7 @@ impl Game {
                 }
                 slot
             }
-            _ => self.pending_drop()?.slot.index(),
+            open => self.piece(open.unwrap_or(Piece::Carried(0)))?.slot.index(),
         };
         Some(Piece::Worn {
             horse: hand.horse,
@@ -656,12 +664,13 @@ impl Game {
                 self.element = element;
             }
             Action::Equip => {
-                let from = hand.open.unwrap_or(Piece::Carried);
+                let from = hand.open.unwrap_or(Piece::Carried(0));
                 let moved = self.equipped_at(hand).map(|to| (from, to));
                 let before = self.before(self.equip_label(hand), moved);
                 let done = match hand.open {
                     Some(Piece::Worn { .. }) => self.swap(hand),
-                    _ => self.equip_drop(hand.horse),
+                    Some(Piece::Carried(at)) => self.equip_carried(hand.horse, at),
+                    None => self.equip_carried(hand.horse, 0),
                 };
                 if let Some(text) = done {
                     self.lessons.raise(Event::Equipped);
@@ -705,15 +714,15 @@ impl Game {
             .find_map(|kept| self.find(kept.outcome.drop.as_ref()?))
     }
 
-    /// The last trail's drop, while it waits in town to be equipped.
+    /// The newest piece in the cargo: the last a trail brought back or a
+    /// horse took off. It is what a list with room for one piece shows.
     pub fn pending_drop(&self) -> Option<&Gear> {
-        match &self.screen {
-            Screen::Camp {
-                last: Some(outcome),
-                ..
-            } => outcome.drop.as_ref(),
-            _ => None,
-        }
+        self.cargo.first()
+    }
+
+    /// Every piece carried and not worn, newest first.
+    pub fn cargo(&self) -> &[Gear] {
+        &self.cargo
     }
 
     fn depart(&mut self) {
@@ -721,7 +730,7 @@ impl Game {
         // horse it does most for.
         let taken = self
             .drop_best_wearer()
-            .and_then(|horse| self.equip_drop(horse));
+            .and_then(|horse| self.equip_carried(horse, 0));
         self.accumulator = 0.0;
         // The visit is over: nothing done in it can be taken back now.
         self.changes.clear();
@@ -739,7 +748,10 @@ impl Game {
     fn return_to_camp(&mut self, outcome: Outcome) {
         self.arriving = None;
         self.coins += outcome.coins;
-        if outcome.drop.is_some() {
+        // What the trail brought back goes into the cargo, and stays there
+        // until the player puts it on a horse (#352).
+        if let Some(gear) = &outcome.drop {
+            self.cargo.insert(0, gear.clone());
             self.lessons.raise(Event::Gear);
         }
         if outcome.won {
@@ -922,8 +934,9 @@ pub fn report_text(game: &Game) -> String {
             out += &outcome_lines(outcome);
             // The appraisal, with no input (#11). The piece itself is under
             // this, as its card (#228).
-            if outcome.drop.is_some() {
-                out += &format!("\n{}\n", menu::card::appraisal(game));
+            let appraisal = menu::card::appraisal(game);
+            if !appraisal.is_empty() {
+                out += &format!("\n{appraisal}\n");
             }
             if !note.is_empty() {
                 out += &format!("\n{note}\n");
@@ -1120,12 +1133,12 @@ mod tests {
             let mut game = home();
             assert_eq!(game.can(Action::Equip, Hand::default()), Ok(()));
             let gear = game.pending_drop().unwrap();
-            assert_eq!(game.piece(Piece::Carried), Some(gear));
+            assert_eq!(game.piece(Piece::Carried(0)), Some(gear));
             let (slot, name) = (gear.slot.index(), gear.name.clone());
             // With the carried piece's card open or with none: the same.
             let hand = Hand {
                 horse: selected,
-                open: (selected > 0).then_some(Piece::Carried),
+                open: (selected > 0).then_some(Piece::Carried(0)),
             };
             let at = Piece::Worn { horse: selected, slot };
             assert_eq!(game.equipped_at(hand), Some(at));
@@ -1253,7 +1266,7 @@ mod tests {
         for step in (0..3).rev() {
             assert_eq!(game.can(Action::Undo, Hand::default()), Ok(()));
             if step == 0 {
-                assert_eq!(game.undone_move(), Some((first, Piece::Carried)));
+                assert_eq!(game.undone_move(), Some((first, Piece::Carried(0))));
             }
             game.act(Action::Undo, Hand::default());
             assert_eq!(seen(&game), states[step], "step {step}");
@@ -1299,6 +1312,62 @@ mod tests {
         game.act(Action::Undo, Hand::default());
         assert_eq!(game.party[wearer].gear[slot], under);
         assert_eq!(game.pending_drop(), Some(&over));
+    }
+
+    /// The cargo keeps every piece (#352). What a trail brings back is
+    /// carried, newest first, until it is put on a horse; setting out loses
+    /// nothing; a piece taken off for another takes that one's place in the
+    /// cargo; and any carried piece can be put on, not only the newest.
+    #[test]
+    fn the_cargo_keeps_every_piece() {
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let held = |game: &Game| {
+            let worn = game.party.iter().flat_map(|horse| &horse.gear).flatten().count();
+            game.cargo().len() + worn
+        };
+        let mut brought = 1;
+        assert_eq!(held(&game), brought);
+        while game.cargo().len() < 2 {
+            assert!(game.trails < 200, "the cargo never came to hold two pieces");
+            game.act(Action::SetOut, Hand::horse(0));
+            assert_eq!(held(&game), brought, "setting out lost a piece");
+            walk_home(&mut game);
+            if let Some(gear) = game.last_report().unwrap().outcome.drop.clone() {
+                brought += 1;
+                assert_eq!(game.pending_drop(), Some(&gear), "the newest is first");
+            }
+            assert_eq!(held(&game), brought);
+        }
+
+        // The oldest carried piece, onto the last horse.
+        let carried = game.cargo().len();
+        let at = carried - 1;
+        let piece = game.cargo()[at].clone();
+        let slot = piece.slot.index();
+        let worn = game.party[2].gear[slot].clone();
+        let hand = Hand { horse: 2, open: Some(Piece::Carried(at)) };
+        assert_eq!(game.piece(Piece::Carried(at)), Some(&piece));
+        assert_eq!(game.can(Action::Equip, hand), Ok(()));
+        assert_eq!(game.equipped_at(hand), Some(Piece::Worn { horse: 2, slot }));
+        game.act(Action::Equip, hand);
+        assert_eq!(game.party[2].gear[slot], Some(piece.clone()));
+        match &worn {
+            Some(worn) => assert_eq!(game.cargo().get(at), Some(worn), "it takes the piece's place"),
+            None => assert_eq!(game.cargo().len(), carried - 1),
+        }
+        assert_eq!(held(&game), brought);
+
+        game.act(Action::Undo, Hand::default());
+        assert_eq!(game.party[2].gear[slot], worn);
+        assert_eq!(game.cargo().len(), carried);
+        assert_eq!(game.cargo()[at], piece);
+
+        let past = Hand { horse: 0, open: Some(Piece::Carried(carried)) };
+        assert_eq!(game.can(Action::Equip, past), Err("Nothing to equip."));
+        assert_eq!(game.piece(Piece::Carried(carried)), None);
     }
 
     /// Walk the trail the party is on to its end and bring it home.
@@ -1475,7 +1544,7 @@ mod tests {
         let slot = gear.slot.index();
         // The latest report's piece is the one in the cargo, and is still
         // the report's piece once it is worn.
-        assert_eq!(game.reported_piece(), Some(Piece::Carried));
+        assert_eq!(game.reported_piece(), Some(Piece::Carried(0)));
         game.act(Action::Equip, Hand::horse(1));
         let worn = Piece::Worn { horse: 1, slot };
         assert_eq!(game.reported_piece(), Some(worn));

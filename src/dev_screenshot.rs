@@ -39,7 +39,8 @@ use crate::game::menu::shell::{
     SlotRow, TabButton,
 };
 use crate::game::menu::parts::SkipHints;
-use crate::game::{Action, Game, Hand};
+use crate::game::{Action, Game, Hand, Piece};
+use crate::sim::loot::Gear;
 use crate::sim::data::Element;
 
 #[derive(Resource)]
@@ -222,8 +223,8 @@ struct Tour {
     presses: u32,
     /// A press of the job found nothing in sight to press.
     missed: bool,
-    /// Whether a piece was in the cargo when the job began.
-    carrying: bool,
+    /// The newest piece in the cargo when the job began.
+    carrying: Option<Gear>,
     walked: Vec<Walked>,
 }
 
@@ -241,7 +242,7 @@ impl Tour {
             job: None,
             presses: 0,
             missed: false,
-            carrying: false,
+            carrying: None,
             walked: Vec::new(),
         }
     }
@@ -784,7 +785,8 @@ fn tour(
         Step::Carried(p) => carried
             .iter()
             .filter(|(_, b)| b.place == *p)
-            .min_by_key(|(e, b)| (!seen(*e), b.tab.is_some()))
+            // The newest, where the Inventory shows every carried piece.
+            .min_by_key(|(e, b)| (!seen(*e), b.tab.is_some(), b.at))
             .map(|(e, _)| e),
         Step::Reported => reported.iter().map(|(e, _)| e).min_by_key(|e| !seen(*e)),
         Step::SkipHints => skips.iter().min_by_key(|e| !seen(*e)),
@@ -813,7 +815,7 @@ fn tour(
             tour.job = Some((*name, *by));
             tour.presses = 0;
             tour.missed = false;
-            tour.carrying = game.pending_drop().is_some();
+            tour.carrying = game.pending_drop().cloned();
         }
         Step::Done(check) => {
             if let Some((name, by)) = tour.job.take() {
@@ -822,7 +824,8 @@ fn tour(
                         Check::Element(element) => game.element == element,
                         Check::OnTheRoad => !game.in_town(),
                         Check::Equipped => {
-                            tour.carrying && game.in_town() && game.pending_drop().is_none()
+                            let worn = tour.carrying.as_ref().and_then(|gear| game.find(gear));
+                            game.in_town() && matches!(worn, Some(Piece::Worn { .. }))
                         }
                         Check::Reading(place, tab) => {
                             shell.is_open()
