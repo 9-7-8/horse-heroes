@@ -1,0 +1,65 @@
+SESSION 2026-10-12 08:59 - The hint: one menu part for a lesson (#291)
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
+    #246 waits only on the owner; src/sim/ unchanged since its sweep). The
+    pick was #291, which PICK UP named.
+  - #291, built in eb33ddc and closed by it. A lesson's one line: the
+    control it is about, by name and key, one line of words, Got it and
+    Skip all hints. It has a line of its own under the status strip that
+    keeps its height, so nothing moves when a hint comes or goes; on the
+    road with every place closed that is the one line there is. The
+    control it is about carries a square stood on a corner. Escape puts
+    it away; one put away does not come back by itself; Skip all stops
+    every later one.
+    Tested (170 pass, no warning): put away and skipped hints stay away;
+    a hint names its control and key for every place, tab, horse and
+    control of the map; the mark stands off every fill without colour;
+    the line fits under the road's scene at the smallest window.
+    Seen running, read by the session (docs/gallery/2026-10-12-the-hint),
+    at --seed 6 in the smallest window, 1120x640: the tour shows a hint
+    in town, puts it away with Escape, shows one about a control, and on
+    the road shows one and presses Skip all. The town picture before the
+    hint and the one after Escape differ only in the scene; with a hint,
+    only the line and the mark differ. The final kill's fountain at 65.9
+    with --hint is whole and above the menus. --parts has the hint in its
+    states. Tab still makes 28 stops, none out of sight.
+  - docs/menu-parts.md, menu-shell.md and procedures/build-and-run.txt
+    brought up to date.
+
+DECIDED (by the session, for her; said on #291 for her to overrule)
+  - The hint has a line of its own, under the status strip, empty most
+    of the time. It is 22 high, which is what is left under the road's
+    scene at the smallest window. The space above a place's tabs and page
+    (12) was taken back for it, so a place's page has 10 less than it had.
+  - The mark is a square on a corner, in the attention mark's blue.
+  - Escape takes the hint before a side panel or a place.
+  - Skip all hints has no key of its own: Tab or the arrows, and Enter.
+  - The words "Got it" and "Skip all hints".
+
+FOUND
+  - One chain of systems takes twenty; the shell's is full. A new system
+    goes into one of its inner groups.
+  - On a row (a horse in the strip) the mark's corner is a pixel from the
+    first letter of the name. It reads, and it is close.
+  - The parts screen is taller than the default window: the comparison's
+    panel at its foot was cut before and is cut 28 lower now.
+
+NOT DONE
+  - Nothing raises a hint in play: the lessons and their queue are #290.
+    Only --hint and F6 show one, and it is a sample.
+  - A hand on a mouse has not pressed Got it or Skip all hints. The tour
+    presses with the event a click sends.
+  - Once skipped, hints come back only by F6: turning them on again is
+    #300.
+  - screenshots/h291 and tour291 are left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so read #305 (no town leaves
+  by itself; the Keep going switch), the lowest 0.2.2 menus issue that
+  does not stand on the lessons, and build it. If it cannot be built
+  now, build #290 (lessons as data), which #296, #300 and #303 wait on
+  and which gives the hint something to say.

@@ -26,6 +26,8 @@ Each is a function that takes the tokens and returns a bundle to spawn.
   `trail_mark` (one fight in the footer's trail tracker: behind, here or
   ahead, and whether it is the boss),
   `confirmation` on a `scrim` (the one modal).
+- `hint`, a lesson's one line, with `small_button` for its two controls
+  (see "The hint").
 - Text: `text`, `dim`, `title`.
 - The stand-in picture of a piece of gear is not in `parts.rs` but in
   `picture.rs` (item-card.md, "The picture"). The parts screen shows every
@@ -44,6 +46,33 @@ attention mark, a round dot in the tab's top corner (`size.attention`,
 `colour.attention`), edged in the screen's colour. It is round where the
 selected mark is a bar, and out of the layout. A test holds its colour
 apart from every fill a tab can have with the colour taken away.
+
+## The hint
+
+A lesson's one line (#291; `docs/philosophy/onboarding.md`, principles 9,
+10 and 16): `hint(tokens, about, key, words)`.
+
+    <> Equip [E]  Put the open piece on the selected horse.   [Got it [Esc]] [Skip all hints]
+
+- **It names its control and prints its key**, as the control does, then
+  says one line. It is one line high (`size.hint_height`, 22) whatever it
+  says: a line too long for its room is cut, and the two controls keep
+  their places at its far end.
+- **Its controls** are `small_button`s (`size.hint_control`, 20 high, small
+  text): a button with every state a button has, for a line with less than
+  a control's height. They carry `DismissHint` and `SkipHints`.
+- **The mark.** Any interactive part that carries `Pointed` shows a square
+  stood on a corner in its top left corner (`size.pointer`, 6), and the
+  hint's line begins with the same mark. It is out of the layout, so it
+  moves nothing. It has the attention mark's colour (`colour.attention`)
+  and is told from it, and from the selected mark, by shape: a square on a
+  corner, a round dot, a bar. A test holds that colour apart from every
+  fill a part can have with the colour taken away.
+- Where the line is, what raises a hint and what puts it away are the
+  shell's: [menu-shell.md](menu-shell.md), "The hint's line".
+
+Chosen without the owner: the square on a corner, that it shares the
+attention mark's blue, and the words "Got it" and "Skip all hints".
 
 ## How a state looks
 
@@ -77,6 +106,11 @@ live set to hover, press and tab through, including a real confirmation.
 
 To tune: change a value in `menu.ron`, run again, look at this screen. The
 tokens are compiled in, so a change needs a rebuild but no code change.
+
+Under the side panel is the hint: with a key, without one and with a line
+too long for its room; its controls in each state; and its mark on a
+button, a tab that also has the attention mark, a row, a selected tab and
+a pressed button.
 
 ## Not here yet
 

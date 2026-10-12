@@ -26,6 +26,7 @@ that is open. The guidance behind it is
     +--------------------------------------------------+
     | Horses Inventory Trade Map Town Journal Settings |  bar
     | coins  bags  hold    A  B  C                 day |  status strip
+    | the hint's line                                  |
     +--------------------------------------------------+
     | tabs of the open place                           |
     | the open tab            | [cargo or side panel]  |
@@ -92,7 +93,8 @@ is wanted over `time.layout` seconds and sets the shell's top edge; `frame`
 in the scene sets the camera. Both read the same eased value, so the scene
 and the menus move as one and there is no cut. The place's area is clipped:
 a place is covered and uncovered as the scene moves, not squeezed. With every
-place closed the area holds one line saying how to open one.
+place closed the hint's line, which is all that is left between the strip
+and the footer, says how to open one.
 
 The window cannot be made smaller than `layout.min_width` x
 `layout.min_height` (1120 x 640): the width the status strip needs, and the
@@ -100,6 +102,51 @@ height at which the bar, the strip, that one line and the footer fit under
 the road's scene. In a window too narrow for its height the scene shows more
 height, so that `SCENE_WIDTH` world units, the party and its enemies, stay
 in view.
+
+## The hint's line
+
+One line under the status strip, `size.hint_height` (22) high, there in
+both layouts whether or not it holds anything (#291;
+`docs/philosophy/onboarding.md`, principles 9, 10 and 16). It is where a
+lesson's `hint` shows ([menu-parts.md](menu-parts.md), "The hint"). Because
+the line keeps its height, a hint coming or going moves no other control.
+In town, and under an open place, it is empty without a hint; the space
+that was above a place's tabs and page was taken back for it, so the Gear
+tab still shows its three rows and its first row of controls at the
+smallest window. On the road with every place closed it is the one line
+there is: it says how to open a place, and a hint takes that sentence's
+place while it shows. It is in the menus, never over the scene, so the
+fountain of a kill is clear of it. A test in `tokens.rs` holds that the
+bar, the strip, the line and the footer fit under the road's scene at the
+smallest window.
+
+- **What a hint is** (`Hint` in the shell): the lesson it belongs to, the
+  control it is about (`About`: a place, a tab, a horse, or a control of
+  `places.ron`), and its words. The line names the control and prints its
+  key from the map (`about_name`), and `point_out` puts the mark
+  (`Pointed`) on that control wherever it is drawn.
+- **One at a time.** `Shell::raise_hint` refuses a second while one shows;
+  the lesson asks again.
+- **It stays until it is done or put away**, never for a number of
+  seconds. `Shell::finish_hint` is for the lesson to call when the thing
+  was done.
+- **Got it, or Escape, puts it away** (`Shell::dismiss_hint`), and that
+  lesson's hint is not shown again by itself. Escape takes the hint first,
+  as the innermost level, before a side panel or a place.
+- **Skip all hints** puts it away and every later one (`Shell::skip_hints`).
+  Turning them back on, and finding a lesson again in the Journal, is #300.
+- Both controls are reached with Tab and the arrows and pressed with
+  Enter, as every control is. A hint never makes a control unavailable and
+  never holds the party up.
+- **Nothing raises one yet.** The lessons and their queue are #290. Until
+  then: `--hint` starts with a sample hint showing, and F6 shows a sample
+  and takes it away, each time about the next kind of control (the
+  Journal, Set out, the first horse, the first tab), whatever was put away
+  or skipped before.
+
+Chosen without the owner: a line of its own that is empty most of the
+time, and not a line over the scene or in the footer; that Escape takes
+the hint before anything else; and that Skip all has no key of its own.
 
 ## What stays put
 
@@ -551,7 +598,8 @@ so every place numbers its tabs from 1, and no tab may take a key of the
 other kind. A place's key is a press on the bar: on the road it opens the
 place, or closes the one that is showing.
 
-Escape closes the side panel; on the road, with no side panel open, it
+Escape puts a hint away if one is showing (see "The hint's line").
+Otherwise it closes the side panel; on the road, with no side panel open, it
 closes the place. In town it does nothing else: it never sets out, never
 closes the game and never undoes anything.
 
@@ -721,6 +769,8 @@ take a delivery (#172).
 
     $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
 
+shows a sample hint about a place, puts it away with Escape, shows one
+about a control (and on the road one more, put away with Skip all hints),
 presses through every place and tab and Settings, presses a control that
 is not built on two of them, chooses an element, saves a numbered PNG of
 each into the folder (which must exist), sends the party off, photographs
@@ -739,7 +789,7 @@ party does not leave by itself during the tour.
 The tour finds the controls it presses by name (Compare, Shake, Ice, Fire,
 Equip), so one of those renamed in `places.ron` is renamed in
 `plan_tour` too, or its press is skipped. At its first picture the tour also goes round every stop Tab makes and logs
-the count ("tour: Tab makes 36 stops, 0 of them out of sight"); a stop out of
+the count ("tour: Tab makes 28 stops, 0 of them out of sight"); a stop out of
 sight is #244 come back. The
 presses are the `Activate` event a click sends, so the tour goes through the
 same code as the pointer, but it is not the pointer: real clicks

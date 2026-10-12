@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-12, the hint](2026-10-12-the-hint/README.md) (#291)
 - [2026-10-12, Gear shows only the selected horse's gear](2026-10-12-one-horses-gear/README.md) (#314)
 - [2026-10-12, a Changed only switch on the comparison](2026-10-12-changed-only/README.md) (#349)
 - [2026-10-12, gain and loss in a comparison](2026-10-12-gain-and-loss/README.md) (#313)
