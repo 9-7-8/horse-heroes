@@ -950,9 +950,25 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
         say(format!("  hour {:<2}      {trails:>4.0} {won:>4.0} {level:>6.0} {coins:>6.0}", hour + 1));
     }
     by_level.sort();
-    let levels: Vec<String> = by_level
+    // In at most a dozen bands of levels, so a long climb is still a line.
+    let top = by_level.last().map_or(0, |(level, _, _)| *level);
+    let band = top / 12 + 1;
+    let mut bands: Vec<(u32, u32, u32)> = Vec::new();
+    for (level, won, walked) in &by_level {
+        match bands.last_mut() {
+            Some((from, won_there, walked_there)) if level / band == *from / band => {
+                *won_there += won;
+                *walked_there += walked;
+            }
+            _ => bands.push((level / band * band, *won, *walked)),
+        }
+    }
+    let levels: Vec<String> = bands
         .iter()
-        .map(|(level, won, walked)| format!("{level}: {won}/{walked}"))
+        .map(|(from, won, walked)| match band {
+            1 => format!("{from}: {won}/{walked}"),
+            _ => format!("{from}-{}: {won}/{walked}", (from + band - 1).min(top)),
+        })
         .collect();
     say(format!("\nWON OF WALKED, BY TRAIL LEVEL\n  {}", levels.join("   ")));
     say("\nDAMAGE".into());
