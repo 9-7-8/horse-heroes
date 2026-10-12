@@ -1,0 +1,51 @@
+SESSION 2026-10-11 20:18 - answers: the first trail is authored
+================================================================
+
+ASKED
+  /answers, with no steer: one open question, recorded, then the session
+  ends.
+
+DONE
+  - Picked #289 (Decide: the opening), the decision issue of the earliest
+    release, 0.2.2. Questions 1 and 4 were answered in its comments;
+    question 2 was the first one left.
+  - Asked: "is the first trail of a new game authored?" Three options,
+    each checked against Plan::generate and assets/data/encounters.ron:
+    authored, rolled from a gentle pool, rolled like any other.
+  - Her answer in vision.md (Tutorials, and the Open section). Committed
+    as c2dcab9.
+  - #289: a comment with the question, the answer and the commit. Left
+    open; questions 3 and 5 remain.
+  - #294 (the tutorial trail): "proposed" removed, a dated Confirmed line
+    added to the body.
+  - #293 (design the tutorial trail): a comment on how to read it now.
+  - No code or data changed. cargo check and cargo test: green, 159 pass.
+    Nothing was run or looked at; nothing visible changed.
+
+DECIDED
+  Hers: the first trail of a new game is authored. One fixed plan kept as
+  data, the same fights, enemy elements and first drop for every new
+  game, under the ordinary combat rules; the generator from the second
+  trail on.
+  Made for her, and recorded as such:
+  - #294 lost its "proposed" label although one line of it, "The party
+    cannot lose it", is question 3 and not answered. The Confirmed line
+    says that line is not confirmed and nothing is to be built on it.
+  - No new issue was filed: #294 already covers the code and #293 the
+    design.
+
+FOUND
+  - #289 carries a long research comment recommending an answer to
+    questions 2 and 3 together. It is advice, not her decision; only
+    question 2 was put to her.
+  - cargo was not on the PATH again; called by its full path.
+
+NOT DONE
+  - #289 questions 3 (can the tutorial trail be lost) and 5 (lessons on
+    every launch until saving exists) are unanswered.
+  - Nothing built.
+
+PICK UP
+  Run next-thing: read #312 (the comparison table wherever a card is
+  pinned) and build it. The next /answers question is #289 question 3,
+  which #294 waits on.
