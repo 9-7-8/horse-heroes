@@ -1,0 +1,75 @@
+SESSION 2026-10-12 09:18 - No town leaves by itself; Keep going (#305)
+
+ASKED
+  "/next then how much more till the next release"
+
+DONE
+  - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
+    #246 waits only on the owner; src/sim/ unchanged since its sweep). The
+    pick was #305, which PICK UP named.
+  - #305, built in 865d1aa and closed by it. The town countdown no longer
+    runs by itself: the party stands at the gate until Set out, in every
+    town, and the footer says "Level 0 trail. Waiting for Set out." Keep
+    going is the first control of the Map, key G, off in a new game; on,
+    it is marked as chosen, the footer counts ("Keep going: leaving in
+    9s.") and the party leaves after the usual 12 s, until it is turned
+    off or a trail is lost. A line that stays under the Map's controls
+    says it stands in for the itinerary.
+    Tested (171 pass, no warning): off, an hour in town and the party is
+    still there; on, it leaves after the usual time and not before; a
+    lost trail turns it off and a won one does not; it is pressed in town
+    only; it is nothing to undo; it has its one control.
+    Seen running, read by the session (docs/gallery/2026-10-12-keep-going),
+    at --seed 6 in the smallest window: a new game at 40 s is still in
+    town; --keep-going at 5 s counts down and at 17 s is in the first
+    fight, as before; the tour turns it on by G, shows it on the Map and
+    turns it off by a press, then runs to its end as it did (91 pictures;
+    Tab still makes 28 stops, none out of sight).
+  - docs/menu-shell.md ("Leaving town"), expedition.md, loot-shower.md,
+    mechanics-for-tutorial.md, philosophy/onboarding.md, README.md,
+    procedures/build-and-run.txt and overnight-soak.txt brought up to date.
+  - How much more till 0.2.2, counted for the owner: 18 issues open in the
+    milestone after this one. Three are built and wait only on her
+    looking (#308, #311, #314), one is her play test (#301), one is the
+    epic (#288), and #289 has two questions of hers left (can the
+    tutorial trail be lost; lessons on every launch until saving). That
+    leaves 12 to build: #290 lessons as data, then #292, #293 (a design
+    for her approval), #294, #295, #296, #297, #298, #299, #300, #303,
+    and #249 floating damage numbers. The eight left open in 0.2.1 are
+    built and wait on her or on later systems.
+
+DECIDED (by the session, for her; said on #305 for her to overrule)
+  - Keep going is on the Map, not in the footer. The footer has no room
+    for a third control at the smallest window, and the Map is where the
+    itinerary it stands in for will be. Its key works from any place and
+    the footer says when it is on.
+  - Its key is G. It is pressed in town only.
+  - The footer no longer says "Ready:"; it made the line too long with
+    Keep going on.
+  - Turning Keep going on is not a step for Undo.
+  - The soak turns Keep going back on after a lost trail, so that a soak
+    still plays all night.
+
+FOUND
+  - From seed 6, with every upgrade taken at the gate, 300 trails running
+    are all won. Other seeds lose. Not looked into: it may be nothing
+    more than a lucky seed, or the party may outrun the trail's level.
+  - The Map says "This page is not built yet." above a control that
+    works.
+  - A long here-document in the Bash tool failed again on apostrophes
+    (build-and-run.txt, NOTES); the Write tool and a script under target/.
+
+NOT DONE
+  - A soak has not been run since the change: the soak's own tests pass,
+    and its press of Keep going has not been seen in a real run.
+  - A hand on a mouse or a keyboard has not pressed Keep going. The tour
+    presses with the events a click and a key send.
+  - IDLE_WALK was not walked again: no job of the budget touches Keep
+    going and Set out is where it was.
+  - No lesson for Keep going: rule 5 starts once 0.2.2 has shipped.
+  - screenshots/h305 and tour305 are left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so build #290 (lessons as
+  data), which #296, #300 and #303, the open menus issues of 0.2.2, wait
+  on, and which gives the hint something to say.

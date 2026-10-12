@@ -158,9 +158,36 @@ the hint before anything else; and that Skip all has no key of its own.
   positions until the systems behind them exist. A horse in the strip is a
   control: pressing it selects that horse and opens its view (see "A
   horse's view"). This is the one list of horses (#311).
-- **The footer.** First the trail tracker, then, in town: what the party
-  is ready for, the countdown, and the footer's controls from the map, Set
-  out last. On the road: where the party is, and Set out unavailable.
+- **The footer.** First the trail tracker, then, in town: the next trail's
+  level, what the party is waiting for, and the footer's controls from the
+  map, Set out last. On the road: where the party is, and Set out
+  unavailable.
+
+## Leaving town
+
+No town leaves by itself (#305; `docs/philosophy/vision.md`, "Leaving
+town"). The party stands at the gate until Set out is pressed (Space), in
+every town, and the footer says "Level 0 trail. Waiting for Set out." with
+no countdown. Every place, tab and control can be tried meanwhile.
+
+**Keep going** stands in for the itinerary (#201) until that is built. It
+is the first control of the Map, where the itinerary will be, and its key,
+G, works from anywhere in town. It is off in a new game. On, it is marked
+as chosen, the party leaves after the usual time (`CAMP_SECS`, 12 s,
+counted from arriving or from the press that turns it on), and the footer
+says "Level 0 trail. Keep going: leaving in 9s." A lost trail turns it
+off, so the party waits in town after a failed journey; a press turns it
+off too. It is not a step for Undo: a second press takes it back. Under
+the Map's controls a line that is always there says what it stands in for
+(`note` in `places.ron`, which any control may have).
+
+It is `Action::KeepGoing`, `Game::keep_going` and `Game::wait_in_town`, and
+nothing else may come to depend on it: when the itinerary ships, those and
+its line of `places.ron` go.
+
+Dev aids: `--keep-going` starts with it on, so that a picture run leaves
+town at 12 s as it always did; the soak keeps it on, turning it on again
+after a lost trail.
 
 ## The trail tracker
 
@@ -278,7 +305,8 @@ A control in the file is:
 | `does` | What it does, or will do, in one sentence |
 | `issue` | The issue that will make it work |
 | `proposed` | That issue is a proposal the owner has not decided |
-| `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut`, `Undo`, `Earlier`, `Later` |
+| `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut`, `KeepGoing`, `Undo`, `Earlier`, `Later` |
+| `note` | A line that stays under its group of controls, whether or not it can be used |
 | `shows` | What a press opens in the side panel of its page: `Keys` |
 | `switch` | What a press turns on and off, of what is shown and not of the game: `ChangedOnly` |
 | `key` | The key that works it, printed on it: a letter, a digit, `[`, `]` or `Space` |
@@ -661,7 +689,7 @@ asks for confirmation.
 - **What changes nothing is not a step:** choosing the element the party
   already has, and an Equip that is refused.
 - **It never reaches back past a departure.** `Game::depart` empties the
-  list, whether the player set out or the countdown did. With nothing to
+  list, whether the player set out or Keep going did. With nothing to
   take back, Undo is unavailable and says "Undo: nothing changed this
   visit."; on the road, "in town only".
 - **The card goes with the piece.** A change that moved a piece remembers
@@ -680,8 +708,9 @@ line.
 ## The Journal's reports
 
 No report holds the party up, and none is lost by not being read (#231,
-`docs/philosophy/menus.md`, No menu ever holds the game up). The countdown
-sends the party off whether the report was looked at or not, and
+`docs/philosophy/menus.md`, No menu ever holds the game up). Setting
+out, by the player or by Keep going, does not wait for the report to be
+looked at, and
 `Game::return_to_camp` keeps the report of every trail (`Kept`: the trail's
 number, its level, and how it ended, with its drop as it was). The newest
 `reports_kept` of them are kept (`rules.ron`, 20).

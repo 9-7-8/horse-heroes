@@ -109,9 +109,9 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
 `assets/data/rules.ron`).
 
 - **The first trail needs no decision, and already takes none.** A new game
-  begins in town with Fire chosen and a 12-second countdown (`CAMP_SECS`),
-  then leaves by itself. So the party starts by itself today, after a wait
-  in a town where nothing has happened yet. There is no title screen and no
+  begins in town with Fire chosen and waits there for Set out (#305; it
+  left by itself after 12 seconds until then). So the party does not start
+  by itself today: a new game that starts on the road is #292. There is no title screen and no
   "begin" button, and none should be added that must be pressed.
 - **The first trail is not forgiving.** The win rate at trail level 0 with
   no gear is 68%, and 44% with the worst element for the trail

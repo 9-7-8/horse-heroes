@@ -267,8 +267,8 @@ still runs off the top of it there; the hold does not close the place.
 the gear named in `burst_gear` (three Normal, two Magic, and one each of
 Rare, Legendary and Set) as the fountain `burst_fountain` (the full one),
 from `burst_seed`, from where the first enemy stands. `--burst-at SECONDS`
-moves it: the party sets out at 12 s, so `--burst --burst-at 14` throws it
-in the road view. It is the same burst every
+moves it: with `--keep-going` the party sets out at 12 s, so `--keep-going --burst
+--burst-at 14` throws it in the road view. It is the same burst every
 time, it stays where it lands, and pressing F3 again replaces it. `F4`, or
 `--pickup`, throws the same burst and lets the party collect it; its pieces
 are worth no coins. When its

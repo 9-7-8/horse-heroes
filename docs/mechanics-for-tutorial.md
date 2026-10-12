@@ -47,8 +47,8 @@ This is what a tutorial could be tested against now.
 
 | Mechanic | The player decides | By itself |
 | --- | --- | --- |
-| **The loop** | Nothing required | Town, trail, walk back to town, repeat. Town leaves after 12 s |
-| **Setting out** | Space, or the Set out button, to leave early | Leaves by itself |
+| **The loop** | Nothing required | Town, trail, walk back to town. No town leaves by itself (#305); with Keep going on (G, on the Map) it leaves after 12 s, until a trail is lost |
+| **Setting out** | Space, or the Set out button; Keep going, to have it leave by itself | Waits in town |
 | **The party** | Nothing: Juniper, Morrow, Sable are fixed | One ability each, fired on a cooldown: Focused Shot (big single hit), Elemental Burst (hits all), Ward (halves damage) |
 | **A trail** | Nothing | 3 encounters, then a boss. A quarter of trails have a fairy spring that heals |
 | **Trail tracker** | Nothing | Footer marks: solid behind, ring for the current fight, outline ahead, a larger diamond for the boss |

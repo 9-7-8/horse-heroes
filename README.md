@@ -60,7 +60,8 @@ on the control it works. The last trail's report is in Journal, Report.
 | `Z` `X` `C` | Select the first, second or third horse |
 | `F` `I` `P` | In town: attune the party to Fire, Ice or Plant |
 | `E` | In town: equip the gear that just dropped |
-| `Space` | In town: set out now, without waiting for the countdown |
+| `Space` | In town: set out. The party waits in town until you do |
+| `G` | In town: Keep going, on or off. On, the party leaves town by itself until a trail is lost |
 | `Esc` | Close the side panel; on the road, close the open place |
 | `Tab` `Enter` | Move to any control and press it |
 

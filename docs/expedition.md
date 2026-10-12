@@ -10,8 +10,10 @@ element, equips early, or skips the wait.
     cargo test                 # the sim, including a balance check
 
 Keys, in camp only: `1` Fire, `2` Ice, `3` Plant, `E` equip the drop,
-`Space` set out now. Camp leaves by itself after 12 s and equips the drop
-first if it is an upgrade.
+`Space` set out. No town leaves by itself (#305): the party waits for
+Space unless Keep going (`G`, on the Map) is on, and then it leaves after
+12 s. Either way it equips the drop first if it is an upgrade. A lost
+trail turns Keep going off.
 
 A trail that is over, won or lost, ends with a walk back to town
 (`Game::secs_to_town`, as long as `travel_secs`): the party is in town only
