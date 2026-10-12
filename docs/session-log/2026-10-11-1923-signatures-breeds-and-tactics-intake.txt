@@ -1,0 +1,80 @@
+SESSION 2026-10-11 19:23 - intake: signatures, breed mathematics, tactics
+========================================================================
+
+ASKED
+  "intake these two and create new issues/stories/epics and attach them
+  to releases": her working design on procedural abilities and breed
+  mathematics, and a note on tactics. Then "end session".
+
+DONE
+  - Both files read whole; neither is cut off. Kept unedited in
+    docs/source/ (procedural-abilities-and-breed-mathematics.md,
+    tactics.md), with their rows in its README.
+  - 34 issues filed, #315 to #347, each with its milestone and label:
+      signatures, new epic #315: #316 to #323 in 0.8.0; #324, #325 in
+        0.9.0; #326 in 0.10.0; #336 in 0.12.0;
+      breeds, under the existing epic #266: #327 to #335 in 0.10.0;
+      tactics, new epic #337 under #20: #338 to #347 in 0.8.0, all
+        labelled proposed.
+    Sub-issue links checked by listing each epic's children.
+  - Rewritten with a dated Revised line: #22 (now the tactics evaluator,
+    moved under #337), #103 (two signatures in place of the one trait),
+    #122 (a descendant inherits signatures and build), #267 (three
+    questions ticked, five open).
+  - A dated comment on 19 issues the material touches: #165, #63, #268,
+    #270, #277, #258, #261, #283, #59, #51, #31, #166, #24, #25, #138,
+    #266, #20, #111, #171.
+  - Philosophy: new signatures.md and tactics.md; vision.md has a new
+    section "Signatures, breeds and gaits" and notes on the lines it
+    replaces; horse-shape.md, horse-movement.md, generations.md, pets.md,
+    build-laboratory.md, inspirations.md, procedural-generation.md and
+    the README table updated. Committed as b2f05dd.
+  - No code or data changed. cargo check and cargo test run anyway:
+    green, 159 pass. Nothing was run or looked at; nothing visible changed.
+
+DECIDED
+  Hers, from the document, now in vision.md: two generated signatures on
+  every horse (combat, and town meaning everything else); town signatures
+  active for every horse present, and stacking; a pool of parts per
+  breed; a foal's signatures inherited part by part with a 1% mutation;
+  crossbreeds by body genetics, not blending; gaits change travel speed
+  and boost pets; the party travels at the average speed.
+  Made for her, and recorded as such:
+  - Which release each issue went to. Her document left it open.
+  - That the two signatures replace the "one modest signature trait"
+    (asked on #316).
+  - That the six breeds her document works with are the answer to "which
+    breeds" (asked on #267).
+  - That the tactics note is advice and not her design, so all of #337
+    waits on #338.
+  - Issues were filed although the document says none were to be opened
+    yet, because she asked for them on handing it over.
+
+FOUND
+  - Her document reverses three earlier rules: "everything breeding
+    affects is aesthetic", "a gait is presentation", and pets having one
+    ability "and nothing beside it". Each is marked where it stood.
+  - The six breeds have walk, trot, canter and gallop only, so the
+    ambling-gait issues (#269, #273 to #276) serve no starting breed.
+    Asked on #267.
+  - The Friesian column of her breed table agrees with the base values
+    in assets/data/horse_shape.ron for the main dimensions.
+  - The tactics note disagrees with two standing rules: changes on the
+    road queue until town, and potions are used automatically. Both are
+    on #338.
+  - cargo was not on the PATH again; called by its full path, as
+    build-and-run.txt says.
+
+NOT DONE
+  - Nothing built. The decision issues #316, #267 and #338 are
+    unanswered.
+  - The cannon, mane and feathering figures of the Friesian column were
+    not checked against the shape file.
+  - The earlier recommendation in the comment on #267 (breeds as
+    presentation only) is still there; the issue body says it is
+    replaced.
+
+PICK UP
+  Run next-thing; tiers 1 and 2 are swept, so it is tier 3: read #312
+  (the comparison table wherever a card is pinned), the lowest-numbered
+  0.2.2 menu issue that is not built, and build it.
