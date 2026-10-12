@@ -17,7 +17,7 @@ One entry of `lessons.ron`, whose header says the same in full:
 | `id` | its name, by which a lesson put away is known again |
 | `due` | the event that has to happen first |
 | `shown` | `Town`, `Road`, or left out for either |
-| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, or `Drop` |
+| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), or `Drop` |
 | `words` | its one line, 85 letters at most |
 | `done` | `Watched(event)`: it happens while the lesson shows. `Did(event)`: it happens once the lesson is due, shown or not |
 | `instead` | the line for a `Drop` that is no longer in the cargo but on a horse |
@@ -36,6 +36,9 @@ Plain facts (`Event`), told to the queue with `Lessons::raise`:
 | `Gear` | `Game::return_to_camp`, when the trail brought a piece back |
 | `Equipped` | `Game::act`, when Equip did something. The gate's own equipping at setting out is not the player's and does not count |
 | `Card` | `teach::follow`, when a piece's card is pinned |
+| `Selected` | `teach::follow`, when the selected horse changes |
+| `Swapped` | `Game::act`, when Equip took a piece from the horse that wore it |
+| `SetOut` | `Game::depart`, by Set out or by itself |
 
 An event makes its lessons due the first time it happens and never again,
 so a return to town does not replay the opening. A test holds that the game
@@ -85,21 +88,43 @@ With all skipped, lessons still become due and done behind it.
 that, and finding a lesson in the Journal, is #300. Progress is kept in
 memory only, so the lessons play again on each launch until saving (#44).
 
-## The four in the file
+## The lessons in the file
 
-A starting set, written by the session from `philosophy/onboarding.md`
-("For Horse Heroes") and not approved line by line: the horses fight by
-themselves (first fight, on the road, until a kill is watched); each has
-one ability (first ability, until another is watched); press the piece
-(first piece home, in town, until a card is opened); Equip, or leave it
-(first card, until a piece is equipped). The first trail's lessons proper
-are #295, the first item's #296, the element's #299. `Kill`, `Resisted`
-and `Win` are raised and no lesson waits for them yet.
+Written by the session from `philosophy/onboarding.md` ("For Horse
+Heroes") and not approved line by line.
+
+**The road, a starting set** until #295: the horses fight by themselves
+(first fight, until a kill is watched); each has one ability (first
+ability, until another is watched). The element's line is #299. `Kill`,
+`Resisted` and `Win` are raised and no lesson waits for them yet.
+
+**The first item** (#296), in town, each finished by doing the thing and
+none of which has to be done:
+
+1. The piece, where it is: press it and its card opens. If it went on at
+   the gate, its other line says so and the mark is on it where it is worn.
+2. The selected horse, in the strip: the card's before, after and verdict
+   are its. Finished by selecting another horse.
+3. Equip: you choose who wears it; left alone it goes where it helps most
+   or is left behind. That sentence is true only while `Game::depart`
+   equips the drop by itself, and comes out of the file when that goes.
+4. Once a piece is on, Undo: it takes it back until the party sets out.
+   Finished by setting out.
+5. Only after Equip has taken a piece from the horse that wore it: the
+   horses exchanged pieces and nothing is lost. Never before a swap.
+
+A player who presses nothing is shown the first and no other, and the
+party leaves as it would have. Coins are not mentioned. Whether a
+first-time player can then say whose stats the comparison is about is
+#301's to find out.
 
 ## Looking at it
 
 `--seed 6 --keep-going` at `IDLE_SHOT_AT=17` is the first lesson on the
 road, at 24 the second, at 80 the piece's in town
-([gallery](gallery/2026-10-12-lessons/README.md)). F6 puts a sample hint
+([gallery](gallery/2026-10-12-lessons/README.md)).
+`IDLE_LESSON=<folder>` with `--seed 6` walks the first item's lessons by
+keys and saves a picture of each
+([gallery](gallery/2026-10-12-first-item/README.md)). F6 puts a sample hint
 over whatever lesson is showing and takes it away again; the lesson comes
 back after it. The dev key also brings back every lesson put away.

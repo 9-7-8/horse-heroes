@@ -71,6 +71,10 @@ Use the cheapest step that can prove the change:
    Lessons (docs/lessons.md): --seed 6 --keep-going at IDLE_SHOT_AT=17 has
    the first lesson on the hint's line, at 24 the second, at 80 the
    piece's in town. F6 puts the sample over a lesson that is showing.
+   IDLE_LESSON walks the first item's lessons by keys (#296): home from
+   the first trail it opens the piece's card, selects another horse,
+   equips, swaps, and saves a picture of each lesson (about 80 s):
+       $env:IDLE_LESSON = "screenshots/lesson"; cargo run -- --seed 6 *> run.log
    Sound cannot be checked by a picture. --mute plays nothing, for a run
    that is only for a picture. To read what was played, in order:
        $env:RUST_LOG = "info,horse_heroes::fx::sound=debug"

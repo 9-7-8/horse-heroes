@@ -1,0 +1,61 @@
+SESSION 2026-10-12 10:07 - The first item's lessons (#296)
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
+    #246 waits only on the owner). The pick was #296, which PICK UP named.
+  - #296, built in a6c6baa and closed by it. The town lessons of
+    assets/data/lessons.ron are now five, each on the real control and
+    finished by doing the thing: the piece (press it); the selected horse
+    in the strip, whose stats the card is about (select another); Equip,
+    with what happens to a piece left alone; Undo, once it is on; and the
+    swap's line, due only after a swap. The queue hears three more facts
+    (Selected, Swapped, SetOut) and a mark can go on whichever horse is
+    selected.
+    Tested (186 pass, no warning), with the file's own lessons and by
+    what each waits for, not by name or words: nobody at it, one lesson
+    shows in the first town and no second, and the party leaves as it
+    would; nothing about a swap before a swap, nor about the result
+    before Equip; setting out finishes what was only to be seen in town;
+    the game raises the three new facts.
+    Seen running, read by the session
+    (docs/gallery/2026-10-12-first-item): IDLE_LESSON, new, at --seed 6
+    in the smallest window does by keys what each lesson asks. All five
+    lines fit the hint's line and each mark is on its control.
+  - docs/lessons.md, philosophy/onboarding.md, gallery/README.md and
+    procedures/build-and-run.txt brought up to date.
+
+DECIDED (by the session, for her; said on #296 for her to overrule)
+  - "Where the piece is" and "press it" are one lesson.
+  - The selected horse is taught once the card is open, and finished by
+    selecting another horse.
+  - The auto-equip line is Equip's own, shortened to fit: "You choose who
+    wears it. Left alone, it goes where it helps most or is left behind."
+  - The result is acknowledged on Undo, and goes when the party sets out.
+  - The swap's line is also said when the selected horse wore nothing
+    there. Coins are not mentioned.
+
+FOUND
+  - A lesson that is showing is never pushed aside, so after a swap the
+    Undo lesson stays until it is put away and the swap's line comes
+    after it.
+  - With a piece's card open, a horse's key keeps the card and changes
+    whom it is for; that is what makes the second lesson work.
+
+NOT DONE
+  - No hand on a mouse has done any of it; the walk uses keys and the
+    cargo's own press.
+  - The line for a piece that went on at the gate has not been seen in a
+    picture, only in tests (of the queue, with other words).
+  - The last "done when" of #296, that a first-time player can say whose
+    stats the comparison is about, is #301's.
+  - The Undo lesson's mark is on the Gear tab only: equipped from the
+    Inventory or the Journal, the line shows with no mark in sight.
+  - screenshots/h296 is left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so build #300 (a lesson can
+  be skipped, turned off and found again in the Journal), the lowest open
+  menus issue of 0.2.2 whose dependencies are closed.
