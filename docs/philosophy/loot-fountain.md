@@ -101,8 +101,11 @@ ceremony alone does not last.
 - Every gear piece fits one named horse and the party has all three, so a drop
   is never for a class the player does not have. Relevance here is about the
   slot and the stats: watch the share of drops that are a plausible upgrade.
-- Appraisal happens in camp and auto-equip exists. Auto-equip must not swallow
-  the moment: show what changed.
+- Appraisal happens in camp. Nothing is equipped by the game and it names no
+  horse for a piece (owner, 2026-10-12, #351): the appraisal says what came
+  back, and the player decides.
+- Far more gear drops, chaff included (owner, 2026-10-12, #352): the point
+  is options for builds, so a trail brings back many pieces, not one.
 - All of it is data (pillar 4): rarity tiers, weights, colours, fountain sizes.
 - Huge drops are a confirmed goal ([vision.md](vision.md)), and so is low
   management. The owner's rule settles how: the party keeps the best cargo

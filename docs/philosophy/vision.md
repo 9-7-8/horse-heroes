@@ -338,7 +338,9 @@ they disagree with anything earlier in this file, they are newer.
   neither, and keeps its bandits and predators.
 - **Drops: coins and trade goods, rarely gear.** Corrupted creatures and
   bosses remain the source of Rare gear and new looks, so restoring a region
-  still closes its best loot.
+  still closes its best loot. *(2026-10-12: she has since asked for far
+  more drops of all loot, #352; "rarely gear" here is to be read against
+  that, and how often a restored road drops gear is tuned then.)*
 
 ### Towns trade in goods
 
@@ -655,6 +657,33 @@ that the six breeds her document works with (Mustang, Friesian, Quarter
 Horse, Gypsy Vanner, Shetland, Thoroughbred, with walk, trot, canter and
 gallop) are the answer to "which breeds" (#267); and every release these
 were filed under. Every number in the document is a proposal.
+
+## Builds are the player's (owner, testing 0.2.2, 2026-10-12)
+
+- **"The main choices people get to make in this game is their builds."**
+  Anything that makes a build choice for the player takes the game away
+  from them.
+- **Nothing equips by itself, and the game does not suggest a horse for a
+  piece.** "Items shouldn't auto-equip to a certain horse, or even suggest
+  it, because that's taking too much choice away from the user." (#351.)
+  This overrules auto-equip as a fallback, wherever an older file allows
+  it. Asked the same day, she chose: the comparison on the selected horse
+  keeps its numbers, and its verdict line ("Upgrade for Sable: +11") goes.
+  The game gives the numbers and never says a piece is better.
+- **Far more drops, chaff and all.** "We need to massively increase the
+  drop rate of all loot. It's okay if there's lots and lots of chaff, I
+  want players to have more agency in changing their builds by giving them
+  more options." (#352.) Options come before tidiness: the answer to too
+  much loot is tools for sorting it, not fewer drops.
+- **A hint has to be met.** "The hints are definitely not obvious enough
+  for them to ever be encountered, you'll likely need to make them overlays
+  or pop-ups." (#353.) The line under the status strip is not enough.
+  Asked the same day whether a lesson ever stops the game, she chose
+  **always a pop-up**: every lesson pauses the game, on the road as in
+  town, until it is answered. That overrules "never holding the party up"
+  for a lesson that is showing. The tutorial rule above still holds: a
+  pop-up shows or asks for one thing, with at most a line, and is never a
+  wall of text.
 
 ## The design priority
 

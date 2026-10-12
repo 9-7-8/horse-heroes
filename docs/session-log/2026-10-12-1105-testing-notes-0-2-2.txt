@@ -1,0 +1,59 @@
+SESSION 2026-10-12 11:05 - Testing notes on 0.2.2
+
+ASKED
+  After the release, the owner's three points from testing it:
+  "1) items shouldn't auto-equip to a certain horse, or even suggest it,
+  because that's taking too much choice away from the user.
+  2) we need to massively increase the drop rate of all loot. It's okay
+  if there's lots and lots of chaff, I want players to have more agency
+  in changing their builds by giving them more options
+  The main choices people get to make in this game is their builds"
+  "3) the hints are definitely not obvious enough for them to ever be
+  encountered, you'll likely need to make them overlays or pop-ups"
+
+DONE
+  - Three issues filed, nothing built:
+    #351 Nothing equips by itself, and the game does not pick a horse
+         for a piece (menus, loot; 0.2.3).
+    #352 Many more drops: gear from ordinary kills, and a cargo that
+         keeps every piece (loot, sim; 0.2.3).
+    #353 A lesson is a pop-up by the thing it is about, and the game
+         waits for it (menus, progression; 0.2.4, because 0.2.3 is at
+         its ten).
+  - docs/philosophy/vision.md has a new section, "Builds are the
+    player's", with her words. onboarding.md and loot-fountain.md no
+    longer say auto-equip is valid play.
+
+DECIDED (by the owner, through the question tool)
+  - The comparison on the selected horse keeps its numbers; the verdict
+    line ("Upgrade for Sable: +11") goes. The game never says a piece is
+    better.
+  - A lesson is always a pop-up: it pauses the game, on the road as in
+    town, until it is answered. This overrules "never holding the party
+    up" (#290) for a lesson that is showing.
+
+DECIDED (by the session, for her; said on the issues)
+  - #352 includes the smallest cargo that keeps more than one piece;
+    capacity, locking and keep rules stay with #34, #100 and #167.
+  - A pop-up waits for a fountain in the air to land, and does not cover
+    its own target.
+
+FOUND
+  - A trail rolls exactly one piece, at its end; the cargo holds one and
+    a replaced piece is thrown away. #351 cannot leave a piece carried
+    safely until #352's cargo keeps it.
+  - vision.md said a restored road drops "rarely gear"; noted there as to
+    be read against #352.
+
+NOT DONE
+  - None of the three is built. The game as released still auto-equips,
+    still shows the verdict, and still shows hints on the line.
+  - docs/lessons.md, docs/item-card.md, docs/mechanics-for-tutorial.md
+    and assets/data/lessons.ron still describe the old behaviour, truly,
+    until #351 and #353 change it.
+
+PICK UP
+  #352, then #351: both are hers from testing, and #351 needs the cargo
+  #352 brings. By next-thing's order the menus issues come first (#351,
+  #353), so start #352 only as far as #351 needs it if they cannot be
+  done in one part: the cargo that keeps every piece, then #351.
