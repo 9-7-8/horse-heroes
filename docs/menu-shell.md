@@ -309,15 +309,20 @@ every place, tab and horse has a key, and no key means two things at once.
 
 `content` in `places.ron` says what a tab holds:
 
-- `Gear`: the overview (#285). The selected horse's stats, then a column
-  for each horse with its three slots under its name, so everything worn
-  is seen at once beside the cargo and no horse has to be selected to look.
-  A slot is a `cell`: the piece's name and, under it, its picture (#286,
-  item-card.md) beside what the piece adds; or "nothing worn" over the
-  slot's outline and its name. The selected horse's column is outlined and its
-  heading says "selected". Pressing a slot opens its card in the side panel
-  and does not change the selected horse. Another horse's piece is compared
-  on the selected horse, as the cargo's piece is, with what Equip would do.
+- `Gear`: the selected horse's gear and no other horse's (#314; the
+  owner: "clicking on a horse name, then gear, should show an overview of
+  JUST THAT HORSE'S GEAR"). The horse's stats, then a row for each slot,
+  the page wide. A row is a `cell`: the piece's picture (#286,
+  item-card.md), and beside it its name over the slot and what the piece
+  adds ("Head: +15 health  +2 attack"); or the slot's outline beside
+  "nothing worn" over the slot's name. A press on a row pins its card in
+  the side panel. A press on another horse in the strip, or its key, and
+  the rows are that horse's, in town and on the road. Every horse's rows
+  are spawned once and only the selected horse's show (`Wearer`,
+  `show_wearer`, `Shell::wears`), so Tab and the arrows pass over the
+  rest. It was every horse's slots side by side until 2026-10-12 (#285);
+  every piece at once, worn and carried, is the Inventory, and another
+  horse's piece is pinned and equipped (the two change places) from there.
 - `Element`: the party's one element and what beats what, above the three
   element buttons. The slice's stand-in for abilities.
 - `Report`: the report the Journal is open at, in two halves of fixed
@@ -491,9 +496,8 @@ right at `size.side_panel_width`, as it did.
 
 A piece's comparison is the exception (#312): pinned, it has
 `size.compare_width` in every place, as its table needs, so in the Horses
-place the overview's columns are narrower while a piece is open (about 235
-pixels each at the smallest window, which holds the longest name). A
-horse's view and a control's detail keep the widths above.
+place the Gear tab's rows are narrower while a piece is open. A horse's
+view and a control's detail keep the widths above.
 
 Two things follow from the cargo being covered:
 
@@ -508,16 +512,14 @@ Two things follow from the cargo being covered:
 
 Equip (E) still works with the cargo covered, as every key does.
 
-At the smallest window a slot of the overview holds 22 letters on one line,
-with one to spare: the longest name the data can make today ("Fae-touched
+At the smallest window the cargo's cell holds 22 letters on one line, with
+one to spare: the longest name the data can make today ("Fae-touched
 Saddle Pad"). A test in `sim/loot.rs` holds `gear.ron` to that, so a longer
-prefix or noun fails there and not on screen. The room comes from
-the horses column that is gone (#311),
-`size.cargo_width` (248) and the padding of a `cell`. That is why a piece's
+prefix or noun fails there and not on screen. That is why the cargo's
 picture is under its name and not beside it: beside it, 18 letters fit. A
-piece's stats may still take two lines, which makes its slot a few pixels
-taller than an empty one. The three horses' slots are in view without
-scrolling; the tab's controls are a scroll away.
+row of the Gear tab has the page's width, so its picture is beside its
+name and its stats are on one line. The three rows and the first row of
+the tab's controls are in view without scrolling at the smallest window.
 
 ## Keys
 
@@ -728,7 +730,7 @@ through the move, and one with the keyboard focus put on Sets to show the
 page scrolling to it), presses the scene (in town, on the road with every
 place closed, and with a place and its side panel open, which that press
 closes; the press is Bevy's own pointer, at `ON_THE_SCENE`), waits for the party to come home, opens the report, and then makes a town visit by keys
-alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left (which now finds nothing to go to), Right four times past the overview to the cargo, E to equip the drop, Z and a press on what the third horse wears on its head, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, C, 2, I and F on the abilities, T, 3, S,
+alone (after opening the drop's card from the report, and again from the cargo, there against another horse): H, 1, Down twice onto the second slot, Enter to open it, Escape, Left (which finds nothing to go to), Right to the cargo, E to equip the drop, H for Gear with the horse that now wears it and X for another horse's gear (#314), B and Z and a press on what the third horse wears on its head in the Inventory, E to equip it, so the two change places, U three times (the swap taken back, the equip taken back, and a press too many), Escape, H, C, 2, I and F on the abilities, T, 3, S,
 K for the list of keys, Escape twice, Space to set out, and on the road J, 1, [ for the report of the trail before, a press on its piece, Escape, ] back to the latest, and Escape. Both times the party comes home, Trade is open, so that the marks are in the picture before a press clears them (the second time: T on the road, then H in town). Then it exits, in town, after about two and a half minutes. Those
 keys are put into Bevy's keyboard state for one frame each (`tour_keys`), so
 they go through `keys`, `arrows` and `escape` as a real press does (Enter is the one exception: the tour sends the `Activate` Bevy's button sends for it); they are written

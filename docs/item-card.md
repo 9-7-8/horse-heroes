@@ -26,11 +26,11 @@ slot and what it adds (`kind`), then whether it matters to the selected
 horse now (`verdict`: "Upgrade for Sable: +11", "No better for Sable",
 "Worse for Sable: -3"; a word and a sign, never colour alone). The carried
 piece is shown this way in the cargo column and under the report. A slot of
-the gear overview shows the shorter form its width allows: the name and
-what the piece adds. Its picture says which slot and which rarity.
+the Gear tab shows the shorter form: the name, and the slot with what the
+piece adds. Its picture says which slot and which rarity.
 
 **The pinned card** is what a press opens in the side panel of the place the
-piece was pressed in: the comparison below, the same in the gear overview,
+piece was pressed in: the comparison below, the same on the Gear tab,
 the cargo, a report and the Inventory (#312). Until 2026-10-12 every place
 but the Inventory pinned an older card of lines ("health 35 to 50 (+15)"
 under "On Sable, who wears nothing there:"); those lines are now only in
@@ -94,7 +94,7 @@ beside Equip.
 - **Its width is its own** (`size.compare_width`, 420), wherever it is
   pinned and under the pointer, so the table's four columns fit. In the
   Horses place it opens in the cargo's room and takes the rest from the
-  gear overview, whose columns are narrower while a piece is pinned; a
+  Gear tab, whose rows are narrower while a piece is pinned; a
   horse's view there keeps the cargo's width and moves nothing. That is a
   call made for the owner: the other way was a second, narrower table of
   25 letters with shortened headings.
@@ -127,8 +127,8 @@ Pictures: `docs/gallery/2026-10-12-one-comparison`, at the smallest window;
 
 ## Under the pointer
 
-The pointer resting on a piece shows its comparison beside it, in the gear
-overview, the cargo, the report and the Inventory
+The pointer resting on a piece shows its comparison beside it, on the Gear
+tab, the cargo, the report and the Inventory
 (`card::pointed_comparison`; `point`, `show_hover_card` and
 `Shell::points_at` in `shell.rs`).
 
@@ -229,7 +229,7 @@ flat UI nodes, so nothing depends on it.
   prism is drawn as a disc.
 - **An empty slot** is the outline alone, unfilled.
 
-It is in every cell that shows a piece: the slots of the overview, the
+It is in every cell that shows a piece: the slots of the Gear tab, the
 cargo and the drop under the report. It sits under the name, beside the
 small lines, because the longest name needs a slot's whole width at the
 smallest window (menu-shell.md). Its size is `size.picture` in `menu.ron`
@@ -267,7 +267,7 @@ tab, keys E and W) until this was built; W is no longer a key.
 
 **The card stays on its piece.** After Equip the card that was open is on
 the piece where it is now (`Game::equipped_at`, `Shell::piece_moved`), in
-every place it was open, so its slot in the overview is the one marked and
+every place it was open, so its slot or tile is the one marked and
 a second Equip is refused with its reason. A card on an empty slot stays on
 that slot, which now holds the piece. A card on the carried piece is put
 away when nothing is carried any more (`follow_the_party`).

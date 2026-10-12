@@ -13,7 +13,7 @@ click.
 
 ## The table
 
-Walked 2026-10-11 at `--seed 6`, in a window of 1120x640, by
+Walked 2026-10-11, and again 2026-10-12 with the same counts (#314), at `--seed 6`, in a window of 1120x640, by
 [the walk](#the-walk).
 
 | Job | Counted from | Budget, mouse | Took | Budget, keys | Took |

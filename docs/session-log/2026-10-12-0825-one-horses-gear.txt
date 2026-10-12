@@ -1,0 +1,55 @@
+SESSION 2026-10-12 08:25 - Gear shows only the selected horse's gear (#314)
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 3 of next-thing. Tiers 1 and 2 were empty (green, no warning;
+    #246 waits only on the owner; src/sim/ unchanged since its sweep). No
+    open 0.2.1 menus issue had a part that could be built now: each waits
+    on the owner's look or on a system of a later release. The pick was
+    #314, which PICK UP named.
+  - #314, built in 640db17, left open for the owner's look. The Gear tab
+    of Horses is the selected horse's gear and no other horse's: a row
+    for each slot, the page wide, with the piece's picture, its name, and
+    the slot with what the piece adds. A press on another horse, or its
+    key, and the rows are that horse's, in town and on the road.
+    Tested (166 pass, no warning): which horse's gear shows, that it
+    follows a press, and that a pinned piece stays. Seen running, read by
+    the session (docs/gallery/2026-10-12-one-horses-gear): the menu tour
+    at --seed 6 in the smallest window, 1120x640; Tab makes 28 stops,
+    none out of sight. The click budget was walked again: every count is
+    as it was.
+  - docs/menu-shell.md, item-card.md, menu-parts.md and click-budget.md
+    brought up to date.
+
+DECIDED (by the session, for her)
+  - The view of every horse's gear at once is the Inventory, and the
+    side-by-side columns of #285 are gone. The issue left this to settle
+    "with the owner"; it is said on #314 for her to overrule.
+  - Another horse's piece is pinned, and swapped onto the selected horse,
+    from the Inventory. It cannot be reached from Gear any more.
+  - The slots are rows down the page and not three across: a name never
+    wraps, the stats are on one line, and Down goes down the slots.
+  - A worn piece's small line names its slot ("Head: +15 health"), as
+    there is now room.
+
+FOUND
+  - A card pinned on one horse's slot stays when another horse is
+    pressed, as in every place (it is how a piece is tried on each
+    horse). On Gear its row is then not in view, and for an empty slot
+    the card says nothing useful (gallery, picture 3).
+  - Tab's stops went from 36 to 28: the other horses' slots are hidden.
+
+NOT DONE
+  - The owner has not pressed a horse, then Gear: the last line of #314's
+    "done when".
+  - Nobody has pressed it but the tour; a hand on a mouse has not.
+  - The test in src/sim/loot.rs still calls the cargo's cell "a slot of
+    the overview" in its name and comment; what it holds is unchanged.
+  - screenshots/tour314 and walk314 are left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so read #291 (the hint, one
+  menu part for a lesson), the lowest 0.2.2 menus issue not built and the
+  one the lessons (#296, #300) stand on, and build it.
