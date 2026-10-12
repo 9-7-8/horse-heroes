@@ -12,9 +12,9 @@ pub mod menu;
 pub mod scene;
 
 /// Sim step. Fixed, so a run does not depend on the frame rate.
-const TICK: f32 = 0.1;
+pub const TICK: f32 = 0.1;
 /// Seconds the camp screen waits before setting out by itself.
-const CAMP_SECS: f32 = 12.0;
+pub const CAMP_SECS: f32 = 12.0;
 
 /// Which of the two layouts the window is in, and how far between them: 0 is
 /// the town layout, with the scene in the top third, and 1 the road's, with
@@ -82,6 +82,12 @@ pub struct Uncollected {
     /// Pieces of kills' drops still in the world, coins and gear alike. `fx`
     /// counts them in as it throws them and out as they arrive.
     pub pieces: usize,
+    /// Kills' pieces since launch: thrown, taken by the party, and carried
+    /// off by the ground before it could take them. Counts for the soak log
+    /// (procedures/overnight-soak.txt); nothing in the game reads them.
+    pub thrown: usize,
+    pub collected: usize,
+    pub left: usize,
 }
 
 /// The calm after the kill: a trail that was won keeps the party standing on

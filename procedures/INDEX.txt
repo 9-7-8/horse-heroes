@@ -43,5 +43,10 @@ walk-the-click-budget.txt  "walk the click budget", "count the clicks"
                       Do the common jobs in the running game by pointer and
                       by keys, and put the counts beside their budgets.
 
+overnight-soak.txt    "run it overnight", "soak it", "leave it running"
+                      The game plays itself for hours with a record of every
+                      hit, drop and departure, is closed, and the record is
+                      checked: pwsh tools/soak.ps1.
+
 Not written yet (write each the second time the routine comes up):
   add-an-item-type, add-a-monster, balance-pass

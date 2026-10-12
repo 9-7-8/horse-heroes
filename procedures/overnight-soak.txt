@@ -1,0 +1,69 @@
+OVERNIGHT-SOAK
+==============
+Starts on: "run it overnight", "soak it", "leave it running and check the logs".
+Leaves:    soak/<date-time>/report.txt, a verdict on hours of the game playing
+           itself, and an issue for each thing the report found wrong.
+
+The whole run is one command. It asks nothing while it runs: it builds,
+starts the game, keeps the machine and the screen awake, samples the game's
+memory, lets the game exit by itself at its limit (and closes it by its
+process ID if it has not), and reads the record.
+
+    pwsh tools/soak.ps1                 six hours
+    pwsh tools/soak.ps1 -Hours 8
+    pwsh tools/soak.ps1 -Minutes 4      a short one, to see that it works
+
+-Seed N fixes the first trail, -Sound unmutes it, -AllowDisplayOff lets the
+screen sleep. Exit code 0: nothing wrong; 1: the report found something;
+2: no run (the build failed, or the game wrote nothing).
+
+STEPS
+1. Commit first, so the run is of a known state, and say which commit.
+2. A short run (-Minutes 4) if src/soak.rs or tools/soak.ps1 changed since
+   the last soak. Its report should say "nothing wrong found".
+3. Start the long one in a process of its own, so that it outlives the shell
+   and the session that started it, and record its process ID:
+       Start-Process pwsh -ArgumentList '-NoProfile','-File','tools/soak.ps1' `
+           -WindowStyle Minimized -PassThru
+   The game window is an ordinary one. Leave it alone: a key or a click is
+   input, and the run is of the game with none.
+4. When it is over, read report.txt. VERDICT lists each kind of problem with
+   its first cases; under it are the numbers to read for sense: trails by the
+   hour, won of walked at each level, damage by horse, drops by rarity beside
+   the table's weights, the pieces of the loot shower, frame times, entities,
+   memory.
+5. Each problem is a bug: find its cause in events.tsv (every line of every
+   fight is there, by the game's seconds) and file an issue, or fix the
+   report if it is the report that is wrong. Numbers that are not wrong but
+   are not what the design wants (a level the party stops at, a horse that
+   always falls) go to the owner in the summary.
+
+WHAT IS CHECKED (src/soak.rs, `check`)
+  - Town to town: trail numbers and seeds follow on, the level follows each
+    result, the party leaves by itself after the wait, the walk back is its
+    length, and the game ends by itself at its limit.
+  - Damage: every hit takes at least 1, and every trail is walked again in
+    the sim from its seed, party and element: the game's fight must be the
+    sim's, line for line, to the same ending.
+  - Drops: a kill's coins are in its enemy's range and are a trail's coins,
+    which are the coins in town; one piece when an encounter was cleared,
+    its stat points in its rarity's range, thrown by the winning kill;
+    rarities near their weights; every piece of the shower collected or
+    carried off, none still out after a won trail.
+  - The machine: no minute without frames, none under 20 a second, no
+    slowing, entities and memory not growing, the game's clock keeping up
+    with the wall clock, and no warning or error printed.
+
+NOTES
+  - There is one town so far: "between towns" is town, trail, town. When
+    towns stop leaving by themselves (#305) the soak has to turn Keep going
+    on, and when there is an itinerary (#201) it has to set one.
+  - soak/ is git-ignored. A report worth keeping is quoted in the session log.
+  - The run is of the debug build, like cargo run.
+  - The GOG Galaxy overlay's Vulkan loader message is counted and ignored.
+
+DO NOT
+  - Close the game by name or pattern (CLAUDE.md rule 3). The script closes
+    the process it started, by its ID.
+  - Call a run clean because the game was still open in the morning. The
+    report is the evidence.

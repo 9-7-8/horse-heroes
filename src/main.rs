@@ -10,8 +10,13 @@ mod dev_screenshot;
 mod fx;
 mod game;
 mod sim;
+mod soak;
 
 fn main() {
+    // `--soak-report FOLDER` reads a soak run's logs and opens no window.
+    if let Some(folder) = soak::report_folder() {
+        std::process::exit(soak::write_report(&folder));
+    }
     // The window cannot be made smaller than the menus need (#205).
     let layout = game::menu::tokens::Tokens::load().layout;
     let mut window = Window {
@@ -45,6 +50,7 @@ fn main() {
             mute: std::env::args().any(|arg| arg == "--mute"),
         })
         .add_plugins(dev_screenshot::DevScreenshotPlugin)
+        .add_plugins(soak::SoakPlugin)
         .run();
 }
 

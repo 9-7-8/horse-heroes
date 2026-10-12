@@ -400,11 +400,16 @@ struct Piece {
 }
 
 impl Uncollected {
-    /// A piece has reached the party, or been left behind.
-    fn take(&mut self, piece: &Piece) {
+    /// A piece has reached the party (`collected`), or been left behind.
+    fn take(&mut self, piece: &Piece, collected: bool) {
         self.coins -= piece.value;
         if !piece.pinned {
             self.pieces = self.pieces.saturating_sub(1);
+            if collected {
+                self.collected += 1;
+            } else {
+                self.left += 1;
+            }
         }
     }
 }
@@ -656,6 +661,7 @@ fn launch_kills(
         let launches = plan_burst(&shower, fountain, *bursts, kinds.len(), kill.at, &kill.standing);
         *bursts += 1;
         uncollected.pieces += kinds.len();
+        uncollected.thrown += kinds.len();
         erupted.write(Erupted {
             in_secs: fountain.delay_secs,
             best: best_tier(&kinds),
@@ -789,7 +795,7 @@ fn fly(
             let to = nearest_horse(piece.body.position);
             if step_home(&shower, &mut piece.body.position, speed, to, dt) {
                 heard.write(Heard::Collected(piece.kind));
-                uncollected.take(piece);
+                uncollected.take(piece, true);
                 commands.entity(entity).despawn();
                 continue;
             }
@@ -800,7 +806,7 @@ fn fly(
             // it what lies on it and what is falling to it.
             piece.body.position.x -= drift;
             if piece.body.position.x < -GONE {
-                uncollected.take(piece);
+                uncollected.take(piece, false);
                 commands.entity(entity).despawn();
                 continue;
             }
