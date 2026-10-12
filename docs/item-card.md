@@ -9,7 +9,7 @@ It hangs on the shell's side panel: [menu-shell.md](menu-shell.md).
 
 | File | What it holds |
 | --- | --- |
-| `src/game/menu/card.rs` | What the card says: `kind`, `verdict`, `compare`, `consequence`, `pinned`. Plain text from the game, tested without Bevy |
+| `src/game/menu/card.rs` | What the card says: `kind`, `verdict`, `compare`, `consequence`, `comparison`, `pointed_comparison`. Plain text from the game, tested without Bevy |
 | `assets/data/places.ron`, `card` | The card's actions, in order: Equip, List, Store, Lock, Favourite, Look |
 | `src/game/mod.rs` | `Piece`, where a piece is; `Action::Equip`; `Game::piece` and `Game::equipped_at` |
 | `src/game/menu/picture.rs` | The stand-in picture: `stamp`, `picture`, `draw`, `show_pictures` |
@@ -30,44 +30,26 @@ the gear overview shows the shorter form its width allows: the name and
 what the piece adds. Its picture says which slot and which rarity.
 
 **The pinned card** is what a press opens in the side panel of the place the
-piece was pressed in:
+piece was pressed in: the comparison below, the same in the gear overview,
+the cargo, a report and the Inventory (#312). Until 2026-10-12 every place
+but the Inventory pinned an older card of lines ("health 35 to 50 (+15)"
+under "On Sable, who wears nothing there:"); those lines are now only in
+the appraisal in camp (`compare`).
 
-    Sunforged Halter
-    Legendary, Head  +15 health  +2 attack  +4 defense  +2 elemental
-    Carried in the cargo.
-
-    On Sable, who wears nothing there:
-    health 35 to 50 (+15)
-    attack 3 to 5 (+2)
-    defense 1 to 5 (+4)
-    elemental 2 to 4 (+2)
-    An upgrade: +11 points.
-    Equip puts it on Sable.
-
-- The third line is where it is: carried, or worn and by whom.
-- The comparison (`compare`) is on the selected horse, the one Equip puts it
-  on: each stat of that horse that would change, as it is and as it would
-  be, with the signed difference, then the points (`loot::gain`). This is
-  the "difference per stat" of #11. A horse is not compared with what it
-  wears already. Selecting another horse changes the comparison.
-- The last line (`consequence`) is what Equip would do, and it is there
-  exactly when Equip can be done. It names the displaced piece: "Old Halter
-  is thrown away: the cargo cannot hold it yet." (a carried piece put over a
-  worn one; the cargo holds one thing until #227) or "Equip puts A on
-  Juniper, and B on Sable." (two horses changing places).
-- An empty slot has a card too: whose slot, "Nothing worn.", and where gear
-  comes from.
+- An empty slot has a card too: whose slot, "Nothing worn.", where gear
+  comes from, and what Equip would put there. An empty cargo says what
+  belongs in it.
 
 **Formulas behind a Details control** are not built.
 
 ## The comparison
 
-What the pointer shows on a piece in the Inventory, and what a press pins
-there (#308; `docs/philosophy/inventory.md`, "The comparison answers three
-questions at once"). Under the pointer (`card::pointed_comparison`) it ends
-with "A press pins it, with its actions."; pinned (`card::comparison`) it
-ends with what Equip would do, beside Equip. Everywhere else the pointer
-and a press still show the card above; making them one is #312.
+What the pointer shows on a piece, and what a press pins, in every place a
+piece is shown (#308, #312; `docs/philosophy/inventory.md`, "The comparison
+answers three questions at once"). Under the pointer
+(`card::pointed_comparison`) it ends with "A press pins it, with its
+actions."; pinned (`card::comparison`) it ends with what Equip would do,
+beside Equip.
 
     For Sable, Head
     Equipped: Plain Halter (Normal)
@@ -102,8 +84,20 @@ and a press still show the card above; making them one is #312.
   the same piece there, and nothing else on the panel moves.
 - **A horse's own piece** is not compared with itself: it says who wears
   it, and what it adds.
-- The last line is `consequence`, as on the card, and the card's actions
-  are under it.
+- The last line (`consequence`) is what Equip would do, and it is there
+  exactly when Equip can be done. It names the displaced piece: "Old Halter
+  is thrown away: the cargo cannot hold it yet." (a carried piece put over a
+  worn one; the cargo holds one thing until #227) or "Equip puts A on
+  Juniper, and B on Sable." (two horses changing places). The card's
+  actions are under it.
+- **Its width is its own** (`size.compare_width`, 420), wherever it is
+  pinned and under the pointer, so the table's four columns fit. In the
+  Horses place it opens in the cargo's room and takes the rest from the
+  gear overview, whose columns are narrower while a piece is pinned; a
+  horse's view there keeps the cargo's width and moves nothing. That is a
+  call made for the owner: the other way was a second, narrower table of
+  25 letters with shortened headings.
+- A "changed only" switch for the table is not built: #349.
 - The stat's word takes its colour (#251); the amounts in the table are
   plain. Gain and loss are said by sign and word and have no colour yet:
   #313.
@@ -113,30 +107,21 @@ and a press still show the card above; making them one is #312.
 Tests in `card.rs`: the table's columns line up and say new, lost and
 same; the comparison names the horse and both pieces, ends with what Equip
 would do, follows the selected horse, and does not compare a horse's piece
-with itself.
+with itself; a piece has the same comparison carried and worn; under the
+pointer it is the pinned one as far as it goes.
+
+Pictures: `docs/gallery/2026-10-12-one-comparison`, at the smallest window.
 
 ## Under the pointer
 
-The pointer resting on a piece shows its card beside it, in the gear
-overview, the cargo and the report (`card::hovered`; `point`,
-`show_hover_card` and `Shell::points_at` in `shell.rs`):
+The pointer resting on a piece shows its comparison beside it, in the gear
+overview, the cargo, the report and the Inventory
+(`card::pointed_comparison`; `point`, `show_hover_card` and
+`Shell::points_at` in `shell.rs`).
 
-    Sunforged Halter
-    Legendary, Head  +15 health  +2 attack  +4 defense  +2 elemental
-    Carried in the cargo.
-
-    On Sable, who wears nothing there:
-    health 35 to 50 (+15)
-    ...
-    An upgrade: +11 points.
-
-    A press pins it, with its actions.
-
-- In the Inventory it is the comparison instead, at the comparison's
-  width (see "The comparison").
-- It is the pinned card's own lines (`face`), so the two cannot differ. What
-  Equip would do is not on it: a consequence is said beside the action,
-  never only under the pointer (menus.md).
+- It is the pinned comparison's own lines (`weighed`), so the two cannot
+  differ. What Equip would do is not on it: a consequence is said beside
+  the action, never only under the pointer (menus.md).
 - It shows nothing that a press does not: nothing is reachable by hover
   alone. A press pins the card, as before.
 - The first card waits for the pointer to rest (`time.hover_card` in
@@ -149,7 +134,7 @@ overview, the cargo and the report (`card::hovered`; `point`,
   its cell on the side of the window with more room, from the cell's top
   or bottom edge towards the middle, so it is never over its own piece
   (`beside`; a test holds it at the smallest window). Its width is
-  `size.hover_card_width`.
+  the comparison's, `size.compare_width`.
 - It can stand over the scene while the pointer rests, on the road too.
 
 Pictures: `docs/gallery/2026-10-11-hover-card`. The menu tour moves Bevy's
@@ -294,22 +279,21 @@ Held by `camp_says_what_the_drop_replaces_or_why_it_is_not_used`.
 
 What a detail says scrolls, with its bar, where it does not fit; the actions
 under it do not, so Equip is always in view. At the smallest window
-(1120 x 640) the Horses place shows the name, what the piece is and where,
-and the comparison is a scroll of the wheel away; the summary in the list
-has the verdict meanwhile. The Journal's panel is wider and shows the start
-of the comparison.
+(1120 x 640) a side panel shows whose the piece would be, both pieces,
+where the selected one is and the first of what changes; the rest and the
+table are a scroll of the wheel away, and the summary in the list has the
+verdict meanwhile.
 
 PageUp and PageDown scroll the card (#304; `scroll` in the shell, the keys
 in `places.ron`, `scroll_keys`). A press moves by `size.scroll_page`, four
 fifths, of what is in view, so the last line read is still there, and it
 stops at either end. While the words do not fit, a line under them says
 "PageUp, PageDown: read the rest"; it goes when they fit. In the Gear tab
-at the smallest window the room is five lines, and six presses read the
-whole card of a legendary piece. A held key does not repeat, and a card
+at the smallest window the room is six lines. A held key does not repeat, and a card
 opened after another keeps the place the last was scrolled to.
 
-Tests in `card.rs` hold: a piece has the same opening lines carried and
-worn; the comparison names each stat that changes and no other; the
+Tests in `card.rs` hold: a piece has the same comparison carried and
+worn; the appraisal names each stat that changes and no other; the
 consequence is said exactly when Equip can be done and names the piece lost
 or moved; an empty slot and an empty cargo say what belongs there.
 

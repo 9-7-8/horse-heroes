@@ -483,6 +483,12 @@ tab, and at the smallest window a column of the overview was about 95
 pixels wide. In the other places and in Settings the panel opens at the
 right at `size.side_panel_width`, as it did.
 
+A piece's comparison is the exception (#312): pinned, it has
+`size.compare_width` in every place, as its table needs, so in the Horses
+place the overview's columns are narrower while a piece is open (about 235
+pixels each at the smallest window, which holds the longest name). A
+horse's view and a control's detail keep the widths above.
+
 Two things follow from the cargo being covered:
 
 - A detail left open in such a place is put away when the party arrives in

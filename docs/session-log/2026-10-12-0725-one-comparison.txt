@@ -1,0 +1,48 @@
+SESSION 2026-10-12 07:25 - one comparison wherever a piece is pinned (#312)
+
+ASKED
+  "/next"
+
+DONE
+  - Tier 3 of next-thing. Tier 1 was empty (build and tests green, no
+    warning; the one open bug, #246, waits only on the owner). Tier 2 was
+    swept on 2026-10-11 and src/sim/ has not changed since. The open 0.2.1
+    menu issues wait on the owner or on systems of later releases, so the
+    pick was #312, the lowest 0.2.2 menu issue with nothing unbuilt under
+    it (#291 waits on #290).
+  - #312, closed by f8b4589. A piece pressed in the gear overview, the
+    cargo or a report pins the comparison the Inventory pins, and the
+    pointer shows the same in short. The older card of lines is gone from
+    the code. A pinned piece and the card under the pointer have the
+    comparison's width (420) everywhere; size.hover_card_width is gone.
+    Tested (160 pass, no warning): the tests that held the card's lines
+    hold the comparison's. Seen running: the menu tour at --seed 6,
+    1120x640, read by the session (docs/gallery/2026-10-12-one-comparison).
+    Nobody has tried it with a hand on a mouse.
+  - docs/item-card.md and docs/menu-shell.md brought up to date.
+
+DECIDED (by the session, for her)
+  - In the Horses place the pinned comparison takes 420 pixels, so the
+    overview's three columns are narrower while a piece is open. #287 had
+    made opening a detail move nothing there; that now holds for a horse's
+    view and not for a piece. The other way was a second, narrower table
+    with shortened headings.
+  - The "changed only" control the issue names was left out and filed as
+    #349 (0.2.2, menus): it is a control of its own, and "done when" of
+    #312 does not ask for it.
+
+FOUND
+  - A long here-document in the Bash tool failed again, as build-and-run
+    notes; the script went through the Write tool.
+  - PICK UP of the last log (#348 with #224) is 0.3.1, behind every open
+    0.2.2 issue by the order, and it is a decision of the owner's.
+
+NOT DONE
+  - #349, the "changed only" switch.
+  - At 1120x640 the table of a pinned comparison is below the six lines
+    in view, a press of PageDown away, in every place.
+  - screenshots/tour312 is left on disk (git-ignored).
+
+PICK UP
+  Run next-thing: tiers 1 and 2 are swept, so read #313 (gain and loss
+  coloured in the comparison's change column) and build it; #349 after.
