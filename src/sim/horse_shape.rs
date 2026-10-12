@@ -768,4 +768,152 @@ mod tests {
             .fold(f32::INFINITY, f32::min);
         assert!(behind < -HorseShape::load().base(1.0).body_length / 2.0);
     }
+
+    /// The tail's length is not chosen, so it is checked: wherever the
+    /// croup, the dock and the hair's clearance sit in their windows, the
+    /// tail that comes out is inside the brief's window for it.
+    #[test]
+    fn the_tail_that_comes_out_is_in_its_window() {
+        let shape = HorseShape::load();
+        let window = shape.tail_length;
+        let in_window = |frame: &Frame| {
+            let tail = frame.tail_length() / frame.height;
+            assert!(window.1 <= tail && tail <= window.2, "a tail of {tail} H");
+        };
+        // The corners of the three windows it follows from.
+        for corner in 0..8u32 {
+            let at = |bit: u32| ((corner >> bit) & 1) as f32;
+            let mut frame = shape.base(1.0);
+            frame.croup = shape.croup.at(at(0));
+            frame.tail_dock = shape.tail_dock.at(at(1));
+            frame.tail_clearance = shape.tail_clearance.at(at(2));
+            in_window(&frame);
+        }
+        let mut rng = Rng::new(63);
+        for _ in 0..2000 {
+            let h = 0.4 + 3.0 * rng.unit();
+            in_window(&shape.varied(h, &mut || rng.unit()));
+        }
+    }
+
+    /// The pieces are the ones docs/horse-model.md counts, each on the
+    /// joint it moves with.
+    #[test]
+    fn the_pieces_are_the_ones_the_doc_counts() {
+        let parts = HorseShape::load().base(1.0).parts();
+        let count = |kind: Kind, joint: Joint| {
+            parts.iter().filter(|part| part.kind == kind && part.joint == joint).count()
+        };
+        // Five pieces of trunk and the dock.
+        assert_eq!(count(Kind::Body, Joint::Trunk), 5 + 1);
+        // Four of neck, three of head, two ears of two.
+        assert_eq!(count(Kind::Body, Joint::Neck), 4 + 3 + 2 * 2);
+        // The mane's ridge and curtain, three each, and the forelock.
+        assert_eq!(count(Kind::Hair, Joint::Neck), 3 + 3 + 1);
+        // The tail's hair in two lengths, ending in three clumps.
+        assert_eq!(count(Kind::Hair, Joint::Trunk), 2 + 3);
+        // A hoof is the last piece of a leg and of nothing else.
+        assert_eq!(count(Kind::Hoof, Joint::Trunk) + count(Kind::Hoof, Joint::Neck), 0);
+        let mut on_legs = 0;
+        for (leg, &(is_fore, _)) in LEGS.iter().enumerate() {
+            assert_eq!(count(Kind::Hoof, Joint::Leg(leg)), 1);
+            assert_eq!(count(Kind::Body, Joint::Leg(leg)), if is_fore { 6 } else { 7 });
+            on_legs += parts.iter().filter(|part| part.joint == Joint::Leg(leg)).count();
+            let last = parts
+                .iter()
+                .filter(|part| part.kind != Kind::Hair && part.joint == Joint::Leg(leg))
+                .last()
+                .unwrap();
+            assert_eq!(last.kind, Kind::Hoof);
+        }
+        assert_eq!(parts.len(), 6 + 11 + 7 + 5 + on_legs);
+    }
+
+    /// The far side is the near side turned over: the legs of a pair and
+    /// the two ears differ only in which side they are on, and the trunk
+    /// is on the middle.
+    #[test]
+    fn the_two_sides_are_the_same_horse() {
+        let frame = HorseShape::load().base(1.0);
+        let parts = frame.parts();
+        let mirrored = |a: &Part, b: &Part| {
+            a.kind == b.kind
+                && points(a) == points(b)
+                && [a.from, a.to]
+                    .iter()
+                    .zip([b.from, b.to])
+                    .all(|(p, q)| p.z == -q.z && p.width == q.width)
+        };
+        for (near, far) in [(0, 1), (2, 3)] {
+            let of = |leg: usize| parts.iter().filter(move |part| part.joint == Joint::Leg(leg));
+            assert_eq!(of(near).count(), of(far).count());
+            assert!(of(near).zip(of(far)).all(|(a, b)| mirrored(a, b) && a.from.z > 0.0));
+            let (a, b) = (frame.leg_joint(near), frame.leg_joint(far));
+            assert_eq!((a[0], a[1], a[2]), (b[0], b[1], -b[2]));
+        }
+        // The only body off the middle of the neck and head is the ears.
+        let ears: Vec<&Part> = parts
+            .iter()
+            .filter(|part| part.kind == Kind::Body && part.joint == Joint::Neck)
+            .filter(|part| part.from.z != 0.0)
+            .collect();
+        assert_eq!(ears.len(), 4);
+        assert!(mirrored(ears[0], ears[2]) && mirrored(ears[1], ears[3]));
+        assert!(parts
+            .iter()
+            .filter(|part| part.kind == Kind::Body && part.joint == Joint::Trunk)
+            .all(|part| part.from.z == 0.0 && part.to.z == 0.0));
+    }
+
+    /// A leg's sections from the top down, hair left out: the height of
+    /// each and where it stands.
+    fn leg_sections(parts: &[Part], leg: usize) -> Vec<(f32, f32)> {
+        let pieces: Vec<&Part> = parts
+            .iter()
+            .filter(|part| part.kind != Kind::Hair && part.joint == Joint::Leg(leg))
+            .collect();
+        let at = |section: &Section| (section.top[1], (section.top[0] + section.bottom[0]) / 2.0);
+        let mut sections = vec![at(&pieces[0].from)];
+        sections.extend(pieces.iter().map(|part| at(&part.to)));
+        sections
+    }
+
+    /// A leg is level sections at its landmarks, from the top down. A
+    /// foreleg is straight as far as the fetlock; a hind leg runs back from
+    /// the stifle to the hock and down from there.
+    #[test]
+    fn a_foreleg_is_straight_and_a_hind_leg_is_angled() {
+        let shape = HorseShape::load();
+        let mut rng = Rng::new(255);
+        for round in 0..300 {
+            let frame = match round {
+                0 => shape.base(1.0),
+                _ => shape.varied(1.0, &mut || rng.unit()),
+            };
+            let parts = frame.parts();
+            for (leg, &(is_fore, _)) in LEGS.iter().enumerate() {
+                let sections = leg_sections(&parts, leg);
+                assert!(sections.windows(2).all(|pair| pair[0].0 > pair[1].0), "{sections:?}");
+                let stands = |y: f32| {
+                    sections.iter().find(|section| close(section.0, y, 1.0)).map(|section| section.1)
+                };
+                assert!(stands(frame.fetlock).is_some() && stands(frame.hoof_top).is_some());
+                if is_fore {
+                    assert!(stands(frame.knee).is_some());
+                    let line = sections[0].1;
+                    assert!(sections
+                        .iter()
+                        .filter(|section| section.0 > frame.fetlock - 1e-4)
+                        .all(|section| close(section.1, line, 1.0)));
+                } else {
+                    let (stifle, hock) = (sections[1].1, stands(frame.hock).unwrap());
+                    assert!(hock < stifle - frame.bone, "a hock at {hock}, a stifle at {stifle}");
+                    assert!(sections
+                        .iter()
+                        .filter(|section| section.0 < frame.hock)
+                        .all(|section| (section.1 - hock).abs() < frame.bone));
+                }
+            }
+        }
+    }
 }
