@@ -1,0 +1,56 @@
+SESSION 2026-10-12 06:20 - the overnight soak
+
+ASKED
+  "Build in some debug lines so you can track information and then run the
+  game for the next six hours, then close it and process the logs to make
+  sure everything is moving as you'd expect. Drops and damage and
+  everything. Make sure the horses auto move between towns. Make this an
+  overnight process that I can run again in the future."
+  And, mid-turn: it must not need her help, because she would be asleep.
+
+DONE
+  - src/soak.rs. IDLE_SOAK=<file> writes every departure, line of the fight,
+    kill, outcome and arrival, and a minute's frame times and entity count.
+    IDLE_SOAK_SECS exits the game by itself. --soak-report FOLDER checks the
+    record and writes report.txt: it walks every trail again in the sim and
+    compares line for line, and checks coins, drops, rarities, the loot
+    shower's pieces, the wait in town, frame times, entities, memory and
+    what the game printed. (One test; 160 tests pass.)
+  - Uncollected counts pieces thrown, collected and left behind
+    (src/game/mod.rs, src/fx/drops.rs), for the record only.
+  - tools/soak.ps1 runs the whole of it unattended: build, launch, keep the
+    machine and screen awake, sample memory, close by process ID if the game
+    has not closed itself, report. procedures/overnight-soak.txt.
+  - Ran it: 3.5 minutes first (seen: "nothing wrong found"), then six hours
+    from 00:14 to 06:14 on commit a1aa405. The game closed itself, exit 0.
+
+    Six hours: 326 departures, 325 arrivals, each departure 12.00 to 12.03 s
+    after arriving. 325 won, 1 lost (the first). Level 324. Every trail
+    matched the sim. 22223 hits by the party, 6047 taken, 2284 kills.
+    Drops on won trails: Normal 116, Magic 112, Rare 44, Legendary 37,
+    Set 16, of 325, near the table. 8181 pieces thrown, 8181 collected,
+    none left. 7857 coins. Frame time 33.35 ms early and late; memory 510 MB
+    at five minutes, 497 MB at the end; entities 2217 early, 2234 late. No
+    warning or error printed.
+
+DECIDED (by the session, for her)
+  - "Between towns" was taken as town, trail, town, since there is one town.
+  - The run is muted and keeps the screen on, each with a switch.
+  - The record is under soak/, git-ignored.
+
+FOUND
+  - Nothing broken. One thing about the design: an idle party never loses
+    after its first drops, and gear outgrows the trail level without end
+    (#348, 0.3.1).
+  - The one worst frame of 250 ms is in the first minute, at launch.
+  - The game still runs at 30 frames a second, as noted before.
+  - src/ has files with LF and files with CRLF line endings.
+
+NOT DONE
+  - The soak has not been run with sound on.
+  - When towns stop leaving by themselves (#305) the soak must turn Keep
+    going on; the procedure says so, nothing does it yet.
+
+PICK UP
+  Read #348 with #224 and decide how gear and the trail level grow against
+  each other; then /next.
