@@ -130,6 +130,21 @@ pub struct Progress {
     pub skipped: bool,
 }
 
+/// What the list of lessons says of one (#300), in a word.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum State {
+    /// It is the one showing.
+    Showing,
+    /// The player watched or did what it is about.
+    Done,
+    /// The player put it away.
+    PutAway,
+    /// It became due with the lessons turned off, and is not shown.
+    Skipped,
+    /// It is shown when its turn comes and its target is there.
+    Waiting,
+}
+
 /// The lessons and how far the player is with each. Kept in memory only:
 /// saving it is #44.
 #[derive(Clone, Debug)]
@@ -138,9 +153,13 @@ pub struct Lessons {
     progress: Vec<Progress>,
     /// Every event that has happened, once.
     raised: Vec<Event>,
+    /// The lessons that have become due, in the order they came (#300).
+    came: Vec<usize>,
     /// The lesson that is showing: one at a time.
     showing: Option<usize>,
-    /// The player skipped them all: none is shown.
+    /// The lesson the player asked to see again, while it shows (#300).
+    asked: Option<usize>,
+    /// The player turned them off: none is shown unless asked for.
     off: bool,
 }
 
@@ -154,7 +173,9 @@ impl Lessons {
             progress: vec![Progress::default(); defs.len()],
             defs,
             raised: Vec::new(),
+            came: Vec::new(),
             showing: None,
+            asked: None,
             off: false,
         }
     }
@@ -163,11 +184,37 @@ impl Lessons {
         &self.defs
     }
 
-    /// How far the player is with a lesson. The Journal's list of them is
-    /// #300; until then only the tests ask.
+    /// How far the player is with a lesson.
     #[cfg(test)]
     pub fn progress(&self, lesson: usize) -> Progress {
         self.progress[lesson]
+    }
+
+    /// The lessons that have become due, in the order they came, whatever
+    /// became of each (#300). None is here before its event has happened.
+    pub fn listed(&self) -> &[usize] {
+        &self.came
+    }
+
+    /// What the list says of a lesson.
+    pub fn state(&self, lesson: usize) -> State {
+        let progress = self.progress[lesson];
+        if self.showing == Some(lesson) {
+            State::Showing
+        } else if progress.done {
+            State::Done
+        } else if progress.skipped {
+            State::PutAway
+        } else if self.off {
+            State::Skipped
+        } else {
+            State::Waiting
+        }
+    }
+
+    /// The lesson showing because the player asked for it again.
+    pub fn asked(&self) -> Option<usize> {
+        self.asked
     }
 
     /// Whether a lesson of this name is in the file.
@@ -176,6 +223,7 @@ impl Lessons {
     }
 
     /// The lesson that is showing.
+    #[cfg(test)]
     pub fn showing(&self) -> Option<&LessonDef> {
         self.showing.map(|lesson| &self.defs[lesson])
     }
@@ -197,7 +245,9 @@ impl Lessons {
         // Before anything becomes due: what makes a lesson due is never
         // what finishes it, in the same breath.
         for lesson in 0..self.defs.len() {
-            if !self.progress[lesson].due || self.progress[lesson].done {
+            // One asked for again is finished again by the same thing.
+            let again = self.asked == Some(lesson);
+            if !self.progress[lesson].due || (self.progress[lesson].done && !again) {
                 continue;
             }
             let finished = match self.defs[lesson].done {
@@ -207,32 +257,46 @@ impl Lessons {
             if finished {
                 self.progress[lesson].done = true;
                 if self.showing == Some(lesson) {
-                    self.showing = None;
+                    self.put_down();
                 }
             }
         }
         if !self.raised.contains(&event) {
             self.raised.push(event);
-            for (def, progress) in self.defs.iter().zip(&mut self.progress) {
-                progress.due |= def.due == event;
+            for (lesson, def) in self.defs.iter().enumerate() {
+                if def.due == event {
+                    self.progress[lesson].due = true;
+                    self.came.push(lesson);
+                }
             }
         }
     }
 
-    /// Whether a lesson could be shown now: it is due, neither done nor put
-    /// away, this is where it is shown, and its target is there.
-    fn fits(&self, lesson: usize, in_town: bool, found: &[Found]) -> bool {
-        let progress = self.progress[lesson];
-        let place = match self.defs[lesson].shown {
+    /// Nothing is showing.
+    fn put_down(&mut self) {
+        self.showing = None;
+        self.asked = None;
+    }
+
+    /// Whether this is where a lesson is shown.
+    pub fn shown_here(&self, lesson: usize, in_town: bool) -> bool {
+        match self.defs[lesson].shown {
             Shown::Anywhere => true,
             Shown::Town => in_town,
             Shown::Road => !in_town,
-        };
-        !self.off
-            && progress.due
-            && !progress.done
-            && !progress.skipped
-            && place
+        }
+    }
+
+    /// Whether a lesson could be shown now: it is due, this is where it is
+    /// shown, and its target is there; and it is neither done nor put away
+    /// nor turned off, unless the player asked for it.
+    fn fits(&self, lesson: usize, in_town: bool, found: &[Found]) -> bool {
+        let progress = self.progress[lesson];
+        let wanted = self.asked == Some(lesson)
+            || (!self.off && !progress.done && !progress.skipped);
+        progress.due
+            && wanted
+            && self.shown_here(lesson, in_town)
             && found.get(lesson).is_some_and(|found| *found != Found::Gone)
     }
 
@@ -244,7 +308,7 @@ impl Lessons {
     /// fits is shown. One showing is never pushed aside by another.
     pub fn show(&mut self, in_town: bool, found: &[Found]) -> Option<usize> {
         if self.showing.is_some_and(|lesson| !self.fits(lesson, in_town, found)) {
-            self.showing = None;
+            self.put_down();
         }
         if self.showing.is_none() {
             self.showing = (0..self.defs.len()).find(|&lesson| self.fits(lesson, in_town, found));
@@ -266,25 +330,55 @@ impl Lessons {
 
     /// The player put the lesson that is showing away. It is not shown
     /// again by itself, and is not counted as done.
+    #[cfg(test)]
     pub fn dismiss(&mut self) {
-        if let Some(lesson) = self.showing.take() {
-            self.progress[lesson].skipped = true;
+        if let Some(lesson) = self.showing {
+            self.put_away(lesson, true);
+        }
+    }
+
+    /// Whether a lesson is put away. One put away is not shown by itself;
+    /// one taken out again waits its turn as it did.
+    pub fn put_away(&mut self, lesson: usize, away: bool) {
+        self.progress[lesson].skipped = away;
+        if away && self.showing == Some(lesson) {
+            self.put_down();
         }
     }
 
     /// The player skipped them all: the one showing is put away and none is
     /// shown after it. They still become due and done.
+    #[cfg(test)]
     pub fn skip_all(&mut self) {
         self.dismiss();
         self.off = true;
     }
 
-    /// Lessons are shown again, those put away too (#300).
-    pub fn restore(&mut self) {
-        self.off = false;
-        for progress in &mut self.progress {
-            progress.skipped = false;
+    /// Lessons are turned off, or on again (#300). Off, the one showing
+    /// goes back to waiting and none is shown by itself; they still become
+    /// due and done, and are listed.
+    pub fn turn_off(&mut self, off: bool) {
+        self.off = off;
+        if off {
+            self.put_down();
         }
+    }
+
+    /// The player asks for a lesson again, from the list (#300): whether it
+    /// was done or put away, and with the lessons turned off. It is shown
+    /// now, in the place of any other, if this is where it is shown and its
+    /// target is there; otherwise nothing changes and false comes back. It
+    /// goes as any lesson does: when its thing is done, when it is put away,
+    /// or when its target is no longer there.
+    pub fn again(&mut self, lesson: usize, in_town: bool, found: Found) -> bool {
+        if !self.progress[lesson].due || !self.shown_here(lesson, in_town) || found == Found::Gone {
+            return false;
+        }
+        self.progress[lesson].skipped = false;
+        self.progress[lesson].seen = true;
+        self.showing = Some(lesson);
+        self.asked = Some(lesson);
+        true
     }
 }
 
@@ -514,9 +608,99 @@ mod tests {
         assert!(lessons.progress(1).due && !lessons.progress(1).seen);
         lessons.raise(Event::Equipped);
 
-        lessons.restore();
+        // Turned on again, the one put away stays away until it is taken
+        // out, and the other was done meanwhile.
+        lessons.turn_off(false);
+        assert_eq!(lessons.show(false, &HERE), None);
+        lessons.put_away(0, false);
         assert_eq!(lessons.show(false, &HERE), Some(0), "the one put away is shown again");
         lessons.raise(Event::Card);
         assert_eq!(lessons.show(false, &HERE), None, "the other was done meanwhile");
+    }
+
+    /// The list (#300): no lesson is in it before its event has happened;
+    /// each is there from then on, in the order it came and not the file's,
+    /// whatever became of it; and it says which of them was done, put away
+    /// or skipped.
+    #[test]
+    fn the_list_has_every_lesson_that_came_due_in_the_order_it_came() {
+        let mut lessons = Lessons::new(vec![
+            lesson("a", Event::Fight, Shown::Anywhere, Done::Did(Event::Card)),
+            lesson("b", Event::Kill, Shown::Anywhere, Done::Did(Event::Equipped)),
+            lesson("c", Event::Win, Shown::Anywhere, Done::Did(Event::Gear)),
+            lesson("d", Event::SetOut, Shown::Anywhere, Done::Did(Event::Gear)),
+        ]);
+        assert!(lessons.listed().is_empty(), "nothing has happened");
+        lessons.raise(Event::Kill);
+        lessons.raise(Event::Fight);
+        lessons.raise(Event::Kill);
+        assert_eq!(lessons.listed(), [1, 0], "in the order they came, once each");
+
+        assert_eq!(lessons.show(false, &HERE), Some(0));
+        assert_eq!([0, 1].map(|l| lessons.state(l)), [State::Showing, State::Waiting]);
+        lessons.dismiss();
+        lessons.raise(Event::Equipped);
+        assert_eq!([0, 1].map(|l| lessons.state(l)), [State::PutAway, State::Done]);
+
+        // Turned off: what comes due is listed and not shown.
+        lessons.turn_off(true);
+        lessons.raise(Event::Win);
+        assert_eq!(lessons.show(false, &HERE), None);
+        assert_eq!(lessons.listed(), [1, 0, 2]);
+        assert_eq!(lessons.state(2), State::Skipped);
+        assert_eq!([0, 1].map(|l| lessons.state(l)), [State::PutAway, State::Done], "the rest is readable");
+        lessons.turn_off(false);
+        assert_eq!(lessons.state(2), State::Waiting);
+        assert!(!lessons.listed().contains(&3), "its event has not happened");
+    }
+
+    /// A lesson asked for again (#300) is shown whether it was done or put
+    /// away, with the lessons off too, in the place of the one showing; not
+    /// before it is due, not where it is not shown, and not with its target
+    /// gone. It goes when its thing is done or it is put away, and does not
+    /// come back by itself.
+    #[test]
+    fn a_lesson_asked_for_is_shown_again() {
+        let mut lessons = Lessons::new(vec![
+            lesson("done", Event::Fight, Shown::Anywhere, Done::Did(Event::Card)),
+            lesson("away", Event::Fight, Shown::Town, Done::Did(Event::Equipped)),
+            lesson("later", Event::Win, Shown::Anywhere, Done::Did(Event::Gear)),
+            lesson("other", Event::Fight, Shown::Anywhere, Done::Did(Event::Gear)),
+        ]);
+        lessons.raise(Event::Fight);
+        lessons.raise(Event::Card);
+        assert_eq!(lessons.show(true, &HERE), Some(1));
+        lessons.dismiss();
+        assert_eq!(lessons.show(true, &HERE), Some(3));
+
+        assert!(!lessons.again(2, true, Found::Here), "not before it is due");
+        assert!(!lessons.again(1, false, Found::Here), "a town lesson on the road");
+        assert!(!lessons.again(0, true, Found::Gone), "its target is not there");
+        assert_eq!(lessons.show(true, &HERE), Some(3), "and nothing changed");
+
+        // One that was done: shown in the other's place, and still done.
+        assert!(lessons.again(0, true, Found::Here));
+        assert_eq!(lessons.show(true, &HERE), Some(0));
+        assert_eq!(lessons.state(0), State::Showing);
+        assert!(lessons.progress(0).done);
+        // Its thing done again finishes it again, and the other is back.
+        lessons.raise(Event::Card);
+        assert_eq!(lessons.show(true, &HERE), Some(3));
+        assert_eq!(lessons.state(0), State::Done);
+
+        // One put away, with the lessons off: shown, and put away again.
+        lessons.turn_off(true);
+        assert_eq!(lessons.show(true, &HERE), None);
+        assert!(lessons.again(1, true, Found::Here));
+        assert_eq!(lessons.show(true, &HERE), Some(1));
+        lessons.dismiss();
+        assert_eq!(lessons.show(true, &HERE), None);
+        assert_eq!(lessons.state(1), State::PutAway);
+
+        // It leaves with its target, and being done does not come back.
+        assert!(lessons.again(0, true, Found::Here));
+        assert_eq!(lessons.show(true, &[Found::Gone, Found::Here, Found::Here, Found::Here]), None);
+        assert_eq!(lessons.show(true, &HERE), None);
+        assert_eq!(lessons.asked(), None);
     }
 }

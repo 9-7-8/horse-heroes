@@ -577,6 +577,21 @@ fn plan_lesson(mut tour: ResMut<Tour>) {
         Step::Shot("a swap loses nothing".into()),
         Step::Key(KeyCode::Escape),
         Step::Shot("put away and nothing follows".into()),
+        // Found again (#300): the Journal's list, a press on the piece's
+        // row, and the switch in Settings.
+        Step::Key(KeyCode::KeyJ),
+        Step::Key(KeyCode::Digit4),
+        Step::Shot("every hint given is in the journal".into()),
+        Step::Key(KeyCode::ArrowDown),
+        Step::Key(KeyCode::ArrowDown),
+        Step::Key(KeyCode::ArrowDown),
+        Step::Enter,
+        Step::Shot("a press shows one again".into()),
+        Step::Key(KeyCode::KeyS),
+        Step::Control("Hints"),
+        Step::Shot("hints turned off in settings".into()),
+        Step::Key(KeyCode::KeyJ),
+        Step::Shot("the list is read with hints off".into()),
     ];
 }
 

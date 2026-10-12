@@ -169,6 +169,8 @@ pub enum Shows {
 pub enum Switch {
     /// The comparison's table has only the rows that differ (#349).
     ChangedOnly,
+    /// The hints are shown (#300). Off, none is shown by itself.
+    Hints,
 }
 
 /// What a tab shows, or a place without tabs. `Planned` is one whose system
@@ -183,6 +185,8 @@ pub enum Content {
     Report,
     /// Every piece the party has, worn or carried, in a grid by type (#308).
     Inventory,
+    /// Every hint that has been given, to show again (#300).
+    Hints,
 }
 
 impl Places {
@@ -559,11 +563,19 @@ impl Shell {
         self.hints_off = true;
     }
 
-    /// Hints are shown again, those put away too. Turning lessons back on
-    /// from the Journal is #300; until then this is the dev key's.
+    /// Hints are shown again, those put away too: the dev key's. The
+    /// player's own way is the Hints switch and the Journal's list (#300).
     pub fn forget_hints(&mut self) {
         self.dismissed.clear();
         self.hints_off = false;
+    }
+
+    /// The player asked for this hint again, from the Journal's list
+    /// (#300): it is shown in the place of any other, though it was put
+    /// away and though the hints are off, and is no longer put away.
+    pub fn show_again(&mut self, hint: Hint) {
+        self.dismissed.retain(|put_away| *put_away != hint.lesson);
+        self.hint = Some(hint);
     }
 
     /// Which rows the comparison's table has, pinned and under the pointer.
@@ -575,14 +587,22 @@ impl Shell {
     pub fn is_on(&self, switch: Switch) -> bool {
         match switch {
             Switch::ChangedOnly => self.rows == card::Rows::Changed,
+            Switch::Hints => !self.hints_off,
         }
     }
 
     /// A press of a switch (#349). Changed only does nothing while no
     /// piece's card is pinned in view, where it would change something the
-    /// player cannot see.
+    /// player cannot see. Hints off takes the one showing off its line
+    /// without putting it away (#300), so it is back when they are on.
     pub fn press_switch(&mut self, switch: Switch) {
         match switch {
+            Switch::Hints => {
+                self.hints_off = !self.hints_off;
+                if self.hints_off {
+                    self.finish_hint();
+                }
+            }
             Switch::ChangedOnly if self.hand().open.is_some() => {
                 self.rows = match self.rows {
                     card::Rows::All => card::Rows::Changed,
@@ -840,7 +860,16 @@ enum When {
     Reported,
     Held(Piece, usize),
     NoneHeld(usize),
+    /// In the list of hints (#300): while that many have been given, and
+    /// while none has.
+    Listed(usize),
+    NoneListed,
 }
+
+/// A hint in the Journal's list (#300), by its place in the list. A press
+/// shows it again on its control.
+#[derive(Component)]
+pub struct LessonRow(pub usize);
 
 /// A horse's gear on the Gear tab: there while it is the selected horse's,
 /// and no other horse's is (#314).
@@ -962,6 +991,10 @@ enum Fact {
     /// The heading of the fight log over the road, with its key.
     LogHeading,
     Footer,
+    /// A hint in the list: what it says, and under that what became of it,
+    /// where it applies and whether a press shows it now.
+    LessonWords(usize),
+    LessonLine(usize),
 }
 
 /// The fight log over the road scene (#306). It is out of the shell's
@@ -1005,7 +1038,7 @@ impl Plugin for ShellPlugin {
                     mark_chosen,
                     (mark_unseen, teach::teach, point_out, show_hint).chain(),
                     show_wearer,
-                    show_carried,
+                    (show_carried, mark_lessons).chain(),
                     show_hover_card,
                     picture::show_pictures,
                     show_reasons,
@@ -1273,7 +1306,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                                     Live(Fact::SelectedHorse),
                                                 ));
                                             }
-                                            spawn_content(tab_page, t, p, i, content, game.party.len());
+                                            spawn_content(tab_page, t, p, i, content, game.party.len(), game.lessons.defs().len());
                                             spawn_controls(tab_page, t, controls, Some(p), true);
                                         });
                                 }
@@ -1542,10 +1575,24 @@ fn spawn_content(
     tab: usize,
     content: Content,
     horses: usize,
+    lessons: usize,
 ) {
     match content {
         Content::Planned => {
             page.spawn(reason(t, "This page is not built yet."));
+        }
+        Content::Hints => {
+            // A row for every lesson there is, and those that have been
+            // given show, in the order they came (#300). A row is a
+            // control: a press shows its hint again.
+            page.spawn((dim(t, NO_HINTS), When::NoneListed));
+            for row in 0..lessons {
+                page.spawn((cell(t), LessonRow(row), When::Listed(row)))
+                    .with_children(|cell| {
+                        cell.spawn((text(t, ""), Live(Fact::LessonWords(row))));
+                        cell.spawn((dim(t, ""), Live(Fact::LessonLine(row))));
+                    });
+            }
         }
         Content::Element => {
             page.spawn((text(t, ""), Live(Fact::Element)));
@@ -1769,7 +1816,7 @@ fn spawn_horse_parts(parent: &mut ChildSpawnerCommands, t: &Tokens, map: &Places
         ))
         .with_children(|parts| {
             for (tab, page) in place.tabs.iter().enumerate() {
-                if matches!(page.content, Content::Report | Content::Inventory) {
+                if matches!(page.content, Content::Report | Content::Inventory | Content::Hints) {
                     continue;
                 }
                 let keys: Vec<&str> =
@@ -1878,17 +1925,19 @@ fn on_activate(
     slots: Query<&SlotRow>,
     cells: (Query<&CarriedCell>, Query<&ReportedCell>),
     closes: Query<(), With<ClosePanel>>,
-    hints: (Query<(), With<DismissHint>>, Query<(), With<SkipHints>>),
+    hints: (Query<(), With<DismissHint>>, Query<(), With<SkipHints>>, Query<&LessonRow>),
     controls: Query<&ControlButton>,
 ) {
     let (carried, reported) = cells;
     let (horses, parts) = horses;
-    let (dismisses, skips) = hints;
+    let (dismisses, skips, listed) = hints;
     let entity = activate.entity;
     if dismisses.contains(entity) {
         shell.dismiss_hint();
     } else if skips.contains(entity) {
         shell.skip_hints();
+    } else if let Ok(row) = listed.get(entity) {
+        teach::again(&mut game, &mut shell, &map, row.0);
     } else if let Ok(place) = places.get(entity) {
         shell.press(place.0, game.in_town());
     } else if let Ok(tab) = tabs.get(entity) {
@@ -2869,6 +2918,7 @@ fn show_wearer(shell: Res<Shell>, mut horses: Query<(&Wearer, &mut Node, &mut Vi
 /// report while the party has it. A cell of the Inventory is in its type's
 /// group while its piece is held, and the group says so while it is empty.
 fn show_carried(game: Res<Game>, mut parts: Query<(&When, &mut Node, &mut Visibility)>) {
+    let listed = game.lessons.listed().len();
     let carried = game.pending_drop().is_some();
     let reported = game.reported_piece().is_some();
     let held: Vec<Vec<Piece>> = (0..Slot::ALL.len()).map(|slot| held(&game, slot)).collect();
@@ -2878,6 +2928,8 @@ fn show_carried(game: Res<Game>, mut parts: Query<(&When, &mut Node, &mut Visibi
             When::Reported => reported,
             When::Held(piece, slot) => held[slot].contains(&piece),
             When::NoneHeld(slot) => held[slot].is_empty(),
+            When::Listed(row) => row < listed,
+            When::NoneListed => listed == 0,
         };
         let wanted = if shown { Display::Flex } else { Display::None };
         if node.display != wanted {
@@ -2891,6 +2943,35 @@ fn show_carried(game: Res<Game>, mut parts: Query<(&When, &mut Node, &mut Visibi
         };
         if *visibility != wanted {
             *visibility = wanted;
+        }
+    }
+}
+
+/// What the list of hints says while none has been given (#300).
+const NO_HINTS: &str = "No hint has been given yet. Each one is listed here once it has, to show again.";
+
+/// A hint in the list is marked while it is the one showing, and is
+/// unavailable while a press cannot show it: its line says why (#300).
+fn mark_lessons(
+    mut commands: Commands,
+    game: Res<Game>,
+    shell: Res<Shell>,
+    map: Res<Places>,
+    rows: Query<(Entity, &LessonRow, Has<Selected>, Has<InteractionDisabled>)>,
+) {
+    for (entity, row, selected, disabled) in &rows {
+        let listed = teach::listed(&game, &map, shell.horse(), row.0);
+        let showing = listed.as_ref().is_some_and(|listed| listed.showing);
+        let blocked = listed.is_some_and(|listed| !listed.can);
+        if showing && !selected {
+            commands.entity(entity).insert(Selected);
+        } else if !showing && selected {
+            commands.entity(entity).remove::<Selected>();
+        }
+        if blocked && !disabled {
+            commands.entity(entity).insert(InteractionDisabled);
+        } else if !blocked && disabled {
+            commands.entity(entity).remove::<InteractionDisabled>();
         }
     }
 }
@@ -3160,6 +3241,13 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::Report => report_text(game).trim_end().into(),
         Fact::ReportSide => report_side(game).trim_end().into(),
         Fact::LogHeading => log_heading(map, shell.log_hidden()),
+        Fact::LessonWords(row) | Fact::LessonLine(row) => {
+            match (teach::listed(game, map, shell.horse(), row), fact) {
+                (Some(listed), Fact::LessonWords(_)) => listed.words,
+                (Some(listed), _) => listed.line,
+                (None, _) => String::new(),
+            }
+        }
         Fact::Footer => match &game.screen {
             // The tracker beside it shows the trail's fights. No town
             // leaves by itself, so there is no countdown, unless Keep going
@@ -3203,7 +3291,7 @@ fn horse_part(game: &Game, map: &Places, horse: usize, tab: usize) -> String {
                 game.element.name()
             ),
             Content::Planned => format!("Not built yet. {}", tab.job),
-            Content::Report | Content::Inventory => String::new(),
+            Content::Report | Content::Inventory | Content::Hints => String::new(),
         },
         None => String::new(),
     }
@@ -3449,6 +3537,51 @@ mod tests {
 
         shell.forget_hints();
         assert!(shell.raise_hint(a_hint("first", About::Place(0))));
+
+        // Asked for again (#300): shown though it was put away and though
+        // the hints are off, in the place of the one showing, and it is no
+        // longer put away.
+        assert!(shell.dismiss_hint() && shell.put_away("first"));
+        shell.skip_hints();
+        shell.show_again(a_hint("first", About::Place(0)));
+        assert_eq!(shell.hint().map(|hint| hint.lesson.as_str()), Some("first"));
+        assert!(!shell.put_away("first") && shell.hints_off());
+    }
+
+    /// Hints (#300) is one switch, in Settings, on in a new game. Off, the
+    /// hint showing goes without being put away and none is raised; on
+    /// again, it can be. Skip all hints turns the same switch off. It
+    /// changes nothing in the game, and the Journal has the list on a tab.
+    #[test]
+    fn hints_are_turned_off_and_on_in_settings() {
+        let places = Places::load();
+        let switches: Vec<&Control> = places
+            .controls()
+            .iter()
+            .filter(|control| control.switch == Some(Switch::Hints))
+            .collect();
+        assert_eq!(switches.len(), 1);
+        assert!(places.settings.controls.iter().any(|control| control.id == switches[0].id));
+        let lists = places
+            .pages()
+            .flat_map(|page| &page.tabs)
+            .filter(|tab| tab.content == Content::Hints)
+            .count();
+        assert_eq!(lists, 1, "one list of hints");
+
+        let mut shell = Shell::new(places.pages().count());
+        assert!(shell.is_on(Switch::Hints));
+        assert!(shell.raise_hint(a_hint("first", About::Place(0))));
+        shell.press_switch(Switch::Hints);
+        assert!(!shell.is_on(Switch::Hints) && shell.hint().is_none());
+        assert!(!shell.put_away("first"), "turned off is not put away");
+        assert!(!shell.raise_hint(a_hint("first", About::Place(0))));
+        shell.press_switch(Switch::Hints);
+        assert!(shell.is_on(Switch::Hints));
+        assert!(shell.raise_hint(a_hint("first", About::Place(0))));
+
+        shell.skip_hints();
+        assert!(!shell.is_on(Switch::Hints) && shell.put_away("first"));
     }
 
     /// A hint names its control as the control names itself, and prints
@@ -3829,11 +3962,13 @@ mod tests {
     #[test]
     fn changed_only_is_one_switch_for_every_piece_and_place() {
         let places = Places::load();
-        let switches: Vec<&Control> =
-            places.controls().iter().filter(|control| control.switch.is_some()).collect();
+        let switches: Vec<&Control> = places
+            .controls()
+            .iter()
+            .filter(|control| control.switch == Some(Switch::ChangedOnly))
+            .collect();
         assert_eq!(switches.len(), 1);
         let control = switches[0];
-        assert_eq!(control.switch, Some(Switch::ChangedOnly));
         assert!(places.card.iter().any(|on_card| on_card.id == control.id), "it is on the card");
         assert!(control.built() && control.action.is_none() && control.shows.is_none());
         let key = control.key.as_deref().expect("its key is printed on it");
@@ -4060,13 +4195,13 @@ mod tests {
     }
 
     /// Every page has at least one control planned for it. The Inventory's
-    /// controls are its cells (#308).
+    /// controls are its cells (#308), and the list of hints' its rows (#300).
     #[test]
     fn every_page_has_its_controls() {
         for place in Places::load().pages() {
             for (heading, _, content, controls) in place.pages() {
                 assert!(
-                    !controls.is_empty() || content == Content::Inventory,
+                    !controls.is_empty() || matches!(content, Content::Inventory | Content::Hints),
                     "{heading} has no controls"
                 );
             }

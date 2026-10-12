@@ -10,7 +10,7 @@ use bevy::prelude::*;
 
 use super::shell::{About, Hint, Places, Shell};
 use crate::game::{Game, Piece};
-use crate::sim::lessons::{Event, Found, Target};
+use crate::sim::lessons::{Event, Found, Shown, State, Target};
 
 /// Where a lesson's target is now: the control its mark goes on, and
 /// whether that is where the lesson's words expect it. None when it is not
@@ -63,14 +63,13 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
     }
     *held = Held { card: open, horse: hand.horse };
 
-    if shell.hints_off() != game.lessons.is_off() {
-        match shell.hints_off() {
-            true => game.lessons.skip_all(),
-            false => game.lessons.restore(),
-        }
+    // What is put away, and whether hints are off, is the shell's to say.
+    let away: Vec<bool> = game.lessons.defs().iter().map(|def| shell.put_away(&def.id)).collect();
+    for (lesson, away) in away.into_iter().enumerate() {
+        game.lessons.put_away(lesson, away);
     }
-    if game.lessons.showing().is_some_and(|def| shell.put_away(&def.id)) {
-        game.lessons.dismiss();
+    if shell.hints_off() != game.lessons.is_off() {
+        game.lessons.turn_off(shell.hints_off());
     }
 
     let found: Vec<Option<(About, Found)>> = game
@@ -97,11 +96,101 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
     match wanted {
         Some(hint) if shell.hint() != Some(&hint) && (ours || shell.hint().is_none()) => {
             shell.finish_hint();
-            shell.raise_hint(hint);
+            // One the player asked for is shown though hints are off.
+            match game.lessons.asked().is_some() {
+                true => shell.show_again(hint),
+                false => {
+                    shell.raise_hint(hint);
+                }
+            }
         }
         None if ours => shell.finish_hint(),
         _ => {}
     }
+}
+
+/// What a lesson's target is called in the list of hints, there or not.
+fn target_name(target: &Target, game: &Game) -> String {
+    match target {
+        Target::Place(name) | Target::Control(name) | Target::Tab(_, name) => name.clone(),
+        Target::Horse(horse) => match game.party.get(*horse) {
+            Some(horse) => horse.name.clone(),
+            None => "a horse".into(),
+        },
+        Target::Selected => "the selected horse".into(),
+        Target::Drop => "the newest piece".into(),
+    }
+}
+
+/// A hint as the Journal's list has it (#300).
+pub struct Listed {
+    /// Its one line, as it would be said now.
+    pub words: String,
+    /// What became of it, where it applies, and whether a press shows it.
+    pub line: String,
+    /// It is the one showing.
+    pub showing: bool,
+    /// A press shows it again now.
+    pub can: bool,
+}
+
+/// The hint at a row of the list: the lessons that have become due, in the
+/// order they came. None when the list is not that long.
+pub fn listed(game: &Game, map: &Places, selected: usize, row: usize) -> Option<Listed> {
+    let lesson = *game.lessons.listed().get(row)?;
+    let def = &game.lessons.defs()[lesson];
+    let found = find(&def.target, map, game, selected).map(|(_, found)| found);
+    let here = game.lessons.shown_here(lesson, game.in_town());
+    let state = game.lessons.state(lesson);
+    let showing = state == State::Showing;
+    let became = match state {
+        State::Showing => "Showing now",
+        State::Done => "Done",
+        State::PutAway => "Put away",
+        State::Skipped => "Skipped, with hints off",
+        State::Waiting => "Waiting its turn",
+    };
+    let place = match def.shown {
+        Shown::Anywhere => "Anywhere",
+        Shown::Town => "In town",
+        Shown::Road => "On the road",
+    };
+    let press = match (showing, here, found) {
+        (true, ..) => "",
+        (_, false, _) if def.shown == Shown::Town => " A press shows it again in town.",
+        (_, false, _) => " A press shows it again on the road.",
+        (_, _, None) => " What it is about is not there now.",
+        _ => " A press shows it again.",
+    };
+    Some(Listed {
+        words: game.lessons.words(lesson, found.unwrap_or(Found::Here)).into(),
+        line: format!("{became}. {place}, on {}.{press}", target_name(&def.target, game)),
+        showing,
+        can: !showing && here && found.is_some(),
+    })
+}
+
+/// A press on a row of the list (#300): its hint is shown again, on its
+/// control, if this is where it is shown and that control is there now.
+/// Otherwise nothing changes, and the row's line has said why.
+pub fn again(game: &mut Game, shell: &mut Shell, map: &Places, row: usize) -> bool {
+    let Some(&lesson) = game.lessons.listed().get(row) else {
+        return false;
+    };
+    let def = &game.lessons.defs()[lesson];
+    let Some((about, found)) = find(&def.target, map, game, shell.horse()) else {
+        return false;
+    };
+    let in_town = game.in_town();
+    if !game.lessons.again(lesson, in_town, found) {
+        return false;
+    }
+    shell.show_again(Hint {
+        lesson: game.lessons.defs()[lesson].id.clone(),
+        about,
+        words: game.lessons.words(lesson, found).into(),
+    });
+    true
 }
 
 pub fn teach(
@@ -483,6 +572,90 @@ mod tests {
         shell.finish_hint();
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("piece"));
+    }
+
+    /// The Journal's list (#300), with a player at it. No hint is listed
+    /// before its event has happened. One put away is listed and a press
+    /// shows it again; one done too. With hints turned off none is shown,
+    /// the list is still read, and a press still shows one. A row says why
+    /// a press cannot show it, and then the press changes nothing.
+    #[test]
+    fn a_hint_is_found_again_in_the_journal() {
+        let map = Places::load();
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        game.lessons = lessons();
+        let row = |game: &Game, row: usize| listed(game, &map, 0, row);
+        assert!(row(&game, 0).is_none(), "nothing has happened");
+
+        // The piece's lesson comes due, shows, and is put away.
+        game.lessons.raise(Event::Gear);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some("piece"));
+        let first = row(&game, 0).expect("it is listed once it is due");
+        assert!(first.showing && !first.can);
+        assert!(first.line.starts_with("Showing now. In town, on "), "{}", first.line);
+        assert!(row(&game, 1).is_none(), "one event, one lesson");
+        assert!(shell.dismiss_hint());
+        follow(&mut game, &mut shell, &map, &mut held);
+        let first = row(&game, 0).unwrap();
+        assert_eq!(first.words, "piece.");
+        assert!(first.can && first.line.starts_with("Put away. "), "{}", first.line);
+        assert!(first.line.ends_with("A press shows it again."), "{}", first.line);
+
+        // A press: it is on the piece again, and is no longer put away.
+        assert!(again(&mut game, &mut shell, &map, 0));
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some("piece"));
+        assert_eq!(shell.hint().unwrap().about, About::Piece(Piece::Carried));
+        assert!(!shell.put_away("piece"));
+
+        // Its thing done: the next comes due, and the first is listed done.
+        open_carried(&mut shell);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some("equip"));
+        assert!(row(&game, 0).unwrap().line.starts_with("Done. "));
+        assert!(row(&game, 1).unwrap().showing);
+
+        // Hints turned off: none shows, the list is read, a press shows one.
+        shell.press_switch(crate::game::menu::shell::Switch::Hints);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None);
+        assert!(game.lessons.is_off());
+        let second = row(&game, 1).unwrap();
+        assert!(second.can && second.line.starts_with("Skipped, with hints off. "), "{}", second.line);
+        game.lessons.raise(Event::Fight);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None, "a new hint with hints off");
+        assert!(row(&game, 2).is_some(), "and it is listed");
+        assert!(again(&mut game, &mut shell, &map, 0), "one that was done");
+        follow(&mut game, &mut shell, &map, &mut held);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some("piece"), "asked for, though hints are off");
+        assert!(shell.dismiss_hint());
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None);
+
+        // The road's lesson cannot be shown in town, and says so.
+        let road = row(&game, 2).unwrap();
+        assert!(!road.can && road.line.ends_with("A press shows it again on the road."), "{}", road.line);
+        let before = shell.clone();
+        assert!(!again(&mut game, &mut shell, &map, 2));
+        assert!(!again(&mut game, &mut shell, &map, 9), "no such row");
+        assert_eq!(shell, before);
+
+        // On the road it can, and the town's cannot.
+        game.act(Action::SetOut, Hand::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(row(&game, 2).unwrap().can);
+        let town = row(&game, 1).unwrap();
+        assert!(!town.can && town.line.ends_with("A press shows it again in town."), "{}", town.line);
+        assert!(again(&mut game, &mut shell, &map, 2));
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some("fight"));
     }
 
     /// The lessons of the file itself, in a first town with a piece (#296),
