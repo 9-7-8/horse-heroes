@@ -26,7 +26,7 @@ record-a-design-change.txt  "I want to change", "let's scrap that"
                       Put a design change the owner states in chat into
                       vision.md and the issues it touches.
 
-next-thing.txt        "next thing", "keep going", "build the next part"
+next-thing.txt        /next, "next thing", "keep going", "build the next part"
                       Pick one thing and start: bugs first, then tests, then
                       the next feature issue of the earliest release.
 
