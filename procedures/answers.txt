@@ -1,0 +1,99 @@
+ANSWERS
+=======
+Starts on: /answers, "ask me something", "what do you need from me",
+           "what's still open".
+Leaves:    one open question answered by the owner, her answer in
+           docs/philosophy/vision.md and committed, every issue it touches
+           brought up to date, new issues for any code it changes, and the
+           session ended.
+
+One question a run. It records a decision; it does not build one. The work an
+answer creates is filed, and /next picks it up by its order.
+
+BEFORE ASKING
+  - git status. A dirty tree is finished or set aside first.
+  - Read the "Open" section of docs/philosophy/vision.md.
+
+PICK ONE QUESTION
+1. Open issues labelled "decision":
+       gh issue list --repo 9-7-8/horse-heroes --label decision --state open
+   Earliest release milestone first; inside a release an issue labelled
+   "menus" first, then the lowest number. Inside the issue, the first
+   numbered question that has no answer yet, taking those the issue marks as
+   needed for its release before those it marks for later. Read the issue's
+   comments: a question answered there is answered.
+
+2. No decision question left: the open issues labelled "proposed" of the
+   earliest release milestone with open issues, and of no later release
+   (vision.md: proposed issues are ruled on per release). Lowest number
+   first. The question is whether she confirms the proposal as written.
+
+3. Neither: say so in one line and stop. Do not invent a question, do not
+   ask about numbers (those are tuning and go on the implementing issue),
+   and do not end a session nothing happened in.
+
+A steer given with the command (an issue number, a subject) narrows the pick
+to that issue or subject; it is still one question.
+
+ASK IT
+  - Read what the question rests on first: the issue, the docs/philosophy/
+    file it cites, the docs/source/ document behind it, and the code or data
+    it is about, so every option is one that can be built.
+  - One call of the question tool, one question. The recommendation first,
+    marked "(Recommended)"; two to four options, each saying what it means
+    for what gets built. Say which issue and which numbered question it is.
+  - If her answer is a question back, or shows the question was wrong,
+    answer or fix it and ask once more. It is still the same question.
+  - If she declines to answer, record nothing and stop.
+
+RECORD THE ANSWER
+1. vision.md: the answer in a dated section or line, in her words where
+   possible, marked confirmed. Mark the older line it replaces as replaced;
+   do not delete her history. Bring the "Open" section up to date. Where
+   another philosophy file now disagrees, a short dated note at its top
+   pointing at vision.md.
+
+2. Commit the docs, with a message naming the question and the answer. This
+   commit is the record of her decision; make it before touching issues.
+
+3. Issues, on 9-7-8/horse-heroes:
+   - the decision issue: a comment giving the question, her answer and the
+     commit. Close it when every question its "Done when" asks for has an
+     answer; otherwise leave it open and say which are left;
+   - a "proposed" issue she confirmed: remove the label, and a dated
+     "Confirmed" line. One she refused: close it as not planned, saying why;
+   - an issue whose whole point changed: rewrite the body, with a dated
+     "Revised" line saying what it was;
+   - an issue that only reads differently: a comment saying how to read it;
+   - an issue made pointless: close it as not planned, saying what replaced
+     it.
+
+4. New issues, when the answer means code or data must change and no issue
+   covers it: one feature per issue (why, citing the philosophy file; what;
+   done when), with its release milestone and vX.Y.Z label, linked under its
+   epic, and labelled "menus" when it changes a menu. Something the game
+   does today that the answer makes wrong is a "bug". From 0.2.2 on, a
+   feature issue's "Done when" names its lesson (CLAUDE.md, rule 5).
+   Do not write the code in this run.
+
+THEN END THE SESSION
+  Run end-session.txt without being asked. One question, one session: do not
+  roll on into the next question or into building the answer.
+
+REPORT
+  The question, her answer, and the issues changed, closed and opened, by
+  number. Anything assumed without asking.
+
+NOTES
+  - gh with issue text inline has failed to parse in this tool. Write a small
+    Python script to the temp folder that calls gh through subprocess, and
+    run that (record-a-design-change.txt, NOTES).
+  - Create an issue before anything that cites its number.
+
+DO NOT
+  - Ask more than one question, or fold two into one.
+  - Offer an option that has not been checked against the code and the
+    confirmed rules in vision.md.
+  - Record a recommendation as her answer. Only what she chose is confirmed.
+  - Put a later release's proposed issues to her early.
+  - Push before the answer is recorded. end-session.txt pushes.
