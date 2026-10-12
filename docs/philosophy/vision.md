@@ -570,6 +570,14 @@ Set are the tiers with a beam.
   coins when done, "like clicking or equipping an item" (#303). A short list
   for the first town, kept as data so a later feature can add its entry; not
   a general quest system.
+- **The first trail of a new game is authored** (confirmed 2026-10-11, #289
+  question 2). One fixed plan kept as data: the same fights, enemy elements
+  and first drop for every new game, whatever the seed, under the ordinary
+  combat rules, ordered so each of the three abilities is seen and the drop
+  is a plain upgrade. The generator takes over from the second trail (#294,
+  designed in #293). She chose this over a first trail rolled from a gentle
+  pool and over one rolled like any other. Whether it can be lost is a
+  separate question and still open (#289, question 3).
 - The opening is release 0.2.2 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
@@ -715,7 +723,10 @@ length, purity gained per boss, which pet abilities come first.
 leaves to flesh out (#316: how complex a signature may be, each breed's
 pools; #267: the colour genetics of a breed, the body loci, which gait
 boosts what in a pet), and the tactics proposal, which is advice she handed
-over and not yet her decision (#338, [tactics.md](tactics.md)).
+over and not yet her decision (#338, [tactics.md](tactics.md)). Of the
+opening (#289), two questions are left for 0.2.2: whether the tutorial trail
+can be lost (3), and whether lessons play again on every launch until saving
+exists (5).
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,
