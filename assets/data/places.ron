@@ -11,8 +11,10 @@
 //             no action or shows is not built: it is drawn as unavailable, and a
 //             press says so and says what it will do.
 //   proposed  the issue is a proposal the owner has not decided.
-//   action    what it does today: Element(Fire), Equip, SetOut, Undo,
-//             Earlier, Later.
+//   action    what it does today: Element(Fire), Equip, SetOut, KeepGoing,
+//             Undo, Earlier, Later.
+//   note      a line that stays under its group of controls, whether or
+//             not it can be used.
 //   shows     what a press opens in the side panel of its page: Keys.
 //   switch    what a press turns on and off, of what is shown and not of the
 //             game: ChangedOnly. It is marked as chosen while it is on.
@@ -171,6 +173,9 @@
             key: "M",
             job: "Destination, route options, the itinerary, and what is restored.",
             controls: [
+                // Stands in for the itinerary (#305) and goes when #201
+                // ships. Nothing else may come to depend on it.
+                (name: "Keep going", does: "On, the party leaves town by itself after the usual time, for the one trail there is, until it is turned off or a trail is lost.", action: KeepGoing, key: "G", note: "Keep going stands in for the itinerary, which is not built yet. Off, the party waits in town for Set out."),
                 (name: "Choose destination", does: "Picks a city, and shows the route to it before the party leaves.", issue: 156),
                 (name: "Route", does: "Chooses between the safest, the fastest and a balanced route.", issue: 157, proposed: true),
                 (name: "Add to itinerary", does: "Queues a destination for the party to leave for by itself.", issue: 201),

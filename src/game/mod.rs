@@ -13,7 +13,8 @@ pub mod scene;
 
 /// Sim step. Fixed, so a run does not depend on the frame rate.
 pub const TICK: f32 = 0.1;
-/// Seconds the camp screen waits before setting out by itself.
+/// Seconds a town visit lasts before the party sets out by itself, while
+/// Keep going is on (#305). With it off no town leaves by itself.
 pub const CAMP_SECS: f32 = 12.0;
 
 /// Which of the two layouts the window is in, and how far between them: 0 is
@@ -102,11 +103,16 @@ pub struct GamePlugin {
     pub seed: u64,
     /// Start with the horses' hair hidden (`--bare`). F5 toggles it.
     pub bare: bool,
+    /// Start with Keep going on (`--keep-going`), so that a run nobody is
+    /// at leaves town at a known time. A new game has it off.
+    pub keep_going: bool,
 }
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Game::new(self.seed))
+        let mut game = Game::new(self.seed);
+        game.keep_going = self.keep_going;
+        app.insert_resource(game)
             .init_resource::<SceneView>()
             .init_resource::<Uncollected>()
             .add_message::<Killed>()
@@ -128,6 +134,10 @@ pub enum Action {
     /// horse wears in that slot.
     Equip,
     SetOut,
+    /// Turn Keep going on or off (#305): on, the party leaves town by
+    /// itself after the usual time, until it is turned off or a trail is
+    /// lost. It stands in for the itinerary (#201) and goes when that ships.
+    KeepGoing,
     /// Take back the last change made during this town visit (#230).
     Undo,
     /// Open the report before the one the Journal shows, or the one after
@@ -205,6 +215,8 @@ pub enum Screen {
     Camp {
         last: Option<Outcome>,
         note: String,
+        /// Seconds before the party leaves by itself. It runs only while
+        /// Keep going is on.
         countdown: f32,
     },
     Trail(Expedition),
@@ -241,6 +253,8 @@ pub struct Game {
     /// report read. Neither raises a mark again (#232).
     seen_drop: u32,
     seen_report: u32,
+    /// Whether the party leaves town by itself (#305). Off in a new game.
+    keep_going: bool,
 }
 
 impl Game {
@@ -265,6 +279,7 @@ impl Game {
             reading: None,
             seen_drop: 0,
             seen_report: 0,
+            keep_going: false,
             data,
         }
     }
@@ -399,6 +414,35 @@ impl Game {
             .map(|walked| (self.data.rules.travel_secs - walked).max(0.0))
     }
 
+    /// Whether Keep going is on: the party leaves town by itself.
+    pub fn keep_going(&self) -> bool {
+        self.keep_going
+    }
+
+    /// Seconds before the party leaves town by itself. None on the road,
+    /// and while Keep going is off: it waits for the player.
+    pub fn leaving_in(&self) -> Option<f32> {
+        match &self.screen {
+            Screen::Camp { countdown, .. } if self.keep_going => Some(countdown.max(0.0)),
+            _ => None,
+        }
+    }
+
+    /// Time passing in town. No town leaves by itself (#305): the party
+    /// stands at the gate until the player sets out, unless Keep going is
+    /// on, and then it leaves after the usual time.
+    fn wait_in_town(&mut self, dt: f32) {
+        let keep_going = self.keep_going;
+        if let Screen::Camp { countdown, .. } = &mut self.screen
+            && keep_going
+        {
+            *countdown -= dt;
+            if *countdown <= 0.0 {
+                self.depart();
+            }
+        }
+    }
+
     /// Dev aid: start the wait in town again, so the menu tour can finish
     /// its walk round town before the party leaves by itself.
     pub fn hold_in_town(&mut self) {
@@ -524,7 +568,11 @@ impl Game {
             return Err("In town only.");
         };
         match action {
-            Action::Element(_) | Action::SetOut | Action::Earlier | Action::Later => Ok(()),
+            Action::Element(_)
+            | Action::SetOut
+            | Action::KeepGoing
+            | Action::Earlier
+            | Action::Later => Ok(()),
             Action::Undo if self.changes.is_empty() => Err("Nothing changed this visit."),
             Action::Undo => Ok(()),
             Action::Equip => {
@@ -617,6 +665,12 @@ impl Game {
                 }
             }
             Action::SetOut => self.depart(),
+            // Not a change to undo: a second press takes it back. The
+            // usual time is counted from the press that turns it on.
+            Action::KeepGoing => {
+                self.keep_going = !self.keep_going;
+                self.hold_in_town();
+            }
             Action::Undo => self.undo(),
             // By its number, so the report being read stays the one being
             // read when the party leaves or arrives.
@@ -666,6 +720,9 @@ impl Game {
         self.coins += outcome.coins;
         if outcome.won {
             self.level += 1;
+        } else {
+            // After a failed journey the party waits in town (pillar 2).
+            self.keep_going = false;
         }
         // The report is kept: it is in the Journal after the party has
         // moved on, and never has to be read first (#231).
@@ -716,12 +773,7 @@ pub fn advance(
     let game = &mut *game;
     let dt = time.delta_secs();
     match &mut game.screen {
-        Screen::Camp { countdown, .. } => {
-            *countdown -= dt;
-            if *countdown <= 0.0 {
-                game.depart();
-            }
-        }
+        Screen::Camp { .. } => game.wait_in_town(dt),
         Screen::Trail(expedition) => {
             let mut fell = false;
             game.accumulator += dt;
@@ -1010,6 +1062,7 @@ mod tests {
             Action::Element(Element::Fire),
             Action::Equip,
             Action::SetOut,
+            Action::KeepGoing,
             Action::Undo,
         ] {
             assert_eq!(game.can(action, Hand::default()), Err("In town only."));
@@ -1411,6 +1464,67 @@ mod tests {
         game.party[0].gear[slot] = None;
         assert_eq!(game.reported_piece(), None);
         assert!(report_text(&game).contains("The party no longer has it."));
+    }
+
+    /// Keep going (#305): off in a new game, so no town leaves by itself;
+    /// on, the usual time is counted from the press; a lost trail turns it
+    /// off, and a won one leaves it on. It is nothing to undo.
+    #[test]
+    fn keep_going_is_off_until_pressed_and_after_a_lost_trail() {
+        let none = Hand::default();
+        let mut game = Game::new(6);
+        assert!(!game.keep_going());
+        assert_eq!(game.leaving_in(), None);
+        assert_eq!(game.can(Action::KeepGoing, none), Ok(()));
+
+        // Left for an hour, the party is still at the gate.
+        for _ in 0..36_000 {
+            game.wait_in_town(TICK);
+        }
+        assert!(game.in_town());
+
+        game.act(Action::KeepGoing, none);
+        assert!(game.keep_going());
+        assert_eq!(game.leaving_in(), Some(CAMP_SECS));
+        // On, it leaves after the usual time and not before.
+        let mut on = Game::new(6);
+        on.act(Action::KeepGoing, none);
+        on.wait_in_town(CAMP_SECS - 0.5);
+        assert!(on.in_town());
+        on.wait_in_town(1.0);
+        assert!(!on.in_town());
+        assert_eq!(game.can(Action::Undo, none), Err("Nothing changed this visit."));
+        game.act(Action::KeepGoing, none);
+        assert!(!game.keep_going());
+        assert_eq!(game.leaving_in(), None);
+
+        // Trail after trail, from one seed and the next, until one has
+        // been won and one lost.
+        let (mut won, mut lost) = (false, false);
+        for trail in 0..3000 {
+            if won && lost {
+                break;
+            }
+            if trail % 300 == 0 {
+                game = Game::new(trail / 300);
+                game.act(Action::KeepGoing, none);
+            }
+            game.depart();
+            assert_eq!(game.leaving_in(), None, "on the road");
+            game.act(Action::KeepGoing, none);
+            assert!(game.keep_going(), "it is pressed in town only");
+            walk_home(&mut game);
+            if game.reports.last().unwrap().outcome.won {
+                won = true;
+                assert_eq!(game.leaving_in(), Some(CAMP_SECS));
+            } else {
+                lost = true;
+                assert!(!game.keep_going());
+                assert_eq!(game.leaving_in(), None);
+                game.act(Action::KeepGoing, none);
+            }
+        }
+        assert!(won && lost, "no trail was won, or none lost: {won} {lost}");
     }
 
     /// The road is held for a won trail's last drops and for nothing else.

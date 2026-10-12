@@ -270,6 +270,16 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::F6),
         Step::Shot("a hint about a control".into()),
         Step::Key(KeyCode::F6),
+        // Keep going (#305), where the itinerary will be: off in a new
+        // game, on by its key from anywhere, and off again by a press.
+        Step::Shot("no town leaves by itself".into()),
+        Step::Key(KeyCode::KeyG),
+        Step::Shot("keep going on by its key".into()),
+        Step::Key(KeyCode::KeyM),
+        Step::Shot("keep going on the map".into()),
+        Step::Control("Keep going"),
+        Step::Shot("keep going off by a press".into()),
+        Step::Key(KeyCode::KeyH),
         // A press on a horse opens everything about it (#311).
         Step::Horse(1),
         Step::Shot("a horse's view".into()),

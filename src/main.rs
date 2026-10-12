@@ -39,6 +39,7 @@ fn main() {
         .add_plugins(game::GamePlugin {
             seed: seed(),
             bare: std::env::args().any(|arg| arg == "--bare"),
+            keep_going: std::env::args().any(|arg| arg == "--keep-going"),
         })
         .add_plugins(game::menu::MenuPlugin {
             show_parts: std::env::args().any(|arg| arg == "--parts"),

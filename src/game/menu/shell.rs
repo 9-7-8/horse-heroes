@@ -128,6 +128,10 @@ pub struct Control {
     /// What a press turns on and off, of what is shown.
     #[serde(default)]
     pub switch: Option<Switch>,
+    /// A line that stays under its group of controls, whether or not it
+    /// can be used: what the player should know of it.
+    #[serde(default)]
+    pub note: Option<String>,
     /// Its number among all the controls of the map, set on loading.
     #[serde(skip)]
     pub id: usize,
@@ -1813,6 +1817,9 @@ fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Cont
     if !working.is_empty() {
         parent.spawn((reason(t, ""), Blocked(working)));
     }
+    for note in controls.iter().filter_map(|control| control.note.as_deref()) {
+        parent.spawn(reason(t, note));
+    }
     let unbuilt = unbuilt_line(controls, hint);
     if !unbuilt.is_empty() {
         parent.spawn(reason(t, &unbuilt));
@@ -2556,13 +2563,14 @@ fn mark_chosen(
     }
 
     // A control that acts is unavailable while its action cannot be done.
-    // A switch is chosen while it is on. Any other is chosen while the
-    // panel it opened is showing.
+    // A switch is chosen while it is on, Keep going too. Any other is
+    // chosen while the panel it opened is showing.
     for (entity, button, selected, disabled) in &planned {
         let control = map.control(button.id);
         let (chosen, blocked) = match (control.action, control.switch) {
             (Some(action), _) => (
-                action == Action::Element(game.element),
+                action == Action::Element(game.element)
+                    || (action == Action::KeepGoing && game.keep_going()),
                 game.can(action, shell.hand()).is_err(),
             ),
             (None, Some(switch)) => (shell.is_on(switch), false),
@@ -3107,12 +3115,17 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::ReportSide => report_side(game).trim_end().into(),
         Fact::LogHeading => log_heading(map, shell.log_hidden()),
         Fact::Footer => match &game.screen {
-            Screen::Camp { countdown, .. } => format!(
-                // The tracker beside it shows the trail's fights.
-                "Ready: level {} trail. Setting out in {:.0}s.",
-                game.plan.level,
-                countdown.max(0.0).ceil(),
-            ),
+            // The tracker beside it shows the trail's fights. No town
+            // leaves by itself, so there is no countdown, unless Keep going
+            // is on (#305).
+            Screen::Camp { .. } => match game.leaving_in() {
+                Some(secs) => format!(
+                    "Level {} trail. Keep going: leaving in {:.0}s.",
+                    game.plan.level,
+                    secs.ceil(),
+                ),
+                None => format!("Level {} trail. Waiting for Set out.", game.plan.level),
+            },
             Screen::Trail(expedition) => {
                 let total = expedition.plan.encounters.len();
                 let at = expedition.encounter + 1;
@@ -3967,6 +3980,7 @@ mod tests {
         actions.extend([
             Action::Equip,
             Action::SetOut,
+            Action::KeepGoing,
             Action::Undo,
             Action::Earlier,
             Action::Later,

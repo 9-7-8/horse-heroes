@@ -8,7 +8,9 @@
 //! pieces accounted for, and once a minute the frame times and how many
 //! entities there are. A line is the game's seconds, the kind, then
 //! `key=value` fields, tab-separated. `IDLE_SOAK_SECS` exits the game by
-//! itself after that long. Nothing else about the game changes.
+//! itself after that long. The soak keeps Keep going on, turning it on
+//! again after a lost trail has turned it off, so that the game plays on
+//! with nobody at it (#305). Nothing else about the game changes.
 //!
 //! `--soak-report FOLDER` opens no window: it reads the run's files in the
 //! folder, checks them against the rules in `assets/data/`, walks every
@@ -25,7 +27,7 @@ use std::{
 
 use bevy::prelude::*;
 
-use crate::game::{CAMP_SECS, Game, Killed, Screen, TICK, Uncollected};
+use crate::game::{Action, CAMP_SECS, Game, Hand, Killed, Screen, TICK, Uncollected};
 use crate::sim::data::{Data, Element, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Plan};
 use crate::sim::loot::Horse;
@@ -168,7 +170,7 @@ fn town_line(trail: u32, level: u32, coins: i32, walked: f32, drops: &Uncollecte
 
 fn record(
     time: Res<Time>,
-    game: Res<Game>,
+    mut game: ResMut<Game>,
     uncollected: Res<Uncollected>,
     mut killed: MessageReader<Killed>,
     entities: Query<Entity>,
@@ -178,6 +180,10 @@ fn record(
     let soak = &mut *soak;
     let t = time.elapsed_secs();
     let wall = soak.started.elapsed().as_secs_f64();
+    // Nobody is here to set out: at the start, and after a lost trail.
+    if game.in_town() && !game.keep_going() {
+        game.act(Action::KeepGoing, Hand::default());
+    }
     if !soak.begun {
         soak.begun = true;
         let line = format!(
