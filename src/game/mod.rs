@@ -683,7 +683,11 @@ impl Game {
                     }
                 }
             }
-            Action::SetOut => self.depart(),
+            // By the player's hand, which Keep going's departure is not.
+            Action::SetOut => {
+                self.lessons.raise(Event::SentOut);
+                self.depart();
+            }
             // Not a change to undo: a second press takes it back. The
             // usual time is counted from the press that turns it on.
             Action::KeepGoing => {
@@ -735,10 +739,20 @@ impl Game {
             Expedition::new(&self.data, self.plan.clone(), &self.party, self.element);
         self.screen = Screen::Trail(expedition);
         self.lessons.raise(Event::SetOut);
+        self.lessons.leave();
+    }
+
+    /// What the list of things to try has paid since this was last asked
+    /// (#303) goes into the party's count. Returns how many coins that was.
+    pub fn bank_rewards(&mut self) -> i32 {
+        let coins = self.lessons.collect();
+        self.coins += coins;
+        coins
     }
 
     fn return_to_camp(&mut self, outcome: Outcome) {
         self.arriving = None;
+        self.lessons.arrive();
         self.coins += outcome.coins;
         // What the trail brought back goes into the cargo, and stays there
         // until the player puts it on a horse (#352).

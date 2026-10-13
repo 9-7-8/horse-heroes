@@ -62,6 +62,8 @@ pub struct Sizes {
     pub fight_log_width: f32,
     pub fight_log_lines: usize,
     pub fight_log_fade: f32,
+    pub to_try_width: f32,
+    pub to_try_pays: f32,
     pub hint_height: f32,
     pub hint_control: f32,
     pub pointer: f32,

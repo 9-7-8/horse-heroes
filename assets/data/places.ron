@@ -266,7 +266,7 @@
             (name: "Effects", does: "Turns the number of effects down, from full to off.", issue: 45),
             (name: "Volume", does: "Turns the sound down, from full to off.", issue: 45),
             (name: "Keys", does: "Shows the key for every place, tab and action.", shows: Keys, key: "K"),
-            (name: "Hints", does: "Turns the hints on and off. Off, none is shown by itself; each is still listed in the Journal, under Hints, and a press there shows it.", switch: Hints),
+            (name: "Hints", does: "Turns the hints on and off. Off, none is shown by itself, and the list of things to try in town is put away; each hint is still listed in the Journal, under Hints, and a press there shows it.", switch: Hints),
         ],
     ),
     horse_keys: ["Z", "X", "C"],

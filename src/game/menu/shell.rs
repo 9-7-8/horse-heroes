@@ -39,6 +39,7 @@ use crate::game::{
 };
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
+use crate::sim::lessons::{EntryDef, Tick};
 
 /// The map of the menus, from `assets/data/places.ron`.
 #[derive(Resource, Clone, Debug, Deserialize)]
@@ -624,6 +625,13 @@ impl Shell {
         self.log_hidden
     }
 
+    /// Whether the list of things to try is over the scene (#303): in town,
+    /// while there is something on it, and while hints are on. It is put
+    /// away with them, and its entries are still ticked and paid behind it.
+    pub fn list_in_view(&self, game: &Game) -> bool {
+        game.lessons.list_showing() && !self.hints_off
+    }
+
     /// A press of the fight log's key. It does nothing while the log is not
     /// in view, where it would change something the player cannot see.
     pub fn press_log_key(&mut self, game: &Game) {
@@ -1013,6 +1021,27 @@ struct FightLog;
 #[derive(Component)]
 struct LogLine(usize, String, f32);
 
+/// The list of things to try (#303), over the town scene. It is out of the
+/// shell's layout and the pointer passes through it: an entry is done on
+/// the real controls, never on the list.
+#[derive(Component)]
+struct ToTry;
+
+/// An entry of the list, by its place in `lessons.ron`: its row, the box
+/// that is filled when it is done, and its line.
+#[derive(Component)]
+struct TryRow(usize);
+
+#[derive(Component)]
+struct TryBox(usize);
+
+#[derive(Component)]
+struct TryWords(usize);
+
+/// What an entry pays, or paid, at the end of its row.
+#[derive(Component)]
+struct TryPays(usize);
+
 pub struct ShellPlugin {
     /// Start with the sample hint showing (`--hint`). F6 toggles it.
     pub hint: bool,
@@ -1049,7 +1078,7 @@ impl Plugin for ShellPlugin {
                     picture::show_pictures,
                     show_reasons,
                     show_facts,
-                    (show_trail, show_log).chain(),
+                    (show_trail, show_log, show_list).chain(),
                     show_scrollbars,
                     follow_focus,
                 )
@@ -1503,6 +1532,64 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
             log.spawn((dim(t, ""), Live(Fact::LogHeading), Pickable::IGNORE));
             for line in 0..t.size.fight_log_lines {
                 log.spawn((text(t, ""), LogLine(line, String::new(), 1.0), Pickable::IGNORE));
+            }
+        });
+
+    // The things to try (#303): at the top right of the town scene, clear
+    // of the gate and the horses, so it has a home of its own and moves no
+    // control. A row for every entry in the file is spawned once and shows
+    // while its entry is on the list.
+    commands
+        .spawn((panel(t), ToTry, Pickable::IGNORE, Visibility::Hidden))
+        .insert(Node {
+            position_type: PositionType::Absolute,
+            display: Display::None,
+            top: Val::Px(t.space.l),
+            right: Val::Px(t.space.l),
+            width: Val::Px(t.size.to_try_width),
+            flex_direction: FlexDirection::Column,
+            padding: UiRect::all(Val::Px(t.space.m)),
+            row_gap: Val::Px(t.space.xs),
+            border: UiRect::all(Val::Px(t.size.border)),
+            ..default()
+        })
+        .with_children(|list| {
+            list.spawn((dim(t, TO_TRY), Pickable::IGNORE));
+            for entry in 0..game.lessons.entries().len() {
+                list.spawn((
+                    Node {
+                        align_items: AlignItems::Center,
+                        column_gap: Val::Px(t.space.m),
+                        display: Display::None,
+                        ..default()
+                    },
+                    TryRow(entry),
+                    Pickable::IGNORE,
+                ))
+                .with_children(|row| {
+                    row.spawn((
+                        Node {
+                            width: Val::Px(t.size.trail_mark),
+                            height: Val::Px(t.size.trail_mark),
+                            border: UiRect::all(Val::Px(t.size.border)),
+                            flex_shrink: 0.0,
+                            ..default()
+                        },
+                        BackgroundColor(Color::NONE),
+                        BorderColor::all(t.colour.text_dim.0),
+                        TryBox(entry),
+                        Pickable::IGNORE,
+                    ));
+                    row.spawn((text(t, ""), TryWords(entry), Pickable::IGNORE)).insert(Node {
+                        flex_grow: 1.0,
+                        ..default()
+                    });
+                    row.spawn((text(t, ""), TryPays(entry), Pickable::IGNORE)).insert(Node {
+                        width: Val::Px(t.size.to_try_pays),
+                        flex_shrink: 0.0,
+                        ..default()
+                    });
+                });
             }
         });
 }
@@ -2276,6 +2363,85 @@ fn show_log(
                 None => plain,
             };
             commands.spawn((Run, TextSpan::new(run), font.clone(), TextColor(colour), ChildOf(entity)));
+        }
+    }
+}
+
+/// What stands over the list of things to try (#303).
+const TO_TRY: &str = "TO TRY IN TOWN, IF YOU LIKE. EACH PAYS ONCE.";
+
+/// What the end of an entry's row says: what it pays, or that it paid.
+fn try_pays(def: &EntryDef, tick: Tick) -> String {
+    match (tick.done, def.coins) {
+        (true, coins) => format!("paid {coins}"),
+        (false, 1) => "1 coin".into(),
+        (false, coins) => format!("{coins} coins"),
+    }
+}
+
+/// Keep the list of things to try over the town scene (#303): a row for
+/// each entry on it, its box filled and its line fainter once it is done.
+fn show_list(
+    tokens: Res<Tokens>,
+    game: Res<Game>,
+    shell: Res<Shell>,
+    mut list: Single<(&mut Node, &mut Visibility), (With<ToTry>, Without<TryRow>)>,
+    mut rows: Query<(&TryRow, &mut Node), Without<ToTry>>,
+    mut boxes: Query<(&TryBox, &mut BackgroundColor)>,
+    mut lines: Query<(Option<&TryWords>, Option<&TryPays>, &mut Text, &mut TextColor), Or<(With<TryWords>, With<TryPays>)>>,
+) {
+    let shown = shell.list_in_view(&game);
+    let (display, visibility) = match shown {
+        true => (Display::Flex, Visibility::Inherited),
+        false => (Display::None, Visibility::Hidden),
+    };
+    if list.0.display != display {
+        list.0.display = display;
+    }
+    if *list.1 != visibility {
+        *list.1 = visibility;
+    }
+    if !shown {
+        return;
+    }
+    for (row, mut node) in &mut rows {
+        let wanted = match game.lessons.tick(row.0).listed {
+            true => Display::Flex,
+            false => Display::None,
+        };
+        if node.display != wanted {
+            node.display = wanted;
+        }
+    }
+    for (mark, mut fill) in &mut boxes {
+        let wanted = match game.lessons.tick(mark.0).done {
+            true => tokens.colour.text.0,
+            false => Color::NONE,
+        };
+        if fill.0 != wanted {
+            fill.0 = wanted;
+        }
+    }
+    for (words, pays, mut text, mut colour) in &mut lines {
+        let (entry, pays) = match (words, pays) {
+            (Some(words), _) => (words.0, false),
+            (None, Some(pays)) => (pays.0, true),
+            (None, None) => continue,
+        };
+        let (def, tick) = (&game.lessons.entries()[entry], game.lessons.tick(entry));
+        let words = match pays {
+            true => try_pays(def, tick),
+            false => def.words.clone(),
+        };
+        if text.0 != words {
+            text.0 = words;
+        }
+        let wanted = match tick.done {
+            true => tokens.colour.text_dim.0,
+            false => tokens.colour.text.0,
+        };
+        if colour.0 != wanted {
+            colour.0 = wanted;
         }
     }
 }
@@ -4057,6 +4223,47 @@ mod tests {
         // A switch changes nothing in the game.
         assert_eq!(game.party[0].gear[gear.slot.index()].as_ref(), Some(&worn));
         assert_eq!(game.pending_drop(), Some(&gear));
+    }
+
+    /// The list of things to try (#303) is over the scene in town once a
+    /// trail has brought a piece back, and never on the road, where the
+    /// fight log has that room. Hints turned off puts it away, and on brings
+    /// it back. No entry is a paragraph: a row is one line that fits, with
+    /// what it pays at its end, which says so once it has paid.
+    #[test]
+    fn the_list_is_over_the_town_scene_and_goes_with_the_hints() {
+        let places = Places::load();
+        let mut shell = Shell::new(places.pages().count());
+        assert!(!shell.list_in_view(&Game::new(6)), "before any trail");
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        assert!(shell.list_in_view(&game));
+        shell.press_switch(Switch::Hints);
+        assert!(!shell.list_in_view(&game), "hints are off");
+        shell.press_switch(Switch::Hints);
+        assert!(shell.list_in_view(&game));
+
+        // A letter of the body size is 8.4 wide. Beside the words are the
+        // panel's edge and padding, the box, two gaps, and what it pays.
+        let t = Tokens::load();
+        let beside = 2.0 * (t.size.border + t.space.m) + t.size.trail_mark + 2.0 * t.space.m;
+        let room = ((t.size.to_try_width - beside - t.size.to_try_pays) / 8.4) as usize;
+        for (entry, def) in game.lessons.entries().iter().enumerate() {
+            assert!(!def.words.contains('\n') && def.words.chars().count() <= room, "{}", def.words);
+            let open = try_pays(def, game.lessons.tick(entry));
+            let paid = try_pays(def, Tick { listed: true, done: true });
+            assert!(open.starts_with(&def.coins.to_string()) && open.contains("coin"), "{open}");
+            assert!(paid.starts_with("paid") && paid.contains(&def.coins.to_string()), "{paid}");
+            for pays in [open, paid] {
+                assert!(pays.chars().count() as f32 * 8.4 <= t.size.to_try_pays, "{pays}");
+            }
+        }
+
+        game.act(Action::SetOut, Hand::horse(0));
+        shell.close();
+        assert!(!shell.list_in_view(&game) && shell.log_in_view(&game));
     }
 
     /// The fight log (#306) is over the scene on the road with every place

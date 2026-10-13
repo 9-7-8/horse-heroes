@@ -593,6 +593,16 @@ fn plan_lesson(mut tour: ResMut<Tour>) {
         Step::Shot("hints turned off in settings".into()),
         Step::Key(KeyCode::KeyJ),
         Step::Shot("the list is read with hints off".into()),
+        // The things to try (#303) come back with the hints; the walk has
+        // done four of them, and every place opened is a fifth.
+        Step::Key(KeyCode::KeyS),
+        Step::Control("Hints"),
+        Step::Key(KeyCode::KeyB),
+        Step::Key(KeyCode::KeyT),
+        Step::Key(KeyCode::KeyM),
+        Step::Key(KeyCode::KeyN),
+        Step::Key(KeyCode::KeyH),
+        Step::Shot("the things to try with set out left".into()),
     ];
 }
 

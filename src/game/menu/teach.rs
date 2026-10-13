@@ -9,6 +9,8 @@
 use bevy::prelude::*;
 
 use super::shell::{About, Hint, Places, Shell};
+use crate::fx::drops::Kind;
+use crate::fx::sound::Heard;
 use crate::game::{Game, Piece};
 use crate::sim::lessons::{Event, Found, Shown, State, Target};
 
@@ -41,18 +43,22 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
 }
 
 /// What the player's hands held when the lessons last looked: whether a
-/// piece's card was open, and which horse was selected.
-#[derive(Clone, Copy, Debug, Default)]
+/// piece's card was open, and which horse was selected. And the places
+/// opened in town since an entry of the list asked for them (#303).
+#[derive(Clone, Debug, Default)]
 pub struct Held {
     card: bool,
     horse: usize,
+    visited: Vec<bool>,
 }
 
 /// Keep the hint's line to the lessons. The queue hears what the player's
 /// hands did here: a piece's card opened, another horse selected, a hint put
 /// away, every hint skipped. Then the game is looked at again, and the lesson to show now is
-/// the hint. A sample hint (the dev key's) is left alone.
-pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held) {
+/// the hint. A sample hint (the dev key's) is left alone. What the list of
+/// things to try paid for what the hands did is banked (#303), and how many
+/// coins that was comes back.
+pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held) -> i32 {
     let hand = shell.hand();
     let open = hand.open.is_some();
     if open && !held.card {
@@ -60,8 +66,25 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
     }
     if hand.horse != held.horse {
         game.lessons.raise(Event::Selected);
+        // The card stayed open over the change: it is read on two horses.
+        if open && held.card {
+            game.lessons.raise(Event::Compared);
+        }
     }
-    *held = Held { card: open, horse: hand.horse };
+    (held.card, held.horse) = (open, hand.horse);
+    // Every place of the bar, opened in town since the list asked.
+    if !game.lessons.wants(Event::Toured) {
+        held.visited.clear();
+    } else if game.in_town() && shell.is_open() {
+        held.visited.resize(map.places.len(), false);
+        if let Some(visited) = held.visited.get_mut(shell.place()) {
+            *visited = true;
+        }
+        if held.visited.iter().all(|visited| *visited) {
+            game.lessons.raise(Event::Toured);
+        }
+    }
+    let paid = game.bank_rewards();
 
     // What is put away, and whether hints are off, is the shell's to say.
     let away: Vec<bool> = game.lessons.defs().iter().map(|def| shell.put_away(&def.id)).collect();
@@ -107,6 +130,7 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
         None if ours => shell.finish_hint(),
         _ => {}
     }
+    paid
 }
 
 /// What a lesson's target is called in the list of hints, there or not.
@@ -198,8 +222,12 @@ pub fn teach(
     mut shell: ResMut<Shell>,
     map: Res<Places>,
     mut held: Local<Held>,
+    mut heard: MessageWriter<Heard>,
 ) {
-    follow(&mut game, &mut shell, &map, &mut held);
+    // A coin the list pays is heard as a coin reaching the party is.
+    for _ in 0..follow(&mut game, &mut shell, &map, &mut held) {
+        heard.write(Heard::Collected(Kind::Coin));
+    }
 }
 
 #[cfg(test)]
@@ -253,6 +281,11 @@ mod tests {
     /// The lesson whose hint is showing.
     fn hinted(shell: &Shell) -> Option<&str> {
         shell.hint().map(|hint| hint.lesson.as_str())
+    }
+
+    /// Put away the horse's view a press on a horse opened.
+    fn close_view(shell: &mut Shell) {
+        shell.close_detail();
     }
 
     /// Pin the card of the piece in the cargo, as a press on it does.
@@ -309,7 +342,15 @@ mod tests {
     #[test]
     fn the_game_raises_every_event_a_lesson_can_wait_for() {
         let map = Places::load();
-        let by_hand = [Event::Card, Event::Equipped, Event::Selected, Event::Swapped];
+        let by_hand = [
+            Event::Card,
+            Event::Equipped,
+            Event::Selected,
+            Event::Swapped,
+            Event::Compared,
+            Event::Toured,
+            Event::SentOut,
+        ];
         let by_itself = |event: &Event| !by_hand.contains(event);
         let mut game = Game::new(0);
         'seeds: for seed in 0..40 {
@@ -326,6 +367,8 @@ mod tests {
         for event in Event::ALL.iter().filter(|event| by_itself(event)) {
             assert!(game.lessons.happened(*event), "{event:?} never happened by itself");
         }
+        // Keep going's own departure is not a press of Set out.
+        assert!(by_hand.iter().all(|event| !game.lessons.happened(*event)));
 
         let mut game = (0..50)
             .map(Game::back_from_a_trail)
@@ -333,13 +376,15 @@ mod tests {
             .expect("no seed under 50 brings a drop home");
         let (mut shell, mut held) = (shell(&map), Held::default());
         follow(&mut game, &mut shell, &map, &mut held);
-        assert!(by_hand.iter().all(|event| !game.lessons.happened(*event)));
+        // Its first trail was sent out by hand; nothing else was done.
+        assert!(by_hand.iter().all(|event| *event == Event::SentOut || !game.lessons.happened(*event)));
         open_carried(&mut shell);
         follow(&mut game, &mut shell, &map, &mut held);
         assert!(game.lessons.happened(Event::Card));
         shell.inspect(1, None);
         follow(&mut game, &mut shell, &map, &mut held);
         assert!(game.lessons.happened(Event::Selected));
+        assert!(game.lessons.happened(Event::Compared), "the card was open over it");
         game.act(Action::Equip, shell.hand());
         assert!(game.lessons.happened(Event::Equipped));
         // Putting the carried piece on is not a swap; taking it from the
@@ -349,9 +394,118 @@ mod tests {
         game.act(Action::Equip, Hand { horse: 0, open: Some(Piece::Worn { horse: 1, slot }) });
         assert!(game.lessons.happened(Event::Swapped));
 
+        // Every place opened, once the list asks; and Set out by hand.
+        assert!(game.lessons.wants(Event::Toured), "the file's list asks for no tour");
+        for place in 0..map.places.len() {
+            assert!(!game.lessons.happened(Event::Toured), "before place {place}");
+            shell.open(place);
+            follow(&mut game, &mut shell, &map, &mut held);
+        }
+        assert!(game.lessons.happened(Event::Toured));
+        assert!(game.lessons.happened(Event::SentOut));
+
         for def in game.lessons.defs() {
             assert!(Event::ALL.contains(&def.due), "{}", def.id);
         }
+        for def in game.lessons.entries() {
+            assert!(Event::ALL.contains(&def.due) && Event::ALL.contains(&def.done), "{}", def.id);
+        }
+    }
+
+    /// The list of the file itself (#303), in the first town with a piece,
+    /// by what each entry waits for and never by its name or words. Nothing
+    /// is listed before a trail brings a piece back. Each entry is ticked
+    /// by doing its thing and pays once, into the party's count. Setting
+    /// out with entries undone loses nothing. A party that leaves by Keep
+    /// going has not pressed Set out. Nobody at it earns nothing.
+    #[test]
+    fn the_list_is_ticked_by_doing_and_pays_into_the_count() {
+        let map = Places::load();
+        let fresh = Game::new(6);
+        assert!(!fresh.lessons.list_showing(), "before any trail");
+        let home = || {
+            (0..50)
+                .map(Game::back_from_a_trail)
+                .find(|game| game.pending_drop().is_some())
+                .expect("no seed under 50 brings a drop home")
+        };
+        let done = |game: &Game, event: Event| {
+            let entries = game.lessons.entries().iter().enumerate();
+            let mut waiting = entries.filter(|(_, def)| def.done == event).peekable();
+            assert!(waiting.peek().is_some(), "no entry waits for {event:?}");
+            waiting.all(|(entry, _)| game.lessons.tick(entry).done)
+        };
+        let all = [Event::Selected, Event::Card, Event::Compared, Event::Equipped, Event::Toured, Event::SentOut];
+        let price = |game: &Game, event: Event| -> i32 {
+            let entries = game.lessons.entries().iter();
+            entries.filter(|def| def.done == event).map(|def| def.coins).sum()
+        };
+
+        // Nobody at it: the list is there, nothing is ticked, nothing paid,
+        // and the party leaves by Keep going with Set out still to try.
+        let mut game = home();
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        let coins = game.coins_earned();
+        game.act(Action::KeepGoing, Hand::default());
+        while game.in_town() {
+            assert_eq!(follow(&mut game, &mut shell, &map, &mut held), 0);
+            assert!(game.lessons.list_showing());
+            pass(&mut game);
+        }
+        assert_eq!(game.coins_earned(), coins);
+        assert!(all.iter().all(|event| !done(&game, *event)));
+
+        // With a player at it, one thing at a time.
+        let mut game = home();
+        (shell, held) = (Shell::new(map.pages().count()), Held::default());
+        let mut coins = game.coins_earned();
+        assert_eq!(follow(&mut game, &mut shell, &map, &mut held), 0);
+        let mut paid = |game: &mut Game, shell: &mut Shell, event: Event| {
+            let got = follow(game, shell, &map, &mut held);
+            assert!(done(game, event), "{event:?}");
+            assert_eq!(got, price(game, event), "{event:?}");
+            coins += got;
+            assert_eq!(game.coins_earned(), coins, "{event:?}");
+        };
+        shell.inspect(1, None);
+        paid(&mut game, &mut shell, Event::Selected);
+        assert!(!done(&game, Event::Compared), "no card was open");
+        close_view(&mut shell);
+        open_carried(&mut shell);
+        paid(&mut game, &mut shell, Event::Card);
+        shell.inspect(2, None);
+        paid(&mut game, &mut shell, Event::Compared);
+        game.act(Action::Equip, shell.hand());
+        paid(&mut game, &mut shell, Event::Equipped);
+
+        // Away with two undone, and back: they are still there to do, and
+        // what was done is not paid again.
+        game.act(Action::KeepGoing, Hand::default());
+        let mut left = false;
+        for _ in 0..20_000 {
+            pass(&mut game);
+            assert_eq!(follow(&mut game, &mut shell, &map, &mut held), 0);
+            left |= !game.in_town();
+            if left && game.in_town() {
+                break;
+            }
+        }
+        assert!(left && game.in_town(), "the party did not go and come back");
+        coins = game.coins_earned();
+        assert!(game.lessons.list_showing());
+        assert!(!done(&game, Event::Toured) && !done(&game, Event::SentOut));
+        for place in 0..map.places.len() {
+            assert!(!done(&game, Event::Toured), "before place {place}");
+            shell.open(place);
+            follow(&mut game, &mut shell, &map, &mut held);
+        }
+        assert!(done(&game, Event::Toured));
+        coins += price(&game, Event::Toured);
+        assert_eq!(game.coins_earned(), coins);
+        game.act(Action::SetOut, shell.hand());
+        assert_eq!(follow(&mut game, &mut shell, &map, &mut held), price(&game, Event::SentOut));
+        assert!(all.iter().all(|event| done(&game, *event)));
+        assert!(!game.lessons.list_showing(), "on the road");
     }
 
     /// A whole first trail and the town visit after it, to the next departure

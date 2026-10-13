@@ -38,11 +38,17 @@ pub enum Event {
     Swapped,
     /// The party left town.
     SetOut,
+    /// The player selected another horse with a piece's card open.
+    Compared,
+    /// The player has opened every place in the bar.
+    Toured,
+    /// The player sent the party out: Set out, by its button or its key.
+    SentOut,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 11] = [
+    pub const ALL: [Event; 14] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -54,6 +60,9 @@ impl Event {
         Event::Selected,
         Event::Swapped,
         Event::SetOut,
+        Event::Compared,
+        Event::Toured,
+        Event::SentOut,
     ];
 }
 
@@ -103,6 +112,38 @@ pub struct LessonDef {
     /// What to say when the state has moved on.
     #[serde(default)]
     pub instead: Option<String>,
+}
+
+/// An entry of the list of things to try in town (#303): one thing to do on
+/// the real controls, which pays a few coins the first time it is done.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub struct EntryDef {
+    pub id: String,
+    /// What has to happen before it is on the list.
+    pub due: Event,
+    /// Its one line: the thing to do.
+    pub words: String,
+    /// The player's doing this, in town, ticks it.
+    pub done: Event,
+    /// What it pays, once.
+    pub coins: i32,
+}
+
+/// `lessons.ron`: the lessons, and the list of things to try.
+#[derive(Deserialize)]
+struct File {
+    lessons: Vec<LessonDef>,
+    #[serde(default)]
+    list: Vec<EntryDef>,
+}
+
+/// How far the player is with an entry of the list.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Tick {
+    /// It is on the list.
+    pub listed: bool,
+    /// The player did it, and was paid.
+    pub done: bool,
 }
 
 /// Where a lesson's target is, looked for again each time.
@@ -161,11 +202,22 @@ pub struct Lessons {
     asked: Option<usize>,
     /// The player turned them off: none is shown unless asked for.
     off: bool,
+    /// The list of things to try (#303), and how far the player is with
+    /// each entry.
+    entries: Vec<EntryDef>,
+    ticks: Vec<Tick>,
+    /// Coins the list has paid that the party has not been given yet.
+    owed: i32,
+    /// The party is in town: an entry is ticked there and nowhere else.
+    town: bool,
+    /// An entry was ticked during this town visit.
+    fresh: bool,
 }
 
 impl Lessons {
     pub fn load() -> Lessons {
-        Lessons::new(parse("lessons.ron", include_str!("../../assets/data/lessons.ron")))
+        let file: File = parse("lessons.ron", include_str!("../../assets/data/lessons.ron"));
+        Lessons::new(file.lessons).with_list(file.list)
     }
 
     pub fn new(defs: Vec<LessonDef>) -> Lessons {
@@ -177,7 +229,59 @@ impl Lessons {
             showing: None,
             asked: None,
             off: false,
+            entries: Vec::new(),
+            ticks: Vec::new(),
+            owed: 0,
+            town: true,
+            fresh: false,
         }
+    }
+
+    /// The same lessons with this list of things to try (#303).
+    pub fn with_list(mut self, entries: Vec<EntryDef>) -> Lessons {
+        self.ticks = vec![Tick::default(); entries.len()];
+        self.entries = entries;
+        self
+    }
+
+    /// The list of things to try, in the file's order.
+    pub fn entries(&self) -> &[EntryDef] {
+        &self.entries
+    }
+
+    /// How far the player is with an entry of the list.
+    pub fn tick(&self, entry: usize) -> Tick {
+        self.ticks[entry]
+    }
+
+    /// Whether the list is to be seen: in town, while an entry on it is
+    /// not done, and for the rest of the visit in which the last one was.
+    pub fn list_showing(&self) -> bool {
+        let open = self.ticks.iter().any(|tick| tick.listed && !tick.done);
+        self.town && self.ticks.iter().any(|tick| tick.listed) && (open || self.fresh)
+    }
+
+    /// Whether an entry on the list is still waiting for this to be done.
+    pub fn wants(&self, event: Event) -> bool {
+        let waiting = |(def, tick): (&EntryDef, &Tick)| tick.listed && !tick.done && def.done == event;
+        self.entries.iter().zip(&self.ticks).any(waiting)
+    }
+
+    /// The party is in town.
+    pub fn arrive(&mut self) {
+        self.town = true;
+    }
+
+    /// The party has left town.
+    pub fn leave(&mut self) {
+        self.town = false;
+        self.fresh = false;
+    }
+
+    /// The coins the list has paid since this was last asked: they are the
+    /// party's now, and are not handed over twice.
+    pub fn collect(&mut self) -> i32 {
+        std::mem::take(&mut self.owed)
     }
 
     pub fn defs(&self) -> &[LessonDef] {
@@ -261,8 +365,22 @@ impl Lessons {
                 }
             }
         }
+        // The list (#303): an entry on it is ticked by its thing being done
+        // in town, and pays once. Nothing else ticks one.
+        if self.town {
+            for (def, tick) in self.entries.iter().zip(&mut self.ticks) {
+                if tick.listed && !tick.done && def.done == event {
+                    tick.done = true;
+                    self.owed += def.coins;
+                    self.fresh = true;
+                }
+            }
+        }
         if !self.raised.contains(&event) {
             self.raised.push(event);
+            for (def, tick) in self.entries.iter().zip(&mut self.ticks) {
+                tick.listed |= def.due == event;
+            }
             for (lesson, def) in self.defs.iter().enumerate() {
                 if def.due == event {
                     self.progress[lesson].due = true;
@@ -422,6 +540,111 @@ mod tests {
             // A Drop is the only target that moves.
             assert!(def.instead.is_none() || def.target == Target::Drop, "{}", def.id);
         }
+    }
+
+    fn entry(id: &str, due: Event, done: Event, coins: i32) -> EntryDef {
+        EntryDef { id: id.into(), due, words: format!("{id}."), done, coins }
+    }
+
+    /// The list in the file holds together (#303): no two entries of one
+    /// name, each one short line, and each pays something.
+    #[test]
+    fn the_list_in_the_file_is_consistent() {
+        let lessons = Lessons::load();
+        assert!(!lessons.entries().is_empty());
+        for def in lessons.entries() {
+            let named = lessons.entries().iter().filter(|other| other.id == def.id).count();
+            assert_eq!(named, 1, "lessons.ron: two entries named `{}`", def.id);
+            let words = def.words.trim();
+            assert!(!words.is_empty() && !words.contains('\n') && words.chars().count() <= 32, "{}", def.id);
+            assert!(def.coins > 0, "{}", def.id);
+        }
+    }
+
+    /// An entry is on the list once its event has happened, is ticked by
+    /// its thing being done after that, and pays once however often the
+    /// thing is done again. What put it on the list does not tick it in the
+    /// same breath, and what was done before it was listed does not count.
+    #[test]
+    fn an_entry_is_ticked_by_doing_it_and_pays_once() {
+        let mut lessons = Lessons::new(Vec::new()).with_list(vec![
+            entry("select", Event::Gear, Event::Selected, 2),
+            entry("equip", Event::Gear, Event::Equipped, 3),
+            entry("again", Event::Card, Event::Card, 5),
+        ]);
+        let ticks = |lessons: &Lessons| [0, 1, 2].map(|entry| lessons.tick(entry));
+        lessons.raise(Event::Selected);
+        assert_eq!(ticks(&lessons), [Tick::default(); 3], "done before it was listed");
+        assert!(!lessons.list_showing() && !lessons.wants(Event::Selected));
+
+        lessons.raise(Event::Gear);
+        let listed = Tick { listed: true, done: false };
+        assert_eq!(ticks(&lessons), [listed, listed, Tick::default()]);
+        assert!(lessons.list_showing() && lessons.wants(Event::Selected));
+        assert_eq!(lessons.collect(), 0);
+
+        lessons.raise(Event::Selected);
+        let done = Tick { listed: true, done: true };
+        assert_eq!(ticks(&lessons), [done, listed, Tick::default()]);
+        assert!(!lessons.wants(Event::Selected));
+        assert_eq!(lessons.collect(), 2);
+        assert_eq!(lessons.collect(), 0, "handed over once");
+        for _ in 0..3 {
+            lessons.raise(Event::Selected);
+        }
+        assert_eq!(lessons.collect(), 0, "paid once");
+
+        lessons.raise(Event::Card);
+        assert_eq!(lessons.tick(2), listed, "listed and ticked in the same breath");
+        lessons.raise(Event::Card);
+        lessons.raise(Event::Equipped);
+        assert_eq!(ticks(&lessons), [done; 3]);
+        assert_eq!(lessons.collect(), 8);
+    }
+
+    /// An entry is ticked in town and nowhere else. Setting out with entries
+    /// undone loses nothing: they are there at the next town. The list
+    /// stays for the visit in which its last entry is ticked, and is gone
+    /// at the next.
+    #[test]
+    fn the_list_is_the_towns_and_waits_for_the_next_one() {
+        let mut lessons = Lessons::new(Vec::new()).with_list(vec![
+            entry("select", Event::Gear, Event::Selected, 2),
+            entry("equip", Event::Gear, Event::Equipped, 3),
+        ]);
+        lessons.raise(Event::Gear);
+        lessons.raise(Event::Selected);
+        assert_eq!(lessons.collect(), 2);
+
+        lessons.leave();
+        assert!(!lessons.list_showing(), "on the road");
+        lessons.raise(Event::Equipped);
+        assert!(!lessons.tick(1).done, "ticked on the road");
+        assert_eq!(lessons.collect(), 0);
+
+        lessons.arrive();
+        assert!(lessons.list_showing());
+        assert_eq!([lessons.tick(0).done, lessons.tick(1).done], [true, false]);
+        lessons.raise(Event::Equipped);
+        assert_eq!(lessons.collect(), 3);
+        assert!(lessons.list_showing(), "its last tick is seen");
+        lessons.leave();
+        lessons.arrive();
+        assert!(!lessons.list_showing(), "nothing is left to try");
+    }
+
+    /// The list is not the hints: with every hint skipped an entry is still
+    /// ticked and paid, and a lesson's state changes nothing on it.
+    #[test]
+    fn the_list_does_not_depend_on_the_hints() {
+        let mut lessons = Lessons::new(vec![lesson("a", Event::Gear, Shown::Town, Done::Did(Event::Card))])
+            .with_list(vec![entry("card", Event::Gear, Event::Card, 4)]);
+        lessons.raise(Event::Gear);
+        lessons.show(true, &HERE);
+        lessons.skip_all();
+        lessons.raise(Event::Card);
+        assert!(lessons.tick(0).done);
+        assert_eq!(lessons.collect(), 4);
     }
 
     /// Nothing is due until its event has happened, and with every lesson

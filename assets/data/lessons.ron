@@ -1,4 +1,5 @@
-// The lessons, in order (#290). Reorder, reword, add or remove one here; no
+// The lessons, in order (#290), and after them the list of things to try in
+// town (#303). Reorder, reword, add or remove one here; no
 // code holds a lesson of its own. When several are waiting, the one nearest
 // the top is shown first, and one is shown at a time.
 //
@@ -49,8 +50,29 @@
 // first trail's lessons are #295 and the element's #299. The rest are the
 // first item's (#296): the piece, whose stats its card is about, Equip, and
 // what came of it. Each is finished by doing the thing, and none has to be.
+//
+// `list` is the things to try in town (#303): a short list over the town
+// scene, each entry one thing to do on the real controls. It is ticked when
+// the player does the thing in town, by pointer or by key, and by nothing
+// else, and pays its coins once. None has to be done; one left undone is
+// there at the next town. Add, remove, reorder or reprice one here. A later
+// feature adds its own entry as its tutorial.
+//
+//   id     its name. No two the same.
+//   due    what has to happen before it is on the list: an event, as above.
+//   words  the thing to do, in one line of 32 letters at most. Never a
+//          control that is not built.
+//   done   the player's doing this ticks it. As above, and three that are
+//          only ever the player's:
+//            Compared  another horse was selected with a piece's card open
+//            Toured    every place in the bar has been opened, counted from
+//                      when an entry asks for it
+//            SentOut   Set out was pressed; Keep going's own departure is
+//                      not this
+//   coins  what it pays. Tuning.
 #![enable(implicit_some)]
-[
+(
+lessons: [
     (
         id: "the party fights by itself",
         due: Fight,
@@ -111,4 +133,13 @@
         words: "It is on, and its card shows it so. This takes it back until the party sets out.",
         done: Did(SetOut),
     ),
-]
+],
+list: [
+    (id: "select another horse", due: Gear, words: "Select another horse.", done: Selected, coins: 2),
+    (id: "press the piece", due: Gear, words: "Press the new piece.", done: Card, coins: 2),
+    (id: "compare on another horse", due: Gear, words: "Card open, select another horse.", done: Compared, coins: 3),
+    (id: "equip it", due: Gear, words: "Put the piece on a horse.", done: Equipped, coins: 3),
+    (id: "open every place", due: Gear, words: "Open every place in the bar.", done: Toured, coins: 5),
+    (id: "set out", due: Gear, words: "Set out.", done: SentOut, coins: 2),
+],
+)

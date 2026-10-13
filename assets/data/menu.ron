@@ -71,6 +71,12 @@
         fight_log_width: 440,
         fight_log_lines: 6,
         fight_log_fade: 0.3,
+        // The list of things to try (#303), over the town scene at its top
+        // right, clear of the gate and the horses at the smallest window:
+        // its width, which has room for an entry of 32 letters beside what
+        // it pays, and the width of that last column.
+        to_try_width: 390,
+        to_try_pays: 64,
         // The hint (#291). Its line under the status strip keeps this
         // height whether or not a hint shows, so nothing moves when one
         // comes or goes: 22 is what is left under the road's scene at the
