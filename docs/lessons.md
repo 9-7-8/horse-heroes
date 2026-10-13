@@ -93,6 +93,18 @@ Guidance that can be skipped can be found afterwards (#300;
   puts it away and turns hints off. Both are the shell's controls, and what
   is put away and whether hints are off is the shell's to say:
   `teach::follow` tells the queue each frame (`put_away`, `turn_off`).
+- **Skip all hints is answered, once** (#350): the line it emptied says
+  where the hints went and what brings them back. It is `skipped` in
+  `lessons.ron`, a `target` and one line of `words`, and the shell's to
+  keep (`Shell::owes_parting`, `say_parting`; `teach::follow` finds the
+  target and says it). Its mark is on the Journal's Hints tab, and on the
+  Journal in the bar while the player is not at the Journal (`point_out`
+  does that for any tab's hint). It has Got it beside it and no Skip all
+  hints, is shown though hints are off, and holds nothing up. It goes by
+  Got it or Escape, when the player gets to that tab, or when hints are
+  turned on. It is never said a second time, never while hints are on, and
+  the switch in Settings, which says what it does itself, does not raise
+  it ([gallery](gallery/2026-10-13-where-the-hints-went/README.md)).
 - **Hints**, in Settings, is the same switch (`Switch::Hints` in
   `places.ron`), marked as chosen while hints are on. Turned off there, the
   hint showing leaves its line without being put away, so it is back when
@@ -119,7 +131,9 @@ Guidance that can be skipped can be found afterwards (#300;
 Chosen without the owner: the player's word is "hint" throughout (the tab,
 the switch), since that is what Got it and Skip all hints already call it;
 the list is a fourth tab of the Journal; Hints in Settings has no key; a
-row's second line and its wording.
+row's second line and its wording. And of the answer to Skip all hints: a
+line and a mark, both; its words; that it stays until put away or until
+the player gets to the tab; and that Skip all hints is not beside it.
 
 ## The things to try
 

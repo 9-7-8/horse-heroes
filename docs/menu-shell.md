@@ -136,7 +136,11 @@ smallest window.
 - **Skip all hints** puts it away and every later one (`Shell::skip_hints`).
   Hints, in Settings, turns them back on, and every hint given is found
   again on Journal, Hints, where a press shows it (#300,
-  [lessons.md](lessons.md), "Put away, turned off, found again").
+  [lessons.md](lessons.md), "Put away, turned off, found again"). The
+  first time, the line then says so itself, once, with a mark on the
+  Journal and only Got it beside it (#350).
+- **A tab's hint marks its place too**, while the player is not at that
+  place, so the mark is in sight whatever is open.
 - Both controls are reached with Tab and the arrows and pressed with
   Enter, as every control is. A hint never makes a control unavailable and
   never holds the party up.

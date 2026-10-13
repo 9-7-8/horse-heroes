@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-13, where the hints went](2026-10-13-where-the-hints-went/README.md) (#350)
 - [2026-10-13, the things to try](2026-10-13-things-to-try/README.md) (#303)
 - [2026-10-12, hints found again](2026-10-12-hints-found-again/README.md) (#300)
 - [2026-10-12, the first item's lessons](2026-10-12-first-item/README.md) (#296)

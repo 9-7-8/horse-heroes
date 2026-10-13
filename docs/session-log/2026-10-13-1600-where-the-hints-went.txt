@@ -1,0 +1,64 @@
+SESSION 2026-10-13 16:00 - Where the hints went (#350)
+
+ASKED
+  /next, with no steer. Tier 1 was empty but for #246, which waits on
+  the owner watching a few trails. Tier 2: nothing new in src/sim/
+  without a test. The feature was the one PICK UP named: #350, menus,
+  0.2.3.
+
+DONE
+  - Skip all hints is answered once (6f441dc, closes #350). The line it
+    emptied says "Hints [4] Kept here, on the Journal. Hints in Settings
+    brings them and the things to try back.", with a mark on the Journal
+    in the bar and on its Hints tab, and only Got it beside it. It goes
+    by Got it or Escape, when the player gets to that tab, or when hints
+    are turned on. Not said a second time, never while hints are on, and
+    not raised by the switch in Settings.
+    Tested: where_the_hints_went_is_said_once (the shell),
+    skip_all_hints_is_answered_once_with_where_they_went (the file's own
+    answer and target, with a player at it), and the file's answer is
+    one line of 85 letters at most. 200 tests pass.
+  - Seen running: IDLE_TOUR at --seed 6, pictures 38 and 39, on the
+    road (docs/gallery/2026-10-13-where-the-hints-went). The tour's Tab
+    round is still 28 stops, 0 out of sight.
+  - The answer is `skipped` in lessons.ron: a target and its words.
+  - A hint about a tab now marks its place in the bar too, while the
+    player is not at that place. No lesson in the file is about a tab
+    yet; the sample hint about one is on a place that is open.
+  - docs: lessons.md ("Put away, turned off, found again"),
+    menu-shell.md, the gallery.
+
+DECIDED (by the session, for her)
+  - Both: a line and a mark, as the issue allowed.
+  - Its words, and that they name the things to try, which go with the
+    hints.
+  - It stays until put away or until the player gets to the tab; it is
+    not timed.
+  - Skip all hints is not beside it; Got it is.
+  - Skipped while already on Journal, Hints, it is still said, and
+    stays until Got it.
+
+FOUND
+  - A here-document in the Bash tool failed again on apostrophes; the
+    script went through the Write tool, under target/.
+  - The first lesson of a town is put away by Skip all hints, so hints
+    turned on again straight after show nothing until the next is due.
+    That is as #291 has it.
+
+NOT DONE
+  - Not seen in town, where the mark is on the Journal with a place
+    open, and not seen going by itself on reaching the tab: tested, not
+    looked at.
+  - Nobody has pressed it with a hand.
+  - The tour's pictures from 39 on are numbered one higher than in
+    older notes: the step names carried over for "49 and 89" are now 50
+    and 90. The rest of the tour's pictures were not read.
+  - IDLE_LESSON, the click-budget walk and the soak were not run. None
+    of them presses Skip all hints.
+  - Carried over: nobody has heard the list's coins; the jobs named for
+    a piece "left behind" (jobs.ron).
+
+PICK UP
+  The rest of #352: every monster drops gear. Before it, look for an
+  open menus issue of 0.2.3 with work left in it that does not wait on
+  the owner; menus come first.
