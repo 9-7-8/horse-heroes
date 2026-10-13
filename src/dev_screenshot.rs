@@ -342,11 +342,14 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::KeyL),
         Step::Shot("the fight log hidden by its key".into()),
         Step::Key(KeyCode::KeyL),
-        // On the road the hint has the one line, and Skip all puts it away.
+        // On the road the hint has the one line, and Skip all puts it away:
+        // answered, the first time, with where the hints went (#350).
         Step::Key(KeyCode::F6),
         Step::Shot("a hint in the one line on the road".into()),
         Step::SkipHints,
-        Step::Shot("skip all and the line says what it said".into()),
+        Step::Shot("skip all is answered with where the hints went".into()),
+        Step::Key(KeyCode::Escape),
+        Step::Shot("got it and the line says what it said".into()),
         Step::PlaceMidway(0),
         Step::Shot("opening a place on the road midway".into()),
         Step::Wait(SETTLE),

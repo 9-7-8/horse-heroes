@@ -496,6 +496,10 @@ pub struct Shell {
     dismissed: Vec<String>,
     /// The player skipped every hint: none is shown.
     hints_off: bool,
+    /// Skip all hints was pressed and has not been answered yet (#350).
+    owed: bool,
+    /// Where the hints went has been said: once, and never again.
+    told: bool,
 }
 
 impl Shell {
@@ -512,6 +516,8 @@ impl Shell {
             hint: None,
             dismissed: Vec::new(),
             hints_off: false,
+            owed: false,
+            told: false,
         }
     }
 
@@ -559,16 +565,60 @@ impl Shell {
     }
 
     /// Skip all hints: the one showing goes, and none is shown after it.
+    /// The first time, the player is owed where they went (#350).
     pub fn skip_hints(&mut self) {
         self.dismiss_hint();
         self.hints_off = true;
+        self.owed = !self.told;
+    }
+
+    /// Whether Skip all hints is still to be answered, and the hint's line
+    /// is free for it. Never while hints are on.
+    pub fn owes_parting(&self) -> bool {
+        self.owed && self.hints_off && self.hint.is_none()
+    }
+
+    /// Where the hints went, said on the hint's line though hints are off
+    /// (#350): once. False, and nothing is said, when it is not owed.
+    pub fn say_parting(&mut self, hint: Hint) -> bool {
+        if !self.owes_parting() {
+            return false;
+        }
+        self.hint = Some(hint);
+        (self.owed, self.told) = (false, true);
+        true
+    }
+
+    /// Whether the line showing is the answer to Skip all hints.
+    pub fn parting(&self) -> bool {
+        self.hint.as_ref().is_some_and(|hint| hint.lesson == PARTING)
+    }
+
+    /// Hints are on again: nothing is owed, and what was said of where they
+    /// went has nothing left to say.
+    fn hints_back(&mut self) {
+        self.hints_off = false;
+        self.owed = false;
+        if self.parting() {
+            self.finish_hint();
+        }
+    }
+
+    /// Whether the player is at what a hint is about, where that is
+    /// somewhere to be: a place that is open, or a tab of it that is chosen.
+    pub fn at(&self, about: About) -> bool {
+        match about {
+            About::Place(place) => self.showing && self.place == place,
+            About::Tab(place, tab) => self.showing && self.place == place && self.tabs[place] == tab,
+            _ => false,
+        }
     }
 
     /// Hints are shown again, those put away too: the dev key's. The
     /// player's own way is the Hints switch and the Journal's list (#300).
     pub fn forget_hints(&mut self) {
         self.dismissed.clear();
-        self.hints_off = false;
+        self.hints_back();
     }
 
     /// The player asked for this hint again, from the Journal's list
@@ -598,11 +648,12 @@ impl Shell {
     /// without putting it away (#300), so it is back when they are on.
     pub fn press_switch(&mut self, switch: Switch) {
         match switch {
+            // The switch says what it does itself: turned off here, where
+            // the hints went is not owed (#350).
+            Switch::Hints if self.hints_off => self.hints_back(),
             Switch::Hints => {
-                self.hints_off = !self.hints_off;
-                if self.hints_off {
-                    self.finish_hint();
-                }
+                self.hints_off = true;
+                self.finish_hint();
             }
             Switch::ChangedOnly if self.hand().open.is_some() => {
                 self.rows = match self.rows {
@@ -2880,7 +2931,8 @@ fn mark_chosen(
 }
 
 /// Put the hint's mark on the control the hint is about (#291), wherever
-/// that control is drawn, and take it off when the hint goes.
+/// that control is drawn, and take it off when the hint goes. A tab's mark
+/// is on its place too, while the player is not at that place (#350).
 fn point_out(
     mut commands: Commands,
     shell: Res<Shell>,
@@ -2909,7 +2961,10 @@ fn point_out(
     for (entity, place, tab, horse, control, carried, slot, pointed) in &controls {
         let wanted = match about {
             Some(About::Place(p)) => place.is_some_and(|button| button.0 == p),
-            Some(About::Tab(p, t)) => tab.is_some_and(|button| button.place == p && button.tab == t),
+            Some(About::Tab(p, t)) => {
+                tab.is_some_and(|button| button.place == p && button.tab == t)
+                    || place.is_some_and(|button| button.0 == p && !shell.at(About::Place(p)))
+            }
             Some(About::Horse(h)) => horse.is_some_and(|button| button.0 == h),
             Some(About::Control(id)) => control.is_some_and(|button| button.id == id),
             // A piece is marked wherever it is listed: the cargo, the
@@ -2955,7 +3010,8 @@ fn about_name(map: &Places, game: &Game, about: About) -> (String, Option<String
 }
 
 /// The hint's line says what the hint showing says: its control's name,
-/// that control's key, and its words.
+/// that control's key, and its words. The answer to Skip all hints has
+/// Got it beside it and no Skip all hints (#350).
 fn show_hint(
     shell: Res<Shell>,
     game: Res<Game>,
@@ -2963,7 +3019,20 @@ fn show_hint(
     line: Single<Entity, With<HintLine>>,
     children: Query<&Children>,
     mut texts: Query<(&HintText, &mut Text)>,
+    mut skips: Query<(&mut Node, &mut Visibility), With<SkipHints>>,
 ) {
+    let (display, seen) = match shell.parting() {
+        true => (Display::None, Visibility::Hidden),
+        false => (Display::Flex, Visibility::Inherited),
+    };
+    for (mut node, mut visibility) in &mut skips {
+        if node.display != display {
+            node.display = display;
+        }
+        if *visibility != seen {
+            *visibility = seen;
+        }
+    }
     let (about, key, words) = match shell.hint() {
         Some(hint) => {
             let (about, key) = about_name(&map, &game, hint.about);
@@ -2992,6 +3061,10 @@ const SAMPLE_HINTS: usize = 4;
 
 /// What a sample hint has for its lesson. No lesson has this name.
 pub const SAMPLE: &str = "sample";
+
+/// What the answer to Skip all hints has for its lesson (#350). No lesson
+/// has this name.
+pub const PARTING: &str = "where the hints went";
 
 /// A hint to look at the hint's line with, before any lesson raises one
 /// (the lessons are #290). The first is about the Journal, which is in the
@@ -3782,6 +3855,60 @@ mod tests {
 
         shell.skip_hints();
         assert!(!shell.is_on(Switch::Hints) && shell.put_away("first"));
+    }
+
+    /// Where the hints went (#350) is owed by Skip all hints and by nothing
+    /// else, is said once on a free line though hints are off, and is never
+    /// said again: not by a second Skip all, and not while hints are on.
+    /// Turning hints on takes it off the line.
+    #[test]
+    fn where_the_hints_went_is_said_once() {
+        let places = Places::load();
+        let parting = || a_hint(PARTING, About::Tab(0, 1));
+        let mut shell = Shell::new(places.pages().count());
+        assert!(!shell.owes_parting() && !shell.say_parting(parting()), "hints are on");
+
+        // The switch in Settings says so itself.
+        shell.press_switch(Switch::Hints);
+        assert!(!shell.owes_parting() && !shell.say_parting(parting()));
+        shell.press_switch(Switch::Hints);
+
+        // Skip all, on a hint: its line is free, and the answer has it.
+        assert!(shell.raise_hint(a_hint("first", About::Place(0))));
+        shell.skip_hints();
+        assert!(shell.owes_parting());
+        assert!(shell.say_parting(parting()) && shell.parting() && shell.hints_off());
+        assert!(!shell.owes_parting() && !shell.say_parting(parting()));
+
+        // Hints turned on: it goes, and is not a hint put away.
+        shell.press_switch(Switch::Hints);
+        assert!(shell.hint().is_none() && shell.is_on(Switch::Hints));
+        assert!(shell.raise_hint(a_hint("second", About::Place(0))));
+
+        // A second Skip all is not answered.
+        shell.skip_hints();
+        assert!(shell.hint().is_none() && !shell.owes_parting() && !shell.say_parting(parting()));
+
+        // Owed and not yet said, then hints turned on: nothing is owed.
+        let mut shell = Shell::new(places.pages().count());
+        shell.skip_hints();
+        shell.press_switch(Switch::Hints);
+        assert!(!shell.owes_parting());
+        shell.press_switch(Switch::Hints);
+        assert!(!shell.owes_parting(), "the switch does not raise it");
+
+        // Got it puts it away like any hint.
+        let mut shell = Shell::new(places.pages().count());
+        shell.skip_hints();
+        assert!(shell.say_parting(parting()) && shell.dismiss_hint());
+        assert!(shell.hint().is_none() && !shell.owes_parting());
+
+        // Where a hint's place is: open at it, on its tab.
+        let mut shell = Shell::new(places.pages().count());
+        assert!(shell.at(About::Place(0)) && shell.at(About::Tab(0, 0)));
+        assert!(!shell.at(About::Tab(0, 1)) && !shell.at(About::Place(1)) && !shell.at(About::Horse(0)));
+        shell.choose_tab(0, 1);
+        assert!(shell.at(About::Tab(0, 1)));
     }
 
     /// A hint names its control as the control names itself, and prints

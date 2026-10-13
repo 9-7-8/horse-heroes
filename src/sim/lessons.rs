@@ -129,12 +129,24 @@ pub struct EntryDef {
     pub coins: i32,
 }
 
-/// `lessons.ron`: the lessons, and the list of things to try.
+/// What Skip all hints is answered with, once (#350): where the hints
+/// went, on the control they are found again by.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub struct Parting {
+    pub target: Target,
+    /// Its one line: where they are, and what turns them back on.
+    pub words: String,
+}
+
+/// `lessons.ron`: the lessons, the list of things to try, and what Skip all
+/// hints is answered with.
 #[derive(Deserialize)]
 struct File {
     lessons: Vec<LessonDef>,
     #[serde(default)]
     list: Vec<EntryDef>,
+    #[serde(default)]
+    skipped: Option<Parting>,
 }
 
 /// How far the player is with an entry of the list.
@@ -212,12 +224,16 @@ pub struct Lessons {
     town: bool,
     /// An entry was ticked during this town visit.
     fresh: bool,
+    /// What Skip all hints is answered with (#350).
+    parting: Option<Parting>,
 }
 
 impl Lessons {
     pub fn load() -> Lessons {
         let file: File = parse("lessons.ron", include_str!("../../assets/data/lessons.ron"));
-        Lessons::new(file.lessons).with_list(file.list)
+        let mut lessons = Lessons::new(file.lessons).with_list(file.list);
+        lessons.parting = file.skipped;
+        lessons
     }
 
     pub fn new(defs: Vec<LessonDef>) -> Lessons {
@@ -234,6 +250,7 @@ impl Lessons {
             owed: 0,
             town: true,
             fresh: false,
+            parting: None,
         }
     }
 
@@ -242,6 +259,11 @@ impl Lessons {
         self.ticks = vec![Tick::default(); entries.len()];
         self.entries = entries;
         self
+    }
+
+    /// What Skip all hints is answered with, if the file says.
+    pub fn parting(&self) -> Option<&Parting> {
+        self.parting.as_ref()
     }
 
     /// The list of things to try, in the file's order.
@@ -540,6 +562,11 @@ mod tests {
             // A Drop is the only target that moves.
             assert!(def.instead.is_none() || def.target == Target::Drop, "{}", def.id);
         }
+        // What Skip all hints is answered with (#350) is one line too.
+        let parting = lessons.parting().expect("lessons.ron: nothing answers Skip all hints");
+        let words = parting.words.trim();
+        assert!(!words.is_empty() && !words.contains('\n') && words.chars().count() <= 85, "{words}");
+        assert!(Lessons::new(Vec::new()).parting().is_none());
     }
 
     fn entry(id: &str, due: Event, done: Event, coins: i32) -> EntryDef {

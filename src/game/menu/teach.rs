@@ -8,7 +8,7 @@
 
 use bevy::prelude::*;
 
-use super::shell::{About, Hint, Places, Shell};
+use super::shell::{About, Hint, PARTING, Places, Shell};
 use crate::fx::drops::Kind;
 use crate::fx::sound::Heard;
 use crate::game::{Game, Piece};
@@ -50,6 +50,8 @@ pub struct Held {
     card: bool,
     horse: usize,
     visited: Vec<bool>,
+    /// The player was where the hints are found again (#350).
+    there: bool,
 }
 
 /// Keep the hint's line to the lessons. The queue hears what the player's
@@ -129,6 +131,22 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
         }
         None if ours => shell.finish_hint(),
         _ => {}
+    }
+
+    // Skip all hints is answered once with where the hints went (#350), on
+    // the line it emptied. The answer goes when the player gets there.
+    let parting = game.lessons.parting().and_then(|parting| {
+        let (about, _) = find(&parting.target, map, game, hand.horse)?;
+        Some((about, parting.words.clone()))
+    });
+    if let Some((about, words)) = parting {
+        let there = shell.at(about);
+        if shell.parting() && there && !held.there {
+            shell.finish_hint();
+        } else {
+            shell.say_parting(Hint { lesson: PARTING.into(), about, words });
+        }
+        held.there = there;
     }
     paid
 }
@@ -813,6 +831,91 @@ mod tests {
         assert!(again(&mut game, &mut shell, &map, 2));
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("fight"));
+    }
+
+    /// Skip all hints is answered once (#350), by the file's own words and
+    /// on the file's own target, which exists. It is on the line though
+    /// hints are off, the game's lessons are off under it, and it goes when
+    /// the player gets to where it points. It is not said a second time, and
+    /// the switch in Settings never raises it. With no answer in the file
+    /// nothing is said.
+    #[test]
+    fn skip_all_hints_is_answered_once_with_where_they_went() {
+        let map = Places::load();
+        let home = || {
+            (0..50)
+                .map(Game::back_from_a_trail)
+                .find(|game| game.pending_drop().is_some())
+                .expect("no seed under 50 brings a drop home")
+        };
+        let mut game = home();
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        let parting = game.lessons.parting().expect("the file has no answer").clone();
+        let (about, _) = find(&parting.target, &map, &game, 0).expect("its target is not in places.ron");
+        assert!(!shell.at(about), "the walk starts where the hints are kept");
+
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(shell.hint().is_some() && !shell.parting(), "a lesson shows in the first town");
+        shell.skip_hints();
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some(PARTING));
+        assert_eq!(shell.hint().unwrap().about, about);
+        assert_eq!(shell.hint().unwrap().words, parting.words);
+        assert!(game.lessons.is_off() && shell.hints_off());
+        for _ in 0..3 {
+            follow(&mut game, &mut shell, &map, &mut held);
+            assert_eq!(hinted(&shell), Some(PARTING), "it stays until it is seen");
+        }
+
+        // The player goes there: it has been seen.
+        let About::Tab(place, tab) = about else {
+            panic!("this walk is of a tab: {about:?}");
+        };
+        shell.open(place);
+        shell.choose_tab(place, tab);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None);
+
+        // Hints on again, and skipped again: not a second time.
+        shell.open(0);
+        shell.press_switch(crate::game::menu::shell::Switch::Hints);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(!game.lessons.is_off() && !shell.parting());
+        shell.skip_hints();
+        for _ in 0..3 {
+            follow(&mut game, &mut shell, &map, &mut held);
+            assert_eq!(hinted(&shell), None);
+        }
+
+        // Turned off in Settings: never.
+        let mut game = home();
+        (shell, held) = (Shell::new(map.pages().count()), Held::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        shell.press_switch(crate::game::menu::shell::Switch::Hints);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None);
+
+        // Skipped while already there: it is said, and Got it puts it away.
+        let mut game = home();
+        (shell, held) = (Shell::new(map.pages().count()), Held::default());
+        shell.open(place);
+        shell.choose_tab(place, tab);
+        follow(&mut game, &mut shell, &map, &mut held);
+        shell.skip_hints();
+        follow(&mut game, &mut shell, &map, &mut held);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some(PARTING));
+        assert!(shell.dismiss_hint());
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None);
+
+        // A file with no answer says nothing.
+        let mut game = home();
+        game.lessons = lessons();
+        (shell, held) = (Shell::new(map.pages().count()), Held::default());
+        shell.skip_hints();
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), None);
     }
 
     /// The lessons of the file itself, in a first town with a piece (#296),

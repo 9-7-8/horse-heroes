@@ -70,6 +70,17 @@
 //            SentOut   Set out was pressed; Keep going's own departure is
 //                      not this
 //   coins  what it pays. Tuning.
+//
+// `skipped` is what Skip all hints is answered with, once and never again
+// (#350): where the hints went and what turns them back on. It is on the
+// hint's line with Got it beside it, holds nothing up, and goes when the
+// player gets there or turns hints on. The Hints switch in Settings says so
+// itself and does not raise it.
+//
+//   target  where the hints are found again, as a lesson's target is named.
+//           A tab's mark is on its place too, while that place is not open.
+//   words   its one line, said after the target's name and key: 85 letters
+//           at most.
 #![enable(implicit_some)]
 (
 lessons: [
@@ -142,4 +153,8 @@ list: [
     (id: "open every place", due: Gear, words: "Open every place in the bar.", done: Toured, coins: 5),
     (id: "set out", due: Gear, words: "Set out.", done: SentOut, coins: 2),
 ],
+skipped: (
+    target: Tab("Journal", "Hints"),
+    words: "Kept here, on the Journal. Hints in Settings brings them and the things to try back.",
+),
 )
