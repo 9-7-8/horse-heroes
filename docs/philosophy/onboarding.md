@@ -15,7 +15,7 @@ Also hers, the same day: the game starts on the road and combat is learned
 by watching; the first town does not leave by itself (#302), so where this
 file speaks below of the 12 seconds in the first town, that now applies to
 later towns only; and a first-town list pays a few coins for trying things
-(#303). The statement is [vision.md](vision.md), Tutorials.
+(#303; built 2026-10-13, `docs/lessons.md`, "The things to try"). The statement is [vision.md](vision.md), Tutorials.
 
 The rest is advice from the two source documents and is not her decision;
 what she has decided is in [vision.md](vision.md), and the open questions

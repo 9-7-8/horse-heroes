@@ -39,6 +39,9 @@ Plain facts (`Event`), told to the queue with `Lessons::raise`:
 | `Selected` | `teach::follow`, when the selected horse changes |
 | `Swapped` | `Game::act`, when Equip took a piece from the horse that wore it |
 | `SetOut` | `Game::depart`, by Set out or by itself |
+| `SentOut` | `Game::act`, when Set out is pressed. Keep going's own departure is not this |
+| `Compared` | `teach::follow`, when the selected horse changes with a piece's card open |
+| `Toured` | `teach::follow`, when every place of the bar has been opened in town, counted from when an entry of the list asks for it |
 
 An event makes its lessons due the first time it happens and never again,
 so a return to town does not replay the opening. A test holds that the game
@@ -118,6 +121,55 @@ the switch), since that is what Got it and Skip all hints already call it;
 the list is a fourth tab of the Journal; Hints in Settings has no key; a
 row's second line and its wording.
 
+## The things to try
+
+A short list over the town scene (#303; the owner, 2026-10-11: "a quest
+system that rewards the player with small amounts of gold for doing things
+like clicking or equipping an item"). It is the `list` of `lessons.ron`, not
+a general quest system, and it is how a thing is taught by doing it.
+
+| field | what it is |
+|---|---|
+| `id` | its name |
+| `due` | the event that puts it on the list |
+| `words` | the thing to do: one line, 32 letters at most |
+| `done` | the event that ticks it |
+| `coins` | what it pays, once |
+
+- **Ticked by doing, and by nothing else.** `Lessons::raise` ticks an entry
+  when its `done` event happens while it is on the list and the party is
+  in town (`arrive`, `leave`). What was done before it was listed does not
+  count, what puts it on the list does not tick it in the same breath, and
+  nothing done on the road counts. The events are raised by what the
+  controls did, so a key and the pointer are the same.
+- **Paid once, into the party's count.** A tick adds the entry's coins to
+  what the list owes; `Game::bank_rewards`, called by `teach::follow` each
+  frame, moves that into `Game::coins`, and `teach::teach` plays a coin's
+  arrival for each coin, so it is heard and counted as a coin from a kill
+  is. There is nothing to spend coins on yet.
+- **Nothing has to be done.** Set out works with every entry open, and an
+  entry not done is on the list at the next town. The list is there in town
+  while an entry on it is open, stays for the visit in which the last one
+  is ticked, and is gone from the next (`Lessons::list_showing`).
+- **Its home** is the top right of the town scene, clear of the gate and
+  the horses at 1120x640 (`show_list`; `to_try_width` in `menu.ron`). It is
+  out of the shell's layout, so it moves no control, and the pointer passes
+  through it: an entry is done on the real control, never on the list. The
+  road has the fight log instead.
+- **Hints off puts it away** (`Shell::list_in_view`), and on brings it
+  back. Entries are still ticked and paid behind it.
+- A later feature adds its entry here as its tutorial (CLAUDE.md, rule 5).
+
+The entries today, all due when a trail first brings a piece back: select
+another horse; press the new piece; with its card open, select another
+horse; put the piece on a horse; open every place in the bar; set out.
+
+Chosen without the owner: where it is; the amounts (2, 2, 3, 3, 5, 2);
+that it waits for the first piece and is not there at launch; that it goes
+with the hints; that entries count in town only; one entry for all six
+places and not one each; its heading, "To try in town, if you like. Each
+pays once."
+
 ## The lessons in the file
 
 Written by the session from `philosophy/onboarding.md` ("For Horse
@@ -155,7 +207,8 @@ first-time player can then say whose stats the comparison is about is
 road, at 24 the second, at 80 the piece's in town
 ([gallery](gallery/2026-10-12-lessons/README.md)).
 `IDLE_LESSON=<folder>` with `--seed 6` walks the first item's lessons by
-keys and saves a picture of each
+keys, ticking four of the things to try on the way and a fifth at its end
+([gallery](gallery/2026-10-13-things-to-try/README.md)), and saves a picture of each
 ([gallery](gallery/2026-10-12-first-item/README.md)). F6 puts a sample hint
 over whatever lesson is showing and takes it away again; the lesson comes
 back after it. The dev key also brings back every lesson put away. The

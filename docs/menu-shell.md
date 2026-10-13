@@ -260,6 +260,14 @@ that."). It is not in the Journal's report any more.
 Chosen without the owner: the key L, six lines, no backing behind the
 letters, and that it is away while a place is open on the road.
 
+## The things to try
+
+In town, once a trail has brought a piece back, a short list is over the
+scene at its top right (#303): things to do on the real controls, each
+ticked when it is done and paying a few coins once. It is out of the
+layout, takes no press and no focus, and goes with the hints when they are
+turned off. How it works: [lessons.md](lessons.md), "The things to try".
+
 ## How a place keeps its state
 
 All the places, and every tab of each, are spawned once at startup and only

@@ -1,0 +1,72 @@
+SESSION 2026-10-13 15:45 - The things to try (#303)
+
+ASKED
+  /next, with no steer. Tier 1 was empty but for #246, which waits on
+  the owner watching a few trails. Tier 2: src/sim/ had only lost code
+  since the last sweep. The feature was the lowest open menus issue with
+  work left in it, in 0.2.3: #303, the first-town list. (The open menus
+  issues of 0.2.1, and #308, #311 and #314, wait on the owner or on
+  systems not built. PICK UP named #352, which is not a menus issue.)
+
+DONE
+  - A list of things to try in town (8d61d77, closes #303). Once a trail
+    has brought a piece back it is over the town scene, top right: select
+    another horse, press the new piece, with its card open select
+    another horse, put the piece on a horse, open every place in the
+    bar, set out. Each is ticked by doing it in town and pays once.
+    Tested: an_entry_is_ticked_by_doing_it_and_pays_once,
+    the_list_is_the_towns_and_waits_for_the_next_one,
+    the_list_does_not_depend_on_the_hints,
+    the_list_is_ticked_by_doing_and_pays_into_the_count (the file's own
+    list, a town with nobody at it earning nothing, and a town left with
+    two entries undone), the_list_is_over_the_town_scene_and_goes_with_
+    the_hints. 198 tests pass.
+  - Seen running: IDLE_LESSON at --seed 6, 1120x640. The list is clear
+    of the gate and the horses, four boxes fill as the walk does them
+    and the coins go 29, 39, 44 (docs/gallery/2026-10-13-things-to-try).
+  - The entries are the `list` of lessons.ron: id, due, words, done,
+    coins. Three new events, the player's only: Compared, Toured,
+    SentOut. Keep going's own departure is not a press of Set out.
+  - docs: lessons.md ("The things to try"), menu-shell.md, onboarding.md,
+    build-and-run.txt.
+
+DECIDED (by the session, for her)
+  - Where it is: over the town scene at its top right, out of the
+    layout, taking no press. Top left covered two of the horses.
+  - It waits for the first piece, so it is not there at launch.
+  - Entries count in town only, where the list is seen.
+  - Hints turned off puts the list away too; entries are still ticked
+    and paid behind it. The Hints control in Settings says so.
+  - One entry for all six places, not one each.
+  - The amounts: 2, 2, 3, 3, 5, 2. Seventeen coins in all.
+  - The words, cut to 32 letters so a row is one line beside what it
+    pays: "Press the new piece.", "Card open, select another horse."
+  - Its heading: "To try in town, if you like. Each pays once."
+
+FOUND
+  - A letter of the body text is 8.4 wide, not 7.5: the first try
+    wrapped two rows.
+  - In town two of the three horses stand left of the gate, where the
+    road's fight log is. Nothing may be put there in town.
+  - A here-document in the Bash tool failed again on apostrophes;
+    scripts went through the Write tool, as build-and-run.txt says.
+
+NOT DONE
+  - Nobody has heard the coins: the run was --mute. The list plays a
+    coin's arrival for each coin paid.
+  - Nobody has pressed anything with a hand; the walk's presses are the
+    game's own.
+  - The menu tour and the click-budget walk were not run. Both press
+    Set out and select horses in town after a piece, so their coin
+    counts are a few higher than in their old pictures.
+  - The soak was not run. Nobody is at it, so the list pays nothing
+    there (tested), and its coin sums should hold.
+  - With hints off and the list put away, a paid coin is heard and
+    counted with nothing on screen to say why.
+  - Carried over: the tour's step names for pictures 49 and 89, and the
+    jobs named for a piece "left behind" (jobs.ron).
+
+PICK UP
+  #350: after Skip all hints, say once where the hints went (menus,
+  0.2.3). Say there too that the list of things to try went with them.
+  After it, the rest of #352: every monster drops gear.
