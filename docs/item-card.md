@@ -324,6 +324,41 @@ says so ("All but Equip, Changed only, Details: not built yet."), and a press on
 press puts the card away, as a press on any unbuilt control replaces the
 detail.
 
+## Dragging
+
+A piece can be dragged onto a horse or a slot (#228;
+docs/philosophy/inventory.md, "Direct manipulation, with an equal"). The
+drag is Equip by another hand: E and the button do the same.
+
+- **From** a slot that holds a piece (Gear tab, Inventory), a carried piece
+  (the cargo column, the Inventory) or the report's drop. In town only
+  (`on_drag_start` in `shell.rs`).
+- **Onto** a slot of the piece's type, or a horse in the strip, which takes
+  it in that type's slot (the Inventory has no tile for a horse's empty
+  slot). Never onto the horse that wears it. `Game::drop_hand` says where it
+  may go, by `can(Equip)` for that horse.
+- **Marked**: while the drag lasts every horse and slot it may go to is a
+  target (`parts::Target`): the hover fill, and the accent for border and
+  ring (`paint`; a test holds it apart from every state in grey).
+- **Preview**: over a target the pointer's card is the comparison on that
+  horse, whoever is selected, then what Equip would do and "Let go here to
+  do it; anywhere else, and nothing changes." (`card::dragged`). Over
+  anything else no card shows, so none covers the targets.
+- **Letting go** on a target is `Game::drop_piece`: Equip for that horse,
+  one Undo, a card open on the piece goes with it. Anywhere else nothing
+  changes.
+- Its tutorial is an entry on the list of things to try, "Drag a piece onto
+  a horse." (`Dragged`), once something has been equipped.
+
+A card too wide to sit beside its cell (a slot of the Gear tab) is kept
+inside the window, over the cell's far end (`beside`).
+
+Tests: `a_dragged_piece_goes_where_equip_would_put_it` (`mod.rs`),
+`a_dragged_piece_previews_the_drop` (`card.rs`),
+`a_target_of_a_drag_stands_out_without_colour` (`parts.rs`). The menu tour
+drags with Bevy's own pointer (`Step::Grab`, `DragTo`, `LetGo`); pictures:
+`docs/gallery/2026-10-14-dragging`.
+
 ## The appraisal in camp
 
 What the report says of the drop by itself, with no card opened and no
@@ -375,7 +410,6 @@ or moved; an empty slot and an empty cargo say what belongs there.
 
 - The card in the stall, storage and the codex: none of those lists exists.
 - List and Favourite from the card: #99 and the favourite mark (#150).
-- Dragging a piece to a slot.
 - The indicators of #150: new, equipped, favourite, look owned, listed.
 - In the Details layer: modifier sources, set membership and sale value
   (docs/philosophy/inventory.md), once affixes (#69), sets and the stall

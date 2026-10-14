@@ -1,0 +1,47 @@
+SESSION 2026-10-14 22:45 - Dragging a piece onto a horse or slot (#228)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner
+  watching. Tier 2: nothing new untested. Tier 3, menus first: PICK UP's
+  #228 part, dragging a piece onto a slot.
+
+DONE
+  - Drag a carried piece, a worn one or the report's drop onto a slot of
+    its type or a horse in the strip. While it is held, the places it
+    may go are highlighted (hover fill, accent border and ring). Over
+    one, the card is a preview: the comparison on that horse and what
+    letting go would do. Letting go is Equip for that horse, with one
+    Undo. Tested (Game::drop_hand, drop_piece, card::dragged, the
+    highlight in grey); seen running in the menu tour, pictures 84 to 87
+    (docs/gallery/2026-10-14-dragging).
+  - Its tutorial: "Drag a piece onto a horse." on the list of things to
+    try, after something has been equipped (Event::Dragged). Tested; the
+    tour's picture shows it paid.
+  - The hover card now stays inside the window beside a cell too wide
+    for it (a Gear slot). Before this, it ran off the right edge. Tested.
+  - The tour can drag: Step::Grab, DragTo, LetGo, Fits.
+  - 216 tests pass. docs/item-card.md, docs/lessons.md and
+    build-and-run.txt updated; #228 commented and left open.
+
+DECIDED (by the session, for her)
+  - A horse in the strip is a drop target as well as a slot, because the
+    Inventory has no tile for an empty slot.
+  - No card shows while the piece is over nowhere it can go, so the card
+    never covers the targets.
+  - Tutorial: a list entry worth 2 coins, due once something is equipped.
+
+FOUND
+  - Bevy starts a drag only on a move after the press. A synthetic press
+    with no move begins nothing, so the tour nudges 4 px after it grabs.
+  - The outer Update tuple in ShellPlugin is at Bevy's 20-item limit; the
+    new systems are nested with their neighbours.
+
+NOT DONE
+  - Nobody has dragged with a real mouse, and the owner has not looked.
+  - #228's rest needs unbuilt systems: the stall, storage, codex, List,
+    Favourite and #150's indicators.
+
+PICK UP
+  Read the "done when" of #229, #230, #236, #250, #253 and #285 (0.2.1,
+  all menus), and build the lowest-numbered one that has an unmet part
+  needing nothing unbuilt.
