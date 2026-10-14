@@ -347,9 +347,9 @@ the file are the keys of the party's horses, in order (see Keys).
 - **A control with a `switch` works too** (#349). A press turns a way of
   showing things on or off (`Shell::press_switch`), and the control carries
   the selected mark while it is on. It changes nothing in the game, so it
-  is not in `Game::act` and Undo does not see it. There are two: Changed
-  only, on the item card (item-card.md, "The comparison"), and Hints, in
-  Settings (lessons.md).
+  is not in `Game::act` and Undo does not see it. There are three: Changed
+  only, on the item card (item-card.md, "The comparison"), and Hints and
+  Damage numbers, in Settings (lessons.md, damage-numbers.md).
 - **When a system lands**, its control gets an `action`, a `shows` or a
   `switch` and stays where it is.
 
@@ -638,6 +638,7 @@ in the shell presses the thing when its key goes down, by the same
 | [, ] | Earlier and Later: the report before, and after, the one the Journal shows | `key` of the control |
 | Space | Set out, in town only | `key` of the control |
 | K | Keys: the list of every key, in Settings | `key` of the control |
+| D | Damage numbers off and on, in Settings | `key` of the control |
 | Escape | Back one level | not in the file |
 | Arrows | Move the keyboard focus to the nearest control that way | not in the file |
 | PageUp, PageDown | Scroll what the side panel says, or the tab's page when no panel is open | `scroll_keys` |

@@ -1,0 +1,47 @@
+SESSION 2026-10-14 20:15 - Floating damage numbers (#249)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner
+  watching trails. Tier 2: nothing new in src/sim/ without a test. The
+  open menus issues of 0.2.1 and 0.2.3 wait on the owner's look, so the
+  pick was PICK UP: the lowest-numbered open issue of 0.2.3, #249.
+
+DONE
+  - The sim tells each hit as it lands (Expedition::hits; Hit, Struck,
+    HitKind). Tested: over 100 seeds every hit is told in the log's
+    order for the log's damage, with the right target and kind.
+  - fx/numbers.rs: a number rising from the body struck, sized by the
+    square root of the damage, Strong bigger with "!", Resisted and
+    Warded smaller and fainter; a horse's hit in its element's colour
+    lightened, an enemy's hit on a horse violet with a minus. Hits on
+    one thing close together set side by side. Feel numbers in
+    assets/data/damage_numbers.ron. Unit-tested (size, rise, fade,
+    placement, colours apart by hue). Seen running: pictures in
+    docs/gallery/2026-10-14-damage-numbers.
+  - Damage numbers switch in Settings, key D, on in a new game.
+    Unit-tested; seen in the menu tour (Tab: 28 stops, 0 out of sight).
+  - The lesson "the numbers are hits": due at the first kill, on the
+    road, done by watching the next. Seen on the hint's line at 32 s.
+  - 211 tests pass. docs/damage-numbers.md written.
+
+DECIDED (by the session, for her)
+  - The off switch went in Settings, beside Hints, not on a bare key:
+    the issue said a key until #45; Settings already has switches.
+  - Taken damage is violet with a minus: the first try used red, which
+    could not be told from a Fire hit.
+  - The lesson is its own, after the two road lessons, not a rewording
+    of the first.
+
+FOUND
+  - The first look had the three horses' same-tick hits overlapping
+    ("6 8 11!"); fixed by setting hits on one thing side by side.
+
+NOT DONE
+  - Pressing D to turn them off was not seen in the running game, only
+    in the unit test.
+  - Not heard or looked at by the owner. No soak was run.
+
+PICK UP
+  Run `gh issue list --repo 9-7-8/horse-heroes --milestone "0.2.3 Horses
+  and inventory" --state open` and build the lowest-numbered issue
+  there that is not waiting on the owner (#292 is next by number).

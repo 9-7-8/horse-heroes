@@ -70,6 +70,9 @@ Use the cheapest step that can prove the change:
    sample hint showing, about the Journal; F6 shows a sample and takes it
    away, about the next kind of control each time. With --hint --seed 6
    at IDLE_SHOT_AT=65.9 the final fountain is in the air above it.
+   Damage numbers (docs/damage-numbers.md): --seed 6 --keep-going at
+   IDLE_SHOT_AT=17.9 has 6!, 8! and 11! side by side over the first enemy
+   and -3 over Morrow; at 40 an Elemental Burst's numbers on two enemies.
    Lessons (docs/lessons.md): --seed 6 --keep-going at IDLE_SHOT_AT=17 has
    the first lesson on the hint's line, at 24 the second, at 80 the
    piece's in town. F6 puts the sample over a lesson that is showing.

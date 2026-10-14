@@ -193,8 +193,10 @@ Heroes") and not approved line by line.
 
 **The road, a starting set** until #295: the horses fight by themselves
 (first fight, until a kill is watched); each has one ability (first
-ability, until another is watched). The element's line is #299. `Kill`,
-`Resisted` and `Win` are raised and no lesson waits for them yet.
+ability, until another is watched); each number is a hit (#249: first
+kill, until another kill is watched; docs/damage-numbers.md). The
+element's line is #299. `Resisted` and `Win` are raised and no lesson
+waits for them yet.
 
 **The first item** (#296), in town, each finished by doing the thing and
 none of which has to be done:
