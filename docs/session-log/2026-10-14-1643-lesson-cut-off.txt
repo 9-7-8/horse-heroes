@@ -1,0 +1,43 @@
+ASKED
+  /next, with no steer. Tier 1: #246 waits on the owner watching trails.
+  Tier 2: nothing new untested. Tier 3: PICK UP's #297 (0.2.3).
+
+DONE
+  - A town lesson cut off by setting out is offered once more (#297,
+    closed): showing when the party leaves, it is offered at the next town
+    visit; left with it showing a second time, it is not offered by itself
+    again. The Journal lists it as "Left in town twice" (new State::Left),
+    and a press there still shows it. Leaving with a lesson the player
+    asked for from the list does not count, and lessons finished by
+    setting out are done by it, not cut off. Tested in the queue
+    (a_lesson_cut_off_by_setting_out_is_offered_once_more) and in the menus
+    (setting_out_at_any_step_of_a_town_lesson_loses_nothing: Keep going
+    runs out at each of four steps of the first item, the card open at two;
+    the party leaves on the tick a game with no lessons does, every piece
+    where it was, no town hint on the road; the cut lesson back at the
+    next town and gone from the one after). 219 pass.
+  - docs/lessons.md and the lessons.ron header say so.
+
+DECIDED (by the session, for her)
+  - "Once" read as: one more town visit, counted by the party leaving with
+    the lesson showing. A lesson that only waited behind another was not
+    cut off. After two cuts it rests rather than being counted as put away,
+    since nothing was pressed.
+  - The issue's "What" also asked that a piece equipped at the gate be
+    followed by a line saying where it went. Its "done when" does not, and
+    nothing equips by itself now (#351), so it was not built.
+
+FOUND
+  - #353 (0.2.4, labelled menus, decided by the owner) comes first in
+    tier 3 by menus first, and the last two PICK UPs passed it by.
+
+NOT DONE
+  - Not run or looked at: the only visible change is the Journal row's
+    words, which takes three town visits to reach; the row is asserted by
+    test.
+
+PICK UP
+  Read #353 and build its first part: a lesson shown as a pop-up by its
+  target that pauses the game until answered (menus first puts it ahead of
+  every other feature). If it is several parts, build the pause and the
+  overlay first and file the rest.
