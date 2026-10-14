@@ -27,6 +27,7 @@
 //                        piece
 //              Another   the player opened the card of a carried piece
 //                        that is not the newest
+//              Detailed  the player read a piece's card with its Details on
 //   shown    where: Town, Road, or left out for either. A Town lesson that
 //            is showing when the party sets out waits for the next town.
 //   target   the control its mark is on, named as places.ron names it:
@@ -174,6 +175,8 @@ list: [
     (id: "press the piece", due: Gear, words: "Press the new piece.", done: Card, coins: 2),
     (id: "compare on another horse", due: Gear, words: "Card open, select another horse.", done: Compared, coins: 3),
     (id: "equip it", due: Gear, words: "Put the piece on a horse.", done: Equipped, coins: 3),
+    // The card's third layer (#228): its formulas, once a card has been seen.
+    (id: "read the details", due: Card, words: "Turn on a card's Details.", done: Detailed, coins: 2),
     (id: "open every place", due: Gear, words: "Open every place in the bar.", done: Toured, coins: 5),
     (id: "set out", due: Gear, words: "Set out.", done: SentOut, coins: 2),
 ],

@@ -174,6 +174,8 @@ pub enum Switch {
     Hints,
     /// Each hit's damage rises from what it struck (#249).
     DamageNumbers,
+    /// The card's third layer, its formulas and assumptions (#228).
+    Details,
 }
 
 /// What a tab shows, or a place without tabs. `Planned` is one whose system
@@ -504,6 +506,9 @@ pub struct Shell {
     told: bool,
     /// The damage numbers are turned off (#249).
     numbers_off: bool,
+    /// A pinned card shows its Details (#228): one setting for every piece
+    /// and every place, as `rows` is.
+    formulas: bool,
 }
 
 impl Shell {
@@ -523,6 +528,7 @@ impl Shell {
             owed: false,
             told: false,
             numbers_off: false,
+            formulas: false,
         }
     }
 
@@ -645,12 +651,13 @@ impl Shell {
             Switch::ChangedOnly => self.rows == card::Rows::Changed,
             Switch::Hints => !self.hints_off,
             Switch::DamageNumbers => !self.numbers_off,
+            Switch::Details => self.formulas,
         }
     }
 
-    /// A press of a switch (#349). Changed only does nothing while no
-    /// piece's card is pinned in view, where it would change something the
-    /// player cannot see. Hints off takes the one showing off its line
+    /// A press of a switch (#349). Changed only and Details do nothing while
+    /// no piece's card is pinned in view, where they would change something
+    /// the player cannot see. Hints off takes the one showing off its line
     /// without putting it away (#300), so it is back when they are on.
     pub fn press_switch(&mut self, switch: Switch) {
         match switch {
@@ -668,6 +675,8 @@ impl Shell {
                 };
             }
             Switch::ChangedOnly => {}
+            Switch::Details if self.hand().open.is_some() => self.formulas = !self.formulas,
+            Switch::Details => {}
             Switch::DamageNumbers => self.numbers_off = !self.numbers_off,
         }
     }
@@ -3450,7 +3459,7 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             };
             match detail.item.piece() {
                 // A piece is pinned to be compared, in every place (#312).
-                Some(piece) => card::comparison(game, piece, shell.hand(), shell.rows()),
+                Some(piece) => card::comparison_with(game, piece, shell.hand(), shell.rows(), shell.is_on(Switch::Details)),
                 None => {
                     let id = match detail.item {
                         Item::Control(id) => id,
@@ -4133,7 +4142,7 @@ mod tests {
         }
         let cargo = &places.places[0].cargo;
         assert_eq!(unbuilt_line(cargo, false), "None of these is built yet.");
-        assert!(unbuilt_line(&places.card, false).starts_with("All but Equip, Changed only: "));
+        assert!(unbuilt_line(&places.card, false).starts_with("All but Equip, Changed only, Details: "));
         assert_eq!(
             unbuilt_line(&places.footer, false),
             "Planned changes: not built yet."
@@ -4381,6 +4390,53 @@ mod tests {
         // A switch changes nothing in the game.
         assert_eq!(game.party[0].gear[gear.slot.index()].as_ref(), Some(&worn));
         assert_eq!(game.pending_drop(), Some(&gear));
+    }
+
+    /// Details (#228) is a control of the card with its key, in the Keys
+    /// list. Pressed with a card pinned it adds the card's formulas there,
+    /// in every place, and stays set; it changes nothing in the game, and
+    /// nothing while no card is pinned. The card under the pointer keeps
+    /// to the comparison.
+    #[test]
+    fn details_is_one_switch_for_every_piece_and_place() {
+        let places = Places::load();
+        let control = places
+            .card
+            .iter()
+            .find(|control| control.switch == Some(Switch::Details))
+            .expect("Details is on the card");
+        assert!(control.built() && control.action.is_none() && control.shows.is_none());
+        let key = control.key.as_deref().expect("its key is printed on it");
+        assert!(keys_list(&places, &[]).contains(&format!("{key} {}", control.name)));
+
+        let game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .unwrap();
+        let uncollected = Uncollected::default();
+        let said = |shell: &Shell, place: usize| fact(&game, &uncollected, shell, &places, Fact::Detail(place));
+        let mut shell = Shell::new(places.pages().count());
+        shell.press_switch(Switch::Details);
+        assert!(!shell.is_on(Switch::Details), "nothing is pinned");
+        let pin = |shell: &mut Shell, place: usize| {
+            shell.open(place);
+            let tab = shell.tab(place);
+            shell.show_detail(place, Detail { tab, item: Item::Carried(0), opener: None });
+        };
+        pin(&mut shell, 0);
+        assert!(!said(&shell, 0).contains("DETAILS"));
+        shell.press_switch(Switch::Details);
+        assert!(shell.is_on(Switch::Details));
+        assert!(said(&shell, 0).contains("DETAILS"));
+        pin(&mut shell, 1);
+        assert!(said(&shell, 1).contains("DETAILS"), "another place");
+        shell.close_detail();
+        shell.point(Some((Entity::PLACEHOLDER, Piece::Carried(0))));
+        let pointed = fact(&game, &uncollected, &shell, &places, Fact::Hovered);
+        assert!(!pointed.is_empty() && !pointed.contains("DETAILS"), "{pointed}");
+        pin(&mut shell, 1);
+        shell.press_switch(Switch::Details);
+        assert!(!said(&shell, 1).contains("DETAILS") && !said(&shell, 0).contains("DETAILS"));
     }
 
     /// The list of things to try (#303) is over the scene in town once a

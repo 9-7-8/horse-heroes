@@ -49,11 +49,13 @@ pub enum Event {
     /// The player opened the card of a carried piece that is not the
     /// newest: one among the others.
     Another,
+    /// The player read a piece's card with its Details (#228).
+    Detailed,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 16] = [
+    pub const ALL: [Event; 17] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -70,6 +72,7 @@ impl Event {
         Event::SentOut,
         Event::Several,
         Event::Another,
+        Event::Detailed,
     ];
 }
 

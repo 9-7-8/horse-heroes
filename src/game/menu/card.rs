@@ -6,8 +6,8 @@
 //! docs/item-card.md.
 
 use crate::game::{Action, Game, Hand, Piece, stats_line};
-use crate::sim::data::{Slot, Stats};
-use crate::sim::loot::{Gear, Horse};
+use crate::sim::data::{RarityDef, Slot, Stats};
+use crate::sim::loot::{Gear, Horse, score};
 
 /// What a list says where the cargo is empty.
 pub const NOTHING_CARRIED: &str = "Nothing here yet.\nGear the horses bring back is carried here.";
@@ -250,16 +250,87 @@ fn left_out_line(rows: usize) -> String {
     }
 }
 
+/// A share of a whole as a percentage that says it is one: "9%", and
+/// "under 1%" rather than a 0 that is not true.
+fn percent(part: u32, whole: u32) -> String {
+    if part == 0 || whole == 0 {
+        return "none".into();
+    }
+    match (part * 100 + whole / 2) / whole {
+        0 => "under 1%".into(),
+        share => format!("{share}%"),
+    }
+}
+
+/// A multiplier as the rules hold it: "x1.5", "x2".
+fn times(multiplier: f32) -> String {
+    format!("x{}", (multiplier * 100.0).round() / 100.0)
+}
+
+/// The card's third layer (#228; docs/philosophy/menus.md, "The item is the
+/// handle"): the formulas and assumptions behind a piece, behind the
+/// Details switch. How it was rolled, from `gear.ron`, and what each of its
+/// stats does in a hit, from `rules.ron`. Every number is the data's, so a
+/// change there is said here with no code.
+pub fn details(game: &Game, gear: &Gear) -> String {
+    let data = &game.data;
+    let table = &data.gear;
+    let rarity = &table.rarities[gear.rarity];
+    let (lo, hi) = rarity.points;
+    let points = score(data, gear.stats);
+    let total = |weight: fn(&RarityDef) -> u32| table.rarities.iter().map(weight).sum();
+    let share = |weight: fn(&RarityDef) -> u32| percent(weight(rarity), total(weight));
+    let rules = &data.rules;
+    format!(
+        "DETAILS: {name}\n\
+         HOW IT WAS ROLLED\n\
+         A {tier} piece has {lo} to {hi} points, and 1 more for each level of its trail. This one has {points}.\n\
+         Each point went to one stat at random: +1 attack, +1 defense, +1 elemental or +{per} health.\n\
+         Odds of {tier}: {lost} of a lost trail's own piece, {won} of a won trail's, {kill} of a kill's pieces.\n\
+         \n\
+         IN A FIGHT\n\
+         Each horse hits every {interval} s.\n\
+         attack: a hit's physical part, less the enemy's defense, never below 0.\n\
+         elemental: a hit's elemental part, {strong} where the party's element is strong, {weak} where it is resisted.\n\
+         defense: taken off each enemy hit, which still does at least 1.\n\
+         health: what a horse can lose before it falls.\n\
+         Focused Shot hits with attack {focused}; Elemental Burst hits every enemy with elemental {burst}. A Ward takes {ward}% off enemy hits.",
+        name = gear.name,
+        tier = rarity.name,
+        per = table.health_per_point,
+        lost = share(|r| r.weight),
+        won = share(|r| r.win_weight),
+        kill = share(|r| r.kill_weight),
+        interval = rules.attack_interval,
+        strong = times(rules.strong_multiplier),
+        weak = times(rules.weak_multiplier),
+        focused = times(rules.focused_shot_multiplier),
+        burst = times(rules.burst_multiplier),
+        ward = (rules.ward_reduction * 100.0).round(),
+    )
+}
+
 /// The comparison a press pins on a piece, wherever the piece is (#308,
 /// #312): whose it would be and in which slot, the piece equipped there and
 /// the piece selected, what equipping changes for that horse, the two pieces
 /// stat by stat, and what Equip would do. The horse is the selected one;
 /// another horse's key compares the same piece there, and nothing else on
-/// the panel moves.
+/// the panel moves. Without its Details: the game asks for them by the
+/// switch, through `comparison_with`.
+#[cfg(test)]
 pub fn comparison(game: &Game, piece: Piece, hand: Hand, rows: Rows) -> String {
+    comparison_with(game, piece, hand, rows, false)
+}
+
+/// The comparison, and with `details` the card's third layer under its
+/// table, before what Equip would do, so that line stays beside Equip.
+pub fn comparison_with(game: &Game, piece: Piece, hand: Hand, rows: Rows, details: bool) -> String {
     let Some(mut out) = weighed(game, piece, hand.horse, rows) else {
         return empty(game, piece, hand);
     };
+    if details && let Some(gear) = game.piece(piece) {
+        out += &format!("\n\n{}", self::details(game, gear));
+    }
     let does = consequence(game, hand);
     if !does.is_empty() {
         out += &format!("\n\n{does}");
@@ -398,6 +469,50 @@ mod tests {
         }
         // A stat neither piece adds to has no row.
         assert_eq!(super::table(stats(0, 1, 0, 0), stats(0, 3, 0, 0), Rows::All).lines().count(), 2);
+    }
+
+    /// The Details layer (#228) says a piece's own numbers and the data's:
+    /// its rarity's points and this piece's, its odds as percentages of
+    /// what, and what each stat does in a hit, each number as `gear.ron` and
+    /// `rules.ron` hold it. On the card it goes under the table and before
+    /// what Equip would do, which stays the last line, and only when asked.
+    #[test]
+    fn details_says_how_a_piece_was_rolled_and_what_its_stats_do() {
+        let game = home();
+        let gear = game.pending_drop().unwrap().clone();
+        let rarity = &game.data.gear.rarities[gear.rarity];
+        let said = details(&game, &gear);
+        let (lo, hi) = rarity.points;
+        assert!(said.contains(&format!("A {} piece has {lo} to {hi} points", rarity.name)), "{said}");
+        assert!(said.contains(&format!("This one has {}.", score(&game.data, gear.stats))), "{said}");
+        assert!(said.contains(&format!("+{} health", game.data.gear.health_per_point)), "{said}");
+        let rules = &game.data.rules;
+        for multiplier in [rules.strong_multiplier, rules.weak_multiplier, rules.focused_shot_multiplier] {
+            assert!(said.contains(&times(multiplier)), "{said}");
+        }
+        for stat in ["attack:", "elemental:", "defense:", "health:"] {
+            assert!(said.lines().any(|line| line.starts_with(stat)), "{stat} {said}");
+        }
+
+        assert_eq!(percent(9, 100), "9%");
+        assert_eq!(percent(1, 1000), "under 1%");
+        assert_eq!(percent(0, 100), "none");
+        assert_eq!(times(1.5), "x1.5");
+        assert_eq!(times(2.0), "x2");
+
+        let hand = Hand { horse: 0, open: Some(Piece::Carried(0)) };
+        let plain = comparison(&game, Piece::Carried(0), hand, Rows::All);
+        let full = comparison_with(&game, Piece::Carried(0), hand, Rows::All, true);
+        assert!(!plain.contains("DETAILS"));
+        assert!(full.contains(&said), "{full}");
+        assert_eq!(full.lines().last(), plain.lines().last(), "what Equip does stays last");
+        let empty = Piece::Worn { horse: 0, slot: gear.slot.index() };
+        assert!(game.piece(empty).is_none(), "the drop's slot is bare at home");
+        assert_eq!(
+            comparison_with(&game, empty, Hand { open: Some(empty), ..hand }, Rows::All, true),
+            comparison(&game, empty, Hand { open: Some(empty), ..hand }, Rows::All),
+            "an empty slot has no details"
+        );
     }
 
     /// Changed only (#349): a stat that is the same on both pieces has no

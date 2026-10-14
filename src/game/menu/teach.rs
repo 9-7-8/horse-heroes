@@ -8,7 +8,7 @@
 
 use bevy::prelude::*;
 
-use super::shell::{About, Hint, PARTING, Places, Shell};
+use super::shell::{About, Hint, PARTING, Places, Shell, Switch};
 use crate::fx::drops::Kind;
 use crate::fx::sound::Heard;
 use crate::game::{Game, Piece};
@@ -75,6 +75,9 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
         game.lessons.raise(Event::Another);
     }
     held.piece = hand.open;
+    if open && shell.is_on(Switch::Details) {
+        game.lessons.raise(Event::Detailed);
+    }
     if hand.horse != held.horse {
         game.lessons.raise(Event::Selected);
         // The card stayed open over the change: it is read on two horses.
@@ -375,6 +378,7 @@ mod tests {
             Event::Toured,
             Event::SentOut,
             Event::Another,
+            Event::Detailed,
         ];
         let by_itself = |event: &Event| !by_hand.contains(event);
         let mut game = Game::new(0);
@@ -418,6 +422,10 @@ mod tests {
         assert!(game.lessons.happened(Event::Another));
         open_carried(&mut shell);
         follow(&mut game, &mut shell, &map, &mut held);
+        assert!(!game.lessons.happened(Event::Detailed));
+        shell.press_switch(Switch::Details);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(game.lessons.happened(Event::Detailed));
         game.act(Action::Equip, shell.hand());
         assert!(game.lessons.happened(Event::Equipped));
         // Putting the carried piece on is not a swap; taking it from the
