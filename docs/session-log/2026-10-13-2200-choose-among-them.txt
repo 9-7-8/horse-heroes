@@ -1,0 +1,54 @@
+SESSION 2026-10-13 22:00 - A lesson for choosing among the pieces (#352)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner
+  watching trails. Tier 2: nothing new in src/sim/ without a test.
+  The open menus issues of 0.2.1 wait on the owner's look, as the last
+  session found, so the pick was PICK UP: the rest of #352.
+
+DONE
+  - The frame time with a trail's worth of pieces: --burst (40 coins and
+    8 gear) at rest after 3.57 s, mean frame 33.4 ms, worst 39.5 ms, the
+    same as with nothing in the air. Measured, not looked at.
+  - Short soak (tools/soak.ps1 -Minutes 4 -Seed 6, at ccabbfa, because
+    src/soak.rs had changed since the last soak): nothing wrong found;
+    83 pieces of the shower thrown and 83 collected; frame 33.4 ms first
+    quarter to last. No long soak was run.
+  - The lesson (b2c824c, closes #352). "choose among them" in
+    lessons.ron: due Several (back in town with more than one piece),
+    shown in town, marked on the Inventory, "The trail brought back more
+    than one piece. Open another's card: you choose." Done by Another
+    (the card of a carried piece that is not the newest is pinned). It
+    sits after the card's two lessons and before Equip's.
+    Tested: seed 6's first trail makes it due, it shows on the Inventory
+    after the card's lessons, the newest's card does not finish it,
+    another's does, and one piece home does not make it due; and the
+    game raises Another by hand only. 204 tests pass.
+    Seen running: IDLE_LESSON at --seed 6, pictures 02 (the mark on
+    Inventory with the line) and 03 (another piece's card open, the
+    lesson gone, Equip's next) in screenshots/lesson352b. Not copied to
+    the gallery.
+  - The lesson walk opens a second piece in the Inventory (a new
+    Step::Another). docs/lessons.md says so.
+
+DECIDED (by the session, for her)
+  - Choosing is taught as opening a second piece's card, on the
+    Inventory, and it comes before Equip's lesson, so the player looks
+    at the pieces before choosing who wears one.
+
+FOUND
+  - In the walk, Step::Carried(n) takes a place, not a position in the
+    cargo.
+  - Remove-Item under screenshots/ is blocked in this session; write
+    a new folder instead.
+
+NOT DONE
+  - A long soak with the larger cargo.
+  - IDLE_TOUR and the click-budget walk were not run after the change.
+  - Carried over: the cargo column beside Gear shows only the newest
+    piece (#227); nobody has heard the list's coins.
+
+PICK UP
+  Run `gh issue list --repo 9-7-8/horse-heroes --milestone "0.2.3 Horses
+  and inventory" --state open` and build the lowest-numbered issue
+  there that is not waiting on the owner.

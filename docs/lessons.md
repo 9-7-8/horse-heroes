@@ -42,6 +42,8 @@ Plain facts (`Event`), told to the queue with `Lessons::raise`:
 | `SentOut` | `Game::act`, when Set out is pressed. Keep going's own departure is not this |
 | `Compared` | `teach::follow`, when the selected horse changes with a piece's card open |
 | `Toured` | `teach::follow`, when every place of the bar has been opened in town, counted from when an entry of the list asks for it |
+| `Several` | `Game::return_to_camp`, when the trail brought more than one piece back (#352) |
+| `Another` | `teach::follow`, when the card pinned is a carried piece's that is not the newest |
 
 An event makes its lessons due the first time it happens and never again,
 so a return to town does not replay the opening. A test holds that the game
@@ -202,12 +204,17 @@ none of which has to be done:
    horse and the mark is on it where it is worn.
 2. The selected horse, in the strip: the card's before and after are its.
    Finished by selecting another horse.
-3. Equip: you choose who wears it; left alone it stays carried, and
+3. When the trail brought back more than one piece (#352), which since
+   every kill throws gear is the first trail: the mark is on the
+   Inventory, and the line says to open another's card, since the choice
+   is the player's. Finished by opening the card of a carried piece that
+   is not the newest; the newest's own card does not count.
+4. Equip: you choose who wears it; left alone it stays carried, and
    nothing is lost. Nothing equips by itself and no lesson names a horse
    for the piece (owner, 2026-10-12, #351).
-4. Once a piece is on, Undo: it takes it back until the party sets out.
+5. Once a piece is on, Undo: it takes it back until the party sets out.
    Finished by setting out.
-5. Only after Equip has taken a piece from the horse that wore it: the
+6. Only after Equip has taken a piece from the horse that wore it: the
    horses exchanged pieces and nothing is lost. Never before a swap.
 
 A player who presses nothing is shown the first and no other, and the

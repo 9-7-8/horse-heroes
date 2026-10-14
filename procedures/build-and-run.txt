@@ -75,7 +75,7 @@ Use the cheapest step that can prove the change:
    piece's in town. F6 puts the sample over a lesson that is showing.
    IDLE_LESSON walks the first item's lessons by keys (#296): home from
    the first trail it opens the piece's card, selects another horse,
-   equips, swaps, and saves a picture of each lesson; then the
+   opens a second piece in the Inventory (#352), equips, swaps, and saves a picture of each lesson; then the
    Journal's list of hints, one shown again, and hints turned off in
    Settings (#300), then on again with every place opened, for the
    things to try over the town scene (#303; about 95 s in all):
