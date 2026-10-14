@@ -19,7 +19,7 @@ It hangs on the shell's side panel: [menu-shell.md](menu-shell.md).
 ## The three layers
 
 From the owner's guide on menu design (#228): a summary, the detail on
-selection, and formulas behind a Details control. Two are built.
+selection, and formulas behind a Details control. All three are built.
 
 **The summary** is what a list shows of a piece: its name, then its rarity,
 slot and what it adds (`kind`). It says nothing of whether the piece is
@@ -41,7 +41,8 @@ the appraisal in camp (`compare`).
   comes from, and what Equip would put there. An empty cargo says what
   belongs in it.
 
-**Formulas behind a Details control** are not built.
+**The Details layer** is the formulas behind the Details switch (see
+below).
 
 ## The comparison
 
@@ -124,6 +125,53 @@ pointer it is the pinned one as far as it goes.
 
 Pictures: `docs/gallery/2026-10-12-one-comparison`, at the smallest window;
 `docs/gallery/2026-10-12-changed-only` for the switch.
+
+## The Details layer
+
+The card's third layer (#228; menus.md, "The item is the handle"): the
+formulas and assumptions behind a piece, behind **Details** (V), a switch
+of the card beside Changed only (`switch: Details` in `places.ron`,
+`card::details`, `card::comparison_with`).
+
+    DETAILS: Sunforged Halter
+    HOW IT WAS ROLLED
+    A Legendary piece has 10 to 11 points, and 1 more for each level of
+    its trail. This one has 11.
+    Each point went to one stat at random: +1 attack, +1 defense,
+    +1 elemental or +5 health.
+    Odds of Legendary: 3% of a lost trail's own piece, 8% of a won
+    trail's, none of a kill's pieces.
+
+    IN A FIGHT
+    Each horse hits every 1.5 s.
+    attack: a hit's physical part, less the enemy's defense, never below 0.
+    elemental: a hit's elemental part, x1.5 where the party's element is
+    strong, x0.75 where it is resisted.
+    defense: taken off each enemy hit, which still does at least 1.
+    health: what a horse can lose before it falls.
+    Focused Shot hits with attack x2.5; Elemental Burst hits every enemy
+    with elemental x2. A Ward takes 50% off enemy hits.
+
+- **Every number is the data's**: the points, the health a point is worth
+  and the weights from `gear.ron`, the rest from `rules.ron`. A change
+  there is said here with no code. A percentage says what it is a
+  percentage of (menus.md), and a share that rounds to 0 is "under 1%".
+- **Where:** under the comparison's table and before what Equip would do,
+  so that line stays beside Equip. A horse's own piece has it under its
+  list of what it adds; an empty slot or cargo has none.
+- **One setting**, as Changed only is: it stays from piece to piece and
+  place to place, and does nothing while no card is pinned in view. It
+  changes nothing in the game, so Undo has nothing of it.
+- **Not under the pointer.** The card the pointer shows keeps to the
+  comparison: the advanced layer is asked for.
+- A piece does not keep the level of its trail, so the card says the
+  rule and the piece's total, not the level.
+- Its tutorial is an entry on the list of things to try in town, "Turn on
+  a card's Details." (`Detailed`, docs/lessons.md).
+
+Tests: `details_says_how_a_piece_was_rolled_and_what_its_stats_do`
+(`card.rs`) and `details_is_one_switch_for_every_piece_and_place`
+(`shell.rs`). Pictures: `docs/gallery/2026-10-14-card-details`.
 
 ## Under the pointer
 
@@ -248,8 +296,8 @@ Under the card, in every place's side panel, are the `card` controls of
 planned control"): the same reason lines, the same keys, the same "not
 built" detail on a press. They show while the detail is a piece of gear.
 
-**Changed only** (O) is a switch on what the card shows (see The
-comparison). **Equip** (E) is the one action that works. It is one action, `Action::Equip`,
+**Changed only** (O) and **Details** (V) are switches on what the card
+shows (see The comparison, The Details layer). **Equip** (E) is the one action that works. It is one action, `Action::Equip`,
 done to the piece whose card is open (`Hand::open`):
 
 | The card is on | Equip |
@@ -272,7 +320,7 @@ that slot, which now holds the piece. A card on the carried piece is put
 away when nothing is carried any more (`follow_the_party`).
 
 List, Store, Lock, Favourite and Look are not built; the line under them
-says so ("All but Equip, Changed only: not built yet."), and a press on one says what it will do and names its issue. That
+says so ("All but Equip, Changed only, Details: not built yet."), and a press on one says what it will do and names its issue. That
 press puts the card away, as a press on any unbuilt control replaces the
 detail.
 
@@ -329,4 +377,6 @@ or moved; an empty slot and an empty cargo say what belongs there.
 - List and Favourite from the card: #99 and the favourite mark (#150).
 - Dragging a piece to a slot.
 - The indicators of #150: new, equipped, favourite, look owned, listed.
-- Formulas behind a Details control.
+- In the Details layer: modifier sources, set membership and sale value
+  (docs/philosophy/inventory.md), once affixes (#69), sets and the stall
+  (#99) exist.

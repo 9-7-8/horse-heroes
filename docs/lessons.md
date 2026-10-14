@@ -44,6 +44,7 @@ Plain facts (`Event`), told to the queue with `Lessons::raise`:
 | `Toured` | `teach::follow`, when every place of the bar has been opened in town, counted from when an entry of the list asks for it |
 | `Several` | `Game::return_to_camp`, when the trail brought more than one piece back (#352) |
 | `Another` | `teach::follow`, when the card pinned is a carried piece's that is not the newest |
+| `Detailed` | `teach::follow`, when a piece's card is pinned with Details on (#228) |
 
 An event makes its lessons due the first time it happens and never again,
 so a return to town does not replay the opening. A test holds that the game

@@ -1,0 +1,43 @@
+SESSION 2026-10-14 20:45 - The item card's Details layer (#228)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner
+  watching. Tier 2: nothing new untested in src/sim/. Tier 3, menus
+  first: #228 (0.2.1) still had a part that needs nothing unbuilt, the
+  formulas behind a Details control, so it came before PICK UP's #292,
+  which is not a menu issue.
+
+DONE
+  - Details (V), a switch on the card beside Changed only: under the
+    comparison's table, before what Equip would do, it says how the
+    piece was rolled (rarity points, the piece's own, what a point buys,
+    the rarity's odds as percentages of what) and what each stat does in
+    a hit, with the multipliers, the abilities and the Ward. Every number
+    from gear.ron and rules.ron. Tested; seen running in the menu tour
+    (docs/gallery/2026-10-14-card-details).
+  - Its tutorial: "Turn on a card's Details." on the list of things to
+    try in town (Event::Detailed). Tested.
+  - 213 tests pass. docs/item-card.md, docs/lessons.md updated; #228
+    commented and left open.
+
+DECIDED (by the session, for her)
+  - The key V; the wording; Details is not on the card under the pointer
+    (the advanced layer is asked for); its tutorial is a list entry worth
+    2 coins, not a lesson on the hint's line.
+  - It goes before the Equip line, not after, so that line stays beside
+    Equip.
+
+FOUND
+  - A piece does not keep its trail's level, so the card says the rule
+    and the piece's total, not the level it was rolled at.
+
+NOT DONE
+  - V not pressed on a real keyboard. The list entry not seen ticked in
+    the running game, only in the unit test.
+  - Not looked at by the owner.
+
+PICK UP
+  Build dragging a piece onto a slot, with the slots it may go to
+  highlighted (#228, "Dragging to a slot"; docs/philosophy/inventory.md,
+  "Direct manipulation, with an equal"). Read Bevy 0.20's picking drag
+  events first.
