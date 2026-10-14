@@ -1,0 +1,60 @@
+SESSION 2026-10-13 17:00 - Every kill throws gear (#352)
+
+ASKED
+  /next, with no steer. Tier 1 was empty but for #246, which waits on
+  the owner watching a few trails. Tier 2: nothing new in src/sim/
+  without a test. The open menus issues of 0.2.1 and 0.2.3 wait on the
+  owner or on systems not built, so the feature was the one PICK UP
+  named: the rest of #352.
+
+DONE
+  - Every kill throws gear (ccabbfa, #352 left open). Each enemy throws
+    1-2 pieces (2-4 for a final): `gear` in enemies.ron, rolled at a new
+    `kill_weight` in gear.ron, Normal 80 and Magic 20. The trail's own
+    piece is rolled as before, last, and is the only one that can be
+    Rare or higher. Outcome::drops holds every piece (best, trail_piece);
+    the cargo takes them all, newest first; the report names the best
+    and counts them ("12 gear"), and the camp line says "NEW GEAR: 10
+    pieces, the newest ...". The kill pieces have their own RNG, so the
+    fights are as they were.
+    Tested: the rates over 600 trails (higher tiers per trail within a
+    tenth of before; the chaff's tiers follow kill_weight), each enemy's
+    count at both ends and the same at level 6 as at 0, seed 6's first
+    trail bringing a piece for every enemy (10 pieces), every kill's
+    pieces in the outcome in order. 203 tests pass.
+    Tests of one-piece mechanics (equip, swap, undo, cards) now start
+    from Game::back_with_one_piece, a trail cut to its own piece.
+  - Seen running at --seed 6 --keep-going, at 21.6, 65.9 and 80 s: the
+    final fountain has the trail's Legendary with its beam among Magic
+    chaff, and town carries the pieces. Pictures in screenshots/s352,
+    not copied to the gallery.
+  - The soak's checker holds that every kill throws chaff, the winning
+    kill the trail's piece last, and that the outcome counts them all.
+  - docs: expedition.md, loot-shower.md.
+
+DECIDED (by the session, for her)
+  - "Rare gear is still rare" read as: the kills throw Normal and Magic
+    only; the trail's own piece keeps the old odds and brings the rest.
+  - The counts: 1-2 a small enemy, 2-4 a final, the same at every level.
+  - The report names the best piece; the camp line names the newest.
+
+FOUND
+  - loot.rs is CRLF in the working tree and the others LF; a
+    PowerShell replace has to match the file's own line ends.
+  - In PowerShell a helper function named R is shadowed by the alias
+    for Invoke-History.
+
+NOT DONE
+  - The lesson for a choice among pieces (CLAUDE.md rule 5).
+  - The frame time with a trail's worth of pieces (--burst) and the
+    soak run: neither was run.
+  - IDLE_TOUR, IDLE_LESSON and the click-budget walk were not run; the
+    Inventory with a trail's worth of tiles was tested, not looked at.
+  - The cargo column beside Gear still shows only the newest piece
+    (#227).
+  - Carried over: nobody has heard the list's coins.
+
+PICK UP
+  Run the soak (procedures/) and --burst for #352's frame time, then
+  write its lesson: the first time a trail brings back more than one
+  piece, the player chooses among them by doing it.
