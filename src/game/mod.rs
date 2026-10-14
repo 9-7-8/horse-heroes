@@ -763,6 +763,9 @@ impl Game {
         if !outcome.drops.is_empty() {
             self.lessons.raise(Event::Gear);
         }
+        if outcome.drops.len() > 1 {
+            self.lessons.raise(Event::Several);
+        }
         if outcome.won {
             self.level += 1;
         } else {

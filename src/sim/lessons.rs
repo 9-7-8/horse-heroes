@@ -44,11 +44,16 @@ pub enum Event {
     Toured,
     /// The player sent the party out: Set out, by its button or its key.
     SentOut,
+    /// The party came back to town with more than one piece (#352).
+    Several,
+    /// The player opened the card of a carried piece that is not the
+    /// newest: one among the others.
+    Another,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 14] = [
+    pub const ALL: [Event; 16] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -63,6 +68,8 @@ impl Event {
         Event::Compared,
         Event::Toured,
         Event::SentOut,
+        Event::Several,
+        Event::Another,
     ];
 }
 

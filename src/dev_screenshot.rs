@@ -121,6 +121,8 @@ enum Step {
     TabRound,
     /// Press the carried piece where a place shows it.
     Carried(usize),
+    /// Press the carried piece after the newest, where a place shows it.
+    Another(usize),
     /// Press the piece of the report that is showing, in the report.
     Reported,
     /// Press Skip all hints, on the hint that is showing (#291).
@@ -561,7 +563,7 @@ const LEFT_BEHIND: &str = "Find out why a piece was left behind";
 
 /// The first item's lessons (#296), each as the player meets it: home from
 /// the first trail with a piece, its card opened, another horse selected,
-/// Equip, and then the piece taken from the horse that wears it. The keys
+/// another of the trail's pieces opened in the Inventory, Equip, and then the piece taken from the horse that wears it. The keys
 /// are those of `places.ron`.
 fn plan_lesson(mut tour: ResMut<Tour>) {
     tour.steps = vec![
@@ -572,7 +574,14 @@ fn plan_lesson(mut tour: ResMut<Tour>) {
         Step::Carried(0),
         Step::Shot("its card is about the selected horse".into()),
         Step::Key(KeyCode::KeyC),
-        Step::Shot("another horse selected and then equip".into()),
+        // The trail brought back several pieces (#352): the choice among
+        // them, made by opening another in the Inventory.
+        Step::Shot("another horse selected and several pieces to choose among".into()),
+        Step::Key(KeyCode::KeyB),
+        Step::Another(1),
+        Step::Shot("another piece chosen and then equip".into()),
+        Step::Key(KeyCode::KeyH),
+        Step::Carried(0),
         Step::Key(KeyCode::KeyE),
         Step::Shot("it is on".into()),
         Step::Key(KeyCode::KeyZ),
@@ -801,6 +810,11 @@ fn tour(
             // The newest, where the Inventory shows every carried piece.
             .min_by_key(|(e, b)| (!seen(*e), b.tab.is_some(), b.at))
             .map(|(e, _)| e),
+        Step::Another(p) => carried
+            .iter()
+            .filter(|(_, b)| b.place == *p && b.at == 1)
+            .min_by_key(|(e, b)| (!seen(*e), b.tab.is_some()))
+            .map(|(e, _)| e),
         Step::Reported => reported.iter().map(|(e, _)| e).min_by_key(|e| !seen(*e)),
         Step::SkipHints => skips.iter().min_by_key(|e| !seen(*e)),
         // The one in sight, where a control is in more than one place.
@@ -862,6 +876,7 @@ fn tour(
         | Step::Part(_)
         | Step::Slot(..)
         | Step::Carried(_)
+        | Step::Another(_)
         | Step::Reported
         | Step::Control(_)
         | Step::Enter

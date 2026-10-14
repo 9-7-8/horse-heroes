@@ -43,11 +43,12 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
 }
 
 /// What the player's hands held when the lessons last looked: whether a
-/// piece's card was open, and which horse was selected. And the places
-/// opened in town since an entry of the list asked for them (#303).
+/// piece's card was open, and whose, and which horse was selected. And the
+/// places opened in town since an entry of the list asked for them (#303).
 #[derive(Clone, Debug, Default)]
 pub struct Held {
     card: bool,
+    piece: Option<Piece>,
     horse: usize,
     visited: Vec<bool>,
     /// The player was where the hints are found again (#350).
@@ -66,6 +67,14 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
     if open && !held.card {
         game.lessons.raise(Event::Card);
     }
+    // A carried piece other than the newest: one chosen among the rest.
+    if hand.open != held.piece
+        && matches!(hand.open, Some(Piece::Carried(_)))
+        && hand.open != game.newest_piece()
+    {
+        game.lessons.raise(Event::Another);
+    }
+    held.piece = hand.open;
     if hand.horse != held.horse {
         game.lessons.raise(Event::Selected);
         // The card stayed open over the change: it is read on two horses.
@@ -365,6 +374,7 @@ mod tests {
             Event::Compared,
             Event::Toured,
             Event::SentOut,
+            Event::Another,
         ];
         let by_itself = |event: &Event| !by_hand.contains(event);
         let mut game = Game::new(0);
@@ -400,6 +410,14 @@ mod tests {
         follow(&mut game, &mut shell, &map, &mut held);
         assert!(game.lessons.happened(Event::Selected));
         assert!(game.lessons.happened(Event::Compared), "the card was open over it");
+        assert!(!game.lessons.happened(Event::Another), "the newest piece's card");
+        let place = shell.place();
+        let tab = shell.tab(place);
+        shell.show_detail(place, Detail { tab, item: Item::Carried(1), opener: None });
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(game.lessons.happened(Event::Another));
+        open_carried(&mut shell);
+        follow(&mut game, &mut shell, &map, &mut held);
         game.act(Action::Equip, shell.hand());
         assert!(game.lessons.happened(Event::Equipped));
         // Putting the carried piece on is not a swap; taking it from the
@@ -1003,5 +1021,53 @@ mod tests {
                 assert!(game.lessons.progress(lesson).done, "{}", def.id);
             }
         }
+    }
+
+    /// A trail that brings back several pieces (#352) makes a choice among
+    /// them, and the file's lesson for it is taught by making one: it comes
+    /// after the card's own, and goes when the card of a carried piece other
+    /// than the newest is opened, and not for the newest's. One piece home
+    /// does not make it due.
+    #[test]
+    fn several_pieces_are_a_choice_taught_by_opening_another() {
+        let map = Places::load();
+        let mut game = Game::back_from_a_trail(6);
+        assert!(game.cargo().len() > 1, "seed 6's first trail brings back several pieces");
+        assert!(game.lessons.happened(Event::Several));
+        let choose = game
+            .lessons
+            .defs()
+            .iter()
+            .position(|def| def.due == Event::Several)
+            .expect("lessons.ron: no lesson for several pieces");
+        assert_eq!(game.lessons.defs()[choose].done, Done::Did(Event::Another));
+        assert_eq!(game.newest_piece(), Some(Piece::Carried(0)));
+
+        // The newest piece's card, on another horse: the card's lessons.
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        open_carried(&mut shell);
+        follow(&mut game, &mut shell, &map, &mut held);
+        shell.inspect(1, None);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(game.lessons.showing().map(|def| def.due), Some(Event::Several));
+        let inventory = map.page_named("Inventory").unwrap();
+        assert_eq!(shell.hint().unwrap().about, About::Place(inventory));
+        assert!(!game.lessons.happened(Event::Another), "the newest is no choice among them");
+
+        // Another piece's card: the choice is made, and the lesson goes.
+        let place = shell.place();
+        let tab = shell.tab(place);
+        shell.show_detail(place, Detail { tab, item: Item::Carried(1), opener: None });
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(game.lessons.happened(Event::Another));
+        assert!(game.lessons.progress(choose).done);
+        assert_ne!(game.lessons.showing().map(|def| def.due), Some(Event::Several));
+
+        // One piece home: nothing to choose among.
+        let one = Game::back_with_one_piece().last_report().unwrap().outcome.clone();
+        let mut game = Game::new(0);
+        game.return_to_camp(one);
+        assert!(game.lessons.happened(Event::Gear) && !game.lessons.happened(Event::Several));
     }
 }
