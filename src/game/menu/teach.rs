@@ -38,6 +38,7 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
             };
             return Some((About::Piece(piece), found));
         }
+        Target::Party => About::Party,
     };
     Some((about, Found::Here))
 }
@@ -173,6 +174,7 @@ fn target_name(target: &Target, game: &Game) -> String {
         },
         Target::Selected => "the selected horse".into(),
         Target::Drop => "the newest piece".into(),
+        Target::Party => "the party".into(),
     }
 }
 
@@ -361,6 +363,33 @@ mod tests {
         assert_eq!(find(&Target::Drop, &map, &game, 0), Some(worn));
         game.party[1].gear[slot] = None;
         assert_eq!(find(&Target::Drop, &map, &game, 0), None, "the party no longer has it");
+    }
+
+    /// A new game (#292) is on the road from the first frame, with no wait
+    /// and nothing to press. Until the first fight the only line said is
+    /// on no control, so nothing looks as if it wants a press; the fight
+    /// beginning puts it away.
+    #[test]
+    fn a_new_game_opens_on_the_road_with_nothing_marked() {
+        let map = Places::load();
+        let mut game = Game::opening(6);
+        let mut shell = shell(&map);
+        let mut held = Held::default();
+        assert!(!game.in_town() && game.party_moving(), "walking from the first frame");
+        assert_eq!(game.leaving_in(), None);
+        let at = game.lessons.defs().iter().position(|def| def.target == Target::Party);
+        let at = at.expect("lessons.ron has the opening's line");
+        let opening = game.lessons.defs()[at].id.clone();
+
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_eq!(hinted(&shell), Some(opening.as_str()), "said from the first frame");
+        while !game.lessons.happened(Event::Fight) {
+            assert_eq!(shell.hint().map(|hint| hint.about), Some(About::Party));
+            pass(&mut game);
+            follow(&mut game, &mut shell, &map, &mut held);
+        }
+        assert_ne!(hinted(&shell), Some(opening.as_str()), "the fight puts it away");
+        assert_eq!(game.lessons.state(at), State::Done);
     }
 
     /// Every event a lesson can wait for is one the game raises: the trail

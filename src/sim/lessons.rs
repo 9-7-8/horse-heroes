@@ -102,6 +102,9 @@ pub enum Target {
     /// The newest piece a trail brought back that the party still has,
     /// where it is now.
     Drop,
+    /// The party as a whole, on no control: the line is said with no mark,
+    /// so nothing is shown as wanting a press (#292).
+    Party,
 }
 
 /// What finishes a lesson: the player watched something happen, or did it.

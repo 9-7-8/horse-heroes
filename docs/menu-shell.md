@@ -172,6 +172,12 @@ the hint before anything else; and that Skip all has no key of its own.
 
 ## Leaving town
 
+A new game does not start in town (#292): the party is already walking
+out of the gate at launch (`Game::opening`), in the road layout with every
+place closed, and the first town is the one it reaches after the first
+trail. `--town` starts in town instead; the menu tour and the click
+budget's walk do so by themselves, as both begin with a town visit.
+
 No town leaves by itself (#305; `docs/philosophy/vision.md`, "Leaving
 town"). The party stands at the gate until Set out is pressed (Space), in
 every town, and the footer says "Level 0 trail. Waiting for Set out." with

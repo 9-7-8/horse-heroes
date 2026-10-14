@@ -17,7 +17,7 @@ One entry of `lessons.ron`, whose header says the same in full:
 | `id` | its name, by which a lesson put away is known again |
 | `due` | the event that has to happen first |
 | `shown` | `Town`, `Road`, or left out for either |
-| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), or `Drop` |
+| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), `Drop`, or `Party` (no control: the line alone, with no mark and no name, #292) |
 | `words` | its one line, 85 letters at most |
 | `done` | `Watched(event)`: it happens while the lesson shows. `Did(event)`: it happens once the lesson is due, shown or not |
 | `instead` | the line for a `Drop` that is no longer in the cargo but on a horse |
@@ -193,6 +193,12 @@ pays once."
 Written by the session from `philosophy/onboarding.md` ("For Horse
 Heroes") and not approved line by line.
 
+**The opening** (#292): a new game starts with the party walking out of
+the gate, and the hint's line says "You organise the gaggle. The horses
+walk, fight and collect loot by themselves." on `Party`, so no control is
+marked before the first fight. It is due on `SetOut` and goes when the
+first fight begins.
+
 **The road, a starting set** until #295: the horses fight by themselves
 (first fight, until a kill is watched); each has one ability (first
 ability, until another is watched); each number is a hit (#249: first
@@ -228,9 +234,10 @@ first-time player can then say whose stats the comparison is about is
 
 ## Looking at it
 
-`--seed 6 --keep-going` at `IDLE_SHOT_AT=17` is the first lesson on the
-road, at 24 the second, at 80 the piece's in town
-([gallery](gallery/2026-10-12-lessons/README.md)).
+`--seed 6` at `IDLE_SHOT_AT=3` is the opening's line, at 5 the first
+fight's lesson, at 12 the abilities', at 68 the piece's in town
+([gallery](gallery/2026-10-12-lessons/README.md), taken when a game
+started in town and every time was 12 s later).
 `IDLE_LESSON=<folder>` with `--seed 6` walks the first item's lessons by
 keys, ticking four of the things to try on the way and a fifth at its end
 ([gallery](gallery/2026-10-13-things-to-try/README.md)), and saves a picture of each

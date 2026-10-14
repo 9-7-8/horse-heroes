@@ -40,6 +40,8 @@
 //              Drop                    the newest piece a trail brought back
 //                                      that the party still has, where it is
 //                                      now: in the cargo, or on a horse
+//              Party                   the party as a whole: the line alone,
+//                                      with no mark on any control
 //            A lesson whose target is not there waits until it is.
 //   words    its one line, said after the target's name and key, and by
 //            itself in the Journal's list of hints (#300). Short: at
@@ -52,7 +54,7 @@
 //   instead  the line to say when the state has moved on: when a Drop is
 //            no longer in the cargo but on a horse.
 //
-// The first two are a starting set, from docs/philosophy/onboarding.md; the
+// The first is the opening's (#292). The next two are a starting set, from docs/philosophy/onboarding.md; the
 // first trail's lessons are #295 and the element's #299. The rest are the
 // first item's (#296): the piece, whose stats its card is about, Equip, and
 // what came of it. Each is finished by doing the thing, and none has to be.
@@ -90,6 +92,17 @@
 #![enable(implicit_some)]
 (
 lessons: [
+    // The opening (#292): a new game starts with the party walking out of
+    // the gate, and this is the one line beside it. No mark, so nothing
+    // looks as if it wants a press; it goes when the first fight begins.
+    (
+        id: "the horses go by themselves",
+        due: SetOut,
+        shown: Road,
+        target: Party,
+        words: "You organise the gaggle. The horses walk, fight and collect loot by themselves.",
+        done: Watched(Fight),
+    ),
     (
         id: "the party fights by itself",
         due: Fight,

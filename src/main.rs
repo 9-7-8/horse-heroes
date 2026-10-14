@@ -41,6 +41,11 @@ fn main() {
             bare: std::env::args().any(|arg| arg == "--bare"),
             keep_going: std::env::args().any(|arg| arg == "--keep-going"),
             cargo: cargo(),
+            // A new game starts on the road (#292); the tour and the walk
+            // begin with a town visit.
+            town: std::env::args().any(|arg| arg == "--town")
+                || std::env::var_os("IDLE_TOUR").is_some()
+                || std::env::var_os("IDLE_WALK").is_some(),
         })
         .add_plugins(game::menu::MenuPlugin {
             show_parts: std::env::args().any(|arg| arg == "--parts"),

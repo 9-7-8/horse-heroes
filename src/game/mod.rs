@@ -119,11 +119,17 @@ pub struct GamePlugin {
     /// Start with this many pieces carried (`--cargo N`), rolled from the
     /// seed. A new game carries nothing.
     pub cargo: usize,
+    /// Start in town instead of on the road (`--town`, and the menu tour
+    /// and the click budget's walk, which begin with a town visit).
+    pub town: bool,
 }
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        let mut game = Game::new(self.seed);
+        let mut game = match self.town {
+            true => Game::new(self.seed),
+            false => Game::opening(self.seed),
+        };
         game.keep_going = self.keep_going;
         let mut rng = Rng::new(self.seed);
         for _ in 0..self.cargo {
@@ -312,6 +318,15 @@ impl Game {
             lessons: Lessons::load(),
             data,
         }
+    }
+
+    /// A new game (#292): the party is already walking out of the gate
+    /// towards its first fight, with nothing to press and no wait. The first
+    /// town visit is the one after the first trail, with a drop to look at.
+    pub fn opening(seed: u64) -> Game {
+        let mut game = Game::new(seed);
+        game.depart();
+        game
     }
 
     /// The party, the cargo and the element as they are now, to go back to

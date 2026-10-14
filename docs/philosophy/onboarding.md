@@ -108,11 +108,13 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
 `docs/menu-shell.md`, `docs/item-card.md`, `src/game/mod.rs`,
 `assets/data/rules.ron`).
 
-- **The first trail needs no decision, and already takes none.** A new game
-  begins in town with Fire chosen and waits there for Set out (#305; it
-  left by itself after 12 seconds until then). So the party does not start
-  by itself today: a new game that starts on the road is #292. There is no title screen and no
-  "begin" button, and none should be added that must be pressed.
+- **The first trail needs no decision, and takes none.** A new game
+  begins on the road (#292): the party is walking out of the gate when the
+  window opens, with Fire chosen and one line, "You organise the gaggle.
+  The horses walk, fight and collect loot by themselves.", on no control.
+  The first town visit is the one after the first trail, and it waits for
+  Set out (#305). There is no title screen and no "begin" button, and none
+  should be added that must be pressed.
 - **The first trail is not forgiving.** The win rate at trail level 0 with
   no gear is 68%, and 44% with the worst element for the trail
   (`first_trail_balance`). A new player has about one chance in three of

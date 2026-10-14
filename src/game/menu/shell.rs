@@ -464,6 +464,9 @@ pub enum About {
     Horse(usize),
     Control(usize),
     Piece(Piece),
+    /// The whole party, on no control: no mark and no name, only the words
+    /// (#292).
+    Party,
 }
 
 /// A lesson's one line (#291), on the hint's line under the status strip,
@@ -2693,11 +2696,13 @@ fn follow_the_party(
     game: Res<Game>,
     map: Res<Places>,
     mut shell: ResMut<Shell>,
-    mut was_in_town: Local<bool>,
+    mut was_in_town: Local<Option<bool>>,
 ) {
+    // The first frame counts as a move, so a game that starts on the road
+    // (#292) starts with every place closed.
     let in_town = game.in_town();
-    if in_town != *was_in_town {
-        *was_in_town = in_town;
+    if Some(in_town) != *was_in_town {
+        *was_in_town = Some(in_town);
         if in_town {
             for (p, place) in map.pages().enumerate() {
                 if place.horse_columns {
@@ -3160,7 +3165,7 @@ fn point_out(
             Some(About::Piece(Piece::Worn { horse, slot: s })) => {
                 slot.is_some_and(|row| row.horse == horse && row.slot == s)
             }
-            None => false,
+            Some(About::Party) | None => false,
         };
         if wanted && !pointed {
             commands.entity(entity).insert(Pointed);
@@ -3192,6 +3197,7 @@ fn about_name(map: &Places, game: &Game, about: About) -> (String, Option<String
             .get(id)
             .map(|control| (control.name.clone(), key(control.key.as_deref()))),
         About::Piece(piece) => game.piece(piece).map(|gear| (gear.name.clone(), None)),
+        About::Party => None,
     }
     .unwrap_or_default()
 }

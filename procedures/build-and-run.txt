@@ -30,37 +30,40 @@ Use the cheapest step that can prove the change:
    --window WxH opens the window at that size in logical pixels (the
    smallest allowed is 1120x640). --cargo N starts with N pieces
    carried, rolled from the seed: the menu tour with --cargo 7 has the
-   Inventory's tiles for them in its picture 16. No town leaves by itself (#305), so
-   a run with nobody at it stays in town: --keep-going starts it with
-   Keep going on, and then the party sets out 12 s after launch, so
-   --keep-going at IDLE_SHOT_AT=17 is a picture of the road view in a
-   fight. EVERY TIME BELOW THAT IS LATER THAN 12 S IS OF A RUN WITH
-   --keep-going (the bursts on the road, the real kills, the deaths, the
-   horses walking, --hint at 65.9); the times are as they were. The tour
-   and the walk set out by themselves and do not want it.
+   Inventory's tiles for them in its picture 16. A new game starts on
+   the road (#292): the party walks out of the gate at launch, with the
+   opening's line on the hint's line (seed 6 at IDLE_SHOT_AT=3), and is
+   in its first fight by 5. The scene is not drawn yet at 0.5. --town
+   starts in town instead, as a game did before; the tour and the walk
+   do so by themselves. No town leaves by itself (#305), so a run with
+   nobody at it stops in town after the first trail: --keep-going starts
+   it with Keep going on, and then it leaves again 12 s after arriving.
+   (Until 2026-10-14 a game started in town and every time below was 12 s
+   later, with --keep-going; the times were moved, and two checked.)
    --burst throws the loot shower's test burst 1 s after launch (F3 throws
    it at any time) and logs its frame times (docs/loot-shower.md); a
    picture at IDLE_SHOT_AT=2.4 is the burst in the air, at 3.6 its last
-   pieces in the air with both beams up, at 5.2 at rest.
+   pieces in the air with both beams up, at 5.2 at rest. With --town it
+   is thrown over the town.
    --burst-at N throws it N seconds after launch instead: --burst
-   --burst-at 14 at IDLE_SHOT_AT=16.6 is the full fountain on the road.
+   --burst-at 2 at IDLE_SHOT_AT=4.6 is the full fountain on the road.
    --pickup throws the same burst and lets the party collect it (F4):
    at IDLE_SHOT_AT=5.0 it is at rest in the pause, at 6.3 its coins are on
-   their way. Real kills, --seed 6: the first enemy falls at 21.3 s (its
-   small drop is in the air at 21.6, its coins arriving at 23.85) and the
-   final one at 64.5 s (its flash at 64.86, its fountain in the air at
-   65.9, its coins arriving at 68.6; it is walking back to town at 71.5,
-   the gate coming up the trail, and is in town by 76).
+   their way. Real kills, --seed 6: the first enemy falls at 9.3 s (its
+   small drop is in the air at 9.6, its coins arriving at 11.85) and the
+   final one at 52.5 s (its flash at 52.86, its fountain in the air at
+   53.9, its coins arriving at 56.6; it is walking back to town at 59.5,
+   the gate coming up the trail, and is in town by 64).
    A death (docs/death-events.md), --seed 6: the first enemy is in
-   shards at 21.6 and only its mark is left at 22.3; the final one is
-   falling at 64.62, bursts at 64.95, and its shards are going at 66.0,
-   with a horse lying exhausted beside it. --seed 3 at 45.6 is an
-   exhausted horse walking on; --seed 1 at 72.8 is a lost trail, its
+   shards at 9.6 and only its mark is left at 10.3; the final one is
+   falling at 52.62, bursts at 52.95, and its shards are going at 54.0,
+   with a horse lying exhausted beside it. --seed 3 at 33.6 is an
+   exhausted horse walking on; --seed 1 at 60.8 is a lost trail, its
    enemy drawing off.
    The horses (docs/horse-model.md): --bare starts with their hair hidden
-   and F5 toggles it. They stand still in a fight (IDLE_SHOT_AT=17) and
-   in town (3), beside the town gate; they are walking at 13.5.
-   The test burst's flash, on the road: --burst --burst-at 14 at 14.36.
+   and F5 toggles it. They stand still in a fight (IDLE_SHOT_AT=5) and
+   in town (--town, 3), beside the town gate; they are walking at 1.5.
+   The test burst's flash, on the road: --burst --burst-at 2 at 2.36.
    A flash lasts a third of a second, so a picture of one is a matter of
    a few hundredths.
    cargo check and cargo test do not rebuild the game's own binary: a
@@ -69,15 +72,16 @@ Use the cheapest step that can prove the change:
    The hint (docs/menu-shell.md, "The hint's line"): --hint starts with a
    sample hint showing, about the Journal; F6 shows a sample and takes it
    away, about the next kind of control each time. With --hint --seed 6
-   at IDLE_SHOT_AT=65.9 the final fountain is in the air above it.
-   Damage numbers (docs/damage-numbers.md): --seed 6 --keep-going at
-   IDLE_SHOT_AT=17.9 has 6!, 8! and 11! side by side over the first enemy
-   and -3 over Morrow; at 40 an Elemental Burst's numbers on two enemies.
-   Lessons (docs/lessons.md): --seed 6 --keep-going at IDLE_SHOT_AT=17 has
-   the first lesson on the hint's line, at 24 the second, at 80 the
-   piece's in town. F6 puts the sample over a lesson that is showing.
+   at IDLE_SHOT_AT=53.9 the final fountain is in the air above it.
+   Damage numbers (docs/damage-numbers.md): --seed 6 at
+   IDLE_SHOT_AT=5.9 has 6!, 8! and 11! side by side over the first enemy
+   and -3 over Morrow; at 28 an Elemental Burst's numbers on two enemies.
+   Lessons (docs/lessons.md): --seed 6 at IDLE_SHOT_AT=3 has the
+   opening's line, with no mark; at 5 the first fight's lesson, at 12 the
+   abilities', at 68 the piece's in town. F6 puts the sample over a
+   lesson that is showing.
    IDLE_LESSON walks the first item's lessons by keys (#296): home from
-   the first trail it opens the piece's card, selects another horse,
+   the first trail, walked from the opening, it opens the piece's card, selects another horse,
    opens a second piece in the Inventory (#352), equips, swaps, and saves a picture of each lesson; then the
    Journal's list of hints, one shown again, and hints turned off in
    Settings (#300), then on again with every place opened, for the

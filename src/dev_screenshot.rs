@@ -634,8 +634,8 @@ const LEFT_BEHIND: &str = "Find out why a piece was left behind";
 /// another of the trail's pieces opened in the Inventory, Equip, and then the piece taken from the horse that wears it. The keys
 /// are those of `places.ron`.
 fn plan_lesson(mut tour: ResMut<Tour>) {
+    // A new game is on the road already (#292).
     tour.steps = vec![
-        Step::SetOut,
         Step::Town,
         Step::Wait(SETTLE),
         Step::Shot("the piece the trail brought back".into()),
