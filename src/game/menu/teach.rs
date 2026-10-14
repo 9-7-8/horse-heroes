@@ -204,6 +204,7 @@ pub fn listed(game: &Game, map: &Places, selected: usize, row: usize) -> Option<
         State::Done => "Done",
         State::PutAway => "Put away",
         State::Skipped => "Skipped, with hints off",
+        State::Left => "Left in town twice",
         State::Waiting => "Waiting its turn",
     };
     let place = match def.shown {
@@ -1063,6 +1064,108 @@ mod tests {
                 assert!(game.lessons.progress(lesson).done, "{}", def.id);
             }
         }
+    }
+
+    /// The party leaving town by Keep going at each step of the first item
+    /// (#297), the card open for some of them, by the file's own lessons and
+    /// never their names. It leaves on the tick a game without lessons
+    /// leaves on, with every piece it had where it was, and no town lesson
+    /// is left on the hint's line. A lesson it cut off is waiting, not put
+    /// away; it is offered at the next town, and not at the one after when
+    /// the party leaves it again.
+    #[test]
+    fn setting_out_at_any_step_of_a_town_lesson_loses_nothing() {
+        let map = Places::load();
+        let home = |lessons: Lessons| {
+            let mut game = (0..50)
+                .map(Game::back_from_a_trail)
+                .find(|game| game.pending_drop().is_some())
+                .expect("no seed under 50 brings a drop home");
+            game.lessons = lessons;
+            game.lessons.raise(Event::Gear);
+            game
+        };
+        // A player's way through the first item, a step at a time.
+        let steps: [fn(&mut Game, &mut Shell); 4] = [
+            |_, _| {},
+            |_, shell| open_carried(shell),
+            |_, shell| shell.inspect(2, None),
+            |game, shell| {
+                game.act(Action::Equip, shell.hand());
+            },
+        ];
+        let pieces = |game: &Game| {
+            let worn = game.party.iter().map(|horse| horse.gear.clone()).collect::<Vec<_>>();
+            (game.cargo().to_vec(), worn)
+        };
+        // Home again from a trail that brings nothing new.
+        let walk_home = |game: &mut Game| {
+            let Screen::Trail(expedition) = &mut game.screen else {
+                unreachable!("the party set out");
+            };
+            let mut outcome = loop {
+                step(expedition, &game.data, &mut game.lessons);
+                if let Some(outcome) = expedition.outcome.clone() {
+                    break outcome;
+                }
+            };
+            outcome.drops.clear();
+            game.return_to_camp(outcome);
+        };
+        let town = |game: &Game, lesson: usize| game.lessons.defs()[lesson].shown == Shown::Town;
+        let mut cut_off = 0;
+        for upto in 0..steps.len() {
+            let mut game = home(Lessons::load());
+            let mut plain = home(Lessons::new(Vec::new()));
+            let (mut shell, mut held) = (shell(&map), Held::default());
+            let (mut plain_shell, mut plain_held) = (Shell::new(map.pages().count()), Held::default());
+            follow(&mut game, &mut shell, &map, &mut held);
+            for step in &steps[..=upto] {
+                step(&mut game, &mut shell);
+                step(&mut plain, &mut plain_shell);
+                follow(&mut game, &mut shell, &map, &mut held);
+                follow(&mut plain, &mut plain_shell, &map, &mut plain_held);
+            }
+            let showing = game.lessons.defs().iter().position(|def| Some(def) == game.lessons.showing());
+            let had = pieces(&game);
+
+            // Keep going, and the countdown runs out with the card as it is.
+            game.act(Action::KeepGoing, Hand::default());
+            plain.act(Action::KeepGoing, Hand::default());
+            while game.in_town() || plain.in_town() {
+                assert_eq!(game.in_town(), plain.in_town(), "step {upto}: not on time");
+                pass(&mut game);
+                pass(&mut plain);
+                follow(&mut game, &mut shell, &map, &mut held);
+            }
+            assert_eq!(pieces(&game), had, "step {upto}: something was lost");
+            if let Some(hint) = shell.hint() {
+                let lesson = game.lessons.defs().iter().position(|def| def.id == hint.lesson).unwrap();
+                assert!(!town(&game, lesson), "step {upto}: {} on the road", hint.lesson);
+            }
+            assert!((0..game.lessons.defs().len()).all(|lesson| !game.lessons.progress(lesson).skipped));
+            let Some(left) = showing.filter(|&lesson| town(&game, lesson) && !game.lessons.progress(lesson).done)
+            else {
+                continue;
+            };
+            cut_off += 1;
+            assert_eq!(game.lessons.state(left), State::Waiting, "step {upto}");
+
+            // The next town offers it again; left again, the one after does not.
+            walk_home(&mut game);
+            follow(&mut game, &mut shell, &map, &mut held);
+            assert_eq!(game.lessons.showing(), Some(&game.lessons.defs()[left]), "step {upto}");
+            game.act(Action::SetOut, Hand::default());
+            follow(&mut game, &mut shell, &map, &mut held);
+            assert_eq!(game.lessons.state(left), State::Left, "step {upto}");
+            walk_home(&mut game);
+            follow(&mut game, &mut shell, &map, &mut held);
+            assert_ne!(game.lessons.showing(), Some(&game.lessons.defs()[left]), "step {upto}");
+            let row = game.lessons.listed().iter().position(|&lesson| lesson == left).unwrap();
+            let line = listed(&game, &map, 0, row).unwrap();
+            assert!(line.can && line.line.starts_with("Left in town twice. "), "{}", line.line);
+        }
+        assert!(cut_off > 1, "no step of the first item was cut off");
     }
 
     /// A trail that brings back several pieces (#352) makes a choice among

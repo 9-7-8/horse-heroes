@@ -30,7 +30,8 @@
 //              Detailed  the player read a piece's card with its Details on
 //              Dragged   the player put a piece on a horse by dragging it
 //   shown    where: Town, Road, or left out for either. A Town lesson that
-//            is showing when the party sets out waits for the next town.
+//            is showing when the party sets out waits for the next town,
+//            and is not offered by itself after it is left a second time.
 //   target   the control its mark is on, named as places.ron names it:
 //              Place("Journal")        a place in the bar, or Settings
 //              Tab("Horses", "Gear")   a tab of a place

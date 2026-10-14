@@ -69,6 +69,15 @@ looked at again every time:
 - One that is showing and no longer fits goes back to waiting, and is not
   counted as put away: a town lesson when the party sets out, or one whose
   target has gone.
+- **A town lesson cut off by setting out is offered once more** (#297): at
+  the next town visit. If the party leaves that visit with it showing too,
+  it is not offered again by itself; the Journal lists it as "Left in town
+  twice", and a press there still shows it. Leaving with one the player
+  asked for from the list does not count, nor does a lesson that was only
+  waiting behind another. Lessons finished by setting out (`Did(SetOut)`)
+  are done by it, not cut off. Nothing is lost by leaving at any step:
+  pieces stay where they were, the party leaves on the tick it would with
+  no lessons, and no town lesson stays on the hint's line on the road.
 - With none showing, the first in the file that fits is shown. One showing
   is never pushed aside by another.
 
@@ -116,8 +125,10 @@ Guidance that can be skipped can be found afterwards (#300;
 - **Journal, Hints** (J, 4; `content: Hints`) lists every lesson that has
   become due, in the order it came and never before its event: its line
   as it would be said now, and under it what became of it (`State`:
-  showing now, done, put away, skipped with hints off, waiting its turn),
-  where it applies and what it is on. Until saving (#44) the list starts
+  showing now, done, put away, left in town twice, skipped with hints off,
+  waiting its turn),
+  where it applies and what it is on. Left in town twice is a state of its
+  own (#297). Until saving (#44) the list starts
   empty on each launch, and says so.
 - **A press on a row shows that hint again** on its control
   (`teach::again`, `Lessons::again`), in the place of any other, whether

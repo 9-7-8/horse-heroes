@@ -12,6 +12,10 @@ use serde::Deserialize;
 
 use super::data::parse;
 
+/// How many town visits a town lesson is offered at, when the party leaves
+/// each one with it showing (#297): the one it was cut off at, and the next.
+const CUTS: u8 = 2;
+
 /// Something that happened, as a plain fact: on the trail, in town, or by
 /// the player's hand.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
@@ -210,6 +214,9 @@ pub enum State {
     PutAway,
     /// It became due with the lessons turned off, and is not shown.
     Skipped,
+    /// The party left town with it showing, at two visits running (#297),
+    /// and it is not offered again by itself.
+    Left,
     /// It is shown when its turn comes and its target is there.
     Waiting,
 }
@@ -220,6 +227,8 @@ pub enum State {
 pub struct Lessons {
     defs: Vec<LessonDef>,
     progress: Vec<Progress>,
+    /// How often each town lesson was showing when the party left (#297).
+    cut: Vec<u8>,
     /// Every event that has happened, once.
     raised: Vec<Event>,
     /// The lessons that have become due, in the order they came (#300).
@@ -255,6 +264,7 @@ impl Lessons {
     pub fn new(defs: Vec<LessonDef>) -> Lessons {
         Lessons {
             progress: vec![Progress::default(); defs.len()],
+            cut: vec![0; defs.len()],
             defs,
             raised: Vec::new(),
             came: Vec::new(),
@@ -347,6 +357,8 @@ impl Lessons {
             State::Done
         } else if progress.skipped {
             State::PutAway
+        } else if self.cut[lesson] >= CUTS {
+            State::Left
         } else if self.off {
             State::Skipped
         } else {
@@ -449,7 +461,7 @@ impl Lessons {
     fn fits(&self, lesson: usize, in_town: bool, found: &[Found]) -> bool {
         let progress = self.progress[lesson];
         let wanted = self.asked == Some(lesson)
-            || (!self.off && !progress.done && !progress.skipped);
+            || (!self.off && !progress.done && !progress.skipped && self.cut[lesson] < CUTS);
         progress.due
             && wanted
             && self.shown_here(lesson, in_town)
@@ -460,10 +472,18 @@ impl Lessons {
     /// each lesson's target is at this moment, in the file's order: the game
     /// is looked at again every time. One that is showing and no longer
     /// fits goes back to waiting: a town lesson when the party sets out, or
-    /// one whose target has gone. Then, with none showing, the first that
-    /// fits is shown. One showing is never pushed aside by another.
+    /// one whose target has gone. A town lesson the party leaves is offered
+    /// at the next town visit, and left there if the party leaves it again
+    /// (#297). Then, with none showing, the first that fits is shown. One
+    /// showing is never pushed aside by another.
     pub fn show(&mut self, in_town: bool, found: &[Found]) -> Option<usize> {
-        if self.showing.is_some_and(|lesson| !self.fits(lesson, in_town, found)) {
+        if let Some(lesson) = self.showing
+            && !self.fits(lesson, in_town, found)
+        {
+            // One asked for again is the player's, and goes as it came.
+            if !in_town && self.defs[lesson].shown == Shown::Town && self.asked != Some(lesson) {
+                self.cut[lesson] += 1;
+            }
             self.put_down();
         }
         if self.showing.is_none() {
@@ -829,6 +849,52 @@ mod tests {
         lessons.raise(Event::Card);
         assert_eq!(lessons.show(true, &HERE), None, "the road's is not shown in town");
         assert_eq!(lessons.show(false, &HERE), Some(1));
+    }
+
+    /// A town lesson the party leaves is offered at the next town visit,
+    /// once (#297): left a second time, it is not offered by itself again,
+    /// and the next waiting takes its place. One done is never offered
+    /// again, one asked for from the list is not counted as cut off, and
+    /// one that only waited behind another was not cut off at all.
+    #[test]
+    fn a_lesson_cut_off_by_setting_out_is_offered_once_more() {
+        let mut lessons = Lessons::new(vec![
+            lesson("left", Event::Gear, Shown::Town, Done::Did(Event::Card)),
+            lesson("next", Event::Gear, Shown::Town, Done::Did(Event::Equipped)),
+            lesson("done", Event::Win, Shown::Town, Done::Did(Event::Selected)),
+        ]);
+        lessons.raise(Event::Gear);
+        assert_eq!(lessons.show(true, &HERE), Some(0));
+        assert_eq!(lessons.show(false, &HERE), None, "the party set out");
+        assert_eq!(lessons.state(0), State::Waiting);
+        assert_eq!(lessons.show(true, &HERE), Some(0), "offered at the next town");
+        assert_eq!(lessons.show(false, &HERE), None, "and left again");
+        assert_eq!(lessons.state(0), State::Left);
+        assert!(!lessons.progress(0).skipped && !lessons.progress(0).done, "nothing was pressed");
+        assert_eq!(lessons.show(true, &HERE), Some(1), "the next waited behind it");
+        lessons.show(false, &HERE);
+        assert_eq!(lessons.show(true, &HERE), Some(1), "its own first cut");
+
+        // The one left: the list still shows it, and doing it still counts.
+        assert!(lessons.again(0, true, Found::Here));
+        assert_eq!(lessons.show(true, &HERE), Some(0));
+        lessons.raise(Event::Card);
+        assert_eq!(lessons.state(0), State::Done);
+
+        // Asked for from the list and left: that was not a second cut.
+        assert!(lessons.again(1, true, Found::Here));
+        assert_eq!(lessons.show(false, &HERE), None);
+        assert_eq!(lessons.show(true, &HERE), Some(1), "asked for, it was not cut off");
+
+        // One cut off once and then done is not offered again.
+        lessons.raise(Event::Card);
+        lessons.raise(Event::Equipped);
+        lessons.raise(Event::Win);
+        assert_eq!(lessons.show(true, &HERE), Some(2));
+        lessons.show(false, &HERE);
+        lessons.raise(Event::Selected);
+        assert_eq!(lessons.show(true, &HERE), None);
+        assert_eq!(lessons.state(2), State::Done);
     }
 
     /// The game is looked at again every time: a lesson whose target is
