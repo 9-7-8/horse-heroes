@@ -1,0 +1,49 @@
+ASKED
+  /next, with no steer. Tier 1: #246 waits on the owner watching trails.
+  Tier 2: nothing new untested. Tier 3, menus first: every 0.2.1 issue
+  PICK UP named, and #228, waits on the owner, an unbuilt system or the
+  proposed #150; so do 0.2.3's menu issues (#308, #311, #314). Next in
+  0.2.3 by number: #292, unblocked since #289's question 1 was answered.
+
+DONE
+  - A new game starts on the road (#292, closed): Game::opening sets out
+    at launch. The first frame is the road layout with every place closed
+    (follow_the_party now counts the first frame as a move), the gate
+    behind the walking horses, and the footer and tracker saying "walking
+    to encounter 1 of 4". No countdown, nothing to press.
+  - Its line, as a lesson: "You organise the gaggle. The horses walk,
+    fight and collect loot by themselves." due on SetOut, gone when the
+    first fight begins. New lesson target Party (About::Party): the line
+    alone, with no mark and no name, so nothing is marked before the
+    first fight. Tested (a_new_game_opens_on_the_road_with_nothing_marked,
+    217 pass).
+  - --town starts in town as before; IDLE_TOUR and IDLE_WALK do so by
+    themselves. IDLE_LESSON now walks from the opening (its SetOut step
+    gone); run in full, 12 pictures, the opening's line done in the list.
+  - Every picture time in build-and-run.txt moved 12 s earlier and
+    --keep-going dropped from them; checked at 9.3 (first kill) and 52.86
+    (the final flash). Seen running: pictures at 3, 9.3 and --town at 3
+    (docs/gallery/2026-10-14-opening). docs/lessons.md, menu-shell.md and
+    philosophy/onboarding.md updated.
+
+DECIDED (by the session, for her)
+  - The opening's line is a lesson on no control rather than on a horse
+    or a place, because #292 asks that nothing look as if it wants a press
+    before the first fight.
+  - The tour and the click-budget walk keep starting in town, since both
+    begin with a town visit; the tour was not run this session.
+
+FOUND
+  - Nothing broken. The older galleries' times (lessons, damage numbers)
+    are of a town start; lessons.md says so.
+
+NOT DONE
+  - The menu tour and the click-budget walk were not run (they start in
+    town as before; only the first-frame layout code they share changed,
+    and a --town picture shows town opening on Horses).
+  - The owner has not seen the opening.
+
+PICK UP
+  Build #297 (0.2.3): a town lesson cut off by setting out (Keep going on)
+  is offered again at the next town visit, once, with the test its "done
+  when" asks for.
