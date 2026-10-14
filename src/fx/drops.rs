@@ -642,7 +642,7 @@ fn spawn_burst(
 }
 
 /// A kill's drops leave its body in the fountain its enemy names: one piece
-/// a coin up to the most that fountain shows, and its gear if it dropped any.
+/// a coin up to the most that fountain shows, and every piece of its gear.
 fn launch_kills(
     mut commands: Commands,
     mut killed: MessageReader<Killed>,
@@ -656,8 +656,7 @@ fn launch_kills(
     for kill in killed.read() {
         let fountain = shower.fountain(&kill.fountain);
         let coins = (kill.coins.max(0) as usize).min(fountain.most_pieces);
-        let gear: Vec<usize> = kill.gear.into_iter().collect();
-        let kinds = burst_kinds(*bursts, coins, &gear);
+        let kinds = burst_kinds(*bursts, coins, &kill.gear);
         let launches = plan_burst(&shower, fountain, *bursts, kinds.len(), kill.at, &kill.standing);
         *bursts += 1;
         uncollected.pieces += kinds.len();

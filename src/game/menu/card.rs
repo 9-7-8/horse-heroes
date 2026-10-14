@@ -65,19 +65,27 @@ fn changes(horse: &Horse, gear: &Gear) -> String {
 /// What camp says of the drop by itself, with no card opened (#11): what
 /// the trail brought back, and that it is carried until the player puts it
 /// on a horse. Nothing about where it should go: the game picks no horse
-/// for a piece (#351). It is said of the last trail's piece while that is
-/// the newest carried, and is empty once the piece is on a horse: what is
+/// for a piece (#351). It is said while the last piece the trail dropped is
+/// the newest carried, and is empty once that piece is on a horse: what is
 /// carried then is not new.
 pub fn appraisal(game: &Game) -> String {
     let Some(gear) = game.pending_drop() else {
         return String::new();
     };
-    let dropped = game.last_report().and_then(|kept| kept.outcome.drop.as_ref());
-    if !game.in_town() || dropped != Some(gear) {
+    let Some(drops) = game.last_report().map(|kept| &kept.outcome.drops) else {
+        return String::new();
+    };
+    if !game.in_town() || drops.last() != Some(gear) {
         return String::new();
     }
     // What it is and what it adds is on its cell, under this.
-    format!("NEW GEAR: {}\nCarried until you put it on a horse.", gear.name)
+    match drops.len() {
+        1 => format!("NEW GEAR: {}\nCarried until you put it on a horse.", gear.name),
+        pieces => format!(
+            "NEW GEAR: {pieces} pieces, the newest {}\nCarried until you put them on a horse.",
+            gear.name
+        ),
+    }
 }
 
 /// What is said once a carried piece has been put on a horse, written
@@ -364,10 +372,7 @@ mod tests {
     use super::*;
 
     fn home() -> Game {
-        (0..50)
-            .map(Game::back_from_a_trail)
-            .find(|game| game.pending_drop().is_some())
-            .expect("no seed under 50 brings a drop home")
+        Game::back_with_one_piece()
     }
 
     /// The comparison's table (#308) keeps a stat on one line with what each
@@ -719,6 +724,16 @@ mod tests {
             assert!(!said.contains(&horse.name), "{said}");
         }
         assert!(report_text(&game).contains(&said), "the report shows it by itself");
+
+        // Several pieces brought back (#352): how many, and the newest.
+        let many = Game::back_from_a_trail(6);
+        let pieces = many.last_report().unwrap().outcome.drops.len();
+        let newest = &many.pending_drop().unwrap().name;
+        assert!(pieces > 1);
+        assert_eq!(
+            appraisal(&many),
+            format!("NEW GEAR: {pieces} pieces, the newest {newest}\nCarried until you put them on a horse.")
+        );
 
         // One horse wears something worse there, the others better: the
         // game still names none of them, and setting out moves nothing.

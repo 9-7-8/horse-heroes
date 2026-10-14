@@ -322,8 +322,9 @@ and a later bounce is quieter.
 `src/game/mod.rs`: the road is held for a won trail's last drops and for
 nothing else.
 `src/sim/expedition.rs`: every kill is reported once, and the coins of the
-kills add up to the run's coins; the winning kill carries the run's gear and
-no other kill carries any.
+kills add up to the run's coins; every kill throws a piece of gear or more
+(#352), and the winning kill throws the trail's own piece last. A kill's
+burst is its coins and every piece it threw.
 
 Pictures: [drops](gallery/2026-10-10-drops/README.md),
 [the rarity signal](gallery/2026-10-10-rarity-signal/README.md),

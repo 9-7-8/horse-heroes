@@ -4581,12 +4581,9 @@ mod tests {
     /// the cargo onto a horse.
     #[test]
     fn the_inventory_has_every_piece_once_under_its_type() {
-        let mut game = (0..50)
-            .map(Game::back_from_a_trail)
-            .find(|game| game.pending_drop().is_some())
-            .expect("no seed under 50 brings a drop home");
+        let mut game = Game::back_with_one_piece();
         let everything = |game: &Game| {
-            let mut all = vec![Piece::Carried(0)];
+            let mut all: Vec<Piece> = (0..game.cargo().len()).map(Piece::Carried).collect();
             for horse in 0..game.party.len() {
                 all.extend((0..Slot::ALL.len()).map(|slot| Piece::Worn { horse, slot }));
             }
@@ -4608,6 +4605,8 @@ mod tests {
             assert!(all.iter().all(|piece| shown.contains(piece)));
             shown.len()
         };
+        // A trail's worth of pieces (#352), each once.
+        assert!(check(&Game::back_from_a_trail(6)) > 3);
         let slot = game.pending_drop().unwrap().slot.index();
         assert_eq!(held(&game, slot).last(), Some(&Piece::Carried(0)));
         let before = check(&game);

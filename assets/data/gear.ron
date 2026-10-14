@@ -1,6 +1,9 @@
 // Horse gear. A drop spends `points` stat points at random; a point spent on
 // health is worth `health_per_point`. `win_weight` replaces `weight` when the
-// final enemy was defeated.
+// final enemy was defeated. Those two roll the trail's own piece, one a
+// trail; `kill_weight` rolls the pieces every kill throws (enemies.ron), which
+// are the chaff, so the higher tiers come no more often per trail than the
+// trail's piece brings them (#352).
 // Rarities are listed lowest first, and a new one is one more line here.
 // `look` is how its drops are told apart in the loot shower: a colour, how
 // strongly the piece glows in it, its size, its shape (below), and for the
@@ -33,24 +36,24 @@
 (
     health_per_point: 5,
     rarities: [
-        (name: "Normal",    prefix: "Trail-worn",  weight: 60, win_weight: 35, points: (2, 3),
+        (name: "Normal",    prefix: "Trail-worn",  weight: 60, win_weight: 35, kill_weight: 80, points: (2, 3),
          look: (colour: "ffffff", glow: 0.0, size: 1.0,
                 shape: [(solid: Box(0.46, 0.2, 0.34))],
                 response: (shake: 0.03, flash: 0.0),
                 sound: "drop_normal")),
-        (name: "Magic",     prefix: "Fae-touched", weight: 27, win_weight: 35, points: (4, 5),
+        (name: "Magic",     prefix: "Fae-touched", weight: 27, win_weight: 35, kill_weight: 20, points: (4, 5),
          look: (colour: "6969ff", glow: 0.4, size: 1.1,
                 shape: [(solid: Box(0.54, 0.18, 0.17)),
                         (solid: Box(0.54, 0.18, 0.17), turn: 90)],
                 response: (shake: 0.06, flash: 0.015),
                 sound: "drop_magic")),
-        (name: "Rare",      prefix: "Starlit",     weight: 9,  win_weight: 18, points: (7, 8),
+        (name: "Rare",      prefix: "Starlit",     weight: 9,  win_weight: 18, kill_weight: 0, points: (7, 8),
          look: (colour: "ffff00", glow: 0.7, size: 1.2,
                 shape: [(solid: Ring(0.21, 0.06)),
                         (solid: Ball(0.1))],
                 response: (shake: 0.14, flash: 0.03),
                 sound: "drop_rare")),
-        (name: "Legendary", prefix: "Sunforged",   weight: 3,  win_weight: 8,  points: (10, 11),
+        (name: "Legendary", prefix: "Sunforged",   weight: 3,  win_weight: 8,  kill_weight: 0, points: (10, 11),
          look: (colour: "ff8000", glow: 1.5, size: 1.35,
                 shape: [(solid: Prism(8, 0.19, 0.2)),
                         (solid: Box(0.68, 0.12, 0.1)),
@@ -60,7 +63,7 @@
                 beam: Some((height: 7.0, width: 0.16, alpha: 0.45, rise_secs: 0.15)),
                 response: (shake: 0.26, flash: 0.06),
                 sound: "drop_legendary")),
-        (name: "Set",       prefix: "Herd-sworn",  weight: 1,  win_weight: 4,  points: (12, 13),
+        (name: "Set",       prefix: "Herd-sworn",  weight: 1,  win_weight: 4,  kill_weight: 0, points: (12, 13),
          look: (colour: "00ff00", glow: 1.5, size: 1.35,
                 shape: [(solid: Prism(3, 0.2, 0.12)),
                         (solid: Ball(0.12), at: (0.2, 0.0, 0.0)),

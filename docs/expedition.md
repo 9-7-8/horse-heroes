@@ -51,8 +51,18 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 - Juniper: Focused Shot, x2.5 attack on the current target every 4 s.
   Morrow: Elemental Burst, x2 elemental on every enemy every 5 s.
   Sable: Ward, halves damage taken for 4 s every 8 s.
-- One gear drop per run if at least one encounter was cleared; a win shifts
-  the rarity weights up. Each piece fits one of three slots (Head, Body,
+- Every kill throws gear (#352): a least and a most per enemy, `gear` in
+  `enemies.ron` (1-2 for the small ones, 2-4 for a final), the same at
+  every trail level, rolled at each rarity's `kill_weight` in `gear.ron`,
+  which is Normal and Magic only: the chaff. On top of it the trail rolls
+  its own piece if at least one encounter was cleared, at `weight`, or
+  `win_weight` on a win; it is the only piece that can be Rare or higher,
+  so the higher tiers come per trail as often as when it was the only
+  piece. A won trail brings back ten pieces or so (seed 6's first: 10). `Outcome::drops`
+  holds them all in the order they dropped, the trail's own last
+  (`trail_piece`); `best` is the one the report names, and the report
+  counts them. The kills' pieces are rolled from their own seeded RNG, so
+  the fight goes as it did. Each piece fits one of three slots (Head, Body,
   Saddle) and any horse can wear it (owner, 2026-10-11, #250): Equip puts
   it on the selected horse. Nothing equips by itself (owner, 2026-10-12,
   #351): a party that leaves town with the piece still in cargo wears what
@@ -62,8 +72,10 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
   piece, newest first, on the road as in town (#352): a piece left alone
   stays carried, a worn piece that a carried one replaces takes its
   place in the cargo, and nothing leaves the cargo but onto a horse. It
-  has no capacity yet (#34). On a win the piece comes out of the last
-  enemy to fall (`Kill::gear`); on a loss it is only reported in town.
+  has no capacity yet (#34), so it only grows until selling and salvage
+  exist. A kill's pieces come out of its body (`Kill::gear`); on a win the
+  trail's piece comes out of the last enemy to fall, after its chaff; on a
+  loss the trail's piece is only reported in town.
 - A rarity is a line in `gear.ron`, lowest first, and a piece names its
   tier by its place in that list. There is no rarity enum in the code.
 - A win raises the trail level: enemies gain 15% health and attack per level,

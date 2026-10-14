@@ -64,12 +64,30 @@ pub fn swap_worn(party: &mut [Horse], a: usize, b: usize, slot: usize) -> bool {
     true
 }
 
+/// Which weights a piece's rarity is rolled at, from `gear.ron`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Odds {
+    /// The trail's own piece: `win_weight` if the trail was won, else `weight`.
+    Trail { won: bool },
+    /// A piece a kill throws, the chaff: `kill_weight` (#352).
+    Kill,
+}
+
+/// The trail's own piece.
 pub fn roll_gear(data: &Data, rng: &mut Rng, won: bool, level: u32) -> Gear {
+    roll_piece(data, rng, Odds::Trail { won }, level)
+}
+
+pub fn roll_piece(data: &Data, rng: &mut Rng, odds: Odds, level: u32) -> Gear {
     let table = &data.gear;
     let weights: Vec<u32> = table
         .rarities
         .iter()
-        .map(|r| if won { r.win_weight } else { r.weight })
+        .map(|r| match odds {
+            Odds::Trail { won: true } => r.win_weight,
+            Odds::Trail { won: false } => r.weight,
+            Odds::Kill => r.kill_weight,
+        })
         .collect();
     let tier = rng.weighted(&weights);
     let rarity = &table.rarities[tier];
@@ -102,11 +120,11 @@ mod tests {
     const ROLLS: u32 = 100_000;
 
     /// Roll the table many times and count each rarity.
-    fn rarity_counts(data: &Data, won: bool) -> Vec<u32> {
+    fn rarity_counts(data: &Data, odds: Odds) -> Vec<u32> {
         let mut rng = Rng::new(11);
         let mut counts = vec![0; data.gear.rarities.len()];
         for _ in 0..ROLLS {
-            counts[roll_gear(data, &mut rng, won, 0).rarity] += 1;
+            counts[roll_piece(data, &mut rng, odds, 0).rarity] += 1;
         }
         counts
     }
@@ -114,16 +132,20 @@ mod tests {
     #[test]
     fn rarities_follow_their_weights() {
         let data = Data::load();
-        for won in [false, true] {
-            let weight = |r: &crate::sim::data::RarityDef| if won { r.win_weight } else { r.weight };
+        for odds in [Odds::Trail { won: false }, Odds::Trail { won: true }, Odds::Kill] {
+            let weight = |r: &crate::sim::data::RarityDef| match odds {
+                Odds::Trail { won: true } => r.win_weight,
+                Odds::Trail { won: false } => r.weight,
+                Odds::Kill => r.kill_weight,
+            };
             let total: u32 = data.gear.rarities.iter().map(weight).sum();
-            let counts = rarity_counts(&data, won);
+            let counts = rarity_counts(&data, odds);
             for (def, &count) in data.gear.rarities.iter().zip(&counts) {
                 let expected = weight(def) as f32 / total as f32;
                 let got = count as f32 / ROLLS as f32;
                 assert!(
                     (got - expected).abs() < 0.01,
-                    "{} won={won}: {got} against {expected}",
+                    "{} {odds:?}: {got} against {expected}",
                     def.name
                 );
             }
@@ -134,7 +156,18 @@ mod tests {
     fn a_win_drops_better_gear() {
         let data = Data::load();
         let top = data.gear.rarities.len() - 1;
-        assert!(rarity_counts(&data, true)[top] > rarity_counts(&data, false)[top]);
+        let counts = |won| rarity_counts(&data, Odds::Trail { won })[top];
+        assert!(counts(true) > counts(false));
+    }
+
+    /// A kill's pieces are the chaff: no more of the top tier than the
+    /// trail's own piece at its worst (#352).
+    #[test]
+    fn a_kills_pieces_are_no_better_than_a_lost_trails() {
+        let data = Data::load();
+        let top = data.gear.rarities.len() - 1;
+        let kill = rarity_counts(&data, Odds::Kill)[top];
+        assert!(kill <= rarity_counts(&data, Odds::Trail { won: false })[top]);
     }
 
     #[test]

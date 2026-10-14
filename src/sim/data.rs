@@ -132,6 +132,8 @@ pub struct EnemyDef {
     pub defense: i32,
     pub attack_interval: f32,
     pub coins: (i32, i32),
+    /// How many pieces of gear its kill throws, least and most (#352).
+    pub gear: (u32, u32),
     /// The kind of kill it is: the name of the fountain its drops leave in,
     /// one of those in `loot_shower.ron`. The sim only carries the name.
     pub fountain: String,
@@ -155,6 +157,9 @@ pub struct RarityDef {
     pub prefix: String,
     pub weight: u32,
     pub win_weight: u32,
+    /// Its weight for the pieces every kill throws, which are the trail's
+    /// chaff: the higher tiers come from the trail's own piece (#352).
+    pub kill_weight: u32,
     pub points: (i32, i32),
     pub look: RarityLook,
 }
@@ -363,6 +368,7 @@ mod tests {
             assert!(enemy.health > 0 && enemy.attack_interval > 0.0, "{}", enemy.id);
             assert!(enemy.attack >= 0 && enemy.defense >= 0, "{}", enemy.id);
             assert!(0 <= enemy.coins.0 && enemy.coins.0 <= enemy.coins.1, "{}", enemy.id);
+            assert!(1 <= enemy.gear.0 && enemy.gear.0 <= enemy.gear.1, "{}", enemy.id);
             assert!(!enemy.fountain.is_empty(), "{}", enemy.id);
             assert!(!enemy.death.is_empty(), "{}", enemy.id);
         }
@@ -380,6 +386,7 @@ mod tests {
         assert!(gear.health_per_point > 0);
         assert!(gear.rarities.iter().any(|r| r.weight > 0));
         assert!(gear.rarities.iter().any(|r| r.win_weight > 0));
+        assert!(gear.rarities.iter().any(|r| r.kill_weight > 0));
         for rarity in &gear.rarities {
             assert!(0 < rarity.points.0 && rarity.points.0 <= rarity.points.1);
             assert!(!rarity.name.is_empty() && !rarity.prefix.is_empty());

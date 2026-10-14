@@ -61,7 +61,7 @@ pub struct Killed {
     pub death: String,
     pub coins: i32,
     pub fountain: String,
-    pub gear: Option<usize>,
+    pub gear: Vec<usize>,
     pub standing: Vec<Vec3>,
 }
 
@@ -499,11 +499,11 @@ impl Game {
             .map(|horse| Piece::Worn { horse, slot })
     }
 
-    /// The piece dropped by the trail whose report the Journal shows, where
-    /// it is now, if the party still has it (#231). None on the road while
-    /// the report is the fight's.
+    /// The best piece dropped by the trail whose report the Journal shows,
+    /// where it is now, if the party still has it (#231). None on the road
+    /// while the report is the fight's.
     pub fn reported_piece(&self) -> Option<Piece> {
-        self.find(self.open_report()?.outcome.drop.as_ref()?)
+        self.find(self.open_report()?.outcome.best()?)
     }
 
     /// The report of the last trail the party finished, if it has walked one.
@@ -527,9 +527,9 @@ impl Game {
     pub fn wants(&self, raise: &Raise) -> bool {
         match raise {
             Raise::NewGear => {
-                let brought = self.last_report().and_then(|kept| kept.outcome.drop.as_ref());
+                let brought = self.last_report().map_or(&[][..], |kept| &kept.outcome.drops);
                 self.trails > self.seen_drop
-                    && brought.is_some_and(|gear| self.cargo.contains(gear))
+                    && brought.iter().any(|gear| self.cargo.contains(gear))
             }
             Raise::Report { lost, rarity } => {
                 let Some(kept) = self.reports.last() else {
@@ -542,7 +542,7 @@ impl Game {
                 let tier = rarity
                     .as_ref()
                     .and_then(|name| tiers.iter().position(|tier| tier.name == *name));
-                let dropped = kept.outcome.drop.as_ref().map(|gear| gear.rarity);
+                let dropped = kept.outcome.best().map(|gear| gear.rarity);
                 (*lost && !kept.outcome.won)
                     || tier.is_some_and(|tier| dropped.is_some_and(|dropped| dropped >= tier))
             }
@@ -715,7 +715,7 @@ impl Game {
         self.reports
             .iter()
             .rev()
-            .find_map(|kept| self.find(kept.outcome.drop.as_ref()?))
+            .find_map(|kept| kept.outcome.drops.iter().rev().find_map(|gear| self.find(gear)))
     }
 
     /// The newest piece in the cargo: the last a trail brought back or a
@@ -756,8 +756,11 @@ impl Game {
         self.coins += outcome.coins;
         // What the trail brought back goes into the cargo, and stays there
         // until the player puts it on a horse (#352).
-        if let Some(gear) = &outcome.drop {
+        // Newest first, so the last piece to drop is first.
+        for gear in &outcome.drops {
             self.cargo.insert(0, gear.clone());
+        }
+        if !outcome.drops.is_empty() {
             self.lessons.raise(Event::Gear);
         }
         if outcome.won {
@@ -803,6 +806,25 @@ impl Game {
         game.return_to_camp(outcome);
         game
     }
+
+    /// The first of the seeds from 0 whose first trail brings a piece home,
+    /// back in town with that trail's own piece alone, as if it were all
+    /// the trail dropped: for a test of what is done with one piece, where
+    /// every kill's chaff (#352) would only be in the way.
+    pub fn back_with_one_piece() -> Game {
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.last_report().is_some_and(|kept| kept.outcome.cleared > 0))
+            .expect("no seed under 50 clears an encounter");
+        let kept = game.reports.last_mut().unwrap();
+        let piece = kept.outcome.trail_piece().cloned().unwrap();
+        kept.outcome.drops = vec![piece.clone()];
+        if let Screen::Camp { last: Some(outcome), .. } = &mut game.screen {
+            outcome.drops = vec![piece.clone()];
+        }
+        game.cargo = vec![piece];
+        game
+    }
 }
 
 /// One step of a trail. What happened on it is told to the lessons, which
@@ -840,7 +862,7 @@ pub fn advance(
                         element: kill.element,
                         death: kill.death,
                         coins: kill.coins,
-                        gear: kill.gear.as_ref().map(|gear| gear.rarity),
+                        gear: kill.gear.iter().map(|gear| gear.rarity).collect(),
                         fountain: kill.fountain,
                         standing: expedition
                             .foes
@@ -919,10 +941,11 @@ pub fn report_text(game: &Game) -> String {
         );
         // Where the piece is now is said by its card, under this, while
         // the party has it.
-        out += &match &kept.outcome.drop {
-            Some(gear) if game.find(gear).is_some() => format!("\nIt dropped {}:\n", gear.name),
+        let dropped = dropped(&kept.outcome);
+        out += &match kept.outcome.best() {
+            Some(gear) if game.find(gear).is_some() => format!("\nIt dropped {dropped}:\n"),
             Some(gear) => format!(
-                "\nIt dropped {}.\nThe party no longer has it.\n",
+                "\nIt dropped {dropped}.\nThe party no longer has {}.\n",
                 gear.name
             ),
             None => "\nIt dropped no gear.\n".into(),
@@ -991,15 +1014,26 @@ pub fn report_text(game: &Game) -> String {
     out
 }
 
+/// What a trail dropped, by its best piece: "Starlit Halter", or
+/// "14 pieces, the best Starlit Halter".
+fn dropped(outcome: &Outcome) -> String {
+    match (outcome.drops.len(), outcome.best()) {
+        (_, None) => "no gear".into(),
+        (1, Some(best)) => best.name.clone(),
+        (pieces, Some(best)) => format!("{pieces} pieces, the best {}", best.name),
+    }
+}
+
 /// How a trail ended, in the two lines every report of it opens with.
 fn outcome_lines(outcome: &Outcome) -> String {
     format!(
-        "{}  cleared {}/{} encounters, +{} coins\n\
+        "{}  cleared {}/{} encounters, +{} coins, {} gear\n\
          {}: {} strong hits, {} resisted\n",
         if outcome.won { "VICTORY!" } else { "DEFEAT." },
         outcome.cleared,
         outcome.total,
         outcome.coins,
+        outcome.drops.len(),
         outcome.element.name(),
         outcome.strong_hits,
         outcome.resisted_hits,
@@ -1026,7 +1060,10 @@ fn reports_list(game: &Game, open: &Kept) -> String {
             outcome.cleared,
             outcome.total,
             outcome.coins,
-            match &outcome.drop {
+            match outcome.best() {
+                Some(gear) if outcome.drops.len() > 1 => {
+                    format!("  {} +{}", gear.name, outcome.drops.len() - 1)
+                }
                 Some(gear) => format!("  {}", gear.name),
                 None => String::new(),
             },
@@ -1129,12 +1166,7 @@ mod tests {
     /// whichever that is (#250); after that it is refused.
     #[test]
     fn what_can_be_done_is_done() {
-        let home = || {
-            (0..50)
-                .map(Game::back_from_a_trail)
-                .find(|game| game.pending_drop().is_some())
-                .expect("no seed under 50 brings a drop home")
-        };
+        let home = Game::back_with_one_piece;
         for selected in 0..3 {
             let mut game = home();
             assert_eq!(game.can(Action::Equip, Hand::default()), Ok(()));
@@ -1169,10 +1201,7 @@ mod tests {
     /// slot open, something worn in it by one of the two, and town.
     #[test]
     fn a_worn_piece_is_swapped_onto_the_selected_horse() {
-        let mut game = (0..50)
-            .map(Game::back_from_a_trail)
-            .find(|game| game.pending_drop().is_some())
-            .expect("no seed under 50 brings a drop home");
+        let mut game = Game::back_with_one_piece();
         let slot = game.pending_drop().unwrap().slot.index();
         let name = game.pending_drop().unwrap().name.clone();
         game.act(Action::Equip, Hand::horse(0));
@@ -1233,10 +1262,7 @@ mod tests {
                 game.element,
             )
         };
-        let mut game = (0..50)
-            .map(Game::back_from_a_trail)
-            .find(|game| game.pending_drop().is_some())
-            .expect("no seed under 50 brings a drop home");
+        let mut game = Game::back_with_one_piece();
         let slot = game.pending_drop().unwrap().slot.index();
         let nothing = Err("Nothing changed this visit.");
         assert_eq!(game.can(Action::Undo, Hand::default()), nothing);
@@ -1372,19 +1398,22 @@ mod tests {
             let worn = game.party.iter().flat_map(|horse| &horse.gear).flatten().count();
             game.cargo().len() + worn
         };
-        let mut brought = 1;
+        let mut brought = game.last_report().unwrap().outcome.drops.len();
         assert_eq!(held(&game), brought);
-        while game.cargo().len() < 2 {
-            assert!(game.trails < 200, "the cargo never came to hold two pieces");
+        for _ in 0..2 {
             game.act(Action::SetOut, Hand::horse(0));
             assert_eq!(held(&game), brought, "setting out lost a piece");
             walk_home(&mut game);
-            if let Some(gear) = game.last_report().unwrap().outcome.drop.clone() {
-                brought += 1;
-                assert_eq!(game.pending_drop(), Some(&gear), "the newest is first");
+            let drops = game.last_report().unwrap().outcome.drops.clone();
+            brought += drops.len();
+            if !drops.is_empty() {
+                assert_eq!(game.pending_drop(), drops.last(), "the newest is first");
+                let newest: Vec<&Gear> = drops.iter().rev().collect();
+                assert_eq!(game.cargo()[..drops.len()].iter().collect::<Vec<_>>(), newest);
             }
             assert_eq!(held(&game), brought);
         }
+        assert!(game.cargo().len() > 1);
 
         // The oldest carried piece, onto the last horse.
         let carried = game.cargo().len();
@@ -1412,6 +1441,19 @@ mod tests {
         let past = Hand { horse: 0, open: Some(Piece::Carried(carried)) };
         assert_eq!(game.can(Action::Equip, past), Err("Nothing to equip."));
         assert_eq!(game.piece(Piece::Carried(carried)), None);
+    }
+
+    /// A won first trail at seed 6, the tour's, brings back a piece or more
+    /// for every enemy on it, and every one of them is carried (#352).
+    #[test]
+    fn the_first_trail_brings_back_a_piece_for_every_enemy() {
+        let game = Game::back_from_a_trail(6);
+        let outcome = &game.last_report().unwrap().outcome;
+        assert!(outcome.won, "the tour's first trail is won");
+        let killed: u32 = outcome.deeds.iter().map(|deeds| deeds.kills).sum();
+        assert!(outcome.drops.len() as u32 > killed, "{} pieces, {killed} kills", outcome.drops.len());
+        assert_eq!(game.cargo().len(), outcome.drops.len());
+        assert!(outcome.drops.iter().all(|gear| game.cargo().contains(gear)));
     }
 
     /// Walk the trail the party is on to its end and bring it home.
@@ -1584,12 +1626,17 @@ mod tests {
             .map(Game::back_from_a_trail)
             .find(|game| game.pending_drop().is_some())
             .expect("no seed under 50 brings a drop home");
-        let gear = game.pending_drop().unwrap().clone();
+        let outcome = &game.last_report().unwrap().outcome;
+        let (gear, pieces) = (outcome.best().unwrap().clone(), outcome.drops.len());
         let slot = gear.slot.index();
-        // The latest report's piece is the one in the cargo, and is still
+        // The latest report's piece is its best, in the cargo, and is still
         // the report's piece once it is worn.
-        assert_eq!(game.reported_piece(), Some(Piece::Carried(0)));
-        game.act(Action::Equip, Hand::horse(1));
+        let carried = game.reported_piece();
+        let Some(Piece::Carried(at)) = carried else {
+            panic!("the report's piece is not carried: {carried:?}");
+        };
+        assert_eq!(game.piece(Piece::Carried(at)), Some(&gear));
+        game.act(Action::Equip, Hand { horse: 1, open: carried });
         let worn = Piece::Worn { horse: 1, slot };
         assert_eq!(game.reported_piece(), Some(worn));
 
@@ -1597,7 +1644,8 @@ mod tests {
         assert_eq!(game.reported_piece(), None, "on the road the report is the fight's");
         game.act(Action::Earlier, Hand::default());
         assert_eq!(game.reported_piece(), Some(worn));
-        assert!(report_text(&game).contains(&format!("It dropped {}:", gear.name)));
+        let dropped = format!("It dropped {pieces} pieces, the best {}:", gear.name);
+        assert!(report_text(&game).contains(&dropped), "{}", report_text(&game));
 
         // Back in town it is acted on from that report: onto another horse.
         walk_home(&mut game);
@@ -1609,7 +1657,8 @@ mod tests {
         // Thrown away, it is said to be gone.
         game.party[0].gear[slot] = None;
         assert_eq!(game.reported_piece(), None);
-        assert!(report_text(&game).contains("The party no longer has it."));
+        let gone = format!("The party no longer has {}.", gear.name);
+        assert!(report_text(&game).contains(&gone));
     }
 
     /// Keep going (#305): off in a new game, so no town leaves by itself;

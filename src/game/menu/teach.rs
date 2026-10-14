@@ -340,10 +340,7 @@ mod tests {
         assert_eq!(find(&Target::Tab("Horses".into(), "Nowhere".into()), &map, &game, 0), None);
         assert_eq!(find(&Target::Control("Nothing".into()), &map, &game, 0), None);
 
-        let mut game = (0..50)
-            .map(Game::back_from_a_trail)
-            .find(|game| game.pending_drop().is_some())
-            .expect("no seed under 50 brings a drop home");
+        let mut game = Game::back_with_one_piece();
         let slot = game.pending_drop().unwrap().slot.index();
         let carried = (About::Piece(Piece::Carried(0)), Found::Here);
         assert_eq!(find(&Target::Drop, &map, &game, 0), Some(carried));
@@ -731,7 +728,7 @@ mod tests {
                 break outcome;
             }
         };
-        outcome.drop = None;
+        outcome.drops.clear();
         game.return_to_camp(outcome);
         follow(&mut game, &mut shell, &map, &mut held);
         assert_eq!(hinted(&shell), Some("piece"));

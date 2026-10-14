@@ -123,13 +123,15 @@ fn depart_line(trail: u32, expedition: &Expedition, waited: f32) -> String {
     )
 }
 
-fn kill_line(coins: i32, fountain: &str, gear: Option<usize>) -> String {
-    let gear = gear.map_or("-".into(), |tier| tier.to_string());
+/// A kill and its gear, each piece by its tier, in the order they dropped.
+fn kill_line(coins: i32, fountain: &str, gear: &[usize]) -> String {
+    let tiers: Vec<String> = gear.iter().map(|tier| tier.to_string()).collect();
+    let gear = if tiers.is_empty() { "-".into() } else { tiers.join(",") };
     format!("kill\tcoins={coins}\tfountain={fountain}\tgear={gear}")
 }
 
 fn outcome_line(trail: u32, outcome: &Outcome) -> String {
-    let drop = match &outcome.drop {
+    let drop = match outcome.trail_piece() {
         Some(gear) => format!(
             "{}|{}|{}|{}",
             gear.name,
@@ -150,13 +152,14 @@ fn outcome_line(trail: u32, outcome: &Outcome) -> String {
         })
         .collect();
     format!(
-        "outcome\ttrail={trail}\twon={}\tcleared={}\ttotal={}\tcoins={}\tstrong={}\tresisted={}\tdrop={drop}\tdeeds={}",
+        "outcome\ttrail={trail}\twon={}\tcleared={}\ttotal={}\tcoins={}\tstrong={}\tresisted={}\tdrop={drop}\tpieces={}\tdeeds={}",
         outcome.won as u8,
         outcome.cleared,
         outcome.total,
         outcome.coins,
         outcome.strong_hits,
         outcome.resisted_hits,
+        outcome.drops.len(),
         deeds.join(","),
     )
 }
@@ -235,7 +238,7 @@ fn record(
     }
     soak.on_road = !game.in_town();
     for kill in killed.read() {
-        soak.write(t, &kill_line(kill.coins, &kill.fountain, kill.gear));
+        soak.write(t, &kill_line(kill.coins, &kill.fountain, &kill.gear));
     }
 
     if wall >= soak.next_beat {
@@ -601,7 +604,7 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
             }
         }
 
-        // The drop: one piece when an encounter was cleared, of a rarity and
+        // The trail's own piece: one when an encounter was cleared, of a rarity and
         // with stat points the table allows.
         let drop = outcome.text("drop");
         let mut tier_dropped = None;
@@ -638,18 +641,37 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
                 problems.add("a piece dropped though no encounter was cleared", at.clone());
             }
         }
-        // Only the kill that wins the trail throws the piece.
-        let thrown: Vec<usize> = trail
+        // Every kill throws a piece or more (#352), of the tiers a kill can
+        // throw; the kill that wins the trail throws the trail's piece last;
+        // and the outcome counts every piece thrown, and the trail's.
+        let pieces: usize = outcome.num("pieces");
+        let thrown: Vec<Vec<usize>> = trail
             .kills
             .iter()
-            .enumerate()
-            .filter(|(_, kill)| kill.text("gear") != "-")
-            .map(|(kill, _)| kill)
+            .map(|kill| kill.text("gear").split(',').filter_map(|tier| tier.parse().ok()).collect())
             .collect();
-        let expected: Vec<usize> = if won { vec![trail.kills.len().saturating_sub(1)] } else { Vec::new() };
-        let tier_thrown = trail.kills.last().and_then(|kill| kill.text("gear").parse().ok());
-        if thrown != expected || (won && tier_thrown != tier_dropped) {
-            problems.add("the piece was not thrown by the winning kill, or not as it dropped", at.clone());
+        let mut chaff: Vec<&[usize]> = thrown.iter().map(Vec::as_slice).collect();
+        if won && let Some(last) = chaff.last_mut() {
+            let tier_thrown = last.last().copied();
+            *last = &last[..last.len().saturating_sub(1)];
+            if tier_thrown != tier_dropped {
+                problems.add("the trail's piece was not thrown by the winning kill as it dropped", at.clone());
+            }
+        }
+        if chaff.iter().any(|gear| gear.is_empty()) {
+            problems.add("a kill threw no gear", at.clone());
+        }
+        if chaff.iter().flat_map(|gear| gear.iter()).any(|&tier| {
+            data.gear.rarities.get(tier).is_none_or(|rarity| rarity.kill_weight == 0)
+        }) {
+            problems.add("a kill threw a piece of a tier kills do not throw", at.clone());
+        }
+        let counted = chaff.iter().map(|gear| gear.len()).sum::<usize>() + usize::from(cleared > 0);
+        if pieces != counted {
+            problems.add(
+                "the pieces counted are not the pieces thrown",
+                format!("{at}: {pieces} counted, {counted} thrown"),
+            );
         }
 
         // The same trail walked again in the sim: line for line the same.
@@ -689,7 +711,8 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
                     sim.won == won
                         && sim.cleared == cleared
                         && sim.coins == coins
-                        && sim.drop.as_ref().map(|gear| gear.rarity) == tier_dropped
+                        && sim.trail_piece().map(|gear| gear.rarity) == tier_dropped
+                        && sim.drops.len() == pieces
                 });
                 if !same_lines || !same_end {
                     problems.add(
@@ -1047,8 +1070,8 @@ mod tests {
                 }
                 lines = expedition.log.len();
                 for kill in std::mem::take(&mut expedition.kills) {
-                    let gear = kill.gear.as_ref().map(|gear| gear.rarity);
-                    write(t, kill_line(kill.coins, &kill.fountain, gear));
+                    let gear: Vec<usize> = kill.gear.iter().map(|gear| gear.rarity).collect();
+                    write(t, kill_line(kill.coins, &kill.fountain, &gear));
                     drops.thrown += 1;
                     drops.collected += 1;
                 }

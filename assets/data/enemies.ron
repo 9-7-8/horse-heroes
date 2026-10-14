@@ -1,11 +1,13 @@
 // Corrupted creatures. Each one's element is rolled per expedition.
 // `fountain` is the kind of kill it is: the name of the fountain its drops
 // leave in, from loot_shower.ron. `death` is how its body goes: the name of
-// one of the deaths in deaths.ron.
+// one of the deaths in deaths.ron. `gear` is how many pieces its kill throws,
+// least and most (#352): every kill throws one at least, rolled at each
+// rarity's `kill_weight` in gear.ron.
 [
-    (id: "thornling",    name: "Thornling",       health: 60,  attack: 4,  attack_interval: 2.2, coins: (1, 3), fountain: "small", death: "small"),
-    (id: "gloom_sprite", name: "Gloom Sprite",    health: 40,  attack: 3,  attack_interval: 1.6, coins: (1, 2), fountain: "small", death: "small"),
-    (id: "mire_toad",    name: "Mire Toad",       health: 95,  attack: 6,  attack_interval: 2.8, coins: (2, 4), fountain: "small", death: "small"),
-    (id: "corrupted_stag", name: "Corrupted Stag", health: 390, attack: 9, defense: 1, attack_interval: 2.0, coins: (10, 15), fountain: "full", death: "big"),
-    (id: "hollow_wolf",  name: "Hollow Wolf",     health: 325, attack: 6,  attack_interval: 1.2, coins: (10, 15), fountain: "full", death: "big"),
+    (id: "thornling",    name: "Thornling",       health: 60,  attack: 4,  attack_interval: 2.2, coins: (1, 3), gear: (1, 2), fountain: "small", death: "small"),
+    (id: "gloom_sprite", name: "Gloom Sprite",    health: 40,  attack: 3,  attack_interval: 1.6, coins: (1, 2), gear: (1, 2), fountain: "small", death: "small"),
+    (id: "mire_toad",    name: "Mire Toad",       health: 95,  attack: 6,  attack_interval: 2.8, coins: (2, 4), gear: (1, 2), fountain: "small", death: "small"),
+    (id: "corrupted_stag", name: "Corrupted Stag", health: 390, attack: 9, defense: 1, attack_interval: 2.0, coins: (10, 15), gear: (2, 4), fountain: "full", death: "big"),
+    (id: "hollow_wolf",  name: "Hollow Wolf",     health: 325, attack: 6,  attack_interval: 1.2, coins: (10, 15), gear: (2, 4), fountain: "full", death: "big"),
 ]

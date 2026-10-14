@@ -242,12 +242,7 @@ mod tests {
     /// once one is worn, and nothing for a cargo that carries nothing.
     #[test]
     fn a_picture_is_of_the_piece_or_of_the_empty_slot() {
-        let home = || {
-            (0..50)
-                .map(Game::back_from_a_trail)
-                .find(|game| game.pending_drop().is_some())
-                .expect("no seed under 50 brings a drop home")
-        };
+        let home = Game::back_with_one_piece;
         let game = home();
         let gear = game.pending_drop().unwrap().clone();
         let slot = gear.slot.index();

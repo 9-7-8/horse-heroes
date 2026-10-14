@@ -1,9 +1,9 @@
 //! One expedition: a generated trail and the automatic fight along it.
 //! Everything here follows from the seed, the party and the chosen element.
 
-use super::data::{Class, Data, Element, Rules};
+use super::data::{Class, Data, Element};
 use super::lessons::Event;
-use super::loot::{Gear, Horse, roll_gear};
+use super::loot::{Gear, Horse, Odds, roll_gear, roll_piece};
 use super::rng::Rng;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -104,6 +104,7 @@ pub struct Foe {
     attack_interval: f32,
     attack_timer: f32,
     coins: (i32, i32),
+    gear: (u32, u32),
     fountain: String,
     death: String,
 }
@@ -121,9 +122,10 @@ pub struct Kill {
     pub fountain: String,
     /// How it died: its enemy's `death` in `enemies.ron`.
     pub death: String,
-    /// The gear it dropped. Only the enemy whose fall wins the trail drops
-    /// any: the run's piece, the same one the outcome carries.
-    pub gear: Option<Gear>,
+    /// The gear it dropped: a piece or more, as its enemy's `gear` has it,
+    /// and for the enemy whose fall wins the trail the trail's own piece
+    /// last (#352). Every piece is in the outcome's `drops` too.
+    pub gear: Vec<Gear>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -142,9 +144,25 @@ pub struct Outcome {
     pub strong_hits: u32,
     pub resisted_hits: u32,
     pub coins: i32,
-    pub drop: Option<Gear>,
+    /// Every piece the trail brought back, in the order they dropped: the
+    /// kills' pieces, then the trail's own if it cleared an encounter.
+    pub drops: Vec<Gear>,
     /// What each horse did, in the party's order.
     pub deeds: Vec<Deeds>,
+}
+
+impl Outcome {
+    /// The best piece the trail brought back: of the highest tier, and of
+    /// those the last to drop. What its report names (#231).
+    pub fn best(&self) -> Option<&Gear> {
+        self.drops.iter().max_by_key(|gear| gear.rarity)
+    }
+
+    /// The trail's own piece, rolled at the trail's odds: the last to drop,
+    /// when an encounter was cleared.
+    pub fn trail_piece(&self) -> Option<&Gear> {
+        self.drops.last().filter(|_| self.cleared > 0)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -162,6 +180,8 @@ pub struct Expedition {
     pub log: Vec<String>,
     /// Kills not yet shown, oldest first. Whoever presents the run takes them.
     pub kills: Vec<Kill>,
+    /// Every piece dropped so far, in order.
+    pub drops: Vec<Gear>,
     /// What has happened that a lesson may wait for (#290), oldest first.
     /// Whoever presents the run takes them, as it takes the kills.
     pub events: Vec<Event>,
@@ -170,6 +190,9 @@ pub struct Expedition {
     strong_hits: u32,
     resisted_hits: u32,
     rng: Rng,
+    /// The kills' pieces are rolled apart from the fight, so the fight goes
+    /// as it would with no gear thrown.
+    loot: Rng,
 }
 
 impl Expedition {
@@ -203,6 +226,7 @@ impl Expedition {
             // Kept apart from the plan's rolls, so the trail does not change
             // with how the fight happens to go.
             rng: Rng::new(plan.seed ^ 0xC0FF_EE00_F00D_5EED),
+            loot: Rng::new(plan.seed ^ 0x4B11_4B11_4B11_4B11),
             plan,
             element,
             party,
@@ -216,6 +240,7 @@ impl Expedition {
                 element.name()
             )],
             kills: Vec::new(),
+            drops: Vec::new(),
             events: Vec::new(),
             outcome: None,
             travel: rules.travel_secs,
@@ -254,6 +279,7 @@ impl Expedition {
                     attack_interval: def.attack_interval,
                     attack_timer: def.attack_interval,
                     coins: def.coins,
+                    gear: def.gear,
                     fountain: def.fountain.clone(),
                     death: def.death.clone(),
                 }
@@ -289,7 +315,7 @@ impl Expedition {
                 self.party[i].attack_timer += rules.attack_interval;
                 if let Some(target) = self.target() {
                     let (attack, elemental) = self.power(i);
-                    self.strike(rules, i, target, attack, elemental, "hits");
+                    self.strike(data, i, target, attack, elemental, "hits");
                 }
             }
 
@@ -301,7 +327,7 @@ impl Expedition {
                         self.party[i].ability_timer += rules.focused_shot_cooldown;
                         if let Some(target) = self.target() {
                             let attack = attack * rules.focused_shot_multiplier;
-                            self.strike(rules, i, target, attack, elemental, "Focused Shot on");
+                            self.strike(data, i, target, attack, elemental, "Focused Shot on");
                         }
                     }
                     Class::Wizard => {
@@ -309,7 +335,7 @@ impl Expedition {
                         let burst = elemental * rules.burst_multiplier;
                         for target in 0..self.foes.len() {
                             if self.foes[target].health > 0 {
-                                self.strike(rules, i, target, 0.0, burst, "Elemental Burst on");
+                                self.strike(data, i, target, 0.0, burst, "Elemental Burst on");
                             }
                         }
                     }
@@ -397,15 +423,21 @@ impl Expedition {
         } else {
             self.encounter
         };
+        // The trail's own piece, at the trail's odds: the only one that can
+        // be of the higher tiers.
         let drop = (cleared > 0).then(|| {
             let mut rng = Rng::new(self.plan.seed ^ 0x100F_100F_100F_100F);
             roll_gear(data, &mut rng, won, self.plan.level)
         });
         // A trail is won in the tick its last enemy falls, so that kill is
         // still here, not yet taken.
-        if won && let Some(kill) = self.kills.last_mut() {
-            kill.gear = drop.clone();
+        if won
+            && let Some(kill) = self.kills.last_mut()
+            && let Some(drop) = &drop
+        {
+            kill.gear.push(drop.clone());
         }
+        self.drops.extend(drop);
         if won {
             self.events.push(Event::Win);
         }
@@ -418,7 +450,7 @@ impl Expedition {
             strong_hits: self.strong_hits,
             resisted_hits: self.resisted_hits,
             coins: self.coins,
-            drop,
+            drops: self.drops.clone(),
             deeds: self.party.iter().map(|fighter| fighter.deeds).collect(),
         });
     }
@@ -437,13 +469,14 @@ impl Expedition {
     /// is scaled by the triangle.
     fn strike(
         &mut self,
-        rules: &Rules,
+        data: &Data,
         horse: usize,
         target: usize,
         physical: f32,
         elemental: f32,
         verb: &str,
     ) {
+        let rules = &data.rules;
         let foe = &mut self.foes[target];
         let multiplier = rules.multiplier(self.element, foe.element);
         let damage = (physical - foe.defense as f32).max(0.0) + elemental * multiplier;
@@ -475,6 +508,11 @@ impl Expedition {
             self.log
                 .push(format!("{} is defeated (+{} coins)", foe.name, coins));
             self.events.push(Event::Kill);
+            let pieces = self.loot.range(foe.gear.0 as i32, foe.gear.1 as i32);
+            let gear: Vec<Gear> = (0..pieces)
+                .map(|_| roll_piece(data, &mut self.loot, Odds::Kill, self.plan.level))
+                .collect();
+            self.drops.extend(gear.iter().cloned());
             self.kills.push(Kill {
                 foe: target,
                 element: foe.element,
@@ -482,7 +520,7 @@ impl Expedition {
                 coins,
                 fountain: foe.fountain.clone(),
                 death: foe.death.clone(),
-                gear: None,
+                gear,
             });
         }
     }
@@ -666,28 +704,37 @@ mod tests {
         assert!(won > 0);
     }
 
-    /// The run's gear comes out of the enemy whose fall won the trail, and
-    /// out of no other. A lost trail's piece has no body to come out of.
+    /// Every kill throws a piece or more of the chaff (#352). The trail's
+    /// own piece comes out of the enemy whose fall won the trail, after its
+    /// chaff; a lost trail's has no body to come out of. The outcome holds
+    /// every piece, in the order they dropped.
     #[test]
-    fn the_winning_kill_drops_the_gear() {
+    fn every_kill_drops_gear_and_the_winning_kill_the_trails_piece() {
         let data = Data::load();
+        let chaff = |gear: &[Gear]| {
+            !gear.is_empty() && gear.iter().all(|gear| data.gear.rarities[gear.rarity].kill_weight > 0)
+        };
         let (mut won, mut lost) = (0, 0);
         for seed in 0..100 {
             let run = run(&data, seed, 0, Element::Fire);
             let outcome = run.outcome.clone().unwrap();
+            let mut thrown: Vec<Gear> = run.kills.iter().flat_map(|kill| kill.gear.clone()).collect();
             let Some((last, earlier)) = run.kills.split_last() else {
                 assert!(!outcome.won);
                 continue;
             };
-            assert!(earlier.iter().all(|kill| kill.gear.is_none()));
+            assert!(earlier.iter().all(|kill| chaff(&kill.gear)), "seed {seed}");
             if outcome.won {
-                assert!(last.gear.is_some());
-                assert_eq!(last.gear, outcome.drop);
+                let (piece, rest) = last.gear.split_last().unwrap();
+                assert!(chaff(rest), "seed {seed}");
+                assert_eq!(Some(piece), outcome.trail_piece());
                 won += 1;
             } else {
-                assert!(last.gear.is_none());
+                assert!(chaff(&last.gear), "seed {seed}");
+                thrown.extend(outcome.trail_piece().cloned());
                 lost += 1;
             }
+            assert_eq!(thrown, outcome.drops, "seed {seed}");
         }
         assert!(won > 0 && lost > 0);
     }
@@ -699,9 +746,9 @@ mod tests {
         for seed in 0..200 {
             let a = run(&data, seed, 0, Element::Ice).outcome.unwrap();
             let b = run(&data, seed, 0, Element::Ice).outcome.unwrap();
-            assert_eq!(a.drop, b.drop);
-            assert_eq!(a.drop.is_some(), a.cleared > 0);
-            if let Some(gear) = a.drop {
+            assert_eq!(a.drops, b.drops);
+            assert_eq!(a.trail_piece().is_some(), a.cleared > 0);
+            for gear in &a.drops {
                 assert!(super::super::loot::score(&data, gear.stats) >= 2);
                 seen += 1;
             }
@@ -730,7 +777,7 @@ mod tests {
             .into_iter()
             .enumerate()
         {
-            run.strike(rules, 0, target, physical, elemental, "hits");
+            run.strike(&data, 0, target, physical, elemental, "hits");
             let foe = &run.foes[target];
             dealt.push(foe.max_health - foe.health);
             assert_eq!(dealt[target], (5.0 + elemental * multiplier).round() as i32);
@@ -741,7 +788,7 @@ mod tests {
         // Defense never turns a hit into healing, and a hit with nothing
         // elemental in it is neither strong nor resisted.
         let before = run.foes[0].health;
-        run.strike(rules, 0, 0, defense * 0.5, 0.0, "hits");
+        run.strike(&data, 0, 0, defense * 0.5, 0.0, "hits");
         assert_eq!(run.foes[0].health, before - 1);
         assert_eq!((run.strong_hits, run.resisted_hits), (1, 1));
     }
@@ -871,8 +918,8 @@ mod tests {
     }
 
     /// A trail is lost when the last horse falls. Lost in its first
-    /// encounter it brings nothing back; lost further on it brings a piece,
-    /// which no enemy drops.
+    /// encounter it brings back no piece of its own, only what its kills
+    /// threw; lost further on it brings its piece, which no enemy drops.
     #[test]
     fn a_lost_trail_brings_back_a_piece_only_past_its_first_encounter() {
         let data = Data::load();
@@ -900,11 +947,12 @@ mod tests {
             assert!(run.kills.is_empty());
             let outcome = run.outcome.unwrap();
             assert_eq!((outcome.won, outcome.cleared, outcome.total), (false, cleared, 3));
-            outcome.drop
+            assert_eq!(outcome.trail_piece(), outcome.drops.last().filter(|_| cleared > 0));
+            outcome.drops.len()
         };
-        assert_eq!(lose(0), None);
-        assert!(lose(1).is_some());
-        assert!(lose(2).is_some());
+        assert_eq!(lose(0), 0);
+        assert_eq!(lose(1), 1);
+        assert_eq!(lose(2), 1);
     }
 
     fn horse_of(expedition: &Expedition, class: Class) -> usize {
@@ -951,7 +999,7 @@ mod tests {
 
         // It is worth more than an ordinary hit, by the attack alone.
         let before = run.foes[0].health;
-        run.strike(rules, ranger, 0, attack, elemental, "hits");
+        run.strike(&data, ranger, 0, attack, elemental, "hits");
         let ordinary = before - run.foes[0].health;
         assert_eq!(
             expected - ordinary,
@@ -1174,8 +1222,9 @@ mod tests {
             assert_eq!(outcome.won, outcome.cleared == outcome.total);
             assert_eq!(outcome.won, fallen.iter().any(|&down| !down));
             if outcome.won {
-                assert_eq!(taken.last().unwrap().gear, outcome.drop);
-                assert!(outcome.drop.is_some());
+                assert_eq!(taken.last().unwrap().gear.last(), outcome.trail_piece());
+                let thrown: Vec<&Gear> = taken.iter().flat_map(|kill| &kill.gear).collect();
+                assert_eq!(thrown, outcome.drops.iter().collect::<Vec<_>>());
                 won += 1;
             }
 
@@ -1347,25 +1396,95 @@ mod tests {
         assert!(won > 0 && lost > 0, "{won} won, {lost} lost");
     }
 
+    /// A kill's coins and its count of gear are each within its enemy's
+    /// range, and over many seeds each comes up at both ends. The count is
+    /// the same at a high trail level as at the first (#352: the early
+    /// trails are no less generous).
     #[test]
-    fn a_kill_drops_coins_within_its_enemys_range() {
+    fn a_kill_drops_coins_and_gear_within_its_enemys_range() {
         let data = Data::load();
+        let kill = |enemy: &str, seed: u64, level: u32| {
+            let mut run = fighting(&data, level, &[&[(enemy, Element::Fire)]]);
+            run.rng = Rng::new(seed);
+            run.loot = Rng::new(seed);
+            run.foes[0].health = 1;
+            run.strike(&data, 0, 0, 1.0, 0.0, "hits");
+            let kill = run.kills.pop().expect("the enemy fell");
+            assert_eq!(run.coins, kill.coins);
+            assert_eq!(run.drops, kill.gear);
+            assert!(run.kills.is_empty());
+            kill
+        };
         for enemy in &data.enemies {
             let (lo, hi) = enemy.coins;
+            let (glo, ghi) = (enemy.gear.0 as usize, enemy.gear.1 as usize);
             let (mut fewest, mut most) = (i32::MAX, i32::MIN);
+            let (mut fewest_gear, mut most_gear) = (usize::MAX, 0);
             for seed in 0..200 {
-                let mut run = fighting(&data, 0, &[&[(enemy.id.as_str(), Element::Fire)]]);
-                run.rng = Rng::new(seed);
-                run.foes[0].health = 1;
-                run.strike(&data.rules, 0, 0, 1.0, 0.0, "hits");
-                let kill = run.kills.pop().expect("the enemy fell");
-                assert!((lo..=hi).contains(&kill.coins), "{}: {}", enemy.id, kill.coins);
-                assert_eq!(run.coins, kill.coins);
-                assert!(run.kills.is_empty());
-                fewest = fewest.min(kill.coins);
-                most = most.max(kill.coins);
+                let low = kill(&enemy.id, seed, 0);
+                assert!((lo..=hi).contains(&low.coins), "{}: {}", enemy.id, low.coins);
+                let pieces = low.gear.len();
+                assert!((glo..=ghi).contains(&pieces), "{}: {pieces} pieces", enemy.id);
+                assert_eq!(kill(&enemy.id, seed, 6).gear.len(), pieces, "{}", enemy.id);
+                fewest = fewest.min(low.coins);
+                most = most.max(low.coins);
+                fewest_gear = fewest_gear.min(pieces);
+                most_gear = most_gear.max(pieces);
             }
             assert_eq!((fewest, most), (lo, hi), "{}", enemy.id);
+            assert_eq!((fewest_gear, most_gear), (glo, ghi), "{}", enemy.id);
+        }
+    }
+
+    /// The rates of #352, rolled over many trails from fixed seeds. Every
+    /// trail brings back many pieces, nearly all chaff; the higher tiers
+    /// come no more often per trail than when a trail brought back its own
+    /// piece alone, within a tenth; and the chaff's tiers follow
+    /// `kill_weight`.
+    #[test]
+    fn a_trail_brings_back_many_pieces_and_the_higher_tiers_stay_rare() {
+        let data = Data::load();
+        let tiers = &data.gear.rarities;
+        let share = |weight: &dyn Fn(&crate::sim::data::RarityDef) -> u32, from: usize| {
+            let total: u32 = tiers.iter().map(weight).sum();
+            tiers[from..].iter().map(weight).sum::<u32>() as f64 / total as f64
+        };
+        // Rare and up.
+        let higher = 2;
+        const TRAILS: u64 = 600;
+        let (mut pieces, mut kills, mut found, mut before) = (0, 0, 0, 0.0);
+        let mut chaff = vec![0u32; tiers.len()];
+        for seed in 0..TRAILS {
+            let run = run(&data, seed, 0, Element::Plant);
+            let outcome = run.outcome.as_ref().unwrap();
+            let killed: u32 = outcome.deeds.iter().map(|deeds| deeds.kills).sum();
+            assert!(outcome.drops.len() as u32 >= killed, "seed {seed}");
+            pieces += outcome.drops.len();
+            kills += killed as usize;
+            found += outcome.drops.iter().filter(|gear| gear.rarity >= higher).count();
+            if outcome.cleared > 0 {
+                before += if outcome.won {
+                    share(&|r| r.win_weight, higher)
+                } else {
+                    share(&|r| r.weight, higher)
+                };
+            }
+            let trail_piece = outcome.trail_piece().map(|_| 1).unwrap_or(0);
+            for gear in &outcome.drops[..outcome.drops.len() - trail_piece] {
+                chaff[gear.rarity] += 1;
+            }
+        }
+        let per_trail = pieces as f64 / TRAILS as f64;
+        assert!((8.0..=25.0).contains(&per_trail), "{per_trail} pieces a trail");
+        assert!(pieces >= kills);
+        let (found, before) = (found as f64 / TRAILS as f64, before / TRAILS as f64);
+        assert!(found <= before * 1.1, "{found} of the higher tiers a trail, {before} before");
+        let total: u32 = chaff.iter().sum();
+        for (tier, &count) in tiers.iter().zip(&chaff) {
+            let expected =
+                tier.kill_weight as f64 / tiers.iter().map(|r| r.kill_weight).sum::<u32>() as f64;
+            let got = count as f64 / total as f64;
+            assert!((got - expected).abs() < 0.03, "{}: {got} against {expected}", tier.name);
         }
     }
 }
