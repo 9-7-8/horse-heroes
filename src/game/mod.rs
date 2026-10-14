@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use serde::Deserialize;
 
 use crate::sim::data::{Data, Element, Stats};
-use crate::sim::expedition::{Expedition, Outcome, Phase, Plan};
+use crate::sim::expedition::{Expedition, Hit, Outcome, Phase, Plan, Struck};
 use crate::sim::lessons::{Event, Lessons};
 use crate::sim::loot::{Gear, Horse, roll_gear, swap_worn};
 use crate::sim::rng::Rng;
@@ -75,6 +75,14 @@ pub struct Withdrew {
     pub element: Element,
 }
 
+/// A hit landed (#249): the sim's word for it, and the middle of the body it
+/// struck. `fx` shows its number.
+#[derive(Message)]
+pub struct Landed {
+    pub hit: Hit,
+    pub at: Vec3,
+}
+
 /// Coins that have dropped and not yet reached the party: in the air, on
 /// the ground, or on their way. `advance` adds a kill's coins as it reports
 /// the kill and `fx` takes each piece's share off as it arrives, so the
@@ -127,6 +135,7 @@ impl Plugin for GamePlugin {
             .init_resource::<Uncollected>()
             .add_message::<Killed>()
             .add_message::<Withdrew>()
+            .add_message::<Landed>()
             .add_plugins(scene::ScenePlugin { bare: self.bare })
             .add_systems(Update, advance);
     }
@@ -845,6 +854,7 @@ pub fn advance(
     mut uncollected: ResMut<Uncollected>,
     mut killed: MessageWriter<Killed>,
     mut withdrew: MessageWriter<Withdrew>,
+    mut landed: MessageWriter<Landed>,
 ) {
     let game = &mut *game;
     let dt = time.delta_secs();
@@ -856,6 +866,13 @@ pub fn advance(
             while game.accumulator >= TICK && expedition.phase != Phase::Finished {
                 game.accumulator -= TICK;
                 step(expedition, &game.data, &mut game.lessons);
+                for hit in expedition.hits.drain(..) {
+                    let at = match hit.struck {
+                        Struck::Foe { slot, max_health } => scene::enemy_centre(slot, max_health),
+                        Struck::Horse(horse) => scene::horse_centre(horse),
+                    };
+                    landed.write(Landed { hit, at });
+                }
                 for kill in std::mem::take(&mut expedition.kills) {
                     fell = true;
                     uncollected.coins += kill.coins.max(0);

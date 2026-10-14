@@ -104,6 +104,16 @@ lessons: [
         words: "Each horse has one ability, and uses it by itself when it is ready.",
         done: Watched(Ability),
     ),
+    // The damage numbers (#249), once the first fight has shown some: read
+    // by watching the next kill's.
+    (
+        id: "the numbers are hits",
+        due: Kill,
+        shown: Road,
+        target: Horse(1),
+        words: "Each number is a hit, sized by damage, coloured by element; a minus is a horse hit.",
+        done: Watched(Kill),
+    ),
     (
         id: "press the piece",
         due: Gear,

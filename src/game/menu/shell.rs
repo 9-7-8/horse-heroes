@@ -172,6 +172,8 @@ pub enum Switch {
     ChangedOnly,
     /// The hints are shown (#300). Off, none is shown by itself.
     Hints,
+    /// Each hit's damage rises from what it struck (#249).
+    DamageNumbers,
 }
 
 /// What a tab shows, or a place without tabs. `Planned` is one whose system
@@ -500,6 +502,8 @@ pub struct Shell {
     owed: bool,
     /// Where the hints went has been said: once, and never again.
     told: bool,
+    /// The damage numbers are turned off (#249).
+    numbers_off: bool,
 }
 
 impl Shell {
@@ -518,6 +522,7 @@ impl Shell {
             hints_off: false,
             owed: false,
             told: false,
+            numbers_off: false,
         }
     }
 
@@ -639,6 +644,7 @@ impl Shell {
         match switch {
             Switch::ChangedOnly => self.rows == card::Rows::Changed,
             Switch::Hints => !self.hints_off,
+            Switch::DamageNumbers => !self.numbers_off,
         }
     }
 
@@ -662,6 +668,7 @@ impl Shell {
                 };
             }
             Switch::ChangedOnly => {}
+            Switch::DamageNumbers => self.numbers_off = !self.numbers_off,
         }
     }
 
@@ -3855,6 +3862,30 @@ mod tests {
 
         shell.skip_hints();
         assert!(!shell.is_on(Switch::Hints) && shell.put_away("first"));
+    }
+
+    /// Damage numbers (#249) is one switch, in Settings, with a key, on in a
+    /// new game; a press turns it off and the next on again, and it touches
+    /// nothing else.
+    #[test]
+    fn damage_numbers_are_turned_off_and_on_in_settings() {
+        let places = Places::load();
+        let switches: Vec<&Control> = places
+            .controls()
+            .iter()
+            .filter(|control| control.switch == Some(Switch::DamageNumbers))
+            .collect();
+        assert_eq!(switches.len(), 1);
+        assert!(switches[0].key.is_some());
+        assert!(places.settings.controls.iter().any(|control| control.id == switches[0].id));
+
+        let mut shell = Shell::new(places.pages().count());
+        assert!(shell.is_on(Switch::DamageNumbers));
+        let before = shell.clone();
+        shell.press_switch(Switch::DamageNumbers);
+        assert!(!shell.is_on(Switch::DamageNumbers) && shell.is_on(Switch::Hints));
+        shell.press_switch(Switch::DamageNumbers);
+        assert_eq!(shell, before);
     }
 
     /// Where the hints went (#350) is owed by Skip all hints and by nothing

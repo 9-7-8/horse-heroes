@@ -1,0 +1,48 @@
+// Damage numbers (#249): each hit that lands shows its damage, rising from
+// what it struck and fading. Change one value at a time and look at it
+// (--seed 6 --keep-going, a fight from 13 s). Damage numbers in Settings
+// turns them off. Sizes are pixels of text, lengths world units (a horse is
+// about 2 long), times seconds.
+(
+    // How big a number is: `small` for a hit of 1, growing with the square
+    // root of the damage to `large` at `big_damage` and no further.
+    small: 17.0,
+    large: 32.0,
+    big_damage: 40,
+    // A Strong hit is this much bigger again, and says so with a "!".
+    strong_scale: 1.2,
+    // A Resisted hit, and an enemy's hit softened by the Ward, are this
+    // much smaller and this solid.
+    weak_scale: 0.85,
+    weak_alpha: 0.7,
+
+    // It starts this far above the middle of what it struck, rises this far
+    // over its life, and fades over the last `fade_secs` of it.
+    start_above: 0.9,
+    rise: 1.4,
+    life_secs: 1.0,
+    fade_secs: 0.4,
+    // It pops in this much bigger and shrinks to its size over `pop_secs`.
+    pop: 1.4,
+    pop_secs: 0.12,
+
+    // Hits on the same thing close together are set side by side, this many
+    // pixels apart, in a row this many wide; the next row starts this many
+    // pixels higher. A number that would be one more than `most` takes the
+    // place of the oldest.
+    spread: 58.0,
+    row: 3,
+    row_height: 24.0,
+    most: 48,
+
+    // Colours. A horse's hit is its element's colour (the menus' element
+    // colours) when it had an elemental part, lifted `lighten` of the way to
+    // white so it reads on the dark ground, and `physical` when not. An
+    // enemy's hit on a horse is `taken`, a colour no element has, and starts
+    // with a minus, so the two are never confused.
+    lighten: 0.3,
+    physical: "f2ede0",
+    taken: "c890ff",
+    // Drawn under every number, so it reads over any ground and any flash.
+    shadow: "000000c0",
+)

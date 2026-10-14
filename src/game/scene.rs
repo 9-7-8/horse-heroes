@@ -468,13 +468,19 @@ pub fn enemy_size(max_health: i32) -> f32 {
 /// where a drop goes when the party collects it.
 pub fn nearest_horse(point: Vec3) -> Vec3 {
     let mut nearest = Vec3::ZERO;
-    for (i, &x) in HORSE_X.iter().enumerate() {
-        let horse = Vec3::new(x, HORSE_MIDDLE, HORSE_Z[i]);
+    for i in 0..HORSE_X.len() {
+        let horse = horse_centre(i);
         if i == 0 || point.xz().distance(horse.xz()) < point.xz().distance(nearest.xz()) {
             nearest = horse;
         }
     }
     nearest
+}
+
+/// The middle of the body of the horse in place `index` of the party, where
+/// it stands to fight.
+pub fn horse_centre(index: usize) -> Vec3 {
+    Vec3::new(HORSE_X[index], HORSE_MIDDLE, HORSE_Z[index])
 }
 
 /// The middle of the body of the enemy standing in place `slot`.

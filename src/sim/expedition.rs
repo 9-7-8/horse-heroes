@@ -128,6 +128,38 @@ pub struct Kill {
     pub gear: Vec<Gear>,
 }
 
+/// A hit that landed, for the presentation to show its number (#249): who
+/// took it, how much, and what kind of hit it was.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Hit {
+    pub struck: Struck,
+    /// The damage the hit did, as the fight log says it.
+    pub damage: i32,
+    /// The element of its elemental part, if it had one.
+    pub element: Option<Element>,
+    pub kind: HitKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Struck {
+    /// An enemy: where it stands among the encounter's enemies, and its full
+    /// health, which together say where it is drawn.
+    Foe { slot: usize, max_health: i32 },
+    /// A horse of the party, by its place in the party.
+    Horse(usize),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HitKind {
+    Plain,
+    /// Its element was strong against the enemy's.
+    Strong,
+    /// Its element was resisted by the enemy's.
+    Resisted,
+    /// An enemy's hit, softened by the Ward.
+    Warded,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Phase {
     Travelling,
@@ -180,6 +212,8 @@ pub struct Expedition {
     pub log: Vec<String>,
     /// Kills not yet shown, oldest first. Whoever presents the run takes them.
     pub kills: Vec<Kill>,
+    /// Hits not yet shown, oldest first (#249). Taken as the kills are.
+    pub hits: Vec<Hit>,
     /// Every piece dropped so far, in order.
     pub drops: Vec<Gear>,
     /// What has happened that a lesson may wait for (#290), oldest first.
@@ -240,6 +274,7 @@ impl Expedition {
                 element.name()
             )],
             kills: Vec::new(),
+            hits: Vec::new(),
             drops: Vec::new(),
             events: Vec::new(),
             outcome: None,
@@ -366,7 +401,8 @@ impl Expedition {
             if standing.is_empty() {
                 break;
             }
-            let victim = &mut self.party[*self.rng.pick(&standing)];
+            let struck = *self.rng.pick(&standing);
+            let victim = &mut self.party[struck];
             let mut damage = (self.foes[j].attack - victim.defense).max(1) as f32;
             let warded = self.ward > 0.0;
             if warded {
@@ -382,6 +418,12 @@ impl Expedition {
                 damage,
                 if warded { " (Warded)" } else { "" }
             ));
+            self.hits.push(Hit {
+                struck: Struck::Horse(struck),
+                damage,
+                element: None,
+                kind: if warded { HitKind::Warded } else { HitKind::Plain },
+            });
             if victim.health == 0 {
                 victim.deeds.fell = true;
                 self.log.push(format!("{} falls!", victim.name));
@@ -486,16 +528,28 @@ impl Expedition {
         foe.health = (foe.health - damage).max(0);
 
         let mut note = "";
+        let mut kind = HitKind::Plain;
         if elemental > 0.0 && multiplier > 1.0 {
             self.strong_hits += 1;
             deeds.strong_hits += 1;
             note = "  Strong!";
+            kind = HitKind::Strong;
         } else if elemental > 0.0 && multiplier < 1.0 {
             self.resisted_hits += 1;
             deeds.resisted_hits += 1;
             self.events.push(Event::Resisted);
             note = "  Resisted";
+            kind = HitKind::Resisted;
         }
+        self.hits.push(Hit {
+            struck: Struck::Foe {
+                slot: target,
+                max_health: foe.max_health,
+            },
+            damage,
+            element: (elemental > 0.0).then_some(self.element),
+            kind,
+        });
         self.log.push(format!(
             "{} {} {} for {}{}",
             self.party[horse].name, verb, foe.name, damage, note
@@ -1394,6 +1448,52 @@ mod tests {
             }
         }
         assert!(won > 0 && lost > 0, "{won} won, {lost} lost");
+    }
+
+    /// Every hit that lands is told for its number (#249), in the order the
+    /// fight log has it and for the damage it says; a horse's hit names the
+    /// enemy it struck, an enemy's the horse, and the Strong and Resisted
+    /// ones are the outcome's.
+    #[test]
+    fn every_hit_is_told_as_the_log_says_it() {
+        let data = Data::load();
+        let (mut foes, mut horses, mut bursts) = (0, 0, 0);
+        for seed in 0..100 {
+            let run = run(&data, seed, 3, Element::Ice);
+            let outcome = run.outcome.as_ref().unwrap();
+            let logged: Vec<i32> = run
+                .log
+                .iter()
+                .filter_map(|line| line.split(" for ").nth(1))
+                .map(|rest| rest.split(|c: char| !c.is_ascii_digit()).next().unwrap().parse().unwrap())
+                .collect();
+            let told: Vec<i32> = run.hits.iter().map(|hit| hit.damage).collect();
+            assert_eq!(told, logged, "seed {seed}");
+            let lines = run.log.iter().filter(|line| line.contains(" for "));
+            for (hit, line) in run.hits.iter().zip(lines) {
+                assert!(hit.damage >= 1);
+                match hit.struck {
+                    Struck::Foe { slot, max_health } => {
+                        foes += 1;
+                        assert!(slot < 3 && max_health > 0);
+                        assert!(!line.contains("Warded") && hit.kind != HitKind::Warded);
+                        assert_eq!(hit.kind == HitKind::Strong, line.ends_with("Strong!"));
+                        assert_eq!(hit.kind == HitKind::Resisted, line.ends_with("Resisted"));
+                        assert!(hit.kind == HitKind::Plain || hit.element == Some(Element::Ice));
+                        bursts += line.contains("Elemental Burst") as u32;
+                    }
+                    Struck::Horse(horse) => {
+                        horses += 1;
+                        assert!(line.contains(&format!(" hits {} for", run.party[horse].name)));
+                        assert_eq!(hit.kind == HitKind::Warded, line.ends_with("(Warded)"));
+                        assert_eq!(hit.element, None);
+                    }
+                }
+            }
+            let count = |kind| run.hits.iter().filter(|hit| hit.kind == kind).count() as u32;
+            assert_eq!((count(HitKind::Strong), count(HitKind::Resisted)), (outcome.strong_hits, outcome.resisted_hits));
+        }
+        assert!(foes > 0 && horses > 0 && bursts > 0, "{foes} {horses} {bursts}");
     }
 
     /// A kill's coins and its count of gear are each within its enemy's

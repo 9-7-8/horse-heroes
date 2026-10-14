@@ -17,7 +17,7 @@
 //             not it can be used.
 //   shows     what a press opens in the side panel of its page: Keys.
 //   switch    what a press turns on and off, of what is shown and not of the
-//             game: ChangedOnly, Hints. It is marked as chosen while it is on.
+//             game: ChangedOnly, Hints, DamageNumbers. It is marked as chosen while it is on.
 //   key       the key that works it, printed on it: a letter, a digit, a
 //             square bracket or Space. Only a control with an action, a
 //             shows or a switch has one.
@@ -267,6 +267,7 @@
             (name: "Volume", does: "Turns the sound down, from full to off.", issue: 45),
             (name: "Keys", does: "Shows the key for every place, tab and action.", shows: Keys, key: "K"),
             (name: "Hints", does: "Turns the hints on and off. Off, none is shown by itself, and the list of things to try in town is put away; each hint is still listed in the Journal, under Hints, and a press there shows it.", switch: Hints),
+            (name: "Damage numbers", does: "Turns the numbers off and on that rise from each hit in a fight, sized by its damage and coloured by its element.", switch: DamageNumbers, key: "D"),
         ],
     ),
     horse_keys: ["Z", "X", "C"],
