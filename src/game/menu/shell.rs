@@ -13,7 +13,11 @@ use bevy::{
         tab_navigation::TabGroup,
     },
     math::CompassOctant,
-    picking::{events::PointerPress, hover::Hovered, pointer::PointerButton},
+    picking::{
+        events::{PointerDragEnd, PointerDragStart, PointerPress},
+        hover::Hovered,
+        pointer::PointerButton,
+    },
     prelude::*,
     ui::{InteractionDisabled, ScrollPosition, Selected, UiGlobalTransform},
     ui_widgets::{
@@ -29,7 +33,7 @@ use super::ink;
 use super::picture::{self, picture, picture_of, reported_picture};
 use super::parts::{
     ClosePanel, CounterValue, DismissHint, HintText, NotBuilt, Part, PartText, Pointed, RowValue, SkipHints,
-    Stop, Unseen, button, cell, counter, dim, hint, panel, reason, row, side_panel, tab, text, title,
+    Stop, Target, Unseen, button, cell, counter, dim, hint, panel, reason, row, side_panel, tab, text, title,
     trail_mark,
 };
 use super::tokens::Tokens;
@@ -509,6 +513,25 @@ pub struct Shell {
     /// A pinned card shows its Details (#228): one setting for every piece
     /// and every place, as `rows` is.
     formulas: bool,
+    /// The piece being dragged (#228), while the pointer holds it.
+    drag: Option<Drag>,
+}
+
+/// A piece being dragged (#228): where it was taken from, and the horse or
+/// slot under the pointer that it may be let go on, if it is over one.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Drag {
+    pub piece: Piece,
+    pub onto: Option<Onto>,
+}
+
+/// A horse or one of its slots that a dragged piece may be let go on, and
+/// the cell that is it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Onto {
+    pub cell: Entity,
+    pub horse: usize,
+    pub slot: Option<usize>,
 }
 
 impl Shell {
@@ -529,7 +552,30 @@ impl Shell {
             told: false,
             numbers_off: false,
             formulas: false,
+            drag: None,
         }
+    }
+
+    /// The piece being dragged, if one is.
+    pub fn dragging(&self) -> Option<Drag> {
+        self.drag
+    }
+
+    /// A drag begins on a piece (#228).
+    pub fn take(&mut self, piece: Piece) {
+        self.drag = Some(Drag { piece, onto: None });
+    }
+
+    /// The dragged piece is over a place it may go, or over none.
+    pub fn hold_over(&mut self, onto: Option<Onto>) {
+        if let Some(drag) = &mut self.drag {
+            drag.onto = onto;
+        }
+    }
+
+    /// The pointer lets the piece go. Returns the drag that ended.
+    pub fn let_go(&mut self) -> Option<Drag> {
+        self.drag.take()
     }
 
     pub fn hint(&self) -> Option<&Hint> {
@@ -1133,11 +1179,11 @@ impl Plugin for ShellPlugin {
                     (keys, scroll, log_key, dev_hint).chain(),
                     escape,
                     follow_the_party,
-                    point,
+                    (hold_over, point).chain(),
                     move_scene,
                     show_place,
                     see,
-                    mark_chosen,
+                    (mark_chosen, mark_targets).chain(),
                     (mark_unseen, teach::teach, point_out, show_hint).chain(),
                     show_wearer,
                     (grow_cargo, show_carried, mark_lessons).chain(),
@@ -1151,7 +1197,9 @@ impl Plugin for ShellPlugin {
                 )
                     .chain(),
             )
-            .add_observer(on_activate);
+            .add_observer(on_activate)
+            .add_observer(on_drag_start)
+            .add_observer(on_drag_end);
     }
 }
 
@@ -2687,6 +2735,16 @@ fn point(
         Or<(With<SlotRow>, With<CarriedCell>, With<ReportedCell>)>,
     >,
 ) {
+    // While a piece is dragged its card is the preview of its drop, beside
+    // the horse or slot it would go to, and nothing else is shown (#228).
+    if let Some(drag) = shell.dragging() {
+        *rested = 0.0;
+        let wanted = drag.onto.map(|onto| (onto.cell, drag.piece));
+        if shell.pointed() != wanted {
+            shell.point(wanted);
+        }
+        return;
+    }
     let under = cells.iter().find_map(|(entity, hovered, node, row, carried)| {
         // A cell of a page that is not showing has no size.
         if !hovered.get() || node.is_empty() {
@@ -2713,14 +2771,127 @@ fn point(
     }
 }
 
+/// A drag begins on a piece (#228): a slot that holds one, a carried piece,
+/// or the report's drop. In town only, where a piece can be put on. The
+/// event comes up from what the pointer is on, through the cell it is in.
+fn on_drag_start(
+    drag: On<PointerDragStart>,
+    game: Res<Game>,
+    mut shell: ResMut<Shell>,
+    cells: Query<
+        (Option<&SlotRow>, Option<&CarriedCell>),
+        Or<(With<SlotRow>, With<CarriedCell>, With<ReportedCell>)>,
+    >,
+) {
+    if drag.button != PointerButton::Primary || shell.dragging().is_some() || !game.in_town() {
+        return;
+    }
+    let Ok((row, carried)) = cells.get(drag.entity) else {
+        return;
+    };
+    let piece = match (row, carried) {
+        (Some(row), _) => Some(Piece::Worn {
+            horse: row.horse,
+            slot: row.slot,
+        }),
+        (None, Some(cell)) => Some(Piece::Carried(cell.at)),
+        (None, None) => game.reported_piece(),
+    };
+    if let Some(piece) = piece.filter(|piece| game.piece(*piece).is_some()) {
+        shell.take(piece);
+    }
+}
+
+/// The pointer lets a dragged piece go (#228). Over a horse or slot it may
+/// go to, that is Equip for that horse, and a card open on the piece goes
+/// with it; anywhere else nothing changes.
+fn on_drag_end(_: On<PointerDragEnd>, mut game: ResMut<Game>, mut shell: ResMut<Shell>) {
+    let Some(Drag {
+        piece,
+        onto: Some(onto),
+    }) = shell.let_go()
+    else {
+        return;
+    };
+    if let Some((from, to)) = game.drop_piece(piece, onto.horse, onto.slot) {
+        shell.piece_moved(from, to);
+    }
+}
+
+/// While a piece is dragged, the horse or slot under the pointer that it may
+/// be let go on (#228): a slot of its type first, then a horse in the strip.
+fn hold_over(
+    game: Res<Game>,
+    mut shell: ResMut<Shell>,
+    slots: Query<(Entity, &Hovered, &ComputedNode, &SlotRow)>,
+    horses: Query<(Entity, &Hovered, &HorseButton)>,
+) {
+    let Some(drag) = shell.dragging() else {
+        return;
+    };
+    let may = |horse: usize, slot: Option<usize>| game.drop_hand(drag.piece, horse, slot).is_some();
+    let onto = slots
+        .iter()
+        .find(|(_, hovered, node, row)| hovered.get() && !node.is_empty() && may(row.horse, Some(row.slot)))
+        .map(|(cell, _, _, row)| Onto {
+            cell,
+            horse: row.horse,
+            slot: Some(row.slot),
+        })
+        .or_else(|| {
+            horses
+                .iter()
+                .find(|(_, hovered, horse)| hovered.get() && may(horse.0, None))
+                .map(|(cell, _, horse)| Onto {
+                    cell,
+                    horse: horse.0,
+                    slot: None,
+                })
+        });
+    if drag.onto != onto {
+        shell.hold_over(onto);
+    }
+}
+
+/// While a piece is dragged, every horse and slot it may be let go on is
+/// marked as a target (#228), and nothing is once it is let go.
+fn mark_targets(
+    mut commands: Commands,
+    game: Res<Game>,
+    shell: Res<Shell>,
+    slots: Query<(Entity, &SlotRow, Has<Target>)>,
+    horses: Query<(Entity, &HorseButton, Has<Target>)>,
+) {
+    let may = |horse: usize, slot: Option<usize>| {
+        shell
+            .dragging()
+            .is_some_and(|drag| game.drop_hand(drag.piece, horse, slot).is_some())
+    };
+    let marks = slots
+        .iter()
+        .map(|(entity, row, has)| (entity, may(row.horse, Some(row.slot)), has))
+        .chain(horses.iter().map(|(entity, horse, has)| (entity, may(horse.0, None), has)));
+    for (entity, wanted, has) in marks {
+        if wanted && !has {
+            commands.entity(entity).insert(Target);
+        } else if !wanted && has {
+            commands.entity(entity).remove::<Target>();
+        }
+    }
+}
+
 /// Where the hover card goes, as the edges of its node: beside the cell it
 /// is about, on the side with more room, and from the cell's top or bottom
-/// edge towards the middle of the window, so it is never over its piece.
-fn beside(cell: Rect, window: Vec2, gap: f32) -> UiRect {
-    let (left, right) = if cell.center().x < window.x / 2.0 {
-        (Val::Px(cell.max.x + gap), Val::Auto)
+/// edge towards the middle of the window, so it is never over its piece. A
+/// cell too wide for the card on either side (a slot of the Gear tab, #228)
+/// has it inside the window, over the cell's far end.
+fn beside(cell: Rect, window: Vec2, gap: f32, width: f32) -> UiRect {
+    let (left, right) = if window.x - cell.max.x >= cell.min.x {
+        let left = (cell.max.x + gap).min(window.x - width).max(0.0);
+        (Val::Px(left), Val::Auto)
     } else {
-        (Val::Auto, Val::Px(window.x - cell.min.x + gap))
+        let right = (window.x - cell.min.x + gap).min(window.x - width).max(0.0);
+        (Val::Auto, Val::Px(right))
     };
     let (top, bottom) = if cell.center().y < window.y / 2.0 {
         (Val::Px(cell.min.y), Val::Auto)
@@ -2750,7 +2921,7 @@ fn show_hover_card(
             let scale = cell.inverse_scale_factor();
             let (_, _, middle) = transform.to_scale_angle_translation();
             let cell = Rect::from_center_size(middle * scale, cell.size() * scale);
-            beside(cell, window.size(), tokens.space.s)
+            beside(cell, window.size(), tokens.space.s, tokens.size.compare_width)
         });
     let (display, wanted) = match at {
         Some(_) => (Display::Flex, Visibility::Inherited),
@@ -3490,9 +3661,16 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             Some(Item::Horse(horse)) => horse_trail(game, horse),
             _ => String::new(),
         },
-        Fact::Hovered => shell.pointed().map_or(String::new(), |(_, piece)| {
-            card::pointed_comparison(game, piece, shell.horse(), shell.rows())
-        }),
+        // A dragged piece's card is the preview of its drop (#228).
+        Fact::Hovered => match shell.dragging() {
+            Some(drag) => drag
+                .onto
+                .and_then(|onto| game.drop_hand(drag.piece, onto.horse, onto.slot))
+                .map_or(String::new(), |hand| card::dragged(game, drag.piece, hand, shell.rows())),
+            None => shell.pointed().map_or(String::new(), |(_, piece)| {
+                card::pointed_comparison(game, piece, shell.horse(), shell.rows())
+            }),
+        },
         Fact::CompareHint => card::compare_hint(selected),
         Fact::CarriedName => game
             .pending_drop()
@@ -5151,20 +5329,30 @@ mod tests {
         for x in [0.0, 300.0, window.x / 2.0, 700.0, window.x - size.x] {
             for y in [0.0, 200.0, window.y / 2.0, window.y - size.y] {
                 let cell = Rect::from_corners(Vec2::new(x, y), Vec2::new(x, y) + size);
-                let at = beside(cell, window, t.space.s);
-                let (left, right) = match (at.left, at.right) {
-                    (Val::Px(left), Val::Auto) => (left, left + width),
-                    (Val::Auto, Val::Px(right)) => (window.x - right - width, window.x - right),
-                    other => panic!("{other:?}"),
-                };
+                let (left, right) = across(beside(cell, window, t.space.s, width), window, width);
                 assert!(left >= 0.0 && right <= window.x, "{cell:?}: {left} to {right}");
                 assert!(left >= cell.max.x || right <= cell.min.x, "{cell:?}: over its piece");
+                let at = beside(cell, window, t.space.s, width);
                 match (at.top, at.bottom) {
                     (Val::Px(top), Val::Auto) => assert_eq!(top, cell.min.y),
                     (Val::Auto, Val::Px(bottom)) => assert_eq!(window.y - bottom, cell.max.y),
                     other => panic!("{other:?}"),
                 }
             }
+        }
+        // A slot of the Gear tab is most of the window wide: the card stays
+        // in the window, over the slot's far end (#228).
+        let wide = Rect::from_corners(Vec2::new(16.0, 300.0), Vec2::new(window.x - 300.0, 340.0));
+        let (left, right) = across(beside(wide, window, t.space.s, width), window, width);
+        assert!(left >= 0.0 && right <= window.x, "{left} to {right}");
+    }
+
+    /// Where a card placed by `beside` is across the window, left to right.
+    fn across(at: UiRect, window: Vec2, width: f32) -> (f32, f32) {
+        match (at.left, at.right) {
+            (Val::Px(left), Val::Auto) => (left, left + width),
+            (Val::Auto, Val::Px(right)) => (window.x - right - width, window.x - right),
+            other => panic!("{other:?}"),
         }
     }
 

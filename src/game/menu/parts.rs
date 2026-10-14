@@ -56,6 +56,11 @@ pub struct Pointed;
 #[derive(Component)]
 pub struct Pointer;
 
+/// On a part a dragged piece may be let go on (#228): drawn as a target
+/// while the drag lasts.
+#[derive(Component)]
+pub struct Target;
+
 /// The texts of a `hint`: the control it is about, that control's key, and
 /// the line said beside them.
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
@@ -103,6 +108,8 @@ pub struct Look {
     pub selected: bool,
     pub unavailable: bool,
     pub focused: bool,
+    /// A dragged piece may be let go on it (#228).
+    pub target: bool,
 }
 
 /// Draw a part in a fixed state whatever the pointer does. For the dev screen
@@ -124,8 +131,16 @@ pub struct Paint {
 /// The one rule for how a state looks. Hover changes the fill; selected adds
 /// the mark and an accent border and never uses the hover fill; pressed
 /// inverts; unavailable empties the control; focus adds a ring to any of them.
+/// A target of a drag has the hover fill, and the accent for its border and
+/// its ring, so it is told from the rest while the piece is on its way.
 pub fn paint(c: &Colours, look: Look) -> Paint {
-    let ring = if look.focused { c.focus.0 } else { Color::NONE };
+    let ring = if look.focused {
+        c.focus.0
+    } else if look.target && !look.unavailable {
+        c.accent.0
+    } else {
+        Color::NONE
+    };
     if look.unavailable {
         return Paint {
             fill: Color::NONE,
@@ -145,12 +160,12 @@ pub fn paint(c: &Colours, look: Look) -> Paint {
             c.pressed.0
         } else if look.selected {
             c.selected.0
-        } else if look.hovered {
+        } else if look.hovered || look.target {
             c.hover.0
         } else {
             c.control.0
         },
-        border: if look.selected {
+        border: if look.selected || look.target {
             c.accent.0
         } else if look.hovered || look.pressed {
             c.hover_border.0
@@ -753,6 +768,7 @@ pub fn style_parts(
             Has<NotBuilt>,
             Has<Unseen>,
             Has<Pointed>,
+            Has<Target>,
             Option<&ShowLook>,
             &mut BackgroundColor,
             &mut BorderColor,
@@ -783,6 +799,7 @@ pub fn style_parts(
         not_built,
         unseen,
         pointed,
+        target,
         shown,
         mut fill,
         mut border,
@@ -798,6 +815,7 @@ pub fn style_parts(
                 selected,
                 unavailable,
                 focused: focus_visible.0 && focus.get() == Some(entity),
+                target,
             },
         };
         let paint = paint(&tokens.colour, look);
@@ -807,7 +825,7 @@ pub fn style_parts(
             let settled = (from.red - to.red).abs() < 0.01
                 && (from.green - to.green).abs() < 0.01
                 && (from.blue - to.blue).abs() < 0.01;
-            let snap = shown.is_some() || look.pressed || look.selected || look.unavailable;
+            let snap = shown.is_some() || look.pressed || look.selected || look.unavailable || look.target;
             fill.0 = if snap || settled || from.alpha != to.alpha {
                 paint.fill
             } else {
@@ -945,6 +963,23 @@ mod tests {
                     || differ(a.ring, b.ring);
                 assert!(apart, "{name_a} and {name_b} look alike without colour");
             }
+        }
+    }
+
+    /// A drag's target (#228) is told without colour from the same part
+    /// as it was, hovered or not, so the places a piece may go stand out.
+    #[test]
+    fn a_target_of_a_drag_stands_out_without_colour() {
+        let colours = Tokens::load().colour;
+        for (name, look) in six().into_iter().filter(|(name, _)| *name != "unavailable") {
+            let (before, after) = (
+                paint(&colours, look),
+                paint(&colours, Look { target: true, ..look }),
+            );
+            let apart = differ(before.fill, after.fill)
+                || differ(before.border, after.border)
+                || differ(before.ring, after.ring);
+            assert!(apart, "a {name} target looks like a {name} part");
         }
     }
 

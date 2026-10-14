@@ -658,6 +658,36 @@ impl Game {
         })
     }
 
+    /// What Equip would be done with if a dragged piece were let go on a
+    /// horse (#228): on one of its slots, or on the horse itself. None where
+    /// it may not go: a slot of another type, the horse that wears it, or
+    /// anywhere while Equip cannot be done.
+    pub fn drop_hand(&self, piece: Piece, horse: usize, slot: Option<usize>) -> Option<Hand> {
+        let fits = self.piece(piece)?.slot.index();
+        if slot.is_some_and(|slot| slot != fits) || horse >= self.party.len() {
+            return None;
+        }
+        if matches!(piece, Piece::Worn { horse: wearer, .. } if wearer == horse) {
+            return None;
+        }
+        let hand = Hand {
+            horse,
+            open: Some(piece),
+        };
+        self.can(Action::Equip, hand).ok().map(|_| hand)
+    }
+
+    /// Let a dragged piece go on a horse: Equip, done with that horse as
+    /// the one it is for, so the drag and the button and key are one action
+    /// with one Undo. Returns where the piece went from and to.
+    pub fn drop_piece(&mut self, piece: Piece, horse: usize, slot: Option<usize>) -> Option<(Piece, Piece)> {
+        let hand = self.drop_hand(piece, horse, slot)?;
+        let to = self.equipped_at(hand)?;
+        self.act(Action::Equip, hand);
+        self.lessons.raise(Event::Dragged);
+        Some((piece, to))
+    }
+
     /// Do an action, if it can be done. `hand` is what it is done to, for
     /// an action that is done to a horse or a piece.
     pub fn act(&mut self, action: Action, hand: Hand) {
@@ -1267,6 +1297,43 @@ mod tests {
 
         game.act(Action::SetOut, Hand::horse(0));
         assert_eq!(game.can(Action::Equip, open(2, 1)), Err("In town only."));
+    }
+
+    /// Dragging (#228): a piece may be let go on a horse, or on a slot of
+    /// its own type, and nowhere else; doing so is Equip for that horse,
+    /// whichever horse is selected, and one Undo takes it back.
+    #[test]
+    fn a_dragged_piece_goes_where_equip_would_put_it() {
+        let mut game = Game::back_with_one_piece();
+        let slot = game.pending_drop().unwrap().slot.index();
+        let other = (slot + 1) % crate::sim::data::Slot::ALL.len();
+        let name = game.pending_drop().unwrap().name.clone();
+        let carried = Piece::Carried(0);
+        let hand = |horse| Hand { horse, open: Some(carried) };
+        assert_eq!(game.drop_hand(carried, 2, Some(slot)), Some(hand(2)));
+        assert_eq!(game.drop_hand(carried, 2, None), Some(hand(2)), "on the horse itself");
+        assert_eq!(game.drop_hand(carried, 2, Some(other)), None, "a slot of another type");
+        assert_eq!(game.drop_hand(carried, 9, None), None, "no such horse");
+        assert_eq!(game.drop_hand(Piece::Carried(1), 0, None), None, "nothing there");
+        assert_eq!(game.drop_hand(Piece::Worn { horse: 0, slot }, 1, None), None, "an empty slot");
+
+        let worn = Piece::Worn { horse: 2, slot };
+        assert_eq!(game.drop_piece(carried, 2, Some(slot)), Some((carried, worn)));
+        assert_eq!(game.piece(worn).map(|gear| gear.name.as_str()), Some(name.as_str()));
+        assert!(game.pending_drop().is_none());
+
+        // A worn piece may go to another horse, not to its own.
+        assert_eq!(game.drop_hand(worn, 2, None), None);
+        assert_eq!(game.drop_hand(worn, 0, Some(slot)), Some(Hand { horse: 0, open: Some(worn) }));
+        let moved = Piece::Worn { horse: 0, slot };
+        assert_eq!(game.drop_piece(worn, 0, None), Some((worn, moved)));
+        assert_eq!(game.piece(moved).map(|gear| gear.name.as_str()), Some(name.as_str()));
+        assert_eq!(game.piece(worn), None);
+
+        game.act(Action::Undo, Hand::horse(1));
+        assert_eq!(game.piece(worn).map(|gear| gear.name.as_str()), Some(name.as_str()));
+        game.act(Action::SetOut, Hand::horse(0));
+        assert_eq!(game.drop_hand(worn, 0, None), None, "in town only");
     }
 
     /// Undo (#230) steps back through the changes of a town visit, one at

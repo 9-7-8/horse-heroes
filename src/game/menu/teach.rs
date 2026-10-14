@@ -379,6 +379,7 @@ mod tests {
             Event::SentOut,
             Event::Another,
             Event::Detailed,
+            Event::Dragged,
         ];
         let by_itself = |event: &Event| !by_hand.contains(event);
         let mut game = Game::new(0);
@@ -434,6 +435,10 @@ mod tests {
         let slot = game.party[1].gear.iter().position(|worn| worn.is_some()).unwrap();
         game.act(Action::Equip, Hand { horse: 0, open: Some(Piece::Worn { horse: 1, slot }) });
         assert!(game.lessons.happened(Event::Swapped));
+        // A drag is its own event as well as an Equip (#228).
+        assert!(!game.lessons.happened(Event::Dragged));
+        assert!(game.drop_piece(Piece::Worn { horse: 0, slot }, 1, Some(slot)).is_some());
+        assert!(game.lessons.happened(Event::Dragged));
 
         // Every place opened, once the list asks; and Set out by hand.
         assert!(game.lessons.wants(Event::Toured), "the file's list asks for no tour");

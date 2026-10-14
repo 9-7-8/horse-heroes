@@ -51,11 +51,13 @@ pub enum Event {
     Another,
     /// The player read a piece's card with its Details (#228).
     Detailed,
+    /// The player put a piece on a horse by dragging it there (#228).
+    Dragged,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 17] = [
+    pub const ALL: [Event; 18] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -73,6 +75,7 @@ impl Event {
         Event::Several,
         Event::Another,
         Event::Detailed,
+        Event::Dragged,
     ];
 }
 

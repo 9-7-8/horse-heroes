@@ -131,6 +131,15 @@ enum Step {
     /// then does not press: the pointer is Bevy's own, moved as the mouse
     /// moves it, so what it rests on is hovered as by hand.
     Point,
+    /// Move the pointer onto what the next step names and hold the button
+    /// down there, which begins a drag when it moves (#228).
+    Grab,
+    /// Move the held pointer onto what the next step names.
+    DragTo,
+    /// Let the pointer's button go where it is.
+    LetGo,
+    /// The slot of a horse that the piece being dragged may go to.
+    Fits(usize),
     /// Move the pointer off the menus, onto the scene.
     PointAway,
     /// Press the scene with the pointer, above where any menu reaches (#307).
@@ -206,6 +215,19 @@ struct Walked {
     done: bool,
 }
 
+/// What the pointer does with the control a step names.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Aim {
+    /// Presses it, as a click does.
+    Press,
+    /// Rests on it.
+    Point,
+    /// Moves onto it and holds the button down.
+    Grab,
+    /// Moves onto it with the button held.
+    Drag,
+}
+
 #[derive(Resource)]
 struct Tour {
     folder: String,
@@ -217,8 +239,10 @@ struct Tour {
     key: Option<KeyCode>,
     /// The key put down last frame, to let go of.
     held: Option<KeyCode>,
-    /// The next step points at its control and does not press it.
-    pointing: bool,
+    /// What the pointer does on the next step's control, instead of a press.
+    aim: Aim,
+    /// Where the pointer was last moved to.
+    at: Vec2,
     /// The job being walked, and how.
     job: Option<(&'static str, By)>,
     /// The presses it has taken so far.
@@ -240,7 +264,8 @@ impl Tour {
             shots: 0,
             key: None,
             held: None,
-            pointing: false,
+            aim: Aim::Press,
+            at: Vec2::ONE,
             job: None,
             presses: 0,
             missed: false,
@@ -517,6 +542,34 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("by keys the equip undone".into()),
         Step::Key(KeyCode::KeyU),
         Step::Shot("nothing left to undo".into()),
+        Step::Key(KeyCode::Escape),
+        // Dragging (#228): the drop from the cargo column onto the selected
+        // horse's slot of its type, marked with the horses it may go to, its
+        // card the preview of the drop; then from the Inventory onto another
+        // horse in the strip. Undo takes each back.
+        Step::Key(KeyCode::KeyH),
+        Step::Point,
+        Step::Carried(0),
+        Step::Grab,
+        Step::Carried(0),
+        Step::DragTo,
+        Step::Fits(0),
+        Step::Shot("dragging the drop onto its slot".into()),
+        Step::LetGo,
+        Step::Shot("the drop dragged onto its slot".into()),
+        Step::Key(KeyCode::KeyU),
+        Step::Key(KeyCode::KeyB),
+        Step::Point,
+        Step::Carried(inventory),
+        Step::Grab,
+        Step::Carried(inventory),
+        Step::DragTo,
+        Step::Horse(1),
+        Step::Shot("dragging from the inventory onto a horse".into()),
+        Step::LetGo,
+        Step::Shot("the drop dragged onto a horse".into()),
+        Step::Key(KeyCode::KeyU),
+        Step::PointAway,
         Step::Key(KeyCode::Escape),
         Step::Key(KeyCode::KeyH),
         Step::Key(KeyCode::KeyC),
@@ -830,6 +883,16 @@ fn tour(
             .filter(|(_, b)| b.place == *p && b.at == 1)
             .min_by_key(|(e, b)| (!seen(*e), b.tab.is_some()))
             .map(|(e, _)| e),
+        Step::Fits(h) => slots
+            .iter()
+            .filter(|(_, b)| {
+                b.horse == *h
+                    && shell
+                        .dragging()
+                        .is_some_and(|drag| game.drop_hand(drag.piece, *h, Some(b.slot)).is_some())
+            })
+            .min_by_key(|(e, _)| !seen(*e))
+            .map(|(e, _)| e),
         Step::Reported => reported.iter().map(|(e, _)| e).min_by_key(|e| !seen(*e)),
         Step::SkipHints => skips.iter().min_by_key(|e| !seen(*e)),
         // The one in sight, where a control is in more than one place.
@@ -843,6 +906,9 @@ fn tour(
         | Step::Focus(_)
         | Step::TabRound
         | Step::Point
+        | Step::Grab
+        | Step::DragTo
+        | Step::LetGo
         | Step::PointAway
         | Step::Scene
         | Step::Wait(_)
@@ -952,24 +1018,43 @@ fn tour(
     let moved = PointerAction::Move { delta: Vec2::ZERO };
     if let Step::PointAway = step {
         send(Vec2::ONE, moved.clone());
+        tour.at = Vec2::ONE;
     }
     if let Step::Scene = step {
         send(ON_THE_SCENE, moved.clone());
         send(ON_THE_SCENE, PointerAction::Press(PointerButton::Primary));
         send(ON_THE_SCENE, PointerAction::Release(PointerButton::Primary));
+        tour.at = ON_THE_SCENE;
+    }
+    if let Step::LetGo = step {
+        send(tour.at, PointerAction::Release(PointerButton::Primary));
     }
     if let Some(entity) = pressed {
-        if !std::mem::take(&mut tour.pointing) {
+        let aim = std::mem::replace(&mut tour.aim, Aim::Press);
+        if aim == Aim::Press {
             commands.trigger(Activate { entity });
         } else if let (Ok(node), Ok(transform)) = (nodes.get(entity), transforms.get(entity)) {
             let (_, _, middle) = transform.to_scale_angle_translation();
-            send(middle * node.inverse_scale_factor(), moved);
+            let to = middle * node.inverse_scale_factor();
+            send(to, PointerAction::Move { delta: to - tour.at });
+            tour.at = to;
+            if aim == Aim::Grab {
+                // A drag begins with a move while the button is down.
+                let nudge = Vec2::new(4.0, 0.0);
+                send(to, PointerAction::Press(PointerButton::Primary));
+                send(to + nudge, PointerAction::Move { delta: nudge });
+                tour.at = to + nudge;
+            }
         }
     }
     let mut wait = SETTLE;
     match step {
-        Step::Point => {
-            tour.pointing = true;
+        Step::Point | Step::Grab | Step::DragTo => {
+            tour.aim = match step {
+                Step::Grab => Aim::Grab,
+                Step::DragTo => Aim::Drag,
+                _ => Aim::Point,
+            };
             wait = 0.0;
         }
         Step::Wait(secs) => wait = *secs,

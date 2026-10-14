@@ -345,6 +345,21 @@ pub fn pointed_comparison(game: &Game, piece: Piece, horse: usize, rows: Rows) -
     weighed(game, piece, horse, rows).map_or(String::new(), |said| format!("{said}\n\n{PRESS_PINS}"))
 }
 
+/// The card a dragged piece shows over a horse or slot it may go to
+/// (#228), where `hand` is what Equip would be done with: the comparison on
+/// that horse and what letting go would do, the preview of the drop. Empty
+/// where there is no piece or it may not go.
+pub fn dragged(game: &Game, piece: Piece, hand: Hand, rows: Rows) -> String {
+    let does = consequence(game, hand);
+    match weighed(game, piece, hand.horse, rows) {
+        Some(said) if !does.is_empty() => format!("{said}\n\n{does}\n{LET_GO}"),
+        _ => String::new(),
+    }
+}
+
+/// Under the card of a dragged piece, over a place it may go.
+pub const LET_GO: &str = "Let go here to do it; anywhere else, and nothing changes.";
+
 /// A piece against what a horse wears in its slot, without what Equip
 /// would do. None where there is no piece.
 fn weighed(game: &Game, piece: Piece, horse: usize, rows: Rows) -> Option<String> {
@@ -441,6 +456,22 @@ pub const PRESS_PINS: &str = "A press pins it, with its actions.";
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A dragged piece's card over a horse (#228) is the comparison on
+    /// that horse, whoever is selected, and what letting go would do.
+    #[test]
+    fn a_dragged_piece_previews_the_drop() {
+        let game = Game::back_with_one_piece();
+        let piece = Piece::Carried(0);
+        let hand = game.drop_hand(piece, 2, None).unwrap();
+        let said = dragged(&game, piece, hand, Rows::All);
+        let name = &game.party[2].name;
+        assert!(said.starts_with(&format!("For {name},")), "{said}");
+        let does = consequence(&game, hand);
+        assert!(!does.is_empty() && said.contains(&does) && said.ends_with(LET_GO), "{said}");
+        let nothing = Piece::Carried(5);
+        assert_eq!(dragged(&game, nothing, Hand { horse: 2, open: Some(nothing) }, Rows::All), "");
+    }
 
     fn home() -> Game {
         Game::back_with_one_piece()
