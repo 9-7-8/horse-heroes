@@ -1,0 +1,54 @@
+SESSION 2026-10-15, Equip on another horse (#356, part 2)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner.
+  Tier 2: nothing new untested. Tier 3, menus first: PICK UP's #356.
+
+DONE
+  - Equip on a card reads "Equip on <selected horse>" (show_equip).
+  - Another horse [Q], a switch beside Equip (OtherHorses), opens a list
+    under itself of the other horses in the line's order across the
+    scene (scene::line_order). Choosing one equips the piece there
+    (Shell::equip_on, by Game::drop_hand, as a drag), selects it, and
+    closes the list. The wearer is listed, unavailable, "X wears it".
+    The pointer or focus on a horse shows the comparison there
+    (card::offered). Opening it focuses the first horse: Q, Enter.
+  - Tested: another_horse_equips_on_the_horse_chosen. Seen running in
+    the tour at 1120x640 (pictures 72-74; Tab 25 stops, 0 out of sight).
+  - Docs: item-card.md, "Equip names who". Gallery:
+    docs/gallery/2026-10-15-equip-on-another-horse. #356 commented, open.
+
+DECIDED (by the session, for her)
+  - The line is read left to right, the last of the party first.
+  - Choosing a horse also selects it, so the comparison follows it.
+  - The wearer stays in the list, unavailable, rather than left out.
+  - The list opens inside the panel and pushes the controls down.
+
+FOUND
+  - The tour run in the background was killed twice for low memory
+    while the Minecraft server was up; run in the foreground it was not.
+
+NOT DONE
+  - The preview card stands over the pinned card and covers Equip while
+    the list's focus is on a horse. Left as it is.
+  - Nobody has chosen from the list with a real mouse.
+  - Part 3: the click budget walked again, and the lessons.
+
+PICK UP
+  #356, part 3: walk the click budget again (walk-the-click-budget.txt),
+  and make the selected-horse lesson point at the horse in the scene and
+  the Equip lesson show the Another horse list.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 10 closed.
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities
+    #358 A sound of its own for each ability
+    #359 Worn gear seen on the horse
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+    #363 A dragged piece dangles from the pointer, swinging
+    #364 A crash leaves a log beside the game
+  Riding along in part: #356 (menus).

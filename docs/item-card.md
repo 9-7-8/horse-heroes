@@ -297,7 +297,8 @@ planned control"): the same reason lines, the same keys, the same "not
 built" detail on a press. They show while the detail is a piece of gear.
 
 **Changed only** (O) and **Details** (V) are switches on what the card
-shows (see The comparison, The Details layer). **Equip** (E) is the one action that works. It is one action, `Action::Equip`,
+shows (see The comparison, The Details layer); **Another horse** (Q) is
+Equip's list (below). **Equip** (E) is the one action that works. It is one action, `Action::Equip`,
 done to the piece whose card is open (`Hand::open`):
 
 | The card is on | Equip |
@@ -312,6 +313,32 @@ So E with no card open still equips the drop in one key, as before. Equip
 and Swap were two controls in two places (the cargo column and the Gear
 tab, keys E and W) until this was built; W is no longer a key.
 
+**Equip names who** (#356). The button reads "Equip on Sable", the
+selected horse (`show_equip` in `shell.rs`). Beside it is **Another horse**
+(Q), a switch (`OtherHorses`) that opens a list under itself of every
+other horse, in the order they stand across the scene, left to right
+(`scene::line_order`: the last of the party first, as the party walks
+right). It is marked as chosen while open.
+
+- **Choosing one** (`Shell::equip_on`) is Equip done for that horse, as a
+  drag onto it is (`Game::drop_hand`): one Undo, the card stays on the
+  piece. The horse is then selected, so the card compares there ("Juniper
+  wears it."), and the list closes.
+- **The pointer on one**, or the focus, shows beside it what choosing it
+  would do (`card::offered`): the comparison on that horse, what Equip
+  would do, and "Choose it to do it; the horse is selected after."
+- **The horse that wears the piece** is in the list, unavailable, reading
+  "Morrow wears it". The selected horse is not in it.
+- Opening it puts the focus on the first horse that may take the piece, so
+  Q then Enter equips there by keys alone.
+- A new card closes it. It does nothing while no piece's card is pinned.
+
+Test: `another_horse_equips_on_the_horse_chosen` (`shell.rs`). The tour
+opens it by Q, chooses by Enter and undoes it. Chosen for the owner: the
+line read left to right; choosing selects the horse; the wearer listed but
+unavailable rather than left out; a list that opens in the panel and
+pushes the controls under it down, rather than over them.
+
 **The card stays on its piece.** After Equip the card that was open is on
 the piece where it is now (`Game::equipped_at`, `Shell::piece_moved`), in
 every place it was open, so its slot or tile is the one marked and
@@ -320,7 +347,8 @@ that slot, which now holds the piece. A card on the carried piece is put
 away when nothing is carried any more (`follow_the_party`).
 
 List, Store, Lock, Favourite and Look are not built; the line under them
-says so ("All but Equip, Changed only, Details: not built yet."), and a press on one says what it will do and names its issue. That
+says so ("All but Equip, Another horse, Changed only, Details: not built
+yet."), and a press on one says what it will do and names its issue. That
 press puts the card away, as a press on any unbuilt control replaces the
 detail.
 
