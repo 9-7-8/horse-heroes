@@ -38,7 +38,7 @@
 //              Tab("Horses", "Gear")   a tab of a place
 //              Control("Equip")        a control, wherever it is drawn
 //              Horse(0)                a horse of the party, counted from 0
-//              Selected                the horse that is selected, in the strip
+//              Selected                the horse that is selected, its tag in the scene
 //              Drop                    the newest piece a trail brought back
 //                                      that the party still has, where it is
 //                                      now: in the cargo, or on a horse

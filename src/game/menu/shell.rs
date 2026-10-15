@@ -16,7 +16,7 @@ use bevy::{
     picking::{
         events::{PointerDragEnd, PointerDragStart, PointerPress},
         hover::Hovered,
-        pointer::PointerButton,
+        pointer::{PointerButton, PointerId, PointerLocation},
     },
     prelude::*,
     ui::{InteractionDisabled, ScrollPosition, Selected, UiGlobalTransform},
@@ -33,15 +33,15 @@ use super::ink;
 use super::picture::{self, picture, picture_of, reported_picture};
 use super::parts::{
     ClosePanel, CounterValue, DismissHint, HintText, NotBuilt, Part, PartText, Pointed, PopupArrow, RowValue,
-    SkipHints, Stop, Target, Unseen, button, cell, counter, dim, panel, popup, reason, row, side_panel, tab, text,
-    title, trail_mark,
+    SkipHints, Stop, Target, Unseen, button, cell, counter, dim, panel, popup, reason, side_panel, tab, tag,
+    text, title, trail_mark,
 };
 use super::tokens::Tokens;
 use crate::game::{
     Action, Game, Hand, Piece, Raise, SceneView, Screen, Uncollected, fight_log, report_side,
     report_text, stats_line,
 };
-use crate::game::scene::HorseBox;
+use crate::game::scene::{HorseBox, horse_feet};
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
 use crate::sim::lessons::{EntryDef, Tick};
@@ -931,8 +931,15 @@ pub struct TabButton {
     pub tab: usize,
 }
 
+/// A horse's tag under it in the scene (#356): its name, key and health.
+/// Not a control; the horse itself is pressed.
 #[derive(Component)]
-pub struct HorseButton(pub usize);
+pub struct HorseTag(pub usize);
+
+/// What a tag stands in, kept under its horse's feet: the tag is centred
+/// in it.
+#[derive(Component)]
+struct TagSpot(usize);
 
 /// A part of a horse's view (#311): a press goes to the tab of the horses'
 /// place where that part is changed.
@@ -1191,7 +1198,7 @@ impl Plugin for ShellPlugin {
                     escape,
                     follow_the_party,
                     (hold_over, point).chain(),
-                    move_scene,
+                    (move_scene, place_tags).chain(),
                     show_place,
                     see,
                     (mark_chosen, mark_targets).chain(),
@@ -1269,6 +1276,8 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
             },
             GlobalZIndex(-1),
             SceneCatcher,
+            // A piece dragged onto the scene may go to a horse (#356).
+            Hovered::default(),
         ))
         .observe(on_scene_press);
 
@@ -1318,22 +1327,6 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                     strip.spawn((counter(t, "coins", "0"), Live(Fact::Coins)));
                     strip.spawn(counter(t, "bags", "-"));
                     strip.spawn(counter(t, "hold", "-"));
-                    strip.spawn(spacer());
-                    for (h, horse) in game.party.iter().enumerate() {
-                        strip
-                            .spawn(Node {
-                                width: Val::Px(t.size.strip_horse_width),
-                                flex_shrink: 0.0,
-                                ..default()
-                            })
-                            .with_children(|cell| {
-                                cell.spawn((
-                                    row(t, &horse.name, places.horse_key(h), ""),
-                                    HorseButton(h),
-                                    Live(Fact::Health(h)),
-                                ));
-                            });
-                    }
                     strip.spawn(spacer());
                     strip.spawn(counter(t, "day", "-"));
                 });
@@ -1650,6 +1643,25 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
             node.position_type = PositionType::Absolute;
             node.display = Display::None;
         });
+
+    // Each horse's tag (#356), under its feet in the scene, where the strip
+    // had a button for it. Under the menus, as the damage numbers are, so a
+    // place that is opening covers it. `place_tags` puts them.
+    for (h, horse) in game.party.iter().enumerate() {
+        commands.spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Px(0.0),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            TagSpot(h),
+            GlobalZIndex(-1),
+            Pickable::IGNORE,
+            Visibility::Hidden,
+            children![(tag(t, &horse.name, places.horse_key(h)), HorseTag(h), Live(Fact::Health(h)))],
+        ));
+    }
 
     // The fight log (#306): at the top left of the scene, above the party
     // and away from where an enemy falls. The newest line is the lowest.
@@ -2173,8 +2185,8 @@ fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Cont
     }
 }
 
-/// A press on a horse in the scene does what a press on it in the strip
-/// does: selects it and opens its view, in town and on the road (#356).
+/// A press on a horse in the scene selects it and opens its view, in town
+/// and on the road (#356).
 /// Anywhere else on the scene it closes the place that is open on the road
 /// (#307).
 fn on_scene_press(
@@ -2206,7 +2218,7 @@ fn on_activate(
     map: Res<Places>,
     places: Query<&PlaceButton>,
     tabs: Query<&TabButton>,
-    horses: (Query<&HorseButton>, Query<&PartButton>),
+    parts: Query<&PartButton>,
     slots: Query<&SlotRow>,
     cells: (Query<&CarriedCell>, Query<&ReportedCell>),
     closes: Query<(), With<ClosePanel>>,
@@ -2214,7 +2226,6 @@ fn on_activate(
     controls: Query<&ControlButton>,
 ) {
     let (carried, reported) = cells;
-    let (horses, parts) = horses;
     let (dismisses, skips, listed) = hints;
     let entity = activate.entity;
     if dismisses.contains(entity) {
@@ -2227,8 +2238,6 @@ fn on_activate(
         shell.press(place.0, game.in_town());
     } else if let Ok(tab) = tabs.get(entity) {
         shell.choose_tab(tab.place, tab.tab);
-    } else if let Ok(horse) = horses.get(entity) {
-        shell.inspect(horse.0, Some(entity));
     } else if let Ok(part) = parts.get(entity) {
         shell.go_to(part.place, part.tab);
     } else if let Ok(row) = slots.get(entity) {
@@ -2338,10 +2347,10 @@ fn keys(
     focus: Res<InputFocus>,
     focus_visible: Res<InputFocusVisible>,
     map: Res<Places>,
-    shell: Res<Shell>,
+    game: Res<Game>,
+    mut shell: ResMut<Shell>,
     places: Query<(Entity, &PlaceButton)>,
     tabs: Query<(Entity, &TabButton)>,
-    horses: Query<(Entity, &HorseButton)>,
     controls: Query<(Entity, &ControlButton)>,
 ) {
     if keys.get_just_pressed().len() == 0 {
@@ -2362,12 +2371,10 @@ fn keys(
             commands.trigger(Activate { entity });
         }
     }
-    // A horse's key is a press on it in the strip.
-    for h in 0..map.horse_keys.len() {
+    // A horse's key is a press on it in the scene (#356).
+    for h in 0..map.horse_keys.len().min(game.party.len()) {
         if down(map.horse_key(h)) {
-            if let Some((entity, _)) = horses.iter().find(|(_, horse)| horse.0 == h) {
-                commands.trigger(Activate { entity });
-            }
+            shell.inspect(h, None);
         }
     }
     let on_a_control = focus_visible.0 && focus.get().is_some();
@@ -2863,16 +2870,25 @@ fn on_drag_end(_: On<PointerDragEnd>, mut game: ResMut<Game>, mut shell: ResMut<
 }
 
 /// While a piece is dragged, the horse or slot under the pointer that it may
-/// be let go on (#228): a slot of its type first, then a horse in the strip.
+/// be let go on (#228): a slot of its type first, then a horse in the scene
+/// (#356), when the pointer is on the scene and not on a menu. The horse's
+/// tag stands for it, so the preview goes beside the tag.
 fn hold_over(
     game: Res<Game>,
     mut shell: ResMut<Shell>,
     slots: Query<(Entity, &Hovered, &ComputedNode, &SlotRow)>,
-    horses: Query<(Entity, &Hovered, &HorseButton)>,
+    scene: (
+        Single<&Hovered, With<SceneCatcher>>,
+        Res<HorseBox>,
+        Single<(&Camera, &GlobalTransform), With<Camera3d>>,
+        Query<(&PointerId, &PointerLocation)>,
+    ),
+    tags: Query<(Entity, &HorseTag)>,
 ) {
     let Some(drag) = shell.dragging() else {
         return;
     };
+    let (on_scene, horses, camera, pointers) = scene;
     let may = |horse: usize, slot: Option<usize>| game.drop_hand(drag.piece, horse, slot).is_some();
     let onto = slots
         .iter()
@@ -2883,14 +2899,22 @@ fn hold_over(
             slot: Some(row.slot),
         })
         .or_else(|| {
-            horses
+            if !on_scene.get() {
+                return None;
+            }
+            let (camera, at) = *camera;
+            let position = pointers
                 .iter()
-                .find(|(_, hovered, horse)| hovered.get() && may(horse.0, None))
-                .map(|(cell, _, horse)| Onto {
-                    cell,
-                    horse: horse.0,
-                    slot: None,
-                })
+                .find(|(id, _)| **id == PointerId::Mouse)
+                .and_then(|(_, location)| location.location())?
+                .position;
+            let horse = horses.horse_on(camera.viewport_to_world(at, position).ok()?)?;
+            let (cell, _) = tags.iter().find(|(_, tag)| tag.0 == horse)?;
+            may(horse, None).then_some(Onto {
+                cell,
+                horse,
+                slot: None,
+            })
         });
     if drag.onto != onto {
         shell.hold_over(onto);
@@ -2904,7 +2928,7 @@ fn mark_targets(
     game: Res<Game>,
     shell: Res<Shell>,
     slots: Query<(Entity, &SlotRow, Has<Target>)>,
-    horses: Query<(Entity, &HorseButton, Has<Target>)>,
+    horses: Query<(Entity, &HorseTag, Has<Target>)>,
 ) {
     let may = |horse: usize, slot: Option<usize>| {
         shell
@@ -2981,6 +3005,30 @@ fn show_hover_card(
         && (node.left, node.right, node.top, node.bottom) != (at.left, at.right, at.top, at.bottom)
     {
         (node.left, node.right, node.top, node.bottom) = (at.left, at.right, at.top, at.bottom);
+    }
+}
+
+/// Keep each horse's tag under its feet as the scene moves (#356).
+fn place_tags(
+    tokens: Res<Tokens>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera3d>>,
+    mut spots: Query<(&TagSpot, &mut Node, &mut Visibility)>,
+) {
+    let (camera, at) = *camera;
+    for (spot, mut node, mut visibility) in &mut spots {
+        let wanted = match camera.world_to_viewport(at, horse_feet(spot.0)) {
+            Ok(feet) => {
+                let (left, top) = (Val::Px(feet.x), Val::Px(feet.y + tokens.space.s));
+                if (node.left, node.top) != (left, top) {
+                    (node.left, node.top) = (left, top);
+                }
+                Visibility::Inherited
+            }
+            Err(_) => Visibility::Hidden,
+        };
+        if *visibility != wanted {
+            *visibility = wanted;
+        }
     }
 }
 
@@ -3073,7 +3121,7 @@ fn mark_chosen(
             Entity,
             Option<&PlaceButton>,
             Option<&TabButton>,
-            Option<&HorseButton>,
+            Option<&HorseTag>,
             Option<&SlotRow>,
             Option<&CarriedCell>,
             Option<&ReportedCell>,
@@ -3082,7 +3130,7 @@ fn mark_chosen(
         Or<(
             With<PlaceButton>,
             With<TabButton>,
-            With<HorseButton>,
+            With<HorseTag>,
             With<SlotRow>,
             With<CarriedCell>,
             With<ReportedCell>,
@@ -3172,7 +3220,7 @@ fn point_out(
             Entity,
             Option<&PlaceButton>,
             Option<&TabButton>,
-            Option<&HorseButton>,
+            Option<&HorseTag>,
             Option<&ControlButton>,
             Option<&CarriedCell>,
             Option<&SlotRow>,
@@ -3181,7 +3229,7 @@ fn point_out(
         Or<(
             With<PlaceButton>,
             With<TabButton>,
-            With<HorseButton>,
+            With<HorseTag>,
             With<ControlButton>,
             With<CarriedCell>,
             With<SlotRow>,

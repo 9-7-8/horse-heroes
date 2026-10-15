@@ -161,7 +161,7 @@ Checked against the game as built on 2026-10-11 (`docs/item-card.md`,
   comparison: the recipient and slot, equipped and selected, what changes
   for the horse, and one aligned table with new, lost and same in words. A
   press pins it beside the grid with what Equip would do. The
-  recipient is the selected horse in the strip, which stays in view, and a
+  recipient is the selected horse, outlined in the scene, which stays in view, and a
   horse's key compares the same piece there.
 - **Already in line.** One selected horse everywhere, undo over
   confirmation, a reason for every refusal and a key for every action

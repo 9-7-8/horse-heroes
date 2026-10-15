@@ -454,6 +454,52 @@ pub fn row(t: &Tokens, name: &str, key: Option<&str>, value: &str) -> impl Bundl
     )
 }
 
+/// A horse's name, its key and its health, under the horse in the scene
+/// (#356). It is drawn as a row, so it shows the horse selected, a drag's
+/// target and a lesson's mark as the row did, but it is not a control: a
+/// press goes through it to the horse, and Tab passes it by.
+pub fn tag(t: &Tokens, name: &str, key: Option<&str>) -> impl Bundle + use<> {
+    (
+        Part::Row,
+        Hovered::default(),
+        BackgroundColor(t.colour.control.0),
+        BorderColor::all(t.colour.control_border.0),
+        Outline::new(
+            Val::Px(t.size.focus_ring),
+            Val::Px(t.size.focus_gap),
+            Color::NONE,
+        ),
+        // Two short lines, the name over the key and the health, so three
+        // fit side by side under horses that stand close together.
+        Node {
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            padding: UiRect::axes(Val::Px(t.space.s + t.size.mark), Val::Px(t.space.xs)),
+            border: UiRect::all(Val::Px(t.size.border)),
+            border_radius: BorderRadius::all(Val::Px(t.size.radius)),
+            flex_shrink: 0.0,
+            ..default()
+        },
+        Pickable::IGNORE,
+        children![
+            (text(t, name), Pickable::IGNORE),
+            (
+                Node {
+                    column_gap: Val::Px(t.space.s),
+                    ..default()
+                },
+                Pickable::IGNORE,
+                children![
+                    (key_hint(t, key), Pickable::IGNORE),
+                    (dim(t, ""), RowValue, Pickable::IGNORE)
+                ],
+            ),
+            (mark(t, Part::Row), Pickable::IGNORE),
+            (pointer(t), Pickable::IGNORE)
+        ],
+    )
+}
+
 /// The frame of an item card: what it is and what kind. The lines of the card
 /// are added as children by whoever shows the item.
 pub fn card(t: &Tokens, name: &str, kind: &str) -> impl Bundle + use<> {

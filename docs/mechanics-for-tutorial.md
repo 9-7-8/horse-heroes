@@ -72,7 +72,7 @@ picker, buttons for most actions.
 
 - **Scene on top, menus below.** In town the scene is the top third. On the
   road it grows to four fifths when no place is open.
-- **A press on a horse in the strip, or its key, opens everything about
+- **A press on a horse in the scene, or its key, opens everything about
   it** in the side panel: its stats and where each point comes from, what
   it wears, and a part for each tab of Horses (#311).
 - **A bar of six places, always visible:** Horses (H), Inventory (B),
@@ -80,8 +80,8 @@ picker, buttons for most actions.
 - **Tabs per place** (keys 1 to 4): Horses has Gear, Abilities, Pet, Look.
   Trade has Sell, Buy, Storage, Rules. Town has Projects, Residents. Journal
   has Report, Journal, Codex. Map has none.
-- **Status strip:** coins, bags, hold, the three horses with health (press
-  one, or Z, X, C, to select it), the day.
+- **Status strip:** coins, bags, hold, the day. Each horse has a tag under
+  it in the scene with its health; press the horse, or Z, X, C, to select it.
 - **Footer:** trail tracker, what the party is doing, Set out.
 - **One selected horse**, shared by every place. Comparisons and Equip are
   always about it.

@@ -414,7 +414,7 @@ fn sheet_row(label: &str, horse: &str, gear: &str, now: &str) -> String {
 
 /// The head of a horse's view (#311): its name, its health now and at
 /// most, and every stat with where its points come from, so each total is
-/// accounted for. `health` is the horse's health as the strip says it.
+/// accounted for. `health` is the horse's health as its tag says it.
 pub fn horse_sheet(game: &Game, horse: usize, health: &str) -> String {
     let horse = &game.party[horse.min(game.party.len() - 1)];
     let gear = horse

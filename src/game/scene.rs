@@ -136,6 +136,14 @@ impl HorseBox {
     }
 }
 
+/// The ground in front of the horse in place `index`, level with the front
+/// of the foremost horse, so the three tags hang in one line and the one
+/// standing back does not cover the others' (#356).
+pub fn horse_feet(index: usize) -> Vec3 {
+    let front = HORSE_Z.iter().copied().fold(f32::MIN, f32::max);
+    Vec3::new(HORSE_X[index], 0.0, front + 0.3)
+}
+
 /// How far along a ray it enters a box, if it does: the slab test.
 fn entry(ray: Ray3d, min: Vec3, max: Vec3) -> Option<f32> {
     let (mut near, mut far) = (f32::MIN, f32::MAX);

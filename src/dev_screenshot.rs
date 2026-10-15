@@ -35,7 +35,7 @@ use bevy::camera::NormalizedRenderTarget;
 use serde::Deserialize;
 
 use crate::game::menu::shell::{
-    CarriedCell, Content, ControlButton, HorseButton, PartButton, PlaceButton, Places, ReportedCell, Shell,
+    CarriedCell, Content, ControlButton, PartButton, PlaceButton, Places, ReportedCell, Shell,
     SlotRow, TabButton,
 };
 use crate::game::menu::parts::{DismissHint, SkipHints};
@@ -104,7 +104,6 @@ fn shoot_then_exit(
 enum Step {
     Place(usize),
     Tab(usize, usize),
-    Horse(usize),
     /// A part of a horse's view, by the tab of the horses' place it goes to.
     Part(usize),
     /// A horse's slot, on Gear or in the Inventory: the horse, then the slot.
@@ -323,11 +322,10 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Control("Keep going"),
         Step::Shot("keep going off by a press".into()),
         Step::Key(KeyCode::KeyH),
-        // A press on a horse opens everything about it (#311).
-        Step::Horse(1),
+        // A press on a horse in the scene opens everything about it (#311,
+        // #356), and the outline and its tag follow it.
+        Step::SceneHorse(1),
         Step::Shot("a horse's view".into()),
-        // So does a press on the horse itself in the scene, and the outline
-        // follows it (#356).
         Step::SceneHorse(2),
         Step::Shot("a press on a horse in the scene".into()),
         Step::SceneHorse(1),
@@ -395,7 +393,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("on the road horses".into()),
         // The slot's card left pinned here would stay; put it away.
         Step::Key(KeyCode::Escape),
-        Step::Horse(2),
+        Step::SceneHorse(2),
         Step::Shot("on the road a horse's view".into()),
         Step::Key(KeyCode::Escape),
         Step::Focus(Some("Sets")),
@@ -412,7 +410,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Scene,
         Step::Shot("a press on the scene with every place closed".into()),
         Step::Place(0),
-        Step::Horse(2),
+        Step::SceneHorse(2),
         Step::Shot("a place open on the road again".into()),
         Step::Scene,
         Step::Shot("a press on the scene closes the place".into()),
@@ -562,7 +560,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         // Dragging (#228): the drop from the cargo column onto the selected
         // horse's slot of its type, marked with the horses it may go to, its
         // card the preview of the drop; then from the Inventory onto another
-        // horse in the strip. Undo takes each back.
+        // horse in the scene (#356). Undo takes each back.
         Step::Key(KeyCode::KeyH),
         Step::Point,
         Step::Carried(0),
@@ -580,7 +578,7 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Grab,
         Step::Carried(inventory),
         Step::DragTo,
-        Step::Horse(1),
+        Step::SceneHorse(1),
         Step::Shot("dragging from the inventory onto a horse".into()),
         Step::LetGo,
         Step::Shot("the drop dragged onto a horse".into()),
@@ -811,7 +809,7 @@ fn tour(
     mut game: ResMut<Game>,
     places: Query<(Entity, &PlaceButton)>,
     tabs: Query<(Entity, &TabButton)>,
-    horses: (Query<(Entity, &HorseButton)>, Query<(Entity, &PartButton)>),
+    parts: Query<(Entity, &PartButton)>,
     slots: Query<(Entity, &SlotRow)>,
     cells: (
         Query<(Entity, &CarriedCell)>,
@@ -835,7 +833,6 @@ fn tour(
 ) {
     let (mut exit, mut pointer, window, transforms, camera) = out;
     let (carried, reported, skips, got_its) = cells;
-    let (horses, parts) = horses;
     let (map, shell) = menus;
     // Its fields one by one: the step is read while the counts are kept.
     let tour = &mut *tour;
@@ -887,7 +884,6 @@ fn tour(
             .iter()
             .find(|(_, b)| b.place == *p && b.tab == *t)
             .map(|(e, _)| e),
-        Step::Horse(h) => horses.iter().find(|(_, b)| b.0 == *h).map(|(e, _)| e),
         Step::Part(t) => parts
             .iter()
             .filter(|(_, b)| b.tab == *t)
@@ -982,7 +978,6 @@ fn tour(
         Step::Place(_)
         | Step::PlaceMidway(_)
         | Step::Tab(..)
-        | Step::Horse(_)
         | Step::Part(_)
         | Step::Slot(..)
         | Step::Carried(_)
@@ -1055,12 +1050,17 @@ fn tour(
         send(ON_THE_SCENE, PointerAction::Release(PointerButton::Primary));
         tour.at = ON_THE_SCENE;
     }
+    // After Point or DragTo the pointer only goes there; otherwise it
+    // presses the horse.
     if let Step::SceneHorse(h) = step {
+        let aim = std::mem::replace(&mut tour.aim, Aim::Press);
         let (camera, at) = *camera;
         if let Ok(to) = camera.world_to_viewport(at, horse_centre(*h)) {
             send(to, PointerAction::Move { delta: to - tour.at });
-            send(to, PointerAction::Press(PointerButton::Primary));
-            send(to, PointerAction::Release(PointerButton::Primary));
+            if aim == Aim::Press {
+                send(to, PointerAction::Press(PointerButton::Primary));
+                send(to, PointerAction::Release(PointerButton::Primary));
+            }
             tour.at = to;
         }
     }

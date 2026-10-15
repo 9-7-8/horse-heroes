@@ -25,7 +25,7 @@ that is open. The guidance behind it is
     |        3D scene (top third, SCENE_SHARE)         |
     +--------------------------------------------------+
     | Horses Inventory Trade Map Town Journal Settings |  bar
-    | coins  bags  hold    A  B  C                 day |  status strip
+    | coins  bags  hold                            day |  status strip
     | the hint's line                                  |
     +--------------------------------------------------+
     | tabs of the open place                           |
@@ -55,7 +55,7 @@ of the window's height, so it holds at any window size.
     |                                                  |
     +--------------------------------------------------+
     | Horses  Trade  Map  Town  Journal       Settings |  bar
-    | coins  bags  hold    A  B  C                 day |  status strip
+    | coins  bags  hold                            day |  status strip
     | one line saying how to open a place              |
     | what the party is doing              [ Set out ] |  footer
     +--------------------------------------------------+
@@ -91,7 +91,19 @@ Which layout is wanted follows one thing, `Shell::is_open`:
   it closes nothing. `on_scene_press` casts a ray from the camera through
   the pointer and tests it against a box round each horse where it stands
   (`HorseBox` in `scene.rs`, the horse's own size plus `PRESS_MARGIN`); the
-  nearest horse the ray meets wins.
+  nearest horse the ray meets wins. The horses have no buttons anywhere
+  else; their keys (Z, X, C) select them as a press does.
+- **Each horse has a tag** under its feet in the scene (#356): its name over
+  its key and its health (`[C] 32/35`), in two short lines so three fit side by
+  side at 1120 x 640. It is drawn as a row (`parts::tag`, `HorseTag`),
+  so it shows the selected horse, a drag's target and a lesson's mark as the
+  strip's buttons did, and a lesson about a horse points at it. It is not a
+  control: a press goes through it to the horse, and Tab passes it by. The
+  three hang in one line, level with the front of the foremost horse
+  (`scene::horse_feet`), so the horse standing back does not cover the
+  others' tags; `place_tags` keeps them there as the scene moves, under
+  the menus (`GlobalZIndex(-1)`). The horses and their health were in the
+  status strip until 2026-10-14.
 - **The selected horse is outlined** in the scene in the accent colour, and
   the outline follows the selection however it was made (`outline_selected`
   in `scene.rs`). Each piece of each horse has a shell `OUTLINE` (0.06 world
@@ -198,11 +210,10 @@ the hint before anything else; and that Skip all has no key of its own.
 - **The bar.** One `tab` part per place, in the order of `places.ron`, and
   Settings at the far end. Settings is a page like a place and not one of
   the five: it opens between the strip and the footer as they do.
-- **The status strip.** Coins, bags, hold, the three horses with their
-  health, and the day. Bags, hold and the day show "-" and keep their
-  positions until the systems behind them exist. A horse in the strip is a
-  control: pressing it selects that horse and opens its view (see "A
-  horse's view"). This is the one list of horses (#311).
+- **The status strip.** Coins, bags, hold and the day. Bags, hold and the
+  day show "-" and keep their positions until the systems behind them
+  exist. The horses left it for the scene (#356): a horse is pressed there,
+  and its health is on its tag.
 - **The footer.** First the trail tracker, then, in town: the next trail's
   level, what the party is waiting for, and the footer's controls from the
   map, Set out last. On the road: where the party is, and Set out
@@ -452,7 +463,7 @@ every place, tab and horse has a key, and no key means two things at once.
   item-card.md), and beside it its name over the slot and what the piece
   adds ("Head: +15 health  +2 attack"); or the slot's outline beside
   "nothing worn" over the slot's name. A press on a row pins its card in
-  the side panel. A press on another horse in the strip, or its key, and
+  the side panel. A press on another horse in the scene, or its key, and
   the rows are that horse's, in town and on the road. Every horse's rows
   are spawned once and only the selected horse's show (`Wearer`,
   `show_wearer`, `Shell::wears`), so Tab and the arrows pass over the
@@ -532,7 +543,7 @@ comparisons when you hover an item".
   `size.inventory_cell` wide (104): six at the smallest window.
 - **It has the place's width.** The place has no horses column and no
   cargo column. The horse a piece is compared on, and equipped on, is the
-  one selected in the status strip, which is always in view.
+  one selected, outlined in the scene and its tag marked.
 - **The pinned comparison keeps its room** at the right,
   `size.compare_width` (420), whether or not a piece is pinned:
   `Page::Compare` says how to use it while none is, and the detail opens at
@@ -545,7 +556,7 @@ comparisons when you hover an item".
 
 ## A horse's view
 
-A press on a horse in the strip or in the scene (#356), or its key (Z, X,
+A press on a horse in the scene (#356), or its key (Z, X,
 C), selects it and opens
 everything about it in the side panel of the place the player is in (#311;
 the owner: "Clicking a horse should open up an inspection screen that lets

@@ -51,9 +51,8 @@
         // How much of what is in view a press of a scroll key moves by:
         // less than all of it, so the last line read is still there.
         scroll_page: 0.8,
-        // The shell: a horse in the status strip, and the two columns that
-        // stay beside the tabs of the Horses place.
-        strip_horse_width: 150,
+        // The shell: the two columns that stay beside the tabs of the
+        // Horses place.
         // The detail opens in the cargo's room (#287), wide enough for a
         // horse's table of 25 letters (#311).
         cargo_width: 248,
