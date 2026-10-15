@@ -518,6 +518,14 @@ enemy, misses, reactions never critting, and flat defence.
   stat that governs both"). Gaits set it later (Gaits, below). How strongly
   is tuning, and a number in data.
 
+## Every piece looks its own (owner, 2026-10-14)
+
+- **Three layers**: a background in the piece's rarity colour, in its
+  slot's shape (the same for every piece of that slot); a pattern on it
+  (spots, diamonds...); a decoration on top (stars, vines, flames...).
+- **Cosmetic for now**: pattern and decoration say nothing about stats or
+  element. Drawn very simply, in the menus and on the horse (#361, #359).
+
 ## Menus and navigation (owner, 2026-10-10)
 
 Her judgment: "This game is going to live and die on how easy and intuitive
