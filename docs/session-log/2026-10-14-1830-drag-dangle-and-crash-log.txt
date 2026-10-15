@@ -1,0 +1,50 @@
+SESSION 2026-10-14 18:30 - A dragged piece dangles; a crash leaves a log
+
+ASKED
+  "when dragging gear, you need the gear to come out of its spot, and
+  dangle from the cursor with physics as you move it around ... as
+  juice/feedback"; then, after the game crashed, "Does it write out logs
+  anywhere I can find for you?"
+
+DONE
+  - #363 filed in 0.2.4 (menus first): a dragged piece lifts out of its
+    cell, hangs from the pointer on a damped pendulum, flies to the slot
+    or swings back on letting go.
+  - #364 filed in 0.2.4: a panic hook writes crash.log beside the exe,
+    and the run's log goes to horse_heroes.log.
+  - Nothing built; no code changed, so no build was run.
+
+DECIDED
+  - Hers, through the question tool: the crash log goes in 0.2.4, which
+    fills it to 10 of 10.
+  - The session's, for her: #363 rides 0.2.4 because it is a menu change.
+
+FOUND
+  - The game writes no log. The release build has no console
+    (windows_subsystem = "windows"), so a panic's message is lost, and
+    the Windows Application log had nothing for the crash. Until #364,
+    start it from PowerShell to catch one:
+        $env:RUST_BACKTRACE=1; .\horse_heroes.exe 2> crash.log
+  - The crash itself is not known: no message, no steps.
+
+NOT DONE
+  - The crash is not investigated.
+
+PICK UP
+  Build #364 first, so the next crash the owner meets is caught; then
+  #356 as the last log said.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 10 closed. Open:
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat: travel between encounters and attack frequency
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities: each carries its element
+    #358 A sound of its own for each ability, and for its hits by element
+    #359 Worn gear seen on the horse, at its simplest
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+    #363 A dragged piece comes out of its spot and dangles from the pointer
+    #364 A crash leaves a log beside the game
+  Riding along: the Details line of the things to try, and #353 built
+  and waiting on your look.
