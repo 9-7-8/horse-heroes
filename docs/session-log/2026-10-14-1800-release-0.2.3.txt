@@ -1,0 +1,43 @@
+SESSION 2026-10-14 18:00 - Release 0.2.3
+
+ASKED
+  "What's left that you can build before the next release? Make sure you
+  always release, even if you need me to look, cause i look at the
+  releases"
+
+DONE
+  - Nothing in 0.2.3 was left to build: #308, #311 and #314 wait only on
+    the owner looking. So 0.2.3 was released by release-a-build.txt:
+    version frozen, installer built, the staged build run from an
+    unrelated folder (picture read), installed silently into a scratch
+    folder, run and uninstalled with nothing left behind, published with
+    pictures, downloaded again: the hash matches, and all 15 pictures load.
+    https://github.com/9-7-8/horse-heroes/releases/tag/v0.2.3
+  - The rule is written into CLAUDE.md (Planning), next-thing.txt (step
+    3.0) and memory.
+
+DECIDED (by the session, for her)
+  - Issues waiting on her look stay open in their milestone, as 0.2.1's
+    did.
+  - The notes have a "Waiting for the owner to look" list.
+
+NOT DONE
+  - The wizard, the shortcuts and SmartScreen: the owner's test.
+  - No clean-machine test (#198).
+
+PICK UP
+  Read the "done when" of #295, #298 and #299 (0.2.4) and build the
+  lowest-numbered one whose part needs neither the owner's decision (#289)
+  nor the tutorial trail's design (#293).
+
+NEXT RELEASE
+  0.2.4 The opening: 0 of 9 closed. Open:
+    #353 A lesson is a pop-up by the thing it is about, and the game waits for it (built; her look)
+    #301 Play test the opening with nobody explaining it
+    #299 One line for the party element, at the first resisted fight
+    #298 The next trail, explained honestly
+    #295 First-trail lessons: the role, each ability, the loot, the tracker, the boss
+    #294 The tutorial trail
+    #293 Design the tutorial trail, for the owner's approval
+    #289 Decide: the opening (hers)
+    #288 Epic: the opening
