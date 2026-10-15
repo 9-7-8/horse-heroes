@@ -380,7 +380,7 @@ mod tests {
         let (feel, tokens) = (Feel::load(), Tokens::load());
         let hit = |struck, element| Hit {
             struck,
-            by: None,
+            by: Struck::Horse(0),
             damage: 5,
             element,
             kind: HitKind::Plain,

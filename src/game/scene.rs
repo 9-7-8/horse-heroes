@@ -22,6 +22,7 @@ use super::menu::shell::Shell;
 use super::menu::tokens::Tokens;
 use super::{Game, Landed, SceneView, Screen};
 use crate::sim::data::{Element, Slot};
+use crate::sim::expedition::Struck;
 use crate::sim::look::Look;
 use crate::sim::horse_shape::{Frame, HorseShape, Joint, Kind, LEGS, Part, Section};
 use crate::sim::rng::Rng;
@@ -65,10 +66,15 @@ const TIRED_LIE_HANG: f32 = 0.45;
 const TIRED_FOLD: f32 = std::f32::consts::FRAC_PI_2;
 const TIRED_BELLY: f32 = 0.08;
 const TIRED_STRIDE: f32 = 0.5;
-/// A horse's hit, a placeholder until it has an attack of its own: it tips
-/// forward this far, in radians, and back, over this many seconds.
+/// Placeholders until horses and enemies move as their own (#365). Striking,
+/// a body tips forward this far, in radians, and back, over this many
+/// seconds; struck, it tips back this far and steps back this far, in world
+/// units, and returns.
 const LUNGE_TILT: f32 = 0.18;
 const LUNGE_SECS: f32 = 0.3;
+const FLINCH_TILT: f32 = 0.14;
+const FLINCH_STEP: f32 = 0.25;
+const FLINCH_SECS: f32 = 0.3;
 /// How dark a horse's hooves and hair are, as shares of its body's shade.
 const HOOF_SHADE: f32 = 0.45;
 const HAIR_SHADE: f32 = 0.3;
@@ -91,15 +97,14 @@ impl Plugin for ScenePlugin {
             .insert_resource(Bare(self.bare))
             .init_resource::<LookImages>()
             .init_resource::<Tired>()
-            .init_resource::<Lunge>()
+            .init_resource::<Motion>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
                 (
                     frame,
                     scroll,
-                    (sync_horses, swing_legs).chain(),
-                    sync_enemies,
+                    (move_with_hits, ((sync_horses, swing_legs).chain(), sync_enemies)).chain(),
                     move_gate,
                     (toggle_hair, outline_selected).chain(),
                     show_worn,
@@ -247,15 +252,63 @@ struct Leg {
     phase: f32,
 }
 
-/// Seconds since each horse last landed a hit.
+/// How each horse and each enemy's place is moving from the hits it deals
+/// and takes.
 #[derive(Resource)]
-struct Lunge {
-    since: [f32; HORSE_X.len()],
+struct Motion {
+    horse: [Pose; HORSE_X.len()],
+    foe: [Pose; ENEMY_X.len()],
 }
 
-impl Default for Lunge {
+impl Default for Motion {
     fn default() -> Self {
-        Self { since: [LUNGE_SECS; HORSE_X.len()] }
+        Self { horse: [Pose::STILL; HORSE_X.len()], foe: [Pose::STILL; ENEMY_X.len()] }
+    }
+}
+
+impl Motion {
+    fn of(&mut self, who: Struck) -> Option<&mut Pose> {
+        match who {
+            Struck::Horse(horse) => self.horse.get_mut(horse),
+            Struck::Foe { slot, .. } => self.foe.get_mut(slot),
+        }
+    }
+}
+
+/// Seconds since a body last struck and was struck.
+#[derive(Clone, Copy)]
+struct Pose {
+    lunge: f32,
+    flinch: f32,
+}
+
+impl Pose {
+    const STILL: Pose = Pose { lunge: LUNGE_SECS, flinch: FLINCH_SECS };
+
+    /// How far it leans toward its foe, in radians, and how far it has
+    /// stepped back from it, in world units.
+    fn lean(&self) -> (f32, f32) {
+        let bump = |since: f32, secs: f32| (since / secs * std::f32::consts::PI).sin();
+        let lunge = bump(self.lunge, LUNGE_SECS);
+        let flinch = bump(self.flinch, FLINCH_SECS);
+        (LUNGE_TILT * lunge - FLINCH_TILT * flinch, FLINCH_STEP * flinch)
+    }
+}
+
+fn move_with_hits(time: Res<Time>, mut landed: MessageReader<Landed>, mut motion: ResMut<Motion>) {
+    let dt = time.delta_secs();
+    let motion = &mut *motion;
+    for pose in motion.horse.iter_mut().chain(motion.foe.iter_mut()) {
+        pose.lunge = (pose.lunge + dt).min(LUNGE_SECS);
+        pose.flinch = (pose.flinch + dt).min(FLINCH_SECS);
+    }
+    for Landed { hit, .. } in landed.read() {
+        if let Some(pose) = motion.of(hit.by) {
+            pose.lunge = 0.0;
+        }
+        if let Some(pose) = motion.of(hit.struck) {
+            pose.flinch = 0.0;
+        }
     }
 }
 
@@ -884,24 +937,16 @@ fn swing_legs(
 
 /// A horse at no health stays in view, exhausted: its head hangs, and it
 /// lies down while the party stands. It is on its feet again in town.
-/// A horse that lands a hit tips forward and back.
+/// A horse that lands a hit tips forward and back, and one that is hit
+/// flinches.
 fn sync_horses(
     time: Res<Time>,
     game: Res<Game>,
-    mut landed: MessageReader<Landed>,
+    motion: Res<Motion>,
     mut tired: ResMut<Tired>,
-    mut lunge: ResMut<Lunge>,
     mut horses: Query<(&HorseBody, &mut Transform), Without<Neck>>,
     mut necks: Query<(&Neck, &mut Transform), Without<HorseBody>>,
 ) {
-    for since in &mut lunge.since {
-        *since = (*since + time.delta_secs()).min(LUNGE_SECS);
-    }
-    for Landed { hit, .. } in landed.read() {
-        if let Some(since) = hit.by.and_then(|horse| lunge.since.get_mut(horse)) {
-            *since = 0.0;
-        }
-    }
     let step = time.delta_secs() / TIRED_SECS;
     let towards = |now: f32, wanted: bool| {
         if wanted { (now + step).min(1.0) } else { (now - step).max(0.0) }
@@ -919,8 +964,13 @@ fn sync_horses(
         if transform.translation.y != y {
             transform.translation.y = y;
         }
-        let share = lunge.since[body.index] / LUNGE_SECS;
-        let rotation = Quat::from_rotation_z(-LUNGE_TILT * (share * std::f32::consts::PI).sin());
+        // Its foes are ahead of it, along +x.
+        let (lean, back) = motion.horse[body.index].lean();
+        let x = HORSE_X[body.index] - back;
+        if transform.translation.x != x {
+            transform.translation.x = x;
+        }
+        let rotation = Quat::from_rotation_z(-lean);
         if transform.rotation != rotation {
             transform.rotation = rotation;
         }
@@ -934,8 +984,11 @@ fn sync_horses(
     }
 }
 
+/// An enemy that lands a hit tips forward and back, and one that is hit
+/// flinches.
 fn sync_enemies(
     game: Res<Game>,
+    motion: Res<Motion>,
     elements: Res<ElementMaterials>,
     mut enemies: Query<(
         &EnemyBody,
@@ -958,8 +1011,14 @@ fn sync_enemies(
             }
             continue;
         };
-        transform.scale = Vec3::splat(enemy_size(foe.max_health));
-        transform.translation = enemy_centre(body.0, foe.max_health);
+        // It leans and steps on its base; the horses are behind it, along -x.
+        let size = enemy_size(foe.max_health);
+        let (lean, back) = motion.foe[body.0].lean();
+        let rotation = Quat::from_rotation_z(lean);
+        let base = enemy_centre(body.0, foe.max_health) - Vec3::Y * size / 2.0;
+        transform.scale = Vec3::splat(size);
+        transform.rotation = rotation;
+        transform.translation = base + rotation * (Vec3::Y * size / 2.0) + Vec3::X * back;
         let wanted = match foe.element {
             Element::Fire => &elements.fire,
             Element::Ice => &elements.ice,
