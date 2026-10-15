@@ -1,0 +1,54 @@
+SESSION 2026-10-14 17:33 - A lesson's pop-up stops the game (#353, part 2)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner
+  watching. Tier 2: nothing new untested. Tier 3, menus first: every open
+  issue of 0.2.1 and 0.2.3 waits on the owner or on unbuilt systems, so the
+  pick was #353 in 0.2.4: the pause, and no pop-up over a fountain.
+
+DONE
+  - While a lesson's pop-up is up, Bevy's virtual clock is paused: fight,
+    walk, drops and the town's wait stop and go on from where they were.
+    The menus, sound and dev aids moved to Time<Real>. Tested by running
+    the game's own systems frame by frame (no sim time passes, on the road
+    and in town; it goes on once answered; the sample stops nothing).
+    Seen running: seed 6 at 8 s is still at the gate under the opening.
+  - No new lesson comes up while a kill's pieces are in the world, and the
+    queue does not count one as showing meanwhile. Tested.
+  - --no-pause keeps the old times; the soak never pauses. The tour, the
+    walk and the lesson walk answer road lessons with Got it while they
+    wait. The lesson walk (12 pictures) and the tour (101, Tab 0 out of
+    sight) both ran to the end; tour pictures 35 and 50 were looked at.
+  - lessons.ron: the comments, and the fight's line no longer says to
+    watch. docs/lessons.md, docs/menu-shell.md, build-and-run.txt, gallery
+    docs/gallery/2026-10-14-pause. 221 tests pass. #353 commented, open.
+
+DECIDED (by the session, for her)
+  - A lesson waits until a drop has been collected, not only landed.
+  - Watched lessons on the road are answered by Got it now; the opening
+    no longer goes by itself at the first fight.
+  - --no-pause for pictures taken by the clock.
+
+FOUND
+  - drops::launch_kills cannot be made pub (its params are private
+    types); a SystemSet, drops::Thrown, orders the lessons after it.
+  - The tour took 284 s; build-and-run said about 150. Not known whether
+    the pause added the difference or the tour had already grown.
+
+NOT DONE
+  - Most of the tour's pictures were not looked at. Nobody has played it
+    with a real mouse, and the owner has not looked.
+  - Equip's pop-up still covers the card of the piece (part 1's note).
+
+PICK UP
+  Read the "done when" of #295, #298 and #299 (0.2.4) and build the
+  lowest-numbered one whose part needs neither the owner's decision (#289)
+  nor the tutorial trail's design (#293).
+
+NEXT RELEASE
+  0.2.3 Horses and inventory: 8 of 11 closed. Open, each waiting on the
+  owner looking:
+    #308 An Inventory tab: a grid of every piece the horses and the caravan hold
+    #311 One list of horses, and a press on a horse opens everything about it
+    #314 Gear shows only the selected horse's gear
+  Riding along (menus): #350 and #303, closed; #228 and #353 in part.
