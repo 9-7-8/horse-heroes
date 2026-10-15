@@ -1,0 +1,37 @@
+SESSION 2026-10-14 18:30 - The owner's feedback on 0.2.3, and the plan moved for it
+
+ASKED
+  Feedback after testing 0.2.3 (cadence, a boss pop-up, gear on the
+  horse, "attuned to Fire", speed, the Inventory, the Details entry), then:
+  "Re-arrange the patch/release plans to put fixing the issues I've
+  complained about here to be done as soon as possible"
+
+DONE
+  - The Details entry of the things to try now says what to press: "Open
+    a piece, press Details [V]." Tested, and seen in the lesson walk.
+  - Filed #354 to #360. vision.md gained "Cadence and speed".
+  - 0.2.4 is now "Fixes from testing 0.2.3": #354, #355, #356, #357,
+    #358, #359, #360. The opening moved to 0.2.5. #299 closed, superseded
+    by #357. The boss line of #295 is now #360.
+
+DECIDED (by the session, for her)
+  - #353 stays with the opening in 0.2.5; it is built and goes out with
+    the next release anyway (menus first).
+  - The worn-gear stand-in, the per-ability sounds and the speed stat are
+    worded in their issues; no design beyond what she said.
+
+PICK UP
+  Build #356 (menus first): select a horse by pressing it in the scene,
+  with an outline, and Equip with a drop-down of the horses.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 7 closed. Open:
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat: travel between encounters and attack frequency
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities: each carries its element
+    #358 A sound of its own for each ability, and for its hits by element
+    #359 Worn gear seen on the horse, at its simplest
+    #360 A lesson pop-up when the boss is met
+  Riding along: the Details line (above), and #353 built and waiting on
+  your look.
