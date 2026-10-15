@@ -1,0 +1,48 @@
+SESSION 2026-10-15 - a sound of its own for each ability (#358)
+
+ASKED
+  /next: the next thing by the order. Tiers 1 and 2 empty (#246 waits only
+  on her look); PICK UP's #358.
+
+DONE
+  - #358 (3e1587e): each ability names its sound in abilities.ron
+    (ability_ember_shot a flare rushing up, ability_frost_burst falling
+    glassy notes, ability_thorn_shot a low twang, ability_ward a soft
+    swell); a horse's hit on an enemy sounds by its element, named in
+    loot_shower.ron sound.hits (hit_plain, hit_fire, hit_ice, hit_plant),
+    at sound.hit_level. The sim tells each use in Expedition::casts,
+    advance sends it on as Cast. Gates: one fight sound heard again within
+    hit_gap_secs is not played, so a Burst on three enemies is one tink.
+  - Tutorial: heard under the abilities' lesson in the first fight; said
+    in docs/lessons.md. Sound table in docs/loot-shower.md.
+  - Checked: 235 tests, the three new ones seen to fail with the code
+    broken. Seen running with the sound log, --seed 6 --no-pause: Ward,
+    Ember Shot then hit_fire, Frost Burst then hit_ice, plain thumps.
+
+DECIDED (for her)
+  - An enemy's hit on a horse makes no sound; the issue asks for the
+    horses' hits and abilities only.
+  - Hits play at 0.7 of the fountain's level, as they come often.
+
+FOUND
+  - Nothing.
+
+NOT DONE
+  - Nobody has listened. Left open for her ear in a release (done when).
+
+PICK UP
+  Build #359, worn gear seen on the horse at its simplest.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 4 of 10 closed.
+    #354 Each horse attacks at its own cadence - closed
+    #355 A speed stat - closed
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built-untested
+    #357 The most basic abilities: each carries its element - closed
+    #358 A sound of its own for each ability - built-untested
+    #359 Worn gear seen on the horse - unbuilt
+    #360 A lesson pop-up when the boss is met - closed
+    #361 A look of its own for every piece - unbuilt
+    #363 A dragged piece dangles from the pointer, swinging - built-untested
+    #364 A crash leaves a log beside the game - unbuilt
+  Riding along: #360 (menus, closed); in part #356 and #363 (menus, built).
