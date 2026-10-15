@@ -57,6 +57,9 @@ order". First carried out 2026-10-10 for 0.2.0 (#197); corrected 2026-10-11 for
    The asset name is exactly HorseHeroes-Setup.exe, every release. The
    notes say it is unsigned, what Windows will show, and never tell anyone
    to turn protection off.
+   The notes are written from the whole range since the last release
+   (git log vPREV..HEAD, and the issues closed since its date), not from
+   this session's work alone.
    The notes always have pictures (owner, 2026-10-11: "There should
    always be images in each release description, ideally 1-3 images per
    feature"). Every feature the notes name has one to three, under its

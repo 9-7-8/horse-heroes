@@ -127,6 +127,24 @@ NOTES
     2026-10-10, in both PowerShell and Git Bash). When "cargo" is not
     recognised, call it by its full path: ~/.cargo/bin/cargo.exe.
 
+  - Claude Code kills a background command when the machine runs low on
+    memory while the session is idle (twice on 2026-10-15, a tour run
+    with the Minecraft server up; the same was found on another project).
+    A long run that must finish - the tour, the walk, the lesson walk -
+    goes in the foreground with a timeout of 600000, which is not reaped.
+    Say how long it will take first; ask before anything over 30 minutes.
+  - Read the log on disk (run.log, target/*.log) before asking the owner
+    what happened. A window that opened, or exit 0, is not a clean run:
+    look for ERROR and WARN in it (the GOG line aside).
+  - A test that fails after a change may have failed before it: stash the
+    change (git stash), run it at HEAD, then decide which.
+  - PowerShell traps: `f 'a' + $x` passes several arguments, so wrap a
+    computed argument in parentheses; [IO.File] resolves a relative path
+    against the process's directory, not the shell's; a CRLF here-string
+    never matches an LF file; Measure-Object -Line skips blank lines.
+  - An edit containing \uXXXX can arrive as the character itself. Grep
+    the file for what went in; a green build does not show it.
+
   - Do not run cargo fmt on the whole tree: the code is not kept to
     rustfmt's defaults, and on 2026-10-10 it rewrote twelve files that
     had nothing to do with the change (put back with git checkout).

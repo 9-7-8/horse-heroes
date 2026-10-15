@@ -36,7 +36,9 @@ THE ORDER
       no test, a data file nothing validates, a rule in docs/ or vision.md
       the sim is meant to keep and nothing asserts.
    b. Write the tests and run them. A test that fails has found a bug: back
-      to tier 1.
+      to tier 1. A new test that passes is seen to fail once: break the
+      code it checks on purpose, run it, put the code back. A check that
+      has never failed may be checking nothing.
    Bound it: cover what exists today, in one sitting. Do not write tests for
    systems that are not built, and do not test Bevy rendering by unit test -
    that is checked by running and looking (build-and-run.txt, step 4).
@@ -55,13 +57,22 @@ THE ORDER
       it touches design. For Bevy code, read the pinned version's docs first.
 
 DOING IT
+  - First make sure it is not done already. Work that looks done (in the
+    code, a commit, a closed sibling issue) is said to the owner through
+    the question tool before it is redone.
+  - An issue, report or handover that names a function, API, file or
+    precedent may name one that does not exist: grep for each before
+    writing against it. Read any "this changes nothing else" in it
+    against the code; it is the least-checked sentence in a note.
   - One thing. If it turns out to be several, do the first and file the rest.
   - Check it by build-and-run.txt, with the cheapest step that proves it;
     anything visible is run and looked at.
   - Commit code and data, with "Closes #N" when the issue's "done when" is
     met in full. If only part is met, say which part in a comment on the
     issue and leave it open.
-  - docs/<system>.md for a system built or changed.
+  - docs/<system>.md for a system built or changed. Writing it audits the
+    code: a sentence the code does not bear out is fixed in one or the
+    other, so leave time for that.
   - Once 0.2.2 has shipped: a lesson for a new feature, in
     assets/data/lessons.ron, as part of the feature (CLAUDE.md, rule 5).
 
