@@ -1,0 +1,55 @@
+SESSION 2026-10-15 - worn gear seen on the horse (#359)
+
+ASKED
+  /next: the next thing by the order. Tiers 1 and 2 empty (#246 waits only
+  on her look); PICK UP's #359.
+
+DONE
+  - #359 (a7cc4fd): a piece worn shows on its horse in its rarity's colour.
+    Frame::worn(slot) in src/sim/horse_shape.rs builds it from the horse's
+    own sections: Head a band round the head, Body a blanket over the back,
+    Saddle a raised block with flaps over the blanket. scene.rs show_worn
+    reads the party every frame, so Equip, a swap, Undo and a drag show at
+    once. A thin black rim round each keeps a white Common piece readable
+    on the pale horses. --worn dresses every horse, for pictures.
+  - Tutorial: the "it is on" lesson's line is now "It is on: see it on the
+    horse. ..." (lessons.ron, docs/lessons.md).
+  - Checked: 236 tests; the new one seen to fail with the blanket's swell
+    taken out. Seen running: --worn in town, walking, fighting at
+    1120x640; the lesson walk (Equip on Sable, the swap to Juniper); the
+    tour (87-88 Undo leaves the horses bare, 91 a drag puts the halter on).
+    Docs: docs/horse-model.md "Worn gear".
+
+DECIDED (for her)
+  - The band sits behind the eyes, 8-34% along the head; the blanket hangs
+    60% down the trunk; the saddle stands 3% of height above the back.
+  - A dark rim round worn gear, as Common's white vanished on grey horses.
+
+FOUND
+  - IDLE_LESSON names a folder, not a file prefix (a first run saved
+    nothing, with Bevy IO errors in the log).
+
+NOT DONE
+  - The three-layer look drawn on the horse: #361's done-when.
+  - The exhausted horse lying in its gear was not pictured (--worn
+    changes the fights, so seed 3's time no longer has one); it is a child
+    of the trunk and moves with it.
+  - She has not looked.
+
+PICK UP
+  Build #361, a look of its own for every piece, then draw it on the worn
+  gear from #359.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 5 of 10 closed.
+    #354 Each horse attacks at its own cadence - closed
+    #355 A speed stat - closed
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built-untested
+    #357 The most basic abilities: each carries its element - closed
+    #358 A sound of its own for each ability - built-untested
+    #359 Worn gear seen on the horse - closed
+    #360 A lesson pop-up when the boss is met - closed
+    #361 A look of its own for every piece - unbuilt
+    #363 A dragged piece dangles from the pointer, swinging - built-untested
+    #364 A crash leaves a log beside the game - unbuilt
+  Riding along: #360 (menus, closed); in part #356 and #363 (menus, built).
