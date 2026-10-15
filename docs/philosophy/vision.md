@@ -509,6 +509,14 @@ enemy, misses, reactions never critting, and flat defence.
 - **Basic attacks are neutral unless the mouth weapon gives them an
   element.** They never apply or consume a Primer.
 
+## Cadence and speed (owner, testing 0.2.3, 2026-10-14)
+
+- **The horses attack at different cadences**, "to make the combat feel
+  more natural": a party never hits in step.
+- **Speed also affects attack speed.** A horse's speed, which already sets
+  its travel speed by its gait (Gaits, below), also sets how often it
+  attacks. How strongly is tuning, and a number in data.
+
 ## Menus and navigation (owner, 2026-10-10)
 
 Her judgment: "This game is going to live and die on how easy and intuitive
