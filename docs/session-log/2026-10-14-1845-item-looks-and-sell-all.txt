@@ -1,0 +1,41 @@
+SESSION 2026-10-14 18:45 - Every piece looks its own; sell all by rarity
+
+ASKED
+  "unique art for every item. We'll do three layers: the background
+  color ..., a pattern ..., and then a decoration ... These will need to
+  render in #359, very very simply"; then "Put this on the epic where
+  we're adding selling, but make sure there's a way to sell all by each
+  rarity tier. Then end the session"
+
+DONE
+  - #361 filed in 0.2.4: a look of three layers for every piece, drawn in
+    the menus and on the horse (#359 updated to draw it). vision.md,
+    "Every piece looks its own".
+  - #362 filed in 0.4.1 The stall, as a sub-issue of epic #78 (where #99,
+    listing for sale, sits): Sell all, one action per rarity tier, with
+    #99's protections.
+  - Nothing built. cargo check and 221 tests green.
+
+DECIDED
+  - Hers, through the question tool: the background is the rarity's
+    colour; pattern and decoration are cosmetic for now.
+  - The session's, for her: "this" was read as the sell-all-by-rarity
+    request; selling is listing at the stall, as #99 has it, so Sell all
+    lists a tier; Rare and above ask once for the batch.
+
+PICK UP
+  Build #356 (menus first): select a horse by pressing it in the scene,
+  with an outline, and Equip with a drop-down of the horses.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 8 closed. Open:
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat: travel between encounters and attack frequency
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities: each carries its element
+    #358 A sound of its own for each ability, and for its hits by element
+    #359 Worn gear seen on the horse, at its simplest
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+  Riding along: the Details line of the things to try, and #353 built
+  and waiting on your look.
