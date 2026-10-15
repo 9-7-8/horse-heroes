@@ -513,9 +513,10 @@ enemy, misses, reactions never critting, and flat defence.
 
 - **The horses attack at different cadences**, "to make the combat feel
   more natural": a party never hits in step.
-- **Speed also affects attack speed.** A horse's speed, which already sets
-  its travel speed by its gait (Gaits, below), also sets how often it
-  attacks. How strongly is tuning, and a number in data.
+- **Speed is a stat, and it governs two things:** how quickly the horses
+  move between encounters and how often each attacks ("let's add a speed
+  stat that governs both"). Gaits set it later (Gaits, below). How strongly
+  is tuning, and a number in data.
 
 ## Menus and navigation (owner, 2026-10-10)
 
