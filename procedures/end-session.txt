@@ -76,24 +76,25 @@ milestone, in version order, after the latest published release:
        gh release list --repo 9-7-8/horse-heroes --limit 1
        gh api "repos/9-7-8/horse-heroes/milestones?state=open&per_page=100" --jq '.[] | "\(.title)\t\(.open_issues) open\t\(.closed_issues) closed"'
        gh issue list --repo 9-7-8/horse-heroes --milestone "<x.y.z Theme>" --state open
-   Say it as a short block: the release's name, how many of its issues
-   are closed of how many, and then EVERY issue of the release, closed
-   ones too, one line each, as "#N title - status" (owner, 2026-10-15:
-   "show the status of each of the ten issues as either open /
-   built-untested / closed"). The status is one of these, the first
-   that fits:
-       closed           closed.
-       built, untested  open and labelled "built": everything is built
-                        and committed; it waits only on her trying it.
-                        Put the label on when an issue is left open for
-                        that alone, and say so in a comment.
-       hers             labelled "decision" or "proposed": hers to rule.
-       built in part    open, and a commit that changed src/ or assets/
-                        names it (git log -E --grep "#N\b" -- src assets),
-                        but part of "done when" is not built. A vision or
-                        session-log commit that names it builds nothing.
-       open             nothing of it built yet.
+   Say it as a short block: the release's name and how many of its issues
+   are closed of how many, then EVERY issue of the release, closed ones
+   too, one line each, as "#N title - status". The status is always one of
+   three words, no others (owner, 2026-10-15: "unbuilt / built-untested /
+   closed"):
+       closed          the issue is closed.
+       built-untested  open and labelled "built": everything is built and
+                       committed and it waits only on her trying it. Put
+                       the label on when an issue is left open for that
+                       alone, and say so in a comment on it.
+       unbuilt         any other open issue, whether nothing of it is
+                       built, part of it is, or it waits on her ruling
+                       (decision, proposed).
        gh issue list --repo 9-7-8/horse-heroes --milestone "<x.y.z Theme>" --state all --json number,title,state,labels
+   Example:
+       0.2.4 Fixes from testing 0.2.3: 1 of 10 closed.
+         #354 Each horse attacks at its own cadence - unbuilt
+         #356 Select a horse by pressing it in the scene - built-untested
+         #360 A lesson pop-up when the boss is met - closed
    Under it, any
    issue labelled "menus" from another milestone that was finished or
    built in part since the latest release: it rides this one (menus

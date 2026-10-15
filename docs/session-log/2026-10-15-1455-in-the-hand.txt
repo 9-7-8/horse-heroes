@@ -25,13 +25,12 @@ DONE
     machine) sets env.PATH to the Machine and User PATH; "cargo" resolves
     in this session's shells now. build-and-run.txt says so.
   - The end step: end-session.txt's NEXT RELEASE now lists every issue of
-    the release with a status: closed, built untested, hers, built in
-    part, open. A new label "built" marks an issue open only for her
+    the release with a status: unbuilt, built-untested or closed (her
+    three words, set after the first summary). A new label "built" marks an issue open only for her
     trying it; put on #246, #356 and #363. next-thing.txt says to label it.
 
 DECIDED (for her)
-  - The extra statuses "hers" (decision/proposed) and "built in part", and
-    the "built" label to make "built, untested" checkable.
+  - The "built" label, to make built-untested checkable.
   - The piece in the hand is 36 px, on an 8 px string, under the pointer's
     card; it covers part of the target under the pointer, never its whole
     edge. The flight takes 0.14 s.
@@ -53,14 +52,14 @@ PICK UP
 
 NEXT RELEASE
   0.2.4 Fixes from testing 0.2.3: 1 of 10 closed.
-    #354 Each horse attacks at its own cadence - open
-    #355 A speed stat - open
-    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built, untested
-    #357 The most basic abilities - open
-    #358 A sound of its own for each ability - open
-    #359 Worn gear seen on the horse - open
+    #354 Each horse attacks at its own cadence - unbuilt
+    #355 A speed stat - unbuilt
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built-untested
+    #357 The most basic abilities - unbuilt
+    #358 A sound of its own for each ability - unbuilt
+    #359 Worn gear seen on the horse - unbuilt
     #360 A lesson pop-up when the boss is met - closed
-    #361 A look of its own for every piece - open
-    #363 A dragged piece dangles from the pointer, swinging - built, untested
-    #364 A crash leaves a log beside the game - open
+    #361 A look of its own for every piece - unbuilt
+    #363 A dragged piece dangles from the pointer, swinging - built-untested
+    #364 A crash leaves a log beside the game - unbuilt
   Riding along: #360 (menus, closed); in part #356 and #363 (menus, built).
