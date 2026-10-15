@@ -1071,8 +1071,9 @@ mod tests {
         assert!(game.lessons.showing().is_some_and(|def| def.done == Done::Did(Event::Selected)));
         shell.inspect(2, None);
         follow(&mut game, &mut shell, &map, &mut held);
-        let equip = map.control_named("Equip").unwrap();
-        assert_eq!(shell.hint().unwrap().about, About::Control(equip));
+        // Who wears it is chosen: on Another horse, the list beside Equip.
+        let others = map.control_named("Another horse").unwrap();
+        assert_eq!(shell.hint().unwrap().about, About::Control(others));
 
         // Equip: the carried piece goes on. That is no swap.
         let hand = shell.hand();

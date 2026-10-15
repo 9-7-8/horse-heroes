@@ -148,7 +148,7 @@ lessons: [
         due: Card,
         shown: Town,
         target: Selected,
-        words: "The selected horse: the card's before and after are its. Choose another.",
+        words: "The selected horse: the card's before and after are its. Press another horse.",
         done: Did(Selected),
     ),
     // Every kill throws gear (#352): the first trail brings back several
@@ -162,12 +162,14 @@ lessons: [
         done: Did(Another),
     ),
     // Nothing equips by itself (#351): leaving it is valid, and loses nothing.
+    // On Another horse (#356): Equip beside it names the selected horse, and
+    // this opens the list of the others, so the choice of who is seen.
     (
         id: "equip or leave it",
         due: Card,
         shown: Town,
-        target: Control("Equip"),
-        words: "You choose who wears it. Left alone, it stays carried, and nothing is lost.",
+        target: Control("Another horse"),
+        words: "You choose who: Equip's, or another from this list. Left alone, it stays carried.",
         done: Did(Equipped),
     ),
     // Only once a swap has been done: never before one is tried.
