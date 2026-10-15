@@ -1385,7 +1385,7 @@ mod tests {
     #[test]
     fn a_lessons_popup_stops_the_game_until_it_is_answered() {
         use crate::fx::sound::Heard;
-        use crate::game::{Killed, Landed, Withdrew, advance};
+        use crate::game::{Cast, Killed, Landed, Withdrew, advance};
         use bevy::time::{TimePlugin, TimeUpdateStrategy};
         use std::time::Duration;
 
@@ -1403,6 +1403,7 @@ mod tests {
                 .add_message::<Killed>()
                 .add_message::<Withdrew>()
                 .add_message::<Landed>()
+                .add_message::<Cast>()
                 .add_systems(Update, (advance, teach).chain());
             app
         };

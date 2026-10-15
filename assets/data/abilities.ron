@@ -19,6 +19,9 @@
 //   cooldown seconds between one use and the next.
 //   first    seconds to its first use on a trail; the cooldown if left out.
 //   does     its one plain line, in the menus.
+//   sound    heard as it is used, by its name in sounds.ron (#358); no two
+//            the same. Its hits sound by their element, named in `sound` in
+//            loot_shower.ron.
 [
     (
         id: "ember_shot",
@@ -27,6 +30,7 @@
         kind: Shot(2.5),
         cooldown: 4.0,
         does: "A heavy shot at the first enemy, in Fire.",
+        sound: "ability_ember_shot",
     ),
     (
         id: "frost_burst",
@@ -35,6 +39,7 @@
         kind: Burst(2.0),
         cooldown: 5.0,
         does: "Ice on every enemy at once.",
+        sound: "ability_frost_burst",
     ),
     (
         id: "thorn_shot",
@@ -43,6 +48,7 @@
         kind: Shot(2.5),
         cooldown: 4.0,
         does: "A heavy shot at the first enemy, in Plant.",
+        sound: "ability_thorn_shot",
     ),
     // The first Ward comes early, so it is seen in every fight.
     (
@@ -53,5 +59,6 @@
         cooldown: 8.0,
         first: Some(2.0),
         does: "The party takes half damage from hits for 4 seconds.",
+        sound: "ability_ward",
     ),
 ]

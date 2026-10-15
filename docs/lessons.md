@@ -246,7 +246,9 @@ at the gate under it until Got it.
 
 **The road, a starting set** until #295: the horses fight by themselves
 (first fight, until a kill is watched); each has one ability (first
-ability, until another is watched); each number is a hit (#249: first
+ability, until another is watched; its sound, #358, is heard as it
+fires under this lesson, so the ear learns each ability by watching
+it); each number is a hit (#249: first
 kill, until another kill is watched; docs/damage-numbers.md). The
 party element's line (#299) went with the party element. **A resisted
 ability** (#357): due at the first resisted hit, shown in town, on the

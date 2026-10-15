@@ -1,13 +1,16 @@
 //! Sound for the fountain: a launch sound as a burst leaves, a sound for
 //! each piece of gear thrown that tells its rarity, landings, and a pickup
 //! tick whose pitch climbs across a stream of pickups. And for the death the
-//! fountain comes out of: a sound as the body breaks.
+//! fountain comes out of: a sound as the body breaks. And for the fight
+//! (#358): a sound of its own for each ability as it is used, and for each
+//! horse's hit by its element.
 //!
 //! There are no sound files. Every sound is a recipe in
 //! `assets/data/sounds.ron`, made into samples when the game starts
 //! (`render`). Which sound plays when is data too: a rarity names its own in
 //! `gear.ron`, a fountain its own in `loot_shower.ron`, a death its own in
-//! `deaths.ron`, and the rest are in `sound` in `loot_shower.ron`.
+//! `deaths.ron`, an ability its own in `abilities.ron`, and the rest are in
+//! `sound` in `loot_shower.ron`.
 //!
 //! Making the samples and deciding what is heard (`Run`, `Gate`) are plain
 //! arithmetic, so they are unit-tested; the system below them only plays.
@@ -24,8 +27,9 @@ use serde::Deserialize;
 
 use super::death::Deaths;
 use super::drops::{Kind, Shower};
-use crate::game::Game;
-use crate::sim::data::GearTable;
+use crate::game::{Cast, Game, Landed};
+use crate::sim::data::{Data, Element};
+use crate::sim::expedition::Struck;
 use crate::sim::rng::Rng;
 
 /// Samples a second of every sound made here.
@@ -95,6 +99,29 @@ pub struct SoundFeel {
     pub pickup_scale: Vec<f32>,
     pub pickup_most_steps: usize,
     pub pickup_run_secs: f32,
+    pub hits: HitSounds,
+    pub hit_gap_secs: f32,
+    pub hit_level: f32,
+}
+
+/// A horse's hit on an enemy, by its element (#358).
+#[derive(Clone, Debug, Deserialize)]
+pub struct HitSounds {
+    pub plain: String,
+    pub fire: String,
+    pub ice: String,
+    pub plant: String,
+}
+
+impl HitSounds {
+    pub fn of(&self, element: Option<Element>) -> &str {
+        match element {
+            None => &self.plain,
+            Some(Element::Fire) => &self.fire,
+            Some(Element::Ice) => &self.ice,
+            Some(Element::Plant) => &self.plant,
+        }
+    }
 }
 
 /// How long a sound lasts: until its last voice ends.
@@ -204,6 +231,34 @@ impl Gate {
     }
 }
 
+/// The fight's sounds: an ability as it is used and each hit, by name. One
+/// heard again within `hit_gap_secs` of the last time is not played, so
+/// three horses on one ability, or a Burst on three enemies, are one sound
+/// and a busy fight does not turn into noise.
+#[derive(Default)]
+pub struct Gates {
+    /// Seconds until each sound is heard again, by its name.
+    shut: BTreeMap<String, f32>,
+}
+
+impl Gates {
+    pub fn wait(&mut self, dt: f32) {
+        for shut in self.shut.values_mut() {
+            *shut -= dt;
+        }
+        self.shut.retain(|_, shut| *shut > 0.0);
+    }
+
+    /// True if this sound is heard.
+    pub fn pass(&mut self, feel: &SoundFeel, sound: &str) -> bool {
+        if self.shut.contains_key(sound) {
+            return false;
+        }
+        self.shut.insert(sound.to_string(), feel.hit_gap_secs);
+        true
+    }
+}
+
 /// How loud a piece's landing is on its `touch`: the first is 0, and each
 /// bounce after it is quieter.
 pub fn landing_level(feel: &SoundFeel, touch: u32) -> f32 {
@@ -212,18 +267,22 @@ pub fn landing_level(feel: &SoundFeel, touch: u32) -> f32 {
 
 /// Every sound the data names, with where it is named: each must be in
 /// `sounds.ron`. A rarity may name none.
-pub fn named<'a>(
-    shower: &'a Shower,
-    gear: &'a GearTable,
-    deaths: &'a Deaths,
-) -> Vec<(String, &'a str)> {
-    let feel = &shower.sound;
+pub fn named<'a>(shower: &'a Shower, data: &'a Data, deaths: &'a Deaths) -> Vec<(String, &'a str)> {
+    let (feel, gear) = (&shower.sound, &data.gear);
     let mut names = vec![
         ("loot_shower.ron: land_coin".to_string(), feel.land_coin.as_str()),
         ("loot_shower.ron: land_gear".to_string(), feel.land_gear.as_str()),
         ("loot_shower.ron: pickup_coin".to_string(), feel.pickup_coin.as_str()),
         ("loot_shower.ron: pickup_gear".to_string(), feel.pickup_gear.as_str()),
+        ("loot_shower.ron: hits plain".to_string(), feel.hits.of(None)),
     ];
+    for element in Element::ALL {
+        let place = format!("loot_shower.ron: hits {}", element.name());
+        names.push((place, feel.hits.of(Some(element))));
+    }
+    for ability in &data.abilities {
+        names.push((format!("abilities.ron: {}", ability.id), &ability.sound));
+    }
     for (name, fountain) in &shower.fountains {
         names.push((format!("loot_shower.ron: fountain `{name}`"), &fountain.sound));
     }
@@ -334,6 +393,7 @@ struct Hearing {
     waiting: Vec<(f32, String)>,
     run: Run,
     gate: Gate,
+    fight: Gates,
     /// Landings that were let through, which is what their pitch varies by.
     landings: u64,
 }
@@ -346,7 +406,7 @@ fn setup(
     mut clips: ResMut<Assets<Clip>>,
 ) {
     let book = SoundBook::load();
-    for (place, name) in named(&shower, &game.data.gear, &deaths) {
+    for (place, name) in named(&shower, &game.data, &deaths) {
         assert!(book.sounds.contains_key(name), "{place}: no sound named `{name}` in sounds.ron");
     }
     let made = book
@@ -367,6 +427,8 @@ fn play(
     shower: Res<Shower>,
     clips: Res<Clips>,
     mut heard: MessageReader<Heard>,
+    mut casts: MessageReader<Cast>,
+    mut landed: MessageReader<Landed>,
     mut hearing: ResMut<Hearing>,
 ) {
     let dt = time.delta_secs();
@@ -374,6 +436,7 @@ fn play(
     let hearing = &mut *hearing;
     hearing.run.wait(dt);
     hearing.gate.wait(dt);
+    hearing.fight.wait(dt);
 
     // What to play this frame: a sound, how loud, and how many semitones up.
     let mut due: Vec<(&str, f32, f32)> = Vec::new();
@@ -418,6 +481,21 @@ fn play(
         }
     }
     due.extend(launches.iter().map(|sound| (sound.as_str(), 1.0, 0.0)));
+    for Cast { ability } in casts.read() {
+        let sound = game.data.abilities[*ability].sound.as_str();
+        if hearing.fight.pass(feel, sound) {
+            due.push((sound, 1.0, 0.0));
+        }
+    }
+    for Landed { hit, .. } in landed.read() {
+        if matches!(hit.struck, Struck::Horse(_)) {
+            continue;
+        }
+        let sound = feel.hits.of(hit.element);
+        if hearing.fight.pass(feel, sound) {
+            due.push((sound, feel.hit_level, 0.0));
+        }
+    }
 
     if hearing.mute || feel.volume <= 0.0 {
         return;
@@ -530,7 +608,7 @@ mod tests {
     #[test]
     fn every_sound_named_is_there() {
         let (shower, data, book) = (Shower::load(), Data::load(), SoundBook::load());
-        for (place, name) in named(&shower, &data.gear, &Deaths::load()) {
+        for (place, name) in named(&shower, &data, &Deaths::load()) {
             assert!(book.sounds.contains_key(name), "{place}: no sound `{name}`");
         }
         for rarity in &data.gear.rarities {
@@ -568,7 +646,7 @@ mod tests {
             }
         }
         let drop_sounds: Vec<&str> = rarities.iter().map(|r| r.look.sound.as_str()).collect();
-        for (place, name) in named(&shower, &data.gear, &Deaths::load()) {
+        for (place, name) in named(&shower, &data, &Deaths::load()) {
             let uses = drop_sounds.iter().filter(|&&sound| sound == name).count();
             assert!(uses == 0 || place.starts_with("gear.ron"), "{place} uses {name}");
         }
@@ -609,7 +687,7 @@ mod tests {
             }
         }
         let death_sounds: Vec<&str> = deaths.deaths.values().map(|d| d.sound.as_str()).collect();
-        for (place, name) in named(&shower, &data.gear, &deaths) {
+        for (place, name) in named(&shower, &data, &deaths) {
             assert!(
                 !death_sounds.contains(&name) || place.starts_with("deaths.ron"),
                 "{place} uses {name}"
@@ -641,6 +719,58 @@ mod tests {
             let loudest = shower.sound.volume * peak(&both);
             assert!(loudest <= 1.0, "{}: {loudest}", enemy.id);
         }
+    }
+
+    /// An ability can be told by ear (#358): each names a sound of its own,
+    /// unlike every other ability's in its notes, and each element of a hit
+    /// has one unlike the others'. No fight sound is used for anything else.
+    #[test]
+    fn an_ability_and_a_hit_are_told_by_their_sound() {
+        let (shower, data, book) = (Shower::load(), Data::load(), SoundBook::load());
+        let notes = |name: &str| -> Vec<(u32, u32, u32)> {
+            let mut notes: Vec<(u32, u32, u32)> = book.sounds[name]
+                .iter()
+                .map(|v| ((v.at * 1000.0) as u32, v.freq as u32, v.wave as u32))
+                .collect();
+            notes.sort();
+            notes
+        };
+        let hits = &shower.sound.hits;
+        let mut fight: Vec<&str> = data.abilities.iter().map(|a| a.sound.as_str()).collect();
+        fight.push(hits.of(None));
+        fight.extend(Element::ALL.map(|element| hits.of(Some(element))));
+        for (i, sound) in fight.iter().enumerate() {
+            assert!(book.sounds.contains_key(*sound), "no sound `{sound}`");
+            for other in &fight[..i] {
+                assert_ne!(sound, other);
+                assert_ne!(notes(sound), notes(other), "{sound} and {other}");
+            }
+        }
+        // A hit comes often, so it is short.
+        for sound in &fight[data.abilities.len()..] {
+            assert!(length_secs(&book.sounds[*sound]) <= 0.15, "{sound} is long for a hit");
+        }
+        for (place, name) in named(&shower, &data, &Deaths::load()) {
+            let fights = place.starts_with("abilities.ron") || place.starts_with("loot_shower.ron: hits");
+            assert!(fights || !fight.contains(&name), "{place} uses {name}");
+        }
+        assert!(shower.sound.hit_level > 0.0 && shower.sound.hit_level <= 1.0);
+    }
+
+    /// The same fight sound twice within the gap is heard once, and again
+    /// once the gap has passed; another sound is not held back by it.
+    #[test]
+    fn a_fight_sound_is_not_heard_twice_at_once() {
+        let feel = feel();
+        assert!(feel.hit_gap_secs > 0.0 && feel.hit_gap_secs < 0.2);
+        let mut gates = Gates::default();
+        let heard = (0..3).filter(|_| gates.pass(&feel, "hit_ice")).count();
+        assert_eq!(heard, 1);
+        assert!(gates.pass(&feel, "ability_frost_burst"));
+        gates.wait(feel.hit_gap_secs / 2.0);
+        assert!(!gates.pass(&feel, "hit_ice"));
+        gates.wait(feel.hit_gap_secs);
+        assert!(gates.pass(&feel, "hit_ice"));
     }
 
     /// A stream of pickups is a rising run: every pickup is higher than the

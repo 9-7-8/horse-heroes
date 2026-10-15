@@ -2,8 +2,9 @@
 // game starts, from the recipe here, so every one is ours to give away under
 // the GPL and nothing is read from disk. Which sound plays when is not here:
 // a rarity names its drop sound in gear.ron, a fountain its launch sound in
-// loot_shower.ron, a death its own in deaths.ron, and the landing and pickup
-// sounds are named in `sound` in loot_shower.ron.
+// loot_shower.ron, a death its own in deaths.ron, an ability its own in
+// abilities.ron, and the landing, pickup and hit sounds are named in `sound`
+// in loot_shower.ron.
 //
 // A sound is a list of voices, added together. A voice is one tone:
 //   wave     Sine, Triangle, Square, or Noise (a hiss; `freq` is how bright)
@@ -60,6 +61,56 @@
         "pickup_gear": [
             (wave: Sine, freq: 392, secs: 0.22, level: 0.34),
             (wave: Sine, freq: 784, secs: 0.18, level: 0.18),
+        ],
+
+        // An ability being used, named by the ability in abilities.ron
+        // (#358). Each is told by its shape as much as its pitch.
+        // Ember Shot: a flare of air rushing up, over a rising note.
+        "ability_ember_shot": [
+            (wave: Noise, freq: 1500, slide: 24, secs: 0.2,  attack: 0.03, level: 0.3),
+            (wave: Sine,  freq: 330,  slide: 12, secs: 0.18, attack: 0.02, level: 0.24),
+        ],
+        // Frost Burst: a shimmer of high glassy notes falling, one after the
+        // other.
+        "ability_frost_burst": [
+            (wave: Sine, freq: 2637, at: 0.0,  secs: 0.25, attack: 0.002, level: 0.16),
+            (wave: Sine, freq: 2093, at: 0.05, secs: 0.25, attack: 0.002, level: 0.16),
+            (wave: Sine, freq: 1760, at: 0.1,  secs: 0.3,  attack: 0.002, level: 0.16),
+            (wave: Noise, freq: 6000,          secs: 0.3,  attack: 0.05,  level: 0.08),
+        ],
+        // Thorn Shot: a low twang, plucked and bending down.
+        "ability_thorn_shot": [
+            (wave: Triangle, freq: 196, slide: -3, secs: 0.22, attack: 0.001, level: 0.4),
+            (wave: Square,   freq: 98,  slide: -3, secs: 0.08, attack: 0.001, level: 0.08),
+        ],
+        // Ward: a soft swell of an open fifth.
+        "ability_ward": [
+            (wave: Sine, freq: 262, secs: 0.55, attack: 0.15, level: 0.24),
+            (wave: Sine, freq: 392, secs: 0.55, attack: 0.15, level: 0.2),
+            (wave: Sine, freq: 524, secs: 0.45, attack: 0.2,  level: 0.08),
+        ],
+
+        // A horse's hit on an enemy, by the hit's element, named in `sound`
+        // in loot_shower.ron (#358). Short, as they come often.
+        // No element: a dull thump.
+        "hit_plain": [
+            (wave: Sine,  freq: 140, slide: -5, secs: 0.07, attack: 0.001, level: 0.36),
+            (wave: Noise, freq: 1200,           secs: 0.03, attack: 0.001, level: 0.14),
+        ],
+        // Fire: a crackle.
+        "hit_fire": [
+            (wave: Noise,  freq: 4500,             secs: 0.1,  attack: 0.001, level: 0.24),
+            (wave: Square, freq: 220,  slide: -12, secs: 0.06, attack: 0.001, level: 0.08),
+        ],
+        // Ice: a tink.
+        "hit_ice": [
+            (wave: Sine, freq: 1760, secs: 0.12, attack: 0.001, level: 0.24),
+            (wave: Sine, freq: 2640, secs: 0.08, attack: 0.001, level: 0.12),
+        ],
+        // Plant: a woody knock.
+        "hit_plant": [
+            (wave: Triangle, freq: 330, slide: -7, secs: 0.09, attack: 0.001, level: 0.32),
+            (wave: Noise,    freq: 700,            secs: 0.05, attack: 0.001, level: 0.12),
         ],
 
         // A piece of gear being thrown, one for each rarity: more notes,

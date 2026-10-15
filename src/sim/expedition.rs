@@ -219,6 +219,10 @@ pub struct Expedition {
     pub kills: Vec<Kill>,
     /// Hits not yet shown, oldest first (#249). Taken as the kills are.
     pub hits: Vec<Hit>,
+    /// Abilities used and not yet heard, oldest first, by their place in
+    /// `abilities.ron` (#358). Taken as the hits are; a cast's hits, if it
+    /// has any, are in `hits` from the same tick.
+    pub casts: Vec<usize>,
     /// Every piece dropped so far, in order.
     pub drops: Vec<Gear>,
     /// What has happened that a lesson may wait for (#290), oldest first.
@@ -287,6 +291,7 @@ impl Expedition {
             log: vec!["The party sets out.".into()],
             kills: Vec::new(),
             hits: Vec::new(),
+            casts: Vec::new(),
             drops: Vec::new(),
             events: Vec::new(),
             outcome: None,
@@ -399,6 +404,7 @@ impl Expedition {
 
             if self.party[i].ability_timer <= 0.0 {
                 self.events.push(Event::Ability);
+                self.casts.push(self.party[i].ability);
                 let (attack, elemental) = self.power(i);
                 let ability = &data.abilities[self.party[i].ability];
                 let (element, verb) = (ability.element, format!("{} on", ability.named()));
@@ -1226,6 +1232,27 @@ mod tests {
                 run.tick(&data, TICK);
             }
             assert_eq!(lines_with(&run, line), 3, "{line}");
+        }
+    }
+
+    /// Every use of an ability is told once, by which ability it was, so its
+    /// sound can be played (#358); a plain hit is no use of one.
+    #[test]
+    fn every_use_of_an_ability_is_told_once() {
+        let data = Data::load();
+        for (index, ability) in data.abilities.iter().enumerate() {
+            let mut run = fighting(&data, 0, &[&[("corrupted_stag", Element::Fire)]]);
+            run.party[0].ability = index;
+            only_the_ability_of(&mut run, 0);
+            run.foes[0].health = i32::MAX;
+            run.tick(&data, TICK);
+            assert_eq!(run.casts, vec![index], "{}", ability.id);
+
+            run.casts.clear();
+            run.party[0].ability_timer = f32::MAX;
+            run.party[0].attack_timer = TICK * 0.5;
+            run.tick(&data, TICK);
+            assert!(!run.hits.is_empty() && run.casts.is_empty(), "{}", ability.id);
         }
     }
 

@@ -212,6 +212,12 @@ What is heard, and where it is named:
 | a piece of gear is thrown | one for each rarity, below | the rarity's `look.sound`, `gear.ron` |
 | a piece touches the ground | `land_coin`, a clink; `land_gear`, a thud | `sound.land_coin`, `sound.land_gear` |
 | a piece reaches the party | `pickup_coin`, a tick; `pickup_gear`, a soft note | `sound.pickup_coin`, `sound.pickup_gear` |
+| a horse uses its ability (#358) | one for each: Ember Shot a flare rushing up, Frost Burst a shimmer of falling glassy notes, Thorn Shot a low twang, Ward a soft swell | the ability's `sound`, `abilities.ron` |
+| a horse's hit lands on an enemy | by the hit's element: `hit_plain` a thump, `hit_fire` a crackle, `hit_ice` a tink, `hit_plant` a woody knock, at `sound.hit_level` | `sound.hits`, `loot_shower.ron` |
+
+An enemy's hit on a horse makes no sound. The sim tells each use of an
+ability in `Expedition::casts`, which `advance` sends on as `Cast`; the
+hits come as `Landed`, the message the damage numbers read.
 
 The rarity sounds grow with the tier: Normal is one dull note, Magic two
 notes going up, Rare three bright notes up an octave with a glint on the
@@ -234,6 +240,10 @@ Sound is never one noise per event
   over ten coins, so an ordinary kill is a few rising notes and a final
   kill a whole run. Gear arriving has its own sound and is not part of the
   run.
+- **The fight.** An ability's sound or a hit's heard again within
+  `hit_gap_secs` of the last time is not played (`Gates`, one gate for
+  each sound), so a Frost Burst on three enemies is one tink, and two
+  horses on one ability firing together are one sound.
 
 `sound.volume` in `loot_shower.ron` multiplies every sound; zero turns
 sound off, and it is where a settings control will reach. `--mute` plays

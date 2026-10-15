@@ -55,6 +55,9 @@ pub struct AbilityDef {
     #[serde(default)]
     pub first: Option<f32>,
     pub does: String,
+    /// The sound it makes as it is used, by its name in `sounds.ron`
+    /// (#358). Its hits sound by their element, apart from this.
+    pub sound: String,
 }
 
 impl AbilityDef {

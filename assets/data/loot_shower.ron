@@ -105,6 +105,13 @@
     //                   octave up
     //   pickup_most_steps   the run stops climbing after this many notes
     //   pickup_run_secs     a pickup this long after the last starts a new run
+    //   hits            a horse's hit on an enemy, by the hit's element:
+    //                   plain for one with none (#358). An ability's own
+    //                   sound, as it is used, is named in abilities.ron.
+    //                   An enemy's hit on a horse makes none.
+    //   hit_gap_secs    one fight sound heard again sooner than this is not
+    //                   played, so a Burst on three enemies is one sound
+    //   hit_level       how loud a hit is against the fountain's sounds
     sound: (
         volume: 0.6,
         land_coin: "land_coin",
@@ -117,6 +124,14 @@
         pickup_scale: [0, 2, 4, 7, 9],
         pickup_most_steps: 10,
         pickup_run_secs: 0.5,
+        hits: (
+            plain: "hit_plain",
+            fire: "hit_fire",
+            ice: "hit_ice",
+            plant: "hit_plant",
+        ),
+        hit_gap_secs: 0.06,
+        hit_level: 0.7,
     ),
 
     // The test burst: thrown as this fountain, with this many coins.

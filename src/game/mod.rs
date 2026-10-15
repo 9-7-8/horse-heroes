@@ -83,6 +83,13 @@ pub struct Landed {
     pub at: Vec3,
 }
 
+/// An ability was used (#358), by its place in `abilities.ron`. `fx` plays
+/// its sound.
+#[derive(Message)]
+pub struct Cast {
+    pub ability: usize,
+}
+
 /// Coins that have dropped and not yet reached the party: in the air, on
 /// the ground, or on their way. `advance` adds a kill's coins as it reports
 /// the kill and `fx` takes each piece's share off as it arrives, so the
@@ -142,6 +149,7 @@ impl Plugin for GamePlugin {
             .add_message::<Killed>()
             .add_message::<Withdrew>()
             .add_message::<Landed>()
+            .add_message::<Cast>()
             .add_plugins(scene::ScenePlugin { bare: self.bare })
             .add_systems(Update, advance);
     }
@@ -937,6 +945,7 @@ pub fn advance(
     mut killed: MessageWriter<Killed>,
     mut withdrew: MessageWriter<Withdrew>,
     mut landed: MessageWriter<Landed>,
+    mut cast: MessageWriter<Cast>,
 ) {
     let game = &mut *game;
     let dt = time.delta_secs();
@@ -954,6 +963,9 @@ pub fn advance(
                         Struck::Horse(horse) => scene::horse_centre(horse),
                     };
                     landed.write(Landed { hit, at });
+                }
+                for ability in expedition.casts.drain(..) {
+                    cast.write(Cast { ability });
                 }
                 for kill in std::mem::take(&mut expedition.kills) {
                     fell = true;
