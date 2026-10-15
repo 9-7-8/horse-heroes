@@ -1,0 +1,66 @@
+SESSION 2026-10-15, a dragged piece dangles from the pointer (#363)
+
+ASKED
+  /next, with "at the end, and update the end step to reflect this, show
+  the status of each of the ten issues as either open / built-untested /
+  closed (or more categories if you feel they need them". Mid-session:
+  "queue: can you put cargo on the path so you don't have to do that
+  each time?"
+  Tiers 1 and 2 empty (#246 waits on her look). Tier 3, menus first:
+  #363, PICK UP's and labelled menus.
+
+DONE
+  - #363 (1366dee): when a drag begins, every cell showing the piece draws
+    its slot empty and the piece hangs from the pointer on a short string,
+    swinging as a damped pendulum kicked by the pointer's changes of speed
+    (src/fx/dangle.rs, fixed 2 ms steps; held.rs; tuning `swing` in
+    menu.ron). Let go, it flies into the cell it went to, or back into its
+    own. Tested: it_settles_from_a_push, a_slow_move_barely_tilts_it,
+    the_swing_is_the_same_at_any_frame_rate, each seen to fail once with
+    the code broken; the picture test covers the empty cell. Seen running
+    in the menu tour at 1120x640 and full size, pictures 89 to 93;
+    docs/gallery/2026-10-15-in-the-hand. Left open, labelled "built", for
+    her dragging it with the mouse.
+  - Cargo on the PATH: .claude/settings.local.json (git-ignored, this
+    machine) sets env.PATH to the Machine and User PATH; "cargo" resolves
+    in this session's shells now. build-and-run.txt says so.
+  - The end step: end-session.txt's NEXT RELEASE now lists every issue of
+    the release with a status: closed, built untested, hers, built in
+    part, open. A new label "built" marks an issue open only for her
+    trying it; put on #246, #356 and #363. next-thing.txt says to label it.
+
+DECIDED (for her)
+  - The extra statuses "hers" (decision/proposed) and "built in part", and
+    the "built" label to make "built, untested" checkable.
+  - The piece in the hand is 36 px, on an 8 px string, under the pointer's
+    card; it covers part of the target under the pointer, never its whole
+    edge. The flight takes 0.14 s.
+
+FOUND
+  - The tool's shells run pwsh -NoProfile with a PATH older than the
+    user's, so a profile could not have fixed cargo.
+  - Bevy's tuple of systems stops at 20: show_hover_card and held::hold
+    share one slot of the shell's chain.
+
+NOT DONE
+  - No clip of the swing was made; a still shows only the tilt.
+
+PICK UP
+  #354, Each horse attacks at its own cadence (the release's lowest open
+  number; no menus issue is left unbuilt): read it with #355, which it
+  shares a vision commit with, and docs/philosophy/combat-rhythm.md,
+  then build it.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 1 of 10 closed.
+    #354 Each horse attacks at its own cadence - open
+    #355 A speed stat - open
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built, untested
+    #357 The most basic abilities - open
+    #358 A sound of its own for each ability - open
+    #359 Worn gear seen on the horse - open
+    #360 A lesson pop-up when the boss is met - closed
+    #361 A look of its own for every piece - open
+    #363 A dragged piece dangles from the pointer, swinging - built, untested
+    #364 A crash leaves a log beside the game - open
+  Riding along: #360 (menus, closed); in part #356 and #363 (menus, built).

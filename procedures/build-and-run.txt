@@ -106,7 +106,8 @@ Use the cheapest step that can prove the change:
    on the road it answers each lesson with Got it while it waits):
        $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
    The card's Details (#228) are the tour's pictures 60 to 63; dragging
-   a piece onto a slot and onto a horse, with Bevy's own pointer, 84 to 87.
+   a piece onto a slot and onto a horse, with Bevy's own pointer, 89 to 93
+   (89 is the piece lifted into the hand, #363; checked 2026-10-15).
    The tour logs "tour: Tab makes N stops, M of them out of sight"; M is
    0, and anything else is a hidden page taking the focus (#244).
    IDLE_WALK counts the presses of the common jobs instead
@@ -123,9 +124,13 @@ NOTES
     while looking for matching quote" (three times by 2026-10-10, each
     with apostrophes in its text). Write the script with the Write tool,
     under target/, and run that.
-  - cargo is not always on the PATH of the shell this tool starts (found
-    2026-10-10, in both PowerShell and Git Bash). When "cargo" is not
-    recognised, call it by its full path: ~/.cargo/bin/cargo.exe.
+  - cargo was not on the PATH of the shells Claude Code starts (found
+    2026-10-10; they run -NoProfile with a PATH older than the user's).
+    Since 2026-10-15 .claude/settings.local.json (git-ignored, this
+    machine only) sets env.PATH to the Machine and User PATH, which has
+    ~/.cargo/bin. If "cargo" is still not recognised, call it by its full
+    path, ~/.cargo/bin/cargo.exe; and if a new tool is installed and not
+    found, that file's PATH is the one to add it to.
 
   - Claude Code kills a background command when the machine runs low on
     memory while the session is idle (twice on 2026-10-15, a tour run
