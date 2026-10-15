@@ -17,7 +17,7 @@
 //             not it can be used.
 //   shows     what a press opens in the side panel of its page: Keys.
 //   switch    what a press turns on and off, of what is shown and not of the
-//             game: ChangedOnly, Details, Hints, DamageNumbers. It is marked as chosen while it is on.
+//             game: ChangedOnly, Details, OtherHorses, Hints, DamageNumbers. It is marked as chosen while it is on.
 //   key       the key that works it, printed on it: a letter, a digit, a
 //             square bracket or Space. Only a control with an action, a
 //             shows or a switch has one.
@@ -290,7 +290,8 @@
         (name: "Set out", does: "Sends the party off on the next trail.", action: SetOut, key: "Space"),
     ],
     card: [
-        (name: "Equip", does: "Puts the piece on the selected horse. A piece another horse wears changes places with what the selected horse wears in that slot. With no card open, it is the piece in the cargo.", action: Equip, key: "E"),
+        (name: "Equip", does: "Puts the piece on the selected horse, whose name is on it. A piece another horse wears changes places with what the selected horse wears in that slot. With no card open, it is the piece in the cargo.", action: Equip, key: "E"),
+        (name: "Another horse", does: "Opens a list of the other horses beside Equip, in the order they stand in the line. Choosing one equips the piece on that horse and selects it; the pointer on one shows what that would do.", switch: OtherHorses, key: "Q"),
         (name: "Changed only", does: "Narrows the comparison's table to the stats that differ between the two pieces. It stays as it is set from piece to piece and place to place.", switch: ChangedOnly, key: "O"),
         (name: "Details", does: "Adds the card's formulas: how the piece was rolled, and what each of its stats does in a hit. It stays as it is set from piece to piece and place to place.", switch: Details, key: "V"),
         (name: "List", does: "Lists the piece at the stall.", issue: 99),

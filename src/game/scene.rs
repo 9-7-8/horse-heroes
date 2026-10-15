@@ -136,6 +136,14 @@ impl HorseBox {
     }
 }
 
+/// The horses as the line reads across the scene, left to right (#356):
+/// the last of the party first, as the party walks to the right.
+pub fn line_order(horses: usize) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..horses.min(HORSE_X.len())).collect();
+    order.sort_by(|a, b| HORSE_X[*a].total_cmp(&HORSE_X[*b]));
+    order
+}
+
 /// The ground in front of the horse in place `index`, level with the front
 /// of the foremost horse, so the three tags hang in one line and the one
 /// standing back does not cover the others' (#356).

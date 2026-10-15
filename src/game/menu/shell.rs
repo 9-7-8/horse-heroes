@@ -41,7 +41,7 @@ use crate::game::{
     Action, Game, Hand, Piece, Raise, SceneView, Screen, Uncollected, fight_log, report_side,
     report_text, stats_line,
 };
-use crate::game::scene::{HorseBox, horse_feet};
+use crate::game::scene::{HorseBox, horse_feet, line_order};
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
 use crate::sim::lessons::{EntryDef, Tick};
@@ -181,6 +181,8 @@ pub enum Switch {
     DamageNumbers,
     /// The card's third layer, its formulas and assumptions (#228).
     Details,
+    /// The list beside Equip of the other horses, to equip on (#356).
+    OtherHorses,
 }
 
 /// What a tab shows, or a place without tabs. `Planned` is one whose system
@@ -519,6 +521,11 @@ pub struct Shell {
     formulas: bool,
     /// The piece being dragged (#228), while the pointer holds it.
     drag: Option<Drag>,
+    /// The list of the other horses beside Equip is open (#356).
+    others: bool,
+    /// The horse of that list the pointer or the focus is on, and its
+    /// entry: what equipping there would do shows beside it.
+    offered: Option<(Entity, usize)>,
 }
 
 /// A piece being dragged (#228): where it was taken from, and the horse or
@@ -557,7 +564,46 @@ impl Shell {
             numbers_off: false,
             formulas: false,
             drag: None,
+            others: false,
+            offered: None,
         }
+    }
+
+    /// Whether the list of the other horses is open beside Equip: while a
+    /// piece's card is pinned in view, as Equip's other controls work.
+    pub fn others_open(&self) -> bool {
+        self.others && self.hand().open.is_some()
+    }
+
+    /// The horse of that list the pointer or the focus is on.
+    pub fn offered(&self) -> Option<(Entity, usize)> {
+        self.offered.filter(|_| self.others_open())
+    }
+
+    pub fn offer(&mut self, at: Option<(Entity, usize)>) {
+        self.offered = at;
+    }
+
+    /// A horse chosen from the list beside Equip (#356): the piece whose
+    /// card is open is equipped on it, as Equip would for it, and it is
+    /// selected, so the card's comparison follows it. The list closes.
+    /// False, and nothing changes, where it may not go.
+    pub fn equip_on(&mut self, game: &mut Game, horse: usize) -> bool {
+        let Some(piece) = self.hand().open else {
+            return false;
+        };
+        let Some(hand) = game.drop_hand(piece, horse, None) else {
+            return false;
+        };
+        let Some(to) = game.equipped_at(hand) else {
+            return false;
+        };
+        game.act(Action::Equip, hand);
+        self.piece_moved(piece, to);
+        self.inspect(horse, None);
+        self.others = false;
+        self.offered = None;
+        true
     }
 
     /// The piece being dragged, if one is.
@@ -702,6 +748,7 @@ impl Shell {
             Switch::Hints => !self.hints_off,
             Switch::DamageNumbers => !self.numbers_off,
             Switch::Details => self.formulas,
+            Switch::OtherHorses => self.others_open(),
         }
     }
 
@@ -727,6 +774,8 @@ impl Shell {
             Switch::ChangedOnly => {}
             Switch::Details if self.hand().open.is_some() => self.formulas = !self.formulas,
             Switch::Details => {}
+            Switch::OtherHorses if self.hand().open.is_some() => self.others = !self.others,
+            Switch::OtherHorses => {}
             Switch::DamageNumbers => self.numbers_off = !self.numbers_off,
         }
     }
@@ -867,9 +916,12 @@ impl Shell {
         self.details[place].filter(|detail| detail.tab == self.tabs[place])
     }
 
+    /// A new card closes the list of the other horses, which was for the
+    /// last one.
     pub fn show_detail(&mut self, place: usize, detail: Detail) {
         if place < self.details.len() {
             self.details[place] = Some(detail);
+            self.others = false;
         }
     }
 
@@ -929,6 +981,18 @@ pub struct PlaceButton(pub usize);
 pub struct TabButton {
     pub place: usize,
     pub tab: usize,
+}
+
+/// The list under Another horse on a card (#356), open or not.
+#[derive(Component)]
+pub struct OtherHorses;
+
+/// A horse in that list, under the card of a place: choosing it equips the
+/// card's piece on it.
+#[derive(Component)]
+pub struct EquipOn {
+    pub place: usize,
+    pub horse: usize,
 }
 
 /// A horse's tag under it in the scene (#356): its name, key and health.
@@ -1197,11 +1261,11 @@ impl Plugin for ShellPlugin {
                     (keys, scroll, log_key, dev_hint).chain(),
                     escape,
                     follow_the_party,
-                    (hold_over, point).chain(),
+                    (hold_over, point, offer).chain(),
                     (move_scene, place_tags).chain(),
                     show_place,
                     see,
-                    (mark_chosen, mark_targets).chain(),
+                    (mark_chosen, mark_targets, show_equip).chain(),
                     (
                         mark_unseen,
                         teach::teach.after(crate::fx::drops::Thrown),
@@ -1564,7 +1628,7 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                                             Page::Card(p),
                                         ))
                                         .with_children(|actions| {
-                                            spawn_controls(actions, t, &places.card, Some(p), false);
+                                            spawn_card_controls(actions, t, &places, p);
                                         });
                                     }
                                 });
@@ -2164,6 +2228,59 @@ fn spawn_controls(
     spawn_reasons(parent, t, controls, hint);
 }
 
+/// The card's actions (#228): Equip, and beside it Another horse with its
+/// list of the horses under it (#356), then the rest, wrapping as they
+/// must, and under them all why any cannot be used.
+fn spawn_card_controls(parent: &mut ChildSpawnerCommands, t: &Tokens, places: &Places, place: usize) {
+    let row = || Node {
+        flex_wrap: FlexWrap::Wrap,
+        align_items: AlignItems::FlexStart,
+        column_gap: Val::Px(t.space.s),
+        row_gap: Val::Px(t.space.s),
+        margin: UiRect::top(Val::Px(t.space.s)),
+        flex_shrink: 0.0,
+        ..default()
+    };
+    let column = || Node {
+        flex_direction: FlexDirection::Column,
+        row_gap: Val::Px(t.space.s),
+        ..default()
+    };
+    let equips = |control: &Control| {
+        control.action == Some(Action::Equip) || control.switch == Some(Switch::OtherHorses)
+    };
+    parent.spawn(row()).with_children(|row| {
+        for control in places.card.iter().filter(|control| equips(control)) {
+            if control.switch != Some(Switch::OtherHorses) {
+                spawn_control(row, t, control, Some(place));
+                continue;
+            }
+            row.spawn(column()).with_children(|list| {
+                spawn_control(list, t, control, Some(place));
+                list.spawn((
+                    OtherHorses,
+                    Node {
+                        display: Display::None,
+                        ..column()
+                    },
+                    Visibility::Hidden,
+                ))
+                .with_children(|entries| {
+                    for horse in line_order(places.horse_keys.len()) {
+                        entries.spawn((button(t, "", None), EquipOn { place, horse }));
+                    }
+                });
+            });
+        }
+    });
+    parent.spawn(row()).with_children(|row| {
+        for control in places.card.iter().filter(|control| !equips(control)) {
+            spawn_control(row, t, control, Some(place));
+        }
+    });
+    spawn_reasons(parent, t, &places.card, false);
+}
+
 /// Under a group of controls, why any of them cannot be used (#233): a line
 /// that follows the game for those that work, and a line for those that are
 /// not built, which does not change.
@@ -2224,11 +2341,15 @@ fn on_activate(
     closes: Query<(), With<ClosePanel>>,
     hints: (Query<(), With<DismissHint>>, Query<(), With<SkipHints>>, Query<&LessonRow>),
     controls: Query<&ControlButton>,
+    others: Query<(Entity, &EquipOn)>,
+    mut focus_visible: ResMut<InputFocusVisible>,
 ) {
     let (carried, reported) = cells;
     let (dismisses, skips, listed) = hints;
     let entity = activate.entity;
-    if dismisses.contains(entity) {
+    if let Ok((_, entry)) = others.get(entity) {
+        shell.equip_on(&mut game, entry.horse);
+    } else if dismisses.contains(entity) {
         shell.dismiss_hint();
     } else if skips.contains(entity) {
         shell.skip_hints();
@@ -2279,6 +2400,26 @@ fn on_activate(
         let control = map.control(button.id);
         if let Some(switch) = control.switch {
             shell.press_switch(switch);
+            // The list opened takes the focus on its first horse that may
+            // take the piece, so its key then Enter equips there.
+            if switch == Switch::OtherHorses && shell.others_open() {
+                let place = button.place.unwrap_or(shell.place());
+                let first = line_order(game.party.len()).into_iter().find_map(|horse| {
+                    let may = horse != shell.horse()
+                        && shell
+                            .hand()
+                            .open
+                            .is_some_and(|piece| game.drop_hand(piece, horse, None).is_some());
+                    others
+                        .iter()
+                        .find(|(_, entry)| may && entry.place == place && entry.horse == horse)
+                        .map(|(entity, _)| entity)
+                });
+                if let Some(first) = first {
+                    focus.set(first, FocusCause::Navigated);
+                    focus_visible.0 = true;
+                }
+            }
             return;
         }
         match control.action {
@@ -2983,8 +3124,10 @@ fn show_hover_card(
 ) {
     let (mut node, mut visibility) = card.into_inner();
     let at = shell
-        .pointed()
-        .and_then(|(cell, _)| cells.get(cell).ok())
+        .offered()
+        .map(|(cell, _)| cell)
+        .or(shell.pointed().map(|(cell, _)| cell))
+        .and_then(|cell| cells.get(cell).ok())
         .map(|(cell, transform)| {
             let scale = cell.inverse_scale_factor();
             let (_, _, middle) = transform.to_scale_angle_translation();
@@ -3549,6 +3692,108 @@ fn mark_unseen(
     }
 }
 
+/// Out of the layout and hidden, or in it: hidden too, so that Tab passes
+/// over it (#244).
+fn set_shown(node: &mut Node, visibility: &mut Visibility, shown: bool) {
+    let display = if shown { Display::Flex } else { Display::None };
+    if node.display != display {
+        node.display = display;
+    }
+    let wanted = if shown {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
+    };
+    if *visibility != wanted {
+        *visibility = wanted;
+    }
+}
+
+/// Equip names the selected horse, and the list under Another horse
+/// (#356) is in view while it is open: in it, every horse but the selected
+/// one, in the line's order. One the piece may not go to is unavailable,
+/// and the horse that wears it says so.
+fn show_equip(
+    mut commands: Commands,
+    game: Res<Game>,
+    shell: Res<Shell>,
+    map: Res<Places>,
+    equips: Query<(&ControlButton, &Children)>,
+    mut lists: Query<(&mut Node, &mut Visibility), (With<OtherHorses>, Without<EquipOn>)>,
+    mut entries: Query<
+        (Entity, &EquipOn, &Children, &mut Node, &mut Visibility, Has<InteractionDisabled>),
+        Without<OtherHorses>,
+    >,
+    mut texts: Query<(&PartText, &mut Text)>,
+) {
+    let mut label = |children: &Children, wanted: &str| {
+        for child in children {
+            if let Ok((PartText::Main, mut text)) = texts.get_mut(*child)
+                && text.0 != wanted
+            {
+                text.0 = wanted.to_string();
+            }
+        }
+    };
+    let Some(selected) = game.party.get(shell.horse()) else {
+        return;
+    };
+    let equip = format!("Equip on {}", selected.name);
+    for (button, children) in &equips {
+        if map.control(button.id).action == Some(Action::Equip) {
+            label(children, &equip);
+        }
+    }
+    let open = shell.others_open();
+    for (mut node, mut visibility) in &mut lists {
+        set_shown(&mut node, &mut visibility, open);
+    }
+    let piece = shell.hand().open;
+    for (entity, entry, children, mut node, mut visibility, disabled) in &mut entries {
+        let Some(horse) = game.party.get(entry.horse) else {
+            set_shown(&mut node, &mut visibility, false);
+            continue;
+        };
+        set_shown(&mut node, &mut visibility, entry.horse != shell.horse());
+        let wears = matches!(piece, Some(Piece::Worn { horse, .. }) if horse == entry.horse);
+        label(
+            children,
+            &if wears {
+                format!("{} wears it", horse.name)
+            } else {
+                horse.name.clone()
+            },
+        );
+        let blocked = piece.and_then(|piece| game.drop_hand(piece, entry.horse, None)).is_none();
+        if blocked && !disabled {
+            commands.entity(entity).insert(InteractionDisabled);
+        } else if !blocked && disabled {
+            commands.entity(entity).remove::<InteractionDisabled>();
+        }
+    }
+}
+
+/// The horse of the list beside Equip that the pointer is on, or else the
+/// focus: what equipping there would do shows beside it (#356).
+fn offer(
+    mut shell: ResMut<Shell>,
+    focus: Res<InputFocus>,
+    focus_visible: Res<InputFocusVisible>,
+    entries: Query<(Entity, &EquipOn, &Hovered, &ComputedNode, Has<InteractionDisabled>)>,
+) {
+    let place = shell.place();
+    let open = shell.others_open() && shell.dragging().is_none();
+    let mut in_view = entries
+        .iter()
+        .filter(|(_, entry, _, node, disabled)| open && entry.place == place && !node.is_empty() && !disabled);
+    let pointed = in_view.clone().find(|(_, _, hovered, _, _)| hovered.get());
+    let focused = in_view.find(|(entity, ..)| focus_visible.0 && focus.get() == Some(*entity));
+    let wanted = pointed.or(focused).map(|(entity, entry, ..)| (entity, entry.horse));
+    if shell.offered != wanted {
+        shell.offer(wanted);
+    }
+}
+
 /// The Gear tab shows the selected horse's gear and no other's (#314).
 fn show_wearer(shell: Res<Shell>, mut horses: Query<(&Wearer, &mut Node, &mut Visibility)>) {
     for (wearer, mut node, mut visibility) in &mut horses {
@@ -3853,12 +4098,18 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
             _ => String::new(),
         },
         // A dragged piece's card is the preview of its drop (#228).
-        Fact::Hovered => match shell.dragging() {
-            Some(drag) => drag
+        Fact::Hovered => match (shell.dragging(), shell.offered()) {
+            (Some(drag), _) => drag
                 .onto
                 .and_then(|onto| game.drop_hand(drag.piece, onto.horse, onto.slot))
                 .map_or(String::new(), |hand| card::dragged(game, drag.piece, hand, shell.rows())),
-            None => shell.pointed().map_or(String::new(), |(_, piece)| {
+            // A horse of the list beside Equip (#356): the comparison on it.
+            (None, Some((_, horse))) => shell
+                .hand()
+                .open
+                .and_then(|piece| game.drop_hand(piece, horse, None).map(|hand| (piece, hand)))
+                .map_or(String::new(), |(piece, hand)| card::offered(game, piece, hand, shell.rows())),
+            (None, None) => shell.pointed().map_or(String::new(), |(_, piece)| {
                 card::pointed_comparison(game, piece, shell.horse(), shell.rows())
             }),
         },
@@ -4511,7 +4762,7 @@ mod tests {
         }
         let cargo = &places.places[0].cargo;
         assert_eq!(unbuilt_line(cargo, false), "None of these is built yet.");
-        assert!(unbuilt_line(&places.card, false).starts_with("All but Equip, Changed only, Details: "));
+        assert!(unbuilt_line(&places.card, false).starts_with("All but Equip, Another horse, Changed only, Details: "));
         assert_eq!(
             unbuilt_line(&places.footer, false),
             "Planned changes: not built yet."
@@ -4806,6 +5057,70 @@ mod tests {
         pin(&mut shell, 1);
         shell.press_switch(Switch::Details);
         assert!(!said(&shell, 1).contains("DETAILS") && !said(&shell, 0).contains("DETAILS"));
+    }
+
+    /// Another horse (#356) opens a list of the other horses beside Equip,
+    /// in the line's order across the scene. Choosing one equips the
+    /// card's piece on it, selects it so the card compares there, and
+    /// closes the list; the pointer on one shows what that would do. The
+    /// horse that wears the piece cannot take it, and a new card closes
+    /// the list.
+    #[test]
+    fn another_horse_equips_on_the_horse_chosen() {
+        let places = Places::load();
+        let control = places
+            .card
+            .iter()
+            .find(|control| control.switch == Some(Switch::OtherHorses))
+            .expect("Another horse is on the card");
+        let key = control.key.as_deref().expect("its key is printed on it");
+        assert!(keys_list(&places, &[]).contains(&format!("{key} {}", control.name)));
+        assert_eq!(line_order(3), vec![2, 1, 0], "left to right, the leader last");
+
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .unwrap();
+        let gear = game.pending_drop().unwrap().clone();
+        let slot = gear.slot.index();
+        let uncollected = Uncollected::default();
+        let mut shell = Shell::new(places.pages().count());
+        shell.press_switch(Switch::OtherHorses);
+        assert!(!shell.is_on(Switch::OtherHorses), "nothing is pinned");
+        shell.open(0);
+        let tab = shell.tab(0);
+        shell.show_detail(0, Detail { tab, item: Item::Carried(0), opener: None });
+        shell.press_switch(Switch::OtherHorses);
+        assert!(shell.is_on(Switch::OtherHorses));
+
+        shell.offer(Some((Entity::PLACEHOLDER, 2)));
+        let offered = fact(&game, &uncollected, &shell, &places, Fact::Hovered);
+        let name = game.party[2].name.clone();
+        assert!(offered.starts_with(&format!("For {name}, ")), "{offered}");
+        assert!(offered.contains(&format!("Equip puts it on {name}")), "{offered}");
+        assert!(offered.ends_with(card::CHOOSE), "{offered}");
+
+        assert!(shell.equip_on(&mut game, 2));
+        assert_eq!(game.party[2].gear[slot].as_ref().map(|worn| &worn.name), Some(&gear.name));
+        assert_eq!(shell.horse(), 2, "the horse chosen is selected");
+        let worn = Piece::Worn { horse: 2, slot };
+        assert_eq!(shell.hand().open, Some(worn), "the card is on the piece");
+        assert!(!shell.is_on(Switch::OtherHorses), "the list closed");
+        let said = fact(&game, &uncollected, &shell, &places, Fact::Detail(0));
+        assert!(said.contains(&format!("{name} wears it.")), "{said}");
+
+        // From another horse, the list again: the wearer may not take it.
+        shell.inspect(0, None);
+        shell.press_switch(Switch::OtherHorses);
+        assert!(!shell.equip_on(&mut game, 2), "it wears it already");
+        assert!(shell.is_on(Switch::OtherHorses));
+        assert!(shell.equip_on(&mut game, 1));
+        assert!(game.party[1].gear[slot].as_ref().is_some_and(|worn| worn.name == gear.name));
+        assert!(game.party[2].gear[slot].as_ref().is_none_or(|worn| worn.name != gear.name));
+
+        shell.press_switch(Switch::OtherHorses);
+        shell.show_detail(0, Detail { tab, item: Item::Worn { horse: 0, slot }, opener: None });
+        assert!(!shell.is_on(Switch::OtherHorses), "a new card closes it");
     }
 
     /// The list of things to try (#303) is over the scene in town once a

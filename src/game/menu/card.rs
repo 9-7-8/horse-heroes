@@ -357,6 +357,20 @@ pub fn dragged(game: &Game, piece: Piece, hand: Hand, rows: Rows) -> String {
     }
 }
 
+/// The card beside a horse of the list under Another horse (#356), where
+/// `hand` is what Equip would be done with: the comparison on that horse
+/// and what choosing it would do. Empty where it may not go.
+pub fn offered(game: &Game, piece: Piece, hand: Hand, rows: Rows) -> String {
+    let does = consequence(game, hand);
+    match weighed(game, piece, hand.horse, rows) {
+        Some(said) if !does.is_empty() => format!("{said}\n\n{does}\n{CHOOSE}"),
+        _ => String::new(),
+    }
+}
+
+/// Under the card beside a horse of that list.
+pub const CHOOSE: &str = "Choose it to do it; the horse is selected after.";
+
 /// Under the card of a dragged piece, over a place it may go.
 pub const LET_GO: &str = "Let go here to do it; anywhere else, and nothing changes.";
 

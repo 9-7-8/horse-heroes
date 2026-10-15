@@ -503,6 +503,17 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Key(KeyCode::PageUp),
         Step::Key(KeyCode::KeyX),
         Step::Shot("the card against another horse".into()),
+        // Equip names the selected horse, and Another horse (#356) opens
+        // the list of the others beside it, the focus on the first that
+        // may take the piece, with what that would do beside it. Enter
+        // chooses it: the piece is put on it, it is selected, and Undo
+        // takes it back for the steps after.
+        Step::Key(KeyCode::KeyQ),
+        Step::Shot("another horse the list open by its key".into()),
+        Step::Enter,
+        Step::Shot("another horse equipped on the horse chosen".into()),
+        Step::Key(KeyCode::KeyU),
+        Step::Shot("another horse undone".into()),
         Step::Key(KeyCode::KeyC),
         Step::Key(KeyCode::Escape),
         // The arrow keys: onto the first slot, down to the second, open it,
