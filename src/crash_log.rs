@@ -22,13 +22,36 @@ pub const CRASH_LOG_CAP: usize = 256 * 1024;
 
 static SEED: OnceLock<u64> = OnceLock::new();
 
-/// The folder the logs go in: the exe's own, or the working folder if the
-/// exe's path cannot be read.
+/// The folder the logs go in: the exe's own if the game may write there, as
+/// in a per-user install or a build; otherwise `%LOCALAPPDATA%\Horse Heroes`,
+/// as under Program Files, where a player cannot write.
 pub fn log_dir() -> PathBuf {
-    std::env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(Path::to_path_buf))
-        .unwrap_or_else(|| PathBuf::from("."))
+    static DIR: OnceLock<PathBuf> = OnceLock::new();
+    DIR.get_or_init(|| {
+        let beside_exe = std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(Path::to_path_buf))
+            .unwrap_or_else(|| PathBuf::from("."));
+        if writable(&beside_exe) {
+            return beside_exe;
+        }
+        match std::env::var_os("LOCALAPPDATA") {
+            Some(local) => {
+                let dir = PathBuf::from(local).join("Horse Heroes");
+                let _ = fs::create_dir_all(&dir);
+                dir
+            }
+            None => beside_exe,
+        }
+    })
+    .clone()
+}
+
+fn writable(dir: &Path) -> bool {
+    let probe = dir.join(".horse_heroes_write_test");
+    let ok = fs::write(&probe, b"").is_ok();
+    let _ = fs::remove_file(&probe);
+    ok
 }
 
 /// Writes every panic to `crash.log`, then runs the panic hook already set.
@@ -214,6 +237,12 @@ mod tests {
         assert_eq!(utc(0), "1970-01-01 00:00:00 UTC");
         assert_eq!(utc(951_782_400), "2000-02-29 00:00:00 UTC");
         assert_eq!(utc(1_791_762_307), "2026-10-11 23:45:07 UTC");
+    }
+
+    #[test]
+    fn a_folder_that_cannot_be_written_is_not_used() {
+        assert!(writable(&std::env::temp_dir()));
+        assert!(!writable(&std::env::temp_dir().join("horse_heroes_no_such_folder")));
     }
 
     #[test]

@@ -73,5 +73,11 @@ Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; WorkingDir: "{app}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; WorkingDir: "{app}"; Tasks: desktopicon
 
+[UninstallDelete]
+; The game's logs, written beside it when it may write there (#364). Those
+; in %LOCALAPPDATA%\Horse Heroes are the player's and stay.
+Type: files; Name: "{app}\horse_heroes.log"
+Type: files; Name: "{app}\crash.log"
+
 [Run]
 Filename: "{app}\{#AppExe}"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
