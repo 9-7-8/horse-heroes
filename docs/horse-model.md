@@ -74,6 +74,13 @@ differ only in shade. Hooves and hair are darker shares of the body's shade
 pieces, a `Neck` joint and four `Leg` joints as children, which is what the
 walk and the exhausted pose ([death-events.md](death-events.md)) move.
 
+A hit moves both sides, as placeholders until bodies move as their own
+(#365): whoever lands it, horse or enemy, tips forward and back
+(`LUNGE_*`), and whoever takes it tips back and steps back (`FLINCH_*`).
+The sim's `Hit` says who dealt it (`by`) as well as who took it; the
+`Motion` resource keeps each horse's and each enemy place's time since,
+and an enemy leans on its base.
+
 `--bare` starts with the hair hidden and F5 toggles it, to see the build
 underneath.
 

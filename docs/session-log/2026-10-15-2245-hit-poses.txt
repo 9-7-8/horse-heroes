@@ -1,0 +1,53 @@
+SESSION 2026-10-15 - hit poses: a tilt to strike, a flinch when struck (#365)
+
+ASKED
+  "make it so the horse just tilts forwards and then back when it attacks.
+  It's simple, it's a placeholder animation, but it's gonna give some
+  feedback that'll make testing easier." Then, queued: "also add a flinch
+  animation (just like a tilt back and a step backwards) and make sure all
+  animations are on both horses and enemies"; "flinch should happen when a
+  creature is struck".
+
+DONE
+  - e54769c: a horse that lands a hit tips forward and back. The sim's Hit
+    says who dealt it.
+  - #365 (2159c2e): whoever lands a hit, horse or enemy, tips forward and
+    back; whoever takes it tips back and steps back. Hit.by is a Struck on
+    either side; scene.rs Motion keeps each horse's and enemy place's time
+    since; an enemy leans on its base.
+  - Checked: 239 tests; seen running, --seed 6 at 5.2, 5.25 and 5.72 (a
+    horse tipping in, the toad flinching, the Gloom Sprite leaning in,
+    Morrow flinching). Docs: horse-model.md, build-and-run.txt times.
+
+DECIDED (for her)
+  - Sizes: tilt 0.18 rad forward, flinch 0.14 rad back and 0.25 units
+    back, each over 0.3 s, as a sine bump. The horse turns on the ground
+    under its middle, so its front hooves dip a little into the road at
+    the top of the tilt; left, as a placeholder.
+  - #365 is in 0.2.5, as 0.2.4 holds ten. It is on main, so the 0.2.4
+    build carries it too.
+  - Ward, which deals no hit, has no pose.
+
+FOUND
+  - Nothing.
+
+NOT DONE
+  - She has not looked.
+
+PICK UP
+  Build #364, a crash leaves a log beside the game, then release 0.2.4.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 6 of 10 closed.
+    #354 Each horse attacks at its own cadence - closed
+    #355 A speed stat - closed
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built-untested
+    #357 The most basic abilities: each carries its element - closed
+    #358 A sound of its own for each ability - built-untested
+    #359 Worn gear seen on the horse - closed
+    #360 A lesson pop-up when the boss is met - closed
+    #361 A look of its own for every piece - closed
+    #363 A dragged piece dangles from the pointer, swinging - built-untested
+    #364 A crash leaves a log beside the game - unbuilt
+  Riding along: #360 (menus, closed); in part #356 and #363 (menus, built);
+  #365 hit poses (0.2.5, closed), on main.
