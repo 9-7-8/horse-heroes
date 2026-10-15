@@ -106,23 +106,46 @@ in view.
 ## The hint's line
 
 One line under the status strip, `size.hint_height` (22) high, there in
-both layouts whether or not it holds anything (#291;
-`docs/philosophy/onboarding.md`, principles 9, 10 and 16). It is where a
-lesson's `hint` shows ([menu-parts.md](menu-parts.md), "The hint"). Because
-the line keeps its height, a hint coming or going moves no other control.
-In town, and under an open place, it is empty without a hint; the space
-that was above a place's tabs and page was taken back for it, so the Gear
-tab still shows its three rows and its first row of controls at the
-smallest window. On the road with every place closed it is the one line
-there is: it says how to open a place, and a hint takes that sentence's
-place while it shows. It is in the menus, never over the scene, so the
-fountain of a kill is clear of it. A test in `tokens.rs` holds that the
-bar, the strip, the line and the footer fit under the road's scene at the
-smallest window.
+both layouts (#291; `docs/philosophy/onboarding.md`, principles 9, 10 and
+16). In town, and under an open place, it is empty; the space that was
+above a place's tabs and page was taken back for it, so the Gear tab still
+shows its three rows and its first row of controls at the smallest window.
+On the road with every place closed it is the one line there is, and it
+says how to open a place. A test in `tokens.rs` holds that the bar, the
+strip, the line and the footer fit under the road's scene at the smallest
+window.
+
+## The hint's pop-up
+
+A hint was a line on that line until the owner found it was missed
+(2026-10-12, #353: "you'll likely need to make them overlays or
+pop-ups"). It is now a pop-up (`popup` in `parts.rs`,
+[menu-parts.md](menu-parts.md), "The hint"), out of the layout, so it moves
+no control:
+
+- **By its control, never over it** (`place_popup`): under the control
+  when there is room below, over it when not, centred on it as far as the
+  window allows, `size.popup_gap` away. A square stood on a corner points
+  from its nearest edge to the control. Of a control drawn in several
+  places (a piece in the cargo and on a tab), the first in view is used.
+  A hint on no control (`About::Party`) is over the middle of the scene,
+  with no point.
+- **The control is ringed** in the pop-up's colour, as well as marked on a
+  corner (`style_parts`); focus and a drag's target keep their own rings.
+- **Told from the menus without colour**: an edge of `size.popup_border`
+  (3), thicker than any control's, and a shadow under it. Its words are in
+  the title's size and wrap within `size.popup_width`.
+- **It comes up with a movement**: rising `size.popup_rise` toward its
+  control and growing to its size over `time.popup` (0.22 s).
+- It can cover other controls, and the scene; it is over everything but
+  the hover card's comparison.
+
+Not yet (#353, next part): the game does not pause while it is up, and a
+lesson due while a fountain is in the air does not wait for it to land.
 
 - **What a hint is** (`Hint` in the shell): the lesson it belongs to, the
   control it is about (`About`: a place, a tab, a horse, a control of
-  `places.ron`, or a piece of gear wherever it is listed), and its words. The line names the control and prints its
+  `places.ron`, or a piece of gear wherever it is listed), and its words. The pop-up names the control and prints its
   key from the map (`about_name`), and `point_out` puts the mark
   (`Pointed`) on that control wherever it is drawn.
 - **One at a time.** `Shell::raise_hint` refuses a second while one shows;
@@ -146,7 +169,7 @@ smallest window.
   never holds the party up.
 - **The lessons raise it** (#290, [lessons.md](lessons.md)): `teach` asks
   the queue which lesson to show and makes that the hint. For looking at
-  the line by itself, `--hint` starts with a sample hint showing, and F6
+  the pop-up by itself, `--hint` starts with a sample hint showing, and F6
   shows a sample and takes it away, each time about the next kind of
   control (the Journal, Set out, the first horse, the first tab), whatever
   was put away or skipped before and over whatever lesson is showing.

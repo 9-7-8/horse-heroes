@@ -32,7 +32,7 @@ Use the cheapest step that can prove the change:
    carried, rolled from the seed: the menu tour with --cargo 7 has the
    Inventory's tiles for them in its picture 16. A new game starts on
    the road (#292): the party walks out of the gate at launch, with the
-   opening's line on the hint's line (seed 6 at IDLE_SHOT_AT=3), and is
+   opening's pop-up over the scene (seed 6 at IDLE_SHOT_AT=3), and is
    in its first fight by 5. The scene is not drawn yet at 0.5. --town
    starts in town instead, as a game did before; the tour and the walk
    do so by themselves. No town leaves by itself (#305), so a run with
@@ -69,7 +69,7 @@ Use the cheapest step that can prove the change:
    cargo check and cargo test do not rebuild the game's own binary: a
    picture taken by running target/debug/horse_heroes.exe directly is of
    the last cargo build or cargo run, so build first.
-   The hint (docs/menu-shell.md, "The hint's line"): --hint starts with a
+   The hint (docs/menu-shell.md, "The hint's pop-up"): --hint starts with a
    sample hint showing, about the Journal; F6 shows a sample and takes it
    away, about the next kind of control each time. With --hint --seed 6
    at IDLE_SHOT_AT=53.9 the final fountain is in the air above it.

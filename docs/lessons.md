@@ -2,8 +2,8 @@
 
 What the game explains, and when (#290). The lessons are a list in
 `assets/data/lessons.ron`; a queue in `src/sim/lessons.rs` shows one at a
-time; `src/game/menu/teach.rs` puts the one showing on the hint's line
-([menu-shell.md](menu-shell.md), "The hint's line"). Guidance:
+time; `src/game/menu/teach.rs` puts the one showing in the hint's pop-up
+([menu-shell.md](menu-shell.md), "The hint's pop-up"). Guidance:
 [philosophy/onboarding.md](philosophy/onboarding.md), principles 5 and 10
 to 13, and the owner's rule that a lesson is watched or done, "never, ever,
 ever just a wall of text".
@@ -77,7 +77,7 @@ looked at again every time:
   waiting behind another. Lessons finished by setting out (`Did(SetOut)`)
   are done by it, not cut off. Nothing is lost by leaving at any step:
   pieces stay where they were, the party leaves on the tick it would with
-  no lessons, and no town lesson stays on the hint's line on the road.
+  no lessons, and no town lesson stays up on the road.
 - With none showing, the first in the file that fits is shown. One showing
   is never pushed aside by another.
 
@@ -205,7 +205,7 @@ Written by the session from `philosophy/onboarding.md` ("For Horse
 Heroes") and not approved line by line.
 
 **The opening** (#292): a new game starts with the party walking out of
-the gate, and the hint's line says "You organise the gaggle. The horses
+the gate, and the hint's pop-up says "You organise the gaggle. The horses
 walk, fight and collect loot by themselves." on `Party`, so no control is
 marked before the first fight. It is due on `SetOut` and goes when the
 first fight begins.

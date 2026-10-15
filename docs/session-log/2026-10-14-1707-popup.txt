@@ -1,0 +1,55 @@
+ASKED
+  /next, "and then update the end session routine to display what's left
+  until the next release". Tier 1: #246 waits on the owner watching
+  trails. Tier 2: nothing new untested. Tier 3: PICK UP's #353 (0.2.4,
+  menus, so first by menus first).
+
+DONE
+  - #353, part 1 (left open): a lesson is a pop-up beside the control it
+    is about, under it or over it when there is no room below, never on
+    it, with a point toward it, a 3 px edge and a shadow, rising into
+    place over 0.22 s. The control is ringed in the pop-up's colour. A
+    lesson on the party is over the middle of the scene, with no point.
+    The hint's line keeps only the road's sentence. The parts screen has
+    the pop-up's sample. Seen running: the opening, the first fight and
+    the piece in town at 1120x640, the abilities and the piece at
+    1280x900, the parts screen, and all 12 pictures of the lesson walk
+    (docs/gallery/2026-10-14-popup/). 219 tests pass, no warnings.
+  - procedures/end-session.txt: the session log has a NEXT RELEASE block
+    (what is left in the first milestone after the latest release, and
+    menus issues riding along), and the summary in chat ends with it.
+
+DECIDED (by the session, for her)
+  - The overlay first and the pause second, so the game never stands
+    still behind a line the player has not seen.
+  - Under the control when it fits, otherwise over it; width 340; the
+    words in the title's size; the ring; Got it before Skip all hints.
+  - "Next release" = the first milestone after the latest published
+    release (now 0.2.3), not the earliest with open issues (0.2.1 has
+    shipped with 8 still open).
+
+FOUND
+  - Equip's pop-up stands over Equip and so over the card of the piece
+    Equip would put on (picture 06). Said on #353; beside the card may
+    be better.
+
+NOT DONE
+  - The pause and the wait for a fountain (#353's remaining "done when").
+  - The menu tour (IDLE_TOUR) was not re-run.
+  - The owner has not looked.
+
+PICK UP
+  Build #353's pause: while a lesson's pop-up is up, `advance` does not
+  move the trail or the town's countdown, with a test that no sim time
+  passes, and a lesson does not come up while a fountain is in the air.
+  `the_party_never_waits_on_a_lesson` in teach.rs holds the old rule and
+  has to be turned round.
+
+NEXT RELEASE
+  0.2.3 Horses and inventory: 8 of 11 closed. Open:
+    #308 An Inventory tab: a grid of every piece the horses and the
+         caravan hold, split by item type
+    #311 One list of horses, and a press on a horse opens everything
+         about it
+    #314 Gear shows only the selected horse's gear
+  Riding along (menus): #353 in part, the lesson pop-up (0.2.4).

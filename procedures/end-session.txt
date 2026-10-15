@@ -50,6 +50,7 @@ STEPS
        FOUND       bugs, API quirks, surprises
        NOT DONE    what was started and left, what was never run or looked at
        PICK UP     the first thing the next session should do
+       NEXT RELEASE  what is left until the next release (see below)
    The next session reads PICK UP before anything else, so make it one
    concrete action, not a list of themes.
 
@@ -63,9 +64,27 @@ STEPS
 
 8. Summarise in chat, result first, a few lines: what works now, what is
    unverified, what to pick up. The detail is already in the log.
+   Then the log's NEXT RELEASE block, as it is there.
    End the summary with the words "safe to clear" (owner, 2026-10-10), and
    only once steps 1 to 7 are really done: pushed, clean, nothing running.
    If any of them is not, say what is outstanding instead.
+
+NEXT RELEASE (step 5; owner, 2026-10-14: "display what's left until the
+next release"). Counted after the issues are closed and filed, so it is
+true when the log is pushed. The next release is the first release
+milestone, in version order, after the latest published release:
+       gh release list --repo 9-7-8/horse-heroes --limit 1
+       gh api "repos/9-7-8/horse-heroes/milestones?state=open&per_page=100" --jq '.[] | "\(.title)\t\(.open_issues) open\t\(.closed_issues) closed"'
+       gh issue list --repo 9-7-8/horse-heroes --milestone "<x.y.z Theme>" --state open
+   Say it as a short block: the release's name, how many of its issues
+   are closed of how many, and each open one as "#N title", with the ones
+   labelled "decision" or "proposed" said to be hers. Under it, any
+   issue labelled "menus" from another milestone that was finished or
+   built in part since the latest release: it rides this one (menus
+   first) and is listed as riding along.
+       gh issue list --repo 9-7-8/horse-heroes --label menus --state closed --search "closed:><date of the latest release>"
+   A menus issue still open that this session built part of is listed as
+   riding along in part.
 
 DO NOT
   - End on a red build without saying so in both the log and the summary.

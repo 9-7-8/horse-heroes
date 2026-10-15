@@ -16,7 +16,7 @@ tune-loot-feel.txt    "the drops feel off", "tune the loot shower", "more juice"
 end-session.txt       "end the session", "wrap up", "we're done for today"
                       Stop what we started, build green, code commit, update
                       the record, a new session log, docs commit, verify clean,
-                      summarise.
+                      summarise, and what is left until the next release.
 
 intake-source-file.txt  "intake this", "process this file"
                       Turn a file of design notes into philosophy docs and

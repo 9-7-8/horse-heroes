@@ -26,7 +26,7 @@ Each is a function that takes the tokens and returns a bundle to spawn.
   `trail_mark` (one fight in the footer's trail tracker: behind, here or
   ahead, and whether it is the boss),
   `confirmation` on a `scrim` (the one modal).
-- `hint`, a lesson's one line, with `small_button` for its two controls
+- `popup`, a lesson's pop-up, with `small_button` for its two controls
   (see "The hint").
 - Text: `text`, `dim`, `title`.
 - The stand-in picture of a piece of gear is not in `parts.rs` but in
@@ -49,30 +49,45 @@ apart from every fill a tab can have with the colour taken away.
 
 ## The hint
 
-A lesson's one line (#291; `docs/philosophy/onboarding.md`, principles 9,
-10 and 16): `hint(tokens, about, key, words)`.
+A lesson as a pop-up (#353, after the one line of #291;
+`docs/philosophy/onboarding.md`, principles 9, 10 and 16):
+`popup(tokens, about, key, words)`.
 
-    <> Equip [E]  Put the open piece on the selected horse.   [Got it [Esc]] [Skip all hints]
+         <>
+    +----------------------------------+
+    | <> Equip [E]                     |
+    | You choose who wears it. Left    |
+    | alone it stays carried.          |
+    |       [Got it [Esc]] [Skip all]  |
+    +----------------------------------+
 
 - **It names its control and prints its key**, as the control does, then
-  says one line. It is one line high (`size.hint_height`, 22) whatever it
-  says: a line too long for its room is cut, and the two controls keep
-  their places at its far end.
+  says its one line in the title's size, wrapping within
+  `size.popup_width` (340).
+- **It stands out without colour**: a panel with an edge of
+  `size.popup_border` (3), thicker than any control's, in
+  `colour.attention`, and a shadow under it.
+- **Its point** (`PopupArrow`) is a square stood on a corner,
+  `size.popup_arrow` (14), half out of the edge nearest its control. The
+  shell moves it along that edge and to the other edge.
 - **Its controls** are `small_button`s (`size.hint_control`, 20 high, small
-  text): a button with every state a button has, for a line with less than
-  a control's height. They carry `DismissHint` and `SkipHints`.
+  text). They carry `DismissHint` and `SkipHints`.
 - **The mark.** Any interactive part that carries `Pointed` shows a square
-  stood on a corner in its top left corner (`size.pointer`, 6), and the
-  hint's line begins with the same mark. It is out of the layout, so it
-  moves nothing. It has the attention mark's colour (`colour.attention`)
-  and is told from it, and from the selected mark, by shape: a square on a
-  corner, a round dot, a bar. A test holds that colour apart from every
-  fill a part can have with the colour taken away.
-- Where the line is, what raises a hint and what puts it away are the
-  shell's: [menu-shell.md](menu-shell.md), "The hint's line".
+  stood on a corner in its top left corner (`size.pointer`, 6), and is
+  ringed in `colour.attention` where the focus ring goes, unless it has
+  focus or is a drag's target (#353). The pop-up's first line begins with
+  the same mark. Both are out of the layout, so they move nothing. The
+  mark is told from the attention mark and the selected mark by shape: a
+  square on a corner, a round dot, a bar. A test holds that colour apart
+  from every fill a part can have with the colour taken away.
+- Where the pop-up stands, how it comes up, what raises a hint and what
+  puts it away are the shell's: [menu-shell.md](menu-shell.md), "The
+  hint's pop-up".
 
 Chosen without the owner: the square on a corner, that it shares the
-attention mark's blue, and the words "Got it" and "Skip all hints".
+attention mark's blue, the words "Got it" and "Skip all hints"; and for
+the pop-up its width, edge, shadow, the title's size for its words, and
+the ring.
 
 ## How a state looks
 
@@ -107,10 +122,10 @@ live set to hover, press and tab through, including a real confirmation.
 To tune: change a value in `menu.ron`, run again, look at this screen. The
 tokens are compiled in, so a change needs a rebuild but no code change.
 
-Under the side panel is the hint: with a key, without one and with a line
-too long for its room; its controls in each state; and its mark on a
-button, a tab that also has the attention mark, a row, a selected tab and
-a pressed button.
+Under the side panel is the hint's pop-up, with its point, about a control
+with a key; its controls in each state; and its mark and ring on a button,
+a tab that also has the attention mark, a row, a selected tab and a
+pressed button.
 
 ## Not here yet
 
