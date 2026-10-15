@@ -1,0 +1,64 @@
+SESSION 2026-10-15 - abilities carry their elements (#357)
+
+ASKED
+  /next: the next thing by the order. Tiers 1 and 2 empty (#246 waits only
+  on her look); PICK UP's #357.
+
+DONE
+  - #357 (62f0f78): four abilities in assets/data/abilities.ron, each with
+    its element: Ember Shot (Fire) and Thorn Shot (Plant), x2.5 attack and
+    the elemental on the first enemy; Frost Burst (Ice), x2 elemental on
+    every enemy; Ward (none), half damage for 4 s. Each horse has one
+    (Horse::ability), starting with horses.ron's (Juniper Ember Shot,
+    Morrow Frost Burst, Sable Ward), changed in town on Horses, Abilities
+    by pointer or F, I, P, W, for the selected horse, with Undo. A plain
+    hit has no element and is neutral. The party element, its keys, the
+    "attuned to" line and the classes are gone; the fight log says
+    "Morrow Frost Burst (Ice) on Thornling for 15  Strong!". The report
+    marks each enemy with whose abilities are strong or resisted against
+    it; the town's side lists each horse's ability.
+  - Tutorial: lesson "a resisted ability", due Resisted, in town, on the
+    horse whose ability was resisted the most last trail (new target
+    Resisted), done by giving a horse another ability (new event Chose).
+  - Balance rerun on purpose: over the nine parties with Juniper and
+    Morrow on any damage ability and Sable on the Ward, 51%, best 83%,
+    worst 8%; the starting party 63%. Bounds: best - worst >= 0.5 (was 0.2).
+  - Checked: 232 tests, the new ones seen to fail with plain hits given an
+    element. Seen running: the click-budget walk (ability by pointer 2
+    presses, by keys 1; screenshots/walk/00 shows Thorn Shot chosen for
+    Juniper), --seed 6 --no-pause at 28 (Frost Burst lines and Ice-blue
+    numbers).
+
+DECIDED (for her)
+  - Four abilities, keys F I P W. Plain hits keep the horse's elemental
+    stat, at x1, so balance stays near; the vision only says they are
+    neutral.
+  - The soak's depart line has abilities= instead of element=; older logs
+    no longer replay.
+
+FOUND
+  - a_trail_brings_back_many_pieces_and_the_higher_tiers_stay_rare was
+    within sampling noise of its bound; it now rolls 2000 trails, not 600.
+
+NOT DONE
+  - The resisted-ability lesson's pop-up was not seen in a picture: it
+    comes after the first item's town lessons. Covered by
+    a_resisted_ability_is_taught_on_its_horse.
+
+PICK UP
+  Build #358, a sound of its own for each ability and for its hits by
+  element, now that the abilities exist.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 4 of 10 closed.
+    #354 Each horse attacks at its own cadence - closed
+    #355 A speed stat - closed
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built-untested
+    #357 The most basic abilities: each carries its element - closed
+    #358 A sound of its own for each ability - unbuilt
+    #359 Worn gear seen on the horse - unbuilt
+    #360 A lesson pop-up when the boss is met - closed
+    #361 A look of its own for every piece - unbuilt
+    #363 A dragged piece dangles from the pointer, swinging - built-untested
+    #364 A crash leaves a log beside the game - unbuilt
+  Riding along: #360 (menus, closed); in part #356 and #363 (menus, built).
