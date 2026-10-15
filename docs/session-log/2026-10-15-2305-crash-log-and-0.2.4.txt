@@ -1,0 +1,55 @@
+SESSION 2026-10-15 - a crash log (#364), and release 0.2.4
+
+ASKED
+  "/next, and then I think we're ready for the next release?" Then, during
+  the release: "can you thumbnail the images so they don't take up so much
+  room on the release page?"
+
+DONE
+  - #364 (e7cdd8a, 049613a): a panic appends message, place, backtrace,
+    version, seed, thread and UTC time to crash.log, capped at 256 KiB
+    (newest whole entries kept). Bevy's log goes to horse_heroes.log, new
+    each run. Both beside the exe, or in %LOCALAPPDATA%\Horse Heroes when
+    the exe's folder cannot be written (the default Program Files install).
+    The uninstaller removes those beside the exe. HORSE_HEROES_CRASH=1
+    panics on the first frame. Docs: docs/crash-log.md.
+    Checked: 6 tests (the cap test seen to fail with the cap broken); a
+    deliberate panic in the release build; the installed copy with its
+    folder write-denied wrote both logs to LOCALAPPDATA; uninstall left
+    nothing.
+  - Release 0.2.4 published, https://github.com/9-7-8/horse-heroes/releases/tag/v0.2.4
+    Staged build and installer tested (installed to a scratch folder,
+    picture read, uninstalled); downloaded asset hash matches; all ten
+    pictures load. Not tested on a clean machine (#198).
+  - Pictures are thumbnails, 320 wide, linking to the full size; written
+    into release-a-build.txt step 7.
+
+DECIDED (for her)
+  - Logs fall back to %LOCALAPPDATA%\Horse Heroes rather than only beside
+    the exe as #364 said: under Program Files nothing could be written.
+  - The release notes group cadence, speed, abilities, sounds and hit poses
+    under one heading with one picture; sound has none.
+
+FOUND
+  - Writing beside the exe fails silently under Program Files; caught by
+    the install test, fixed before release.
+
+NOT DONE
+  - She has not looked at 0.2.4.
+
+PICK UP
+  Ask #289 (Decide: the opening) with /answers; #293 onwards wait on it.
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - unbuilt
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along: none since 0.2.4.
