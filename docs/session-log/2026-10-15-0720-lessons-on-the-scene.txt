@@ -1,0 +1,45 @@
+SESSION 2026-10-15, the lessons follow the horses into the scene (#356)
+
+ASKED
+  /next. Tiers 1 and 2 empty (the one open bug, #246, waits on her look);
+  PICK UP was #356, part 3.
+
+DONE
+  - Click budget walked again at 1120x640: the same counts, none over,
+    none NOT DONE (docs/click-budget.md). Walked in the running game.
+  - The selected-horse lesson ends "Press another horse."; its mark was
+    already on the horse's tag in the scene. Equip's lesson is on Another
+    horse [Q]: "You choose who: Equip's, or another from this list. Left
+    alone, it stays carried." (689ec25.) Tested (the file's lesson test
+    now expects Another horse, and was seen to fail with Equip); seen in
+    the lesson walk, docs/gallery/2026-10-15-lessons-on-the-scene.
+
+DECIDED (for her)
+  - The lesson marks Another horse; it does not open the list itself.
+
+FOUND
+  - IDLE_LESSON takes a folder, not a file prefix: a prefix makes every
+    picture fail to save, with exit 0.
+  - card.rs (184, 387) still says "Another horse's key" meaning Z X C,
+    which now reads like the control of that name. Left as is.
+
+NOT DONE
+  - #356 part 4, the owner equipping on a horse of her choice: hers.
+
+PICK UP
+  #354, Each horse attacks at its own cadence: read the issue and
+  docs/expedition.md, then build it.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 10 closed.
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down (waits on her look)
+    #357 The most basic abilities
+    #358 A sound of its own for each ability
+    #359 Worn gear seen on the horse
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+    #363 A dragged piece dangles from the pointer, swinging
+    #364 A crash leaves a log beside the game
+  Riding along in part: #356 (menus).

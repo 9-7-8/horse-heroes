@@ -256,15 +256,17 @@ none of which has to be done:
 1. The piece, where it is: press it and its card opens. If the player put
    it on a horse without opening its card, its other line says it is on a
    horse and the mark is on it where it is worn.
-2. The selected horse, its tag in the scene (#356): the card's before and after are its.
-   Finished by selecting another horse.
+2. The selected horse, its tag in the scene (#356): the card's before and
+   after are its, and the line says to press another horse. Finished by
+   selecting another horse.
 3. When the trail brought back more than one piece (#352), which since
    every kill throws gear is the first trail: the mark is on the
    Inventory, and the line says to open another's card, since the choice
    is the player's. Finished by opening the card of a carried piece that
    is not the newest; the newest's own card does not count.
-4. Equip: you choose who wears it; left alone it stays carried, and
-   nothing is lost. Nothing equips by itself and no lesson names a horse
+4. Who wears it, on Another horse beside Equip (#356): Equip's horse or
+   one of the list it opens; left alone it stays carried. Finished by
+   equipping, either way. Nothing equips by itself and no lesson names a horse
    for the piece (owner, 2026-10-12, #351).
 5. Once a piece is on, Undo: it takes it back until the party sets out.
    Finished by setting out.

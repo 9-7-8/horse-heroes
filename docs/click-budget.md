@@ -14,7 +14,9 @@ click.
 ## The table
 
 Walked 2026-10-11, and again 2026-10-12 (#314) and 2026-10-14 (after the
-start on the road, the lesson pop-ups and dragging) with the same counts, at
+start on the road, the lesson pop-ups and dragging) and 2026-10-15 (after
+the horses moved into the scene and Equip names its horse, #356) with the
+same counts, at
 `--seed 6`, in a window of 1120x640, by [the walk](#the-walk).
 
 The first time a piece is equipped, a lesson pop-up follows it ("The selected
