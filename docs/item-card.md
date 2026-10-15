@@ -276,7 +276,21 @@ flat UI nodes, so nothing depends on it.
   with rays, three stones. So the piece on the ground and the piece in the
   menu carry the same sign, and it is told with the colour taken away. A
   prism is drawn as a disc.
+- **The piece is its look** (#361; the owner, 2026-10-14: "unique art for
+  every item. We'll do three layers"). Over the rarity's colour, a
+  `pattern` (spots, diamonds, stripes, checks, rings, bands) in one ink, and
+  on top a `decoration` (a star, a flame, a vine, a sun, a clover, a heart)
+  in another, both from `assets/data/looks.ron`. A piece rolls its look
+  when it drops (`sim/look.rs`, `Look::roll`) from a copy of the drop's
+  roll, so it takes nothing from it and every other seeded roll is as it
+  was. The look means nothing about stats or element yet. `paint` turns a
+  look into a grid of layers; `LookImages` turns that into an image, once
+  per look, tier and size, which fills the shape. The decoration sits off
+  the middle, at `picture_decoration`, where the rarity's mark does not
+  cover it all.
 - **An empty slot** is the outline alone, unfilled.
+
+The same look is laid over the gear a horse wears (#359, horse-model.md).
 
 It is in every cell that shows a piece: the slots of the Gear tab, the
 cargo and the drop under the report. It sits under the name, beside the
@@ -287,9 +301,14 @@ square again only when its slot or rarity has changed. The pinned card in
 the side panel has no picture: the cell that opened it is marked beside it,
 and the panel has no height to spare.
 
-A new slot or rarity needs a line of `gear.ron` and no code. Tests hold
-that no two slots share an outline (`data.rs`) and no two rarities a mark
-(`picture.rs`). To see all of them: `--parts`.
+A new slot or rarity needs a line of `gear.ron` and no code; a new pattern,
+decoration or ink a line of `looks.ron`. Tests hold that no two slots share
+an outline (`data.rs`), no two rarities a mark (`picture.rs`), every
+pattern and decoration paints a mark of its own, the same seed rolls the
+same look, the two inks differ, nine in ten pairs of pieces of one slot and
+rarity differ in pattern or decoration, and a shape's rounded corners are
+left clear (`look.rs`). To see all of them: `--parts`, whose pictures
+between them show every pattern and decoration.
 
 ## The actions
 

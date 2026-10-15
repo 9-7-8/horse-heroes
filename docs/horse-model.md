@@ -79,8 +79,10 @@ underneath.
 
 ## Worn gear
 
-A piece a horse wears is seen on it, at its simplest (#359), in its
-rarity's colour (`gear.ron`). `Frame::worn(slot)` gives its pieces, of
+A piece a horse wears is seen on it, at its simplest (#359), painted with
+its look (#361, item-card.md "The picture"): its rarity's colour, its
+pattern and its decoration, laid over the slot's pieces as seen from the
+side (`side_uvs`), the decoration at `worn_decoration`. `Frame::worn(slot)` gives its pieces, of
 `Kind::Gear`, built from the horse's own sections so it fits any horse:
 
 - **Head**: a band round the head behind the eyes, on the neck's joint.
@@ -92,13 +94,13 @@ rarity's colour (`gear.ron`). `Frame::worn(slot)` gives its pieces, of
 
 Each stands off what it covers (`swell`). `scene.rs` makes every horse each
 slot's pieces at launch, hidden, and `show_worn` shows them each frame the
-horse wears something there, in that piece's rarity's material, so Equip,
+horse wears something there, in a material of that piece's look, made
+once per look and tier, so Equip,
 a swap, Undo and a drag are seen at once. A thin black rim round each (the
 outline's trick, `WORN_RIM`) keeps a white Common piece readable on a pale
 horse. It moves with its joint, so it walks, fights and lies down with the
 horse. `--worn` starts every horse wearing a piece in each slot, rolled
-from the seed. The three-layer look of a piece (#361) and real gear models
-(#66) replace the flat colour.
+from the seed. Real gear models (#66) replace all of it.
 
 ## Tests
 

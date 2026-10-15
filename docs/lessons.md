@@ -275,7 +275,9 @@ its own on it.
 **The first item** (#296), in town, each finished by doing the thing and
 none of which has to be done:
 
-1. The piece, where it is: press it and its card opens. If the player put
+1. The piece, where it is: press it and its card opens. Every piece has a
+   look of its own (#361), so the piece this points at shows its pattern
+   and decoration: the look is taught by sight, with no line of its own. If the player put
    it on a horse without opening its card, its other line says it is on a
    horse and the mark is on it where it is worn.
 2. The selected horse, its tag in the scene (#356): the card's before and

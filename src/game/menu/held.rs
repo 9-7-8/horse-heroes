@@ -10,7 +10,7 @@ use bevy::{
     prelude::*,
 };
 
-use super::picture::{draw, square};
+use super::picture::{LookImages, draw, square};
 use super::shell::Shell;
 use super::tokens::Tokens;
 use crate::fx::dangle::Dangle;
@@ -72,6 +72,8 @@ pub fn hold(
     game: Res<Game>,
     shell: Res<Shell>,
     mut held: ResMut<Held>,
+    mut images: ResMut<Assets<Image>>,
+    mut looks: ResMut<LookImages>,
     pointers: Query<(&PointerId, &PointerLocation)>,
     cells: Query<(&ComputedNode, &UiGlobalTransform)>,
     mut nodes: Query<(&mut Node, &mut UiTransform)>,
@@ -105,6 +107,8 @@ pub fn hold(
         let gear_table = &game.data.gear;
         let shape = gear_table.picture(gear.slot);
         let tier = &gear_table.rarities[gear.rarity];
+        let piece = (gear.slot.index(), gear.rarity, gear.look);
+        let look = Some(looks.picture(&mut images, t, &game.data, piece, swing.side));
         held.at = pointer.unwrap_or_default() + Vec2::new(0.0, reach);
         let node = commands
             .spawn((
@@ -135,7 +139,7 @@ pub fn hold(
                     BackgroundColor(t.colour.text_dim.0),
                 ));
                 root.spawn((square(t, swing.side), BorderColor::all(t.colour.text_dim.0)))
-                    .with_children(|square| draw(square, t, shape, Some(tier), swing.side));
+                    .with_children(|square| draw(square, t, shape, Some(tier), look, swing.side));
             })
             .id();
         held.node = Some((node, drag.piece));

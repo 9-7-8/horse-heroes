@@ -47,14 +47,21 @@ struct Modal;
 #[derive(Component)]
 struct LiveCoins(u64);
 
-fn open(mut commands: Commands, tokens: Res<Tokens>) {
-    spawn(&mut commands, &tokens);
+fn open(
+    mut commands: Commands,
+    tokens: Res<Tokens>,
+    mut images: ResMut<Assets<Image>>,
+    mut looks: ResMut<picture::LookImages>,
+) {
+    spawn(&mut commands, &tokens, &mut images, &mut looks);
 }
 
 fn toggle(
     keys: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
     tokens: Res<Tokens>,
+    mut images: ResMut<Assets<Image>>,
+    mut looks: ResMut<picture::LookImages>,
     gallery: Query<Entity, With<Gallery>>,
 ) {
     if !keys.just_pressed(KeyCode::F2) {
@@ -62,7 +69,7 @@ fn toggle(
     }
     match gallery.single() {
         Ok(entity) => commands.entity(entity).despawn(),
-        Err(_) => spawn(&mut commands, &tokens),
+        Err(_) => spawn(&mut commands, &tokens, &mut images, &mut looks),
     }
 }
 
@@ -122,7 +129,12 @@ fn inked(parent: &mut ChildSpawnerCommands, t: &Tokens, gear: &GearTable, words:
     });
 }
 
-fn spawn(commands: &mut Commands, t: &Tokens) {
+fn spawn(
+    commands: &mut Commands,
+    t: &Tokens,
+    images: &mut Assets<Image>,
+    looks: &mut picture::LookImages,
+) {
     let gap = t.space.m;
     commands
         .spawn((
@@ -222,8 +234,27 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                     });
                     // Every picture a piece of gear can have (#286).
                     panel.spawn(dim(t, "gear pictures: empty, then each rarity"));
-                    let gear = Data::load().gear;
+                    // Each piece has a look of its own (#361): between them the
+                    // rows show every pattern and every decoration.
+                    let data = Data::load();
+                    let gear = &data.gear;
+                    let (patterns, decorations) = (data.looks.patterns.len(), data.looks.decorations.len());
                     for slot in Slot::ALL {
+                        let s = slot.index();
+                        let pictures: Vec<_> = std::iter::once(None)
+                            .chain((0..gear.rarities.len()).map(|tier| {
+                                let n = s * gear.rarities.len() + tier;
+                                let inks = data.looks.inks.len();
+                                let look = crate::sim::look::Look {
+                                    pattern: n % patterns,
+                                    decoration: (n / patterns + n) % decorations,
+                                    pattern_ink: n % inks,
+                                    decoration_ink: (n + 1 + n / inks) % inks,
+                                };
+                                let image = looks.picture(images, t, &data, (s, tier, look), t.size.picture);
+                                Some((&gear.rarities[tier], image))
+                            }))
+                            .collect();
                         panel
                             .spawn(Node {
                                 align_items: AlignItems::Center,
@@ -231,10 +262,10 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                                 ..default()
                             })
                             .with_children(|tiers| {
-                                let tiers_of = std::iter::once(None).chain(gear.rarities.iter().map(Some));
-                                for tier in tiers_of {
+                                for piece in pictures {
+                                    let (tier, image) = piece.map_or((None, None), |(tier, image)| (Some(tier), Some(image)));
                                     tiers.spawn(picture::square(t, t.size.picture)).with_children(|square| {
-                                        picture::draw(square, t, gear.picture(slot), tier, t.size.picture);
+                                        picture::draw(square, t, gear.picture(slot), tier, image, t.size.picture);
                                     });
                                 }
                                 tiers.spawn(dim(t, slot.name()));

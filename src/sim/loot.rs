@@ -1,6 +1,7 @@
 //! Horses, their gear, and rolling a gear drop.
 
 use super::data::{Data, HorseDef, Slot, Stats};
+pub use super::look::Look;
 use super::rng::Rng;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -10,6 +11,8 @@ pub struct Gear {
     /// Its tier: the index of its rarity in `gear.ron`, lowest first.
     pub rarity: usize,
     pub stats: Stats,
+    /// Its pattern and decoration, rolled with it (#361).
+    pub look: Look,
 }
 
 #[derive(Clone, Debug)]
@@ -116,6 +119,7 @@ pub fn roll_piece(data: &Data, rng: &mut Rng, odds: Odds, level: u32) -> Gear {
         slot: base.slot,
         rarity: tier,
         stats,
+        look: Look::roll(&data.looks, rng),
     }
 }
 

@@ -784,6 +784,7 @@ mod tests {
         game.party[0].gear[slot.index()] = Some(Gear {
             name: "Old Thing".into(),
             slot,
+            look: Default::default(),
             rarity: 0,
             stats: Stats {
                 attack: 2,
@@ -794,6 +795,7 @@ mod tests {
         let gear = Gear {
             name: "New Thing".into(),
             slot,
+            look: Default::default(),
             rarity: 0,
             stats: Stats {
                 attack: 5,
@@ -886,6 +888,7 @@ mod tests {
         again.party[0].gear[slot] = Some(Gear {
             name: "Old Thing".into(),
             slot: Slot::ALL[slot],
+            look: Default::default(),
             rarity: 0,
             stats: Stats::default(),
         });
@@ -925,6 +928,7 @@ mod tests {
         let old = |name: &str, points: i32| Gear {
             name: name.into(),
             slot: gear.slot,
+            look: Default::default(),
             rarity: 0,
             stats: Stats {
                 attack: points,

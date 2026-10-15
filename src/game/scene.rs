@@ -15,11 +15,14 @@ use bevy::{
     window::PrimaryWindow,
 };
 
+use std::collections::HashMap;
+
+use super::menu::picture::LookImages;
 use super::menu::shell::Shell;
 use super::menu::tokens::Tokens;
 use super::{Game, SceneView, Screen};
-use crate::fx::drops::rarity_colour;
 use crate::sim::data::{Element, Slot};
+use crate::sim::look::Look;
 use crate::sim::horse_shape::{Frame, HorseShape, Joint, Kind, LEGS, Part, Section};
 use crate::sim::rng::Rng;
 
@@ -82,6 +85,7 @@ impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::BLACK))
             .insert_resource(Bare(self.bare))
+            .init_resource::<LookImages>()
             .init_resource::<Tired>()
             .add_systems(Startup, setup)
             .add_systems(
@@ -274,7 +278,6 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     bare: Res<Bare>,
     tokens: Res<Tokens>,
-    game: Res<Game>,
 ) {
     // Camera at the isometric elevation (about 35 degrees), looking across
     // the trail. Its projection covers the whole window and the menu shell
@@ -362,28 +365,28 @@ fn setup(
         cull_mode: Some(Face::Front),
         ..default()
     });
-    // What each slot's piece looks like worn (#359), in each rarity's colour.
-    let worn: Vec<WornPiece> = Slot::ALL
-        .into_iter()
-        .flat_map(|slot| horse.worn(slot).into_iter().map(move |part| (slot, part)))
-        .map(|(slot, part)| {
+    // What each slot's piece looks like worn (#359): its look (#361) is
+    // laid over the whole slot as seen from the side.
+    let mut worn = Vec::new();
+    for slot in Slot::ALL {
+        let parts = horse.worn(slot);
+        let corners = parts.iter().flat_map(|part| {
+            [part.from.top, part.from.bottom, part.to.top, part.to.bottom].map(Vec2::from)
+        });
+        let side = corners.fold((Vec2::MAX, Vec2::MIN), |(lo, hi), p| (lo.min(p), hi.max(p)));
+        for part in parts {
             let origin = joint_origin(&horse, part.joint);
-            WornPiece {
+            worn.push(WornPiece {
                 slot,
                 joint: part.joint,
-                mesh: meshes.add(piece_mesh(&part, origin, 0.0)),
+                mesh: meshes.add(side_uvs(piece_mesh(&part, origin, 0.0), origin, side)),
                 rim: meshes.add(piece_mesh(&part, origin, WORN_RIM)),
-            }
-        })
-        .collect();
+            });
+        }
+    }
     let looks = WornLooks {
-        tiers: game
-            .data
-            .gear
-            .rarities
-            .iter()
-            .map(|rarity| materials.add(Color::from(rarity_colour(rarity))))
-            .collect(),
+        made: HashMap::new(),
+        unworn: materials.add(Color::WHITE),
         rim: materials.add(StandardMaterial {
             base_color: Color::BLACK,
             unlit: true,
@@ -449,8 +452,8 @@ struct WornPiece {
 }
 
 /// A piece of gear as the horse wears it (#359): shown while the horse
-/// wears something in that slot, in its rarity's colour. A `rim` is its
-/// dark edge, so a pale piece still reads on a pale horse.
+/// wears something in that slot, painted with the piece's look (#361). A
+/// `rim` is its dark edge, so a pale piece still reads on a pale horse.
 #[derive(Component)]
 struct Worn {
     horse: usize,
@@ -458,10 +461,12 @@ struct Worn {
     rim: bool,
 }
 
-/// Worn gear's material for each rarity, lowest first, and its rim's.
+/// Worn gear's material for each tier and look worn so far, one for a
+/// piece not yet shown, and its rim's.
 #[derive(Resource)]
 struct WornLooks {
-    tiers: Vec<Handle<StandardMaterial>>,
+    made: HashMap<(usize, Look), Handle<StandardMaterial>>,
+    unworn: Handle<StandardMaterial>,
     rim: Handle<StandardMaterial>,
 }
 
@@ -469,20 +474,34 @@ struct WornLooks {
 /// an Equip, a swap, an Undo or a drag.
 fn show_worn(
     game: Res<Game>,
-    looks: Res<WornLooks>,
+    mut looks: ResMut<WornLooks>,
+    mut images: ResMut<Assets<Image>>,
+    mut pictures: ResMut<LookImages>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut worn: Query<(&Worn, &mut Visibility, &mut MeshMaterial3d<StandardMaterial>)>,
 ) {
     for (worn, mut visibility, mut material) in &mut worn {
-        let tier = game
+        let piece = game
             .party
             .get(worn.horse)
             .and_then(|horse| horse.gear[worn.slot.index()].as_ref())
-            .map(|gear| gear.rarity);
-        let wanted = match tier.and_then(|tier| looks.tiers.get(tier)) {
+            .map(|gear| (gear.rarity, gear.look));
+        let wanted = match piece {
             Some(_) if worn.rim => Visibility::Inherited,
-            Some(look) => {
-                if material.0 != *look {
-                    material.0 = look.clone();
+            Some((tier, look)) => {
+                let painted = looks
+                    .made
+                    .entry((tier, look))
+                    .or_insert_with(|| {
+                        let image = pictures.worn(&mut images, &game.data, tier, look);
+                        materials.add(StandardMaterial {
+                            base_color_texture: Some(image),
+                            ..default()
+                        })
+                    })
+                    .clone();
+                if material.0 != painted {
+                    material.0 = painted;
                 }
                 Visibility::Inherited
             }
@@ -516,6 +535,26 @@ fn face_normals(corners: &[Vec3; 8]) -> [(Vec3, bool); 6] {
         let outward = normal.dot(centre - middle) >= 0.0;
         (if outward { normal } else { -normal }, outward)
     })
+}
+
+/// A mesh's picture laid on it as seen from the side: across `side`, the
+/// box from its lowest back corner to its highest front one in the horse's
+/// space, the picture's left at the back and its top at the top. The mesh's
+/// corners are placed relative to `origin`.
+fn side_uvs(mut mesh: Mesh, origin: Vec3, (lo, hi): (Vec2, Vec2)) -> Mesh {
+    let span = (hi - lo).max(Vec2::splat(1e-4));
+    let uvs: Vec<[f32; 2]> = match mesh.attribute(Mesh::ATTRIBUTE_POSITION).and_then(|p| p.as_float3()) {
+        Some(positions) => positions
+            .iter()
+            .map(|p| {
+                let at = (Vec3::from(*p) + origin).truncate();
+                [((at.x - lo.x) / span.x).clamp(0.0, 1.0), ((hi.y - at.y) / span.y).clamp(0.0, 1.0)]
+            })
+            .collect(),
+        None => return mesh,
+    };
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh
 }
 
 /// The mesh of one piece: the solid between its two sections, flat-faced,
@@ -626,7 +665,7 @@ fn spawn_horse(
         // Gear over it, hidden until the horse wears something there.
         for piece in worn.iter().filter(|piece| piece.joint == joint) {
             for (rim, mesh, material) in [
-                (false, &piece.mesh, &looks.tiers[0]),
+                (false, &piece.mesh, &looks.unworn),
                 (true, &piece.rim, &looks.rim),
             ] {
                 parent.spawn((

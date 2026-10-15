@@ -1338,6 +1338,7 @@ mod tests {
             horse.gear[Slot::Body.index()] = Some(Gear {
                 name: "Test Blanket".into(),
                 slot: Slot::Body,
+                look: Default::default(),
                 rarity: 0,
                 stats: Stats {
                     health: 20,
@@ -1641,6 +1642,7 @@ mod tests {
         horses[0].gear[0] = Some(Gear {
             name: "Swift Shoes".into(),
             slot: Slot::ALL[0],
+            look: Default::default(),
             rarity: 0,
             stats: Stats { speed: 10, ..Stats::default() },
         });

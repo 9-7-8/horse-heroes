@@ -360,6 +360,63 @@ pub struct PictureDef {
     pub round: (f32, f32, f32, f32),
 }
 
+/// A flat mark a piece's look is drawn with (`looks.ron`).
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub enum Mark {
+    Bar,
+    Disc,
+    /// An ellipse's rim: the share of its radius that is rim.
+    Ring(f32),
+}
+
+/// One mark of a decoration, in its box from -1 to 1 each way.
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub struct MarkDef {
+    pub mark: Mark,
+    pub size: (f32, f32),
+    #[serde(default)]
+    pub at: (f32, f32),
+    #[serde(default)]
+    pub turn: f32,
+}
+
+/// A pattern: one mark repeated in a grid over a whole piece.
+#[derive(Clone, Debug, Deserialize)]
+pub struct PatternDef {
+    #[allow(dead_code)]
+    pub name: String,
+    pub mark: Mark,
+    pub size: (f32, f32),
+    pub step: (f32, f32),
+    #[serde(default)]
+    pub stagger: f32,
+    #[serde(default)]
+    pub turn: f32,
+    #[serde(default)]
+    pub spin: f32,
+}
+
+/// A decoration: a few marks, drawn on top of the pattern.
+#[derive(Clone, Debug, Deserialize)]
+pub struct DecorationDef {
+    #[allow(dead_code)]
+    pub name: String,
+    pub marks: Vec<MarkDef>,
+}
+
+/// What every piece's look is rolled from (#361).
+#[derive(Clone, Debug, Deserialize)]
+pub struct LookTable {
+    /// Colours as hex text; the sim knows no colours.
+    pub inks: Vec<String>,
+    pub patterns: Vec<PatternDef>,
+    pub decorations: Vec<DecorationDef>,
+    /// Where the decoration goes: its middle as shares of the piece's width
+    /// and height, and its side as a share of the shorter side.
+    pub picture_decoration: (f32, f32, f32),
+    pub worn_decoration: (f32, f32, f32),
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct GearTable {
     pub health_per_point: i32,
@@ -386,6 +443,7 @@ pub struct Data {
     pub enemies: Vec<EnemyDef>,
     pub encounters: Encounters,
     pub gear: GearTable,
+    pub looks: LookTable,
 }
 
 impl Data {
@@ -400,6 +458,7 @@ impl Data {
                 include_str!("../../assets/data/encounters.ron"),
             ),
             gear: parse("gear.ron", include_str!("../../assets/data/gear.ron")),
+            looks: parse("looks.ron", include_str!("../../assets/data/looks.ron")),
         }
     }
 

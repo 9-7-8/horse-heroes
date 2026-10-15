@@ -1,0 +1,77 @@
+// A look of its own for every piece of gear (#361): three layers, drawn very
+// simply. The background is the piece's slot shape in its rarity's colour
+// (gear.ron); over it a `pattern` in one ink; on top a `decoration` in
+// another. Each piece rolls its pattern, its decoration and its two inks
+// when it drops, and keeps them. They are cosmetic for now: they mean
+// nothing about stats or element (owner, 2026-10-14).
+//
+// A new pattern or decoration is one more entry here; nothing in the code
+// names one.
+//
+// A mark is one of
+//   Bar         a rectangle
+//   Disc        an ellipse
+//   Ring(band)  an ellipse's rim, `band` the share of its radius that is rim
+// with `size: (wide, tall)`, `at: (x, y)` from the middle (y down) and `turn`
+// in degrees, both 0 if left out.
+//
+// `inks`: the colours a pattern or a decoration is drawn in, as hex. A
+// piece's two inks are never the same. Mid tones, so they read on every
+// rarity's colour and never pass for the dark cut of the rarity's mark.
+//
+// `patterns`: one mark repeated in a grid over the whole piece. Lengths are
+// shares of the piece's shorter side. `step` is the grid's spacing across
+// and down; `stagger` shifts every other row along by that share of a step;
+// `turn` turns the whole grid and `spin` each mark.
+//
+// `decorations`: a few marks in a box from -1 to 1 each way, placed where
+// `picture_decoration` (the menus' picture) or `worn_decoration` (on the
+// horse, #359) says: its middle as shares of the piece's width and height,
+// and its side as a share of the shorter side. In the menus it sits off the
+// middle, where the rarity's mark is.
+(
+    inks: ["7a3b8f", "2e7d6f", "b23a48", "3d5a98", "8a5a2b", "c25e9c"],
+    patterns: [
+        (name: "spots",    mark: Disc,      size: (0.14, 0.14), step: (0.3, 0.3),  stagger: 0.5),
+        (name: "diamonds", mark: Bar,       size: (0.15, 0.15), step: (0.3, 0.3),  stagger: 0.5, spin: 45.0),
+        (name: "stripes",  mark: Bar,       size: (1.0, 0.09),  step: (1.0, 0.25), turn: 45.0),
+        (name: "checks",   mark: Bar,       size: (0.2, 0.2),   step: (0.4, 0.2),  stagger: 0.5),
+        (name: "rings",    mark: Ring(0.4), size: (0.2, 0.2),   step: (0.32, 0.32), stagger: 0.5),
+        (name: "bands",    mark: Bar,       size: (1.0, 0.12),  step: (1.0, 0.36)),
+    ],
+    decorations: [
+        (name: "star", marks: [
+            (mark: Bar, size: (1.9, 0.32)),
+            (mark: Bar, size: (1.9, 0.32), turn: 60.0),
+            (mark: Bar, size: (1.9, 0.32), turn: 120.0),
+        ]),
+        (name: "flame", marks: [
+            (mark: Disc, size: (1.1, 1.1), at: (0.0, 0.4)),
+            (mark: Disc, size: (0.75, 0.75), at: (0.05, -0.15)),
+            (mark: Disc, size: (0.4, 0.45), at: (-0.05, -0.6)),
+        ]),
+        (name: "vine", marks: [
+            (mark: Bar, size: (2.0, 0.16), turn: -35.0),
+            (mark: Disc, size: (0.55, 0.3), at: (-0.45, -0.05), turn: 30.0),
+            (mark: Disc, size: (0.55, 0.3), at: (0.1, -0.4), turn: 30.0),
+            (mark: Disc, size: (0.55, 0.3), at: (0.2, 0.35), turn: -60.0),
+        ]),
+        (name: "sun", marks: [
+            (mark: Disc, size: (0.9, 0.9)),
+            (mark: Ring(0.22), size: (1.95, 1.95)),
+        ]),
+        (name: "clover", marks: [
+            (mark: Disc, size: (0.75, 0.75), at: (0.0, -0.4)),
+            (mark: Disc, size: (0.75, 0.75), at: (-0.4, 0.15)),
+            (mark: Disc, size: (0.75, 0.75), at: (0.4, 0.15)),
+            (mark: Bar, size: (0.14, 0.9), at: (0.1, 0.55), turn: -20.0),
+        ]),
+        (name: "heart", marks: [
+            (mark: Disc, size: (0.85, 0.85), at: (-0.35, -0.3)),
+            (mark: Disc, size: (0.85, 0.85), at: (0.35, -0.3)),
+            (mark: Bar, size: (0.95, 0.95), at: (0.0, 0.15), turn: 45.0),
+        ]),
+    ],
+    picture_decoration: (0.8, 0.78, 0.5),
+    worn_decoration: (0.5, 0.5, 0.7),
+)

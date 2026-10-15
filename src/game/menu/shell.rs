@@ -1264,6 +1264,7 @@ impl Plugin for ShellPlugin {
         app.insert_resource(shell)
             .insert_resource(places)
             .init_resource::<Held>()
+            .init_resource::<picture::LookImages>()
             .add_systems(Startup, spawn)
             .add_systems(
                 Update,
