@@ -43,7 +43,6 @@ use crate::game::menu::teach;
 use crate::game::scene::horse_centre;
 use crate::game::{Action, Game, Hand, Piece};
 use crate::sim::loot::Gear;
-use crate::sim::data::Element;
 
 #[derive(Resource)]
 struct Shot {
@@ -200,8 +199,9 @@ enum By {
 /// What the game must show for a job to count as done.
 #[derive(Clone, Copy, Debug)]
 enum Check {
-    /// The party fights with this element.
-    Element(Element),
+    /// This horse has this ability, by their places in the party and in
+    /// `abilities.ron` (#357).
+    Ability(usize, usize),
     /// The party has left town.
     OnTheRoad,
     /// The piece that was in the cargo when the job began is worn.
@@ -737,14 +737,14 @@ fn walk_steps(places: &Places) -> Vec<Step> {
         // A new game: in town, Horses open on Gear.
         Step::Job(ABILITY, By::Mouse),
         Step::Tab(0, 1),
-        Step::Control("Ice"),
-        Step::Done(Check::Element(Element::Ice)),
+        Step::Control("Thorn Shot"),
+        Step::Done(Check::Ability(0, 2)),
         Step::Shot("a different ability by pointer".into()),
         Step::Key(KeyCode::KeyU),
         Step::Tab(0, 0),
         Step::Job(ABILITY, By::Keys),
-        Step::Key(KeyCode::KeyI),
-        Step::Done(Check::Element(Element::Ice)),
+        Step::Key(KeyCode::KeyP),
+        Step::Done(Check::Ability(0, 2)),
         Step::Key(KeyCode::KeyU),
         Step::Job(SET_OUT, By::Mouse),
         Step::Control("Set out"),
@@ -967,7 +967,7 @@ fn tour(
             if let Some((name, by)) = tour.job.take() {
                 let done = !tour.missed
                     && match *check {
-                        Check::Element(element) => game.element == element,
+                        Check::Ability(horse, ability) => game.party[horse].ability == ability,
                         Check::OnTheRoad => !game.in_town(),
                         Check::Equipped => {
                             let worn = tour.carrying.as_ref().and_then(|gear| game.find(gear));

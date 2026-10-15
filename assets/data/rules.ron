@@ -20,18 +20,7 @@
     opening: 0.8,
     opening_stagger: 0.35,
 
-    // Ranger: bonus hit on the current target.
-    focused_shot_cooldown: 4.0,
-    focused_shot_multiplier: 2.5,
-
-    // Wizard: elemental damage to every enemy.
-    burst_cooldown: 5.0,
-    burst_multiplier: 2.0,
-
-    // Mage: the party takes less damage for a while.
-    ward_cooldown: 8.0,
-    ward_duration: 4.0,
-    ward_reduction: 0.5,
+    // The abilities' numbers are in abilities.ron (#357).
 
     ordinary_encounters: 3,
 

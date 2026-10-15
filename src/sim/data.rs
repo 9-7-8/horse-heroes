@@ -29,13 +29,43 @@ impl Element {
     }
 }
 
-/// Which one ability a horse has. Never shown to the player: there are no
-/// classes, and this goes when abilities are bought from a shared pool (#221).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
-pub enum Class {
-    Ranger,
-    Wizard,
-    Mage,
+/// What an ability does when it fires (#357), with its numbers.
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub enum AbilityKind {
+    /// One hit on the first enemy standing: attack times this, past
+    /// defense, and the horse's elemental in the ability's element.
+    Shot(f32),
+    /// The horse's elemental times this, in the ability's element, on every
+    /// enemy standing.
+    Burst(f32),
+    /// The party takes this share less from enemy hits for these seconds.
+    Ward(f32, f32),
+}
+
+/// One ability, from `abilities.ron` (#357). Its element is its own: a
+/// horse's plain hits have none.
+#[derive(Clone, Debug, Deserialize)]
+pub struct AbilityDef {
+    pub id: String,
+    pub name: String,
+    pub element: Option<Element>,
+    pub kind: AbilityKind,
+    pub cooldown: f32,
+    /// Seconds to its first use on a trail; the cooldown when not given.
+    #[serde(default)]
+    pub first: Option<f32>,
+    pub does: String,
+}
+
+impl AbilityDef {
+    /// Its name with its element, as the menus and the fight log say it:
+    /// "Ember Shot (Fire)".
+    pub fn named(&self) -> String {
+        match self.element {
+            Some(element) => format!("{} ({})", self.name, element.name()),
+            None => self.name.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
@@ -109,13 +139,6 @@ pub struct Rules {
     /// hits are (#354).
     pub opening: f32,
     pub opening_stagger: f32,
-    pub focused_shot_cooldown: f32,
-    pub focused_shot_multiplier: f32,
-    pub burst_cooldown: f32,
-    pub burst_multiplier: f32,
-    pub ward_cooldown: f32,
-    pub ward_duration: f32,
-    pub ward_reduction: f32,
     /// Speed (#355): a horse's ordinary hits come `attack_tempo / speed`
     /// seconds apart, and the road between encounters takes
     /// `travel_distance / speed` at the party's average speed.
@@ -131,7 +154,11 @@ pub struct Rules {
 
 impl Rules {
     /// Damage multiplier for an elemental attack against a target's element.
-    pub fn multiplier(&self, attack: Element, target: Element) -> f32 {
+    /// A hit with no element is neutral.
+    pub fn multiplier(&self, attack: Option<Element>, target: Element) -> f32 {
+        let Some(attack) = attack else {
+            return 1.0;
+        };
         if attack.beats() == target {
             self.strong_multiplier
         } else if target.beats() == attack {
@@ -159,7 +186,8 @@ impl Rules {
 #[derive(Clone, Debug, Deserialize)]
 pub struct HorseDef {
     pub name: String,
-    pub class: Class,
+    /// The ability it starts with, by its id in `abilities.ron`.
+    pub ability: String,
     pub stats: Stats,
 }
 
@@ -351,6 +379,7 @@ impl GearTable {
 pub struct Data {
     pub rules: Rules,
     pub horses: Vec<HorseDef>,
+    pub abilities: Vec<AbilityDef>,
     pub enemies: Vec<EnemyDef>,
     pub encounters: Encounters,
     pub gear: GearTable,
@@ -361,6 +390,7 @@ impl Data {
         Data {
             rules: parse("rules.ron", include_str!("../../assets/data/rules.ron")),
             horses: parse("horses.ron", include_str!("../../assets/data/horses.ron")),
+            abilities: parse("abilities.ron", include_str!("../../assets/data/abilities.ron")),
             enemies: parse("enemies.ron", include_str!("../../assets/data/enemies.ron")),
             encounters: parse(
                 "encounters.ron",
@@ -375,6 +405,13 @@ impl Data {
             .iter()
             .position(|e| e.id == id)
             .unwrap_or_else(|| panic!("encounters.ron names unknown enemy `{id}`"))
+    }
+
+    pub fn ability_index(&self, id: &str) -> usize {
+        self.abilities
+            .iter()
+            .position(|a| a.id == id)
+            .unwrap_or_else(|| panic!("no ability `{id}` in abilities.ron"))
     }
 }
 
@@ -399,6 +436,33 @@ mod tests {
             assert!(attack >= 0 && defense >= 0 && elemental >= 0, "{}", horse.name);
             let named = data.horses.iter().filter(|h| h.name == horse.name).count();
             assert_eq!(named, 1, "horses.ron: two horses named `{}`", horse.name);
+            data.ability_index(&horse.ability);
+        }
+
+        // Abilities (#357): each element has one that deals damage, and the
+        // numbers make each worth using.
+        for ability in &data.abilities {
+            let id = &ability.id;
+            assert_eq!(data.abilities.iter().filter(|a| a.id == *id).count(), 1, "{id}");
+            assert_eq!(data.abilities.iter().filter(|a| a.name == ability.name).count(), 1, "{id}");
+            assert!(!ability.name.is_empty() && !ability.does.is_empty(), "{id}");
+            assert!(ability.cooldown > 0.0 && ability.first.is_none_or(|first| first > 0.0), "{id}");
+            match ability.kind {
+                AbilityKind::Shot(multiplier) => assert!(multiplier > 1.0, "{id}"),
+                AbilityKind::Burst(multiplier) => assert!(multiplier > 0.0, "{id}"),
+                // The Ward is down before it is up again.
+                AbilityKind::Ward(secs, reduction) => {
+                    assert!(0.0 < secs && secs < ability.cooldown, "{id}");
+                    assert!((0.0..=1.0).contains(&reduction), "{id}");
+                }
+            }
+        }
+        for element in Element::ALL {
+            let damage = |a: &&AbilityDef| !matches!(a.kind, AbilityKind::Ward(..));
+            assert!(
+                data.abilities.iter().filter(damage).any(|a| a.element == Some(element)),
+                "no ability deals {element:?}"
+            );
         }
 
         let mut ids: Vec<&str> = data.enemies.iter().map(|e| e.id.as_str()).collect();
@@ -483,16 +547,10 @@ mod tests {
         assert!(rules.attack_tempo > 0.0 && rules.travel_distance > 0.0);
         // A swing is never due at once or before the last.
         assert!((0.0..1.0).contains(&rules.attack_jitter));
-        assert!(rules.focused_shot_cooldown > 0.0 && rules.burst_cooldown > 0.0);
-        assert!(rules.ward_cooldown > 0.0);
         assert!((0.0..=1.0).contains(&rules.bonus_chance));
-        assert!((0.0..=1.0).contains(&rules.ward_reduction));
         assert!((0.0..=1.0).contains(&rules.bonus_heal));
         assert!(0.0 < rules.weak_multiplier);
         assert!(rules.weak_multiplier < 1.0 && 1.0 < rules.strong_multiplier);
-        // An ability is worth using, and the Ward is down before it is up again.
-        assert!(rules.focused_shot_multiplier > 1.0 && rules.burst_multiplier > 0.0);
-        assert!(0.0 < rules.ward_duration && rules.ward_duration < rules.ward_cooldown);
         assert!(rules.level_scaling >= 0.0);
     }
 

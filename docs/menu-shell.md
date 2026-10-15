@@ -290,7 +290,7 @@ that."). It is not in the Journal's report any more.
 
     FIGHT LOG  [L] hides it
     Encounter 2/4: Mire Toad (Fire)          faintest
-    Juniper Focused Shot on Mire Toad for 16
+    Juniper Ember Shot (Fire) on Mire Toad for 16
     ...
     Sable hits Mire Toad for 5               newest, whole
 
@@ -375,7 +375,7 @@ A control in the file is:
 | `does` | What it does, or will do, in one sentence |
 | `issue` | The issue that will make it work |
 | `proposed` | That issue is a proposal the owner has not decided |
-| `action` | What it does today: `Element(Fire)`, `Equip`, `SetOut`, `KeepGoing`, `Undo`, `Earlier`, `Later` |
+| `action` | What it does today: `Ability(0)` (an ability by its place in `abilities.ron`, #357), `Equip`, `SetOut`, `KeepGoing`, `Undo`, `Earlier`, `Later` |
 | `note` | A line that stays under its group of controls, whether or not it can be used |
 | `shows` | What a press opens in the side panel of its page: `Keys` |
 | `switch` | What a press turns on and off, of what is shown and not of the game: `ChangedOnly`, `Hints` |
@@ -393,8 +393,8 @@ the file are the keys of the party's horses, in order (see Keys).
 - **A control with an `action` works.** A press calls `Game::act`. It is
   unavailable (`InteractionDisabled`) while `Game::can` refuses the action,
   and `can` returns the reason in plain words ("In town only.", "Nothing to
-  equip."), which is shown in place (see below). An element's button is
-  marked selected while it is the party's element.
+  equip."), which is shown in place (see below). An ability's button is
+  marked selected while the selected horse carries it.
 - **A control with a `shows` works too.** A press opens the side panel of
   its page with what it shows, and it carries the selected mark while that
   panel is open. It can always be used, so no reason line names it. Keys,
@@ -470,8 +470,9 @@ every place, tab and horse has a key, and no key means two things at once.
   rest. It was every horse's slots side by side until 2026-10-12 (#285);
   every piece at once, worn and carried, is the Inventory, and another
   horse's piece is pinned and equipped (the two change places) from there.
-- `Element`: the party's one element and what beats what, above the three
-  element buttons. The slice's stand-in for abilities.
+- `Abilities`: the selected horse's ability, its element and its line, and
+  what beats what, above one button per ability (#357). An ability's button
+  is named as `abilities.ron` names it (`everything_the_slice_can_do_has_its_one_control`).
 - `Report`: the report the Journal is open at, in two halves of fixed
   width. The latest: in town, the last trail and the next trail; on the
   road, the fight, and beside it a line saying where its log is (see
@@ -687,7 +688,7 @@ in the shell presses the thing when its key goes down, by the same
 | S | Settings | `key` of `settings` |
 | 1 to 4 | The tabs of the place that is showing | `key` of the tab |
 | Z, X, C | The first, second and third horse | `horse_keys` |
-| F, I, P | Fire, Ice, Plant, in town only | `key` of the control |
+| F, I, P, W | Ember Shot, Frost Burst, Thorn Shot, Ward for the selected horse, in town only | `key` of the control |
 | E | Equip the piece whose card is open, or the drop when none is, in town only | `key` of the control |
 | O | Changed only: the pinned comparison's table narrowed to the rows that differ, and back | `key` of the control |
 | U | Undo the last change of this town visit, in town only | `key` of the control |
@@ -758,15 +759,15 @@ last change made during this town visit, one step a press (#230,
 asks for confirmation.
 
 - **What it takes back today:** an equip of the drop, a swap between two
-  horses, and a change of element. Those are all the changes the slice
+  horses, and a change of a horse's ability (#357). Those are all the changes the slice
   has. Listing, prices, ability points, looks and pets join the list as
   each is built: an action is undoable when `Game::act` pushes a `Change`
   before doing it.
-- **It restores the real state.** A `Change` holds the whole party, the
-  cargo and the element as they were before it (`Game::before`), and
+- **It restores the real state.** A `Change` holds the whole party, with
+  its gear and abilities, and the cargo as they were before it (`Game::before`), and
   `Game::undo` puts them back, so a piece that was equipped over is on its
   horse again and the drop is in the cargo again.
-- **What changes nothing is not a step:** choosing the element the party
+- **What changes nothing is not a step:** giving a horse the ability it
   already has, and an Equip that is refused.
 - **It never reaches back past a departure.** `Game::depart` empties the
   list, whether the player set out or Keep going did. With nothing to

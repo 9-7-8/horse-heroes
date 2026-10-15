@@ -1,6 +1,6 @@
 //! Horses, their gear, and rolling a gear drop.
 
-use super::data::{Class, Data, HorseDef, Slot, Stats};
+use super::data::{Data, HorseDef, Slot, Stats};
 use super::rng::Rng;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -15,19 +15,25 @@ pub struct Gear {
 #[derive(Clone, Debug)]
 pub struct Horse {
     pub name: String,
-    pub class: Class,
+    /// Its one ability, by its place in `abilities.ron` (#357).
+    pub ability: usize,
     pub base: Stats,
     pub gear: [Option<Gear>; 3],
 }
 
 impl Horse {
-    pub fn new(def: &HorseDef) -> Horse {
+    pub fn new(data: &Data, def: &HorseDef) -> Horse {
         Horse {
             name: def.name.clone(),
-            class: def.class,
+            ability: data.ability_index(&def.ability),
             base: def.stats,
             gear: [None, None, None],
         }
+    }
+
+    /// The starting party, as `horses.ron` has it.
+    pub fn party(data: &Data) -> Vec<Horse> {
+        data.horses.iter().map(|def| Horse::new(data, def)).collect()
     }
 
     pub fn stats(&self) -> Stats {
@@ -217,7 +223,7 @@ mod tests {
     #[test]
     fn worn_gear_adds_to_a_horse() {
         let data = Data::load();
-        let mut horse = Horse::new(&data.horses[0]);
+        let mut horse = Horse::new(&data, &data.horses[0]);
         assert_eq!(horse.stats(), horse.base);
         let mut rng = Rng::new(14);
         let gear = roll_gear(&data, &mut rng, true, 2);
@@ -233,7 +239,7 @@ mod tests {
     #[test]
     fn two_horses_swap_what_they_wear_in_a_slot() {
         let data = Data::load();
-        let mut party: Vec<Horse> = data.horses.iter().map(Horse::new).collect();
+        let mut party: Vec<Horse> = Horse::party(&data);
         let mut rng = Rng::new(14);
         let gear = roll_gear(&data, &mut rng, true, 2);
         let (slot, name) = (gear.slot.index(), gear.name.clone());

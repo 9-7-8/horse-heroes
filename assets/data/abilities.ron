@@ -1,0 +1,57 @@
+// The abilities (#357): each carries its element, and a horse has one,
+// chosen in town on Horses, Abilities. A horse's plain hits have no element;
+// only its ability's do (vision.md, "Combat rules settled"). Points, levels,
+// a loadout of several and choosing among them in a fight are later (#220,
+// #222, #93).
+//
+//   id       how horses.ron names it. No two the same.
+//   name     what the menus and the fight log call it.
+//   element  its damage type: Fire, Ice or Plant, or None for a support.
+//   kind     what it does when it fires:
+//              Shot(m)       one hit on the first enemy standing: the
+//                            horse's attack times m, past defense, and its
+//                            elemental in the ability's element
+//              Burst(m)      the horse's elemental times m, in the
+//                            ability's element, on every enemy standing,
+//                            past defense
+//              Ward(secs, r) the party takes r less from enemy hits for
+//                            secs seconds
+//   cooldown seconds between one use and the next.
+//   first    seconds to its first use on a trail; the cooldown if left out.
+//   does     its one plain line, in the menus.
+[
+    (
+        id: "ember_shot",
+        name: "Ember Shot",
+        element: Some(Fire),
+        kind: Shot(2.5),
+        cooldown: 4.0,
+        does: "A heavy shot at the first enemy, in Fire.",
+    ),
+    (
+        id: "frost_burst",
+        name: "Frost Burst",
+        element: Some(Ice),
+        kind: Burst(2.0),
+        cooldown: 5.0,
+        does: "Ice on every enemy at once.",
+    ),
+    (
+        id: "thorn_shot",
+        name: "Thorn Shot",
+        element: Some(Plant),
+        kind: Shot(2.5),
+        cooldown: 4.0,
+        does: "A heavy shot at the first enemy, in Plant.",
+    ),
+    // The first Ward comes early, so it is seen in every fight.
+    (
+        id: "ward",
+        name: "Ward",
+        element: None,
+        kind: Ward(4.0, 0.5),
+        cooldown: 8.0,
+        first: Some(2.0),
+        does: "The party takes half damage from hits for 4 seconds.",
+    ),
+]

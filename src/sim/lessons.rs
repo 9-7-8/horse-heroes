@@ -59,11 +59,13 @@ pub enum Event {
     Dragged,
     /// A trail's boss fight began: its last encounter (#360).
     Boss,
+    /// The player gave a horse another ability (#357).
+    Chose,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 19] = [
+    pub const ALL: [Event; 20] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -83,6 +85,7 @@ impl Event {
         Event::Detailed,
         Event::Dragged,
         Event::Boss,
+        Event::Chose,
     ];
 }
 
@@ -114,6 +117,9 @@ pub enum Target {
     Party,
     /// The boss of the trail, in the scene, while its fight is on (#360).
     Boss,
+    /// The horse whose ability was resisted the most on the last trail
+    /// (#357), while one was.
+    Resisted,
 }
 
 /// What finishes a lesson: the player watched something happen, or did it.

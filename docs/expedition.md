@@ -1,7 +1,7 @@
 # Horse Heroes: the expedition loop (smallest slice)
 
-Camp -> trail -> camp, forever. It runs with no input; input only changes the
-element, equips early, or skips the wait.
+Camp -> trail -> camp, forever. It runs with no input; input only changes a
+horse's ability, equips, or skips the wait.
 
 ## Run it
 
@@ -9,7 +9,8 @@ element, equips early, or skips the wait.
     cargo run -- --seed 42     # fixed first trail; later trails are 43, 44, ...
     cargo test                 # the sim, including a balance check
 
-Keys, in camp only: `1` Fire, `2` Ice, `3` Plant, `E` equip the drop,
+Keys, in camp only, on Horses, Abilities: `F` Ember Shot, `I` Frost Burst,
+`P` Thorn Shot, `W` Ward, for the selected horse (#357); `E` equip,
 `Space` set out. No town leaves by itself (#305): the party waits for
 Space unless Keep going (`G`, on the Map) is on, and then it leaves after
 12 s. Either way nothing is equipped at the gate (#351): a piece is worn
@@ -25,7 +26,7 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 
 | Part | File |
 | --- | --- |
-| Numbers: rules, horses, enemies, encounter pieces, gear | `assets/data/*.ron` (compiled in with `include_str!`) |
+| Numbers: rules, horses, abilities, enemies, encounter pieces, gear | `assets/data/*.ron` (compiled in with `include_str!`) |
 | Data types and loading | `src/sim/data.rs` |
 | Trail generation (`Plan`) and the fight (`Expedition`) | `src/sim/expedition.rs` |
 | Horses, gear, drop roll | `src/sim/loot.rs` |
@@ -40,9 +41,12 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 ## Rules as built
 
 - Party: Juniper, Morrow, Sable. Fixed; there is no horse picker yet. There
-  are no classes. Each horse has one ability, picked by the `class` field in
-  `horses.ron` (Ranger, Wizard, Mage), which is code-only and never shown; it
-  goes with the shared pool of abilities (#221).
+  are no classes and no party element (#357). Each horse has one ability
+  (`Horse::ability`), from `abilities.ron`: it starts with the one
+  `horses.ron` names (Juniper Ember Shot, Morrow Frost Burst, Sable Ward)
+  and the player changes it in town on Horses, Abilities, by pointer or
+  key, with Undo. Points, levels, a loadout of several and choosing among
+  them in a fight are #220, #222 and #93.
 - A trail is 3 ordinary encounters drawn from 5 hand-written pieces in a rolled
   order, then 1 of 2 finals. Each enemy's element is rolled. A quarter of
   trails have a fairy spring that heals the party after one encounter.
@@ -64,10 +68,18 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
   on the same tick about one time in twenty (test
   `over_a_trail_the_horses_rarely_hit_together`).
 - Every hit is `max(attack - defense, 0) + elemental x triangle`, at least 1.
-  Triangle: Fire > Plant > Ice > Fire, x1.5 strong, x0.75 resisted.
-- Juniper: Focused Shot, x2.5 attack on the current target every 4 s.
-  Morrow: Elemental Burst, x2 elemental on every enemy every 5 s.
-  Sable: Ward, halves damage taken for 4 s every 8 s.
+  Triangle: Fire > Plant > Ice > Fire, x1.5 strong, x0.75 resisted. The
+  triangle is by the hit's element: an ability's hit has its ability's; a
+  plain hit has none and is neutral, x1, never strong or resisted (vision.md,
+  "Combat rules settled"). So only an ability is ever resisted.
+- The abilities (`abilities.ron`), each with its element:
+  Ember Shot (Fire) and Thorn Shot (Plant): x2.5 attack and the elemental
+  on the current target, every 4 s. Frost Burst (Ice): x2 elemental on
+  every enemy, every 5 s. Ward (no element): halves damage taken for 4 s,
+  every 8 s, the first at 2 s. Each element has one that deals damage
+  (`data_files_are_consistent`). The fight log names the ability and its
+  element ("Morrow Frost Burst (Ice) on Thornling for 15  Strong!"), and the
+  damage number is in the element's colour.
 - Every kill throws gear (#352): a least and a most per enemy, `gear` in
   `enemies.ron` (1-2 for the small ones, 2-4 for a final), the same at
   every trail level, rolled at each rarity's `kill_weight` in `gear.ron`,
@@ -98,17 +110,21 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 - A win raises the trail level: enemies gain 15% health and attack per level,
   drops gain one stat point per level.
 - The sim steps in fixed 0.1 s ticks. Trail, fight and drop each follow from
-  the seed (plus party and element for the fight), which the tests check.
+  the seed (plus the party, its gear and abilities, for the fight), which the tests check.
 - Each rule above has a test in `src/sim/expedition.rs` or `src/sim/loot.rs`.
   A changed rule should fail one of them.
-- An ability is ready for the first time one whole cooldown into the run
-  (the Ward a quarter of one), and its timer runs only while fighting.
+- An ability is ready for the first time one whole cooldown into the run,
+  or at its `first` (the Ward's 2 s), and its timer runs only while fighting.
 
 ## Balance at trail level 0, no gear (300 seeds)
 
-Win rate 68% across all element choices; 94% with the best element for the
-trail, 44% with the worst. `first_trail_balance` fails if this drifts out of
-25-75% or the element stops mattering. A run takes about a minute.
+Rerun for #357 (2026-10-15). The choices are the nine parties whose Juniper
+and Morrow carry any of the three damage abilities and whose Sable keeps the
+Ward. Win rate 51% across them; 83% with the best for the trail, 8% with
+the worst; the starting party wins 63%. `first_trail_balance` fails if the
+rate or the starting party's drifts out of 25-75%, or if best and worst come
+within 0.5 of each other. Before, with one element for the party: 68%, and
+94% best against 44% worst. A run takes about a minute.
 
 ## Not built yet
 

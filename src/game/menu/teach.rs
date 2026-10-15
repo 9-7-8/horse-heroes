@@ -43,6 +43,8 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
         Target::Party => About::Party,
         // On the boss in the scene, while its fight is on (#360).
         Target::Boss => About::Boss(game.boss()?.0),
+        // On the horse whose ability was resisted the most last trail (#357).
+        Target::Resisted => About::Horse(game.most_resisted()?),
     };
     Some((about, Found::Here))
 }
@@ -194,6 +196,7 @@ fn target_name(target: &Target, game: &Game) -> String {
         Target::Drop => "the newest piece".into(),
         Target::Party => "the party".into(),
         Target::Boss => "the boss".into(),
+        Target::Resisted => "the horse whose ability was resisted".into(),
     }
 }
 
@@ -311,7 +314,6 @@ mod tests {
     use super::*;
     use crate::game::menu::shell::{Detail, Item, SAMPLE, sample_hint};
     use crate::game::{Action, CAMP_SECS, Hand, Screen, TICK, step};
-    use crate::sim::data::Element;
     use crate::sim::lessons::{Done, LessonDef, Lessons, Progress, Shown};
 
     /// Four lessons of the tests' own, so that none of these tests holds a
@@ -371,6 +373,38 @@ mod tests {
         shell.show_detail(place, Detail { tab, item: Item::Carried(0), opener: None });
     }
 
+    /// The lesson of a resisted ability (#357) is on the horse whose ability
+    /// was resisted the most on the last trail, in town only, and is done by
+    /// giving a horse another ability. Before any trail it is nowhere.
+    #[test]
+    fn a_resisted_ability_is_taught_on_its_horse() {
+        let map = Places::load();
+        assert_eq!(find(&Target::Resisted, &map, &Game::new(6), 0), None, "no trail walked");
+        let def = Game::new(6)
+            .lessons
+            .defs()
+            .iter()
+            .find(|def| def.target == Target::Resisted)
+            .cloned()
+            .expect("a lesson for a resisted ability");
+        assert_eq!((def.due, def.shown, def.done), (Event::Resisted, Shown::Town, Done::Did(Event::Chose)));
+        let game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.last_report().is_some_and(|kept| kept.outcome.resisted_hits > 0))
+            .expect("no seed under 50 has a resisted hit");
+        let deeds = &game.last_report().unwrap().outcome.deeds;
+        let horse = game.most_resisted().unwrap();
+        let most = deeds[horse].resisted_hits;
+        assert!(most > 0 && deeds.iter().all(|deeds| deeds.resisted_hits <= most));
+        assert_eq!(find(&Target::Resisted, &map, &game, 0), Some((About::Horse(horse), Found::Here)));
+        assert!(game.lessons.happened(Event::Resisted));
+        // Only an ability's hit is ever resisted: the Ward's horse never is.
+        let ward = game.data.ability_index("ward");
+        for (fighter, deeds) in game.party.iter().zip(deeds) {
+            assert!(fighter.ability != ward || deeds.resisted_hits == 0);
+        }
+    }
+
     /// Every lesson in the file names a target that exists: a place, a tab
     /// or a control of `places.ron` by its name, and no control's name that
     /// two controls share; a horse the party has. A piece is looked for in
@@ -382,7 +416,8 @@ mod tests {
         for def in game.lessons.defs() {
             match &def.target {
                 // Found in a boss fight: `the_boss_is_met_once`.
-                Target::Drop | Target::Boss => {}
+                // Found after a resisted trail: `a_resisted_ability_is_taught_on_its_horse`.
+                Target::Drop | Target::Boss | Target::Resisted => {}
                 Target::Control(name) => {
                     let named = map.controls().iter().filter(|control| control.name == *name);
                     assert_eq!(named.count(), 1, "{}: the control `{name}`", def.id);
@@ -501,6 +536,7 @@ mod tests {
             Event::Another,
             Event::Detailed,
             Event::Dragged,
+            Event::Chose,
         ];
         let by_itself = |event: &Event| !by_hand.contains(event);
         let mut game = Game::new(0);
@@ -550,6 +586,11 @@ mod tests {
         assert!(game.lessons.happened(Event::Detailed));
         game.act(Action::Equip, shell.hand());
         assert!(game.lessons.happened(Event::Equipped));
+        // Giving a horse another ability (#357).
+        assert!(!game.lessons.happened(Event::Chose));
+        let other = (game.party[0].ability + 1) % game.data.abilities.len();
+        game.act(Action::Ability(other), Hand::horse(0));
+        assert!(game.lessons.happened(Event::Chose));
         // Putting the carried piece on is not a swap; taking it from the
         // horse that wears it is.
         assert!(!game.lessons.happened(Event::Swapped));
@@ -742,7 +783,7 @@ mod tests {
     fn no_controls_availability_depends_on_a_lesson() {
         let map = Places::load();
         let actions = [
-            Action::Element(Element::Ice),
+            Action::Ability(1),
             Action::Equip,
             Action::SetOut,
             Action::KeepGoing,

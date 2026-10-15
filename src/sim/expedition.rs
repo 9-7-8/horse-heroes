@@ -1,7 +1,8 @@
 //! One expedition: a generated trail and the automatic fight along it.
-//! Everything here follows from the seed, the party and the chosen element.
+//! Everything here follows from the seed and the party: its horses, their
+//! gear and the ability each carries (#357).
 
-use super::data::{Class, Data, Element, Rules};
+use super::data::{AbilityKind, Data, Element, Rules};
 use super::lessons::Event;
 use super::loot::{Gear, Horse, Odds, roll_gear, roll_piece};
 use super::rng::Rng;
@@ -82,7 +83,8 @@ pub struct Deeds {
 #[derive(Clone, Debug)]
 pub struct Fighter {
     pub name: String,
-    pub class: Class,
+    /// Its one ability, by its place in `abilities.ron` (#357).
+    pub ability: usize,
     pub health: i32,
     pub max_health: i32,
     pub attack: i32,
@@ -176,7 +178,6 @@ pub struct Outcome {
     pub won: bool,
     pub cleared: usize,
     pub total: usize,
-    pub element: Element,
     pub strong_hits: u32,
     pub resisted_hits: u32,
     pub coins: i32,
@@ -204,14 +205,14 @@ impl Outcome {
 #[derive(Clone, Debug)]
 pub struct Expedition {
     pub plan: Plan,
-    pub element: Element,
     pub party: Vec<Fighter>,
     pub foes: Vec<Foe>,
     /// Index of the encounter being fought, or travelled towards.
     pub encounter: usize,
     pub phase: Phase,
-    /// Seconds of the Mage's Ward left.
+    /// Seconds of a Ward left, and the share it takes off enemy hits.
     pub ward: f32,
+    ward_reduction: f32,
     pub coins: i32,
     pub log: Vec<String>,
     /// Kills not yet shown, oldest first. Whoever presents the run takes them.
@@ -239,7 +240,7 @@ pub struct Expedition {
 }
 
 impl Expedition {
-    pub fn new(data: &Data, plan: Plan, party: &[Horse], element: Element) -> Expedition {
+    pub fn new(data: &Data, plan: Plan, party: &[Horse]) -> Expedition {
         let rules = &data.rules;
         let road = rules.travel_secs(party.iter().map(|horse| horse.stats().speed));
         let party = party
@@ -248,7 +249,7 @@ impl Expedition {
                 let stats = horse.stats();
                 Fighter {
                     name: horse.name.clone(),
-                    class: horse.class,
+                    ability: horse.ability,
                     health: stats.health,
                     max_health: stats.health,
                     attack: stats.attack,
@@ -259,11 +260,9 @@ impl Expedition {
                     attack_interval: rules.attack_interval(stats.speed),
                     // Set when a fight opens.
                     attack_timer: f32::MAX,
-                    ability_timer: match horse.class {
-                        Class::Ranger => rules.focused_shot_cooldown,
-                        Class::Wizard => rules.burst_cooldown,
-                        // The first Ward comes early, so it is seen in every fight.
-                        Class::Mage => rules.ward_cooldown * 0.25,
+                    ability_timer: {
+                        let ability = &data.abilities[horse.ability];
+                        ability.first.unwrap_or(ability.cooldown)
                     },
                 }
             })
@@ -278,17 +277,14 @@ impl Expedition {
             // choices of whom to strike are not moved by it.
             cadence: Rng::new(plan.seed ^ 0x0CAD_E4CE_0CAD_E4CE),
             plan,
-            element,
             party,
             foes: Vec::new(),
             encounter: 0,
             phase: Phase::Travelling,
             ward: 0.0,
+            ward_reduction: 0.0,
             coins: 0,
-            log: vec![format!(
-                "The party sets out, attuned to {}.",
-                element.name()
-            )],
+            log: vec!["The party sets out.".into()],
             kills: Vec::new(),
             hits: Vec::new(),
             drops: Vec::new(),
@@ -393,38 +389,39 @@ impl Expedition {
 
             if self.party[i].attack_timer <= 0.0 {
                 self.party[i].attack_timer += self.next_swing(rules, i);
+                // A plain hit has no element (vision.md, "Combat rules
+                // settled"): its elemental part is neutral.
                 if let Some(target) = self.target() {
                     let (attack, elemental) = self.power(i);
-                    self.strike(data, i, target, attack, elemental, "hits");
+                    self.strike(data, i, target, attack, elemental, None, "hits");
                 }
             }
 
             if self.party[i].ability_timer <= 0.0 {
                 self.events.push(Event::Ability);
                 let (attack, elemental) = self.power(i);
-                match self.party[i].class {
-                    Class::Ranger => {
-                        self.party[i].ability_timer += rules.focused_shot_cooldown;
+                let ability = &data.abilities[self.party[i].ability];
+                let (element, verb) = (ability.element, format!("{} on", ability.named()));
+                self.party[i].ability_timer += ability.cooldown;
+                match ability.kind {
+                    AbilityKind::Shot(multiplier) => {
                         if let Some(target) = self.target() {
-                            let attack = attack * rules.focused_shot_multiplier;
-                            self.strike(data, i, target, attack, elemental, "Focused Shot on");
+                            self.strike(data, i, target, attack * multiplier, elemental, element, &verb);
                         }
                     }
-                    Class::Wizard => {
-                        self.party[i].ability_timer += rules.burst_cooldown;
-                        let burst = elemental * rules.burst_multiplier;
+                    AbilityKind::Burst(multiplier) => {
                         for target in 0..self.foes.len() {
                             if self.foes[target].health > 0 {
-                                self.strike(data, i, target, 0.0, burst, "Elemental Burst on");
+                                self.strike(data, i, target, 0.0, elemental * multiplier, element, &verb);
                             }
                         }
                     }
-                    Class::Mage => {
-                        self.party[i].ability_timer += rules.ward_cooldown;
-                        self.ward = rules.ward_duration;
+                    AbilityKind::Ward(secs, reduction) => {
+                        self.ward = secs;
+                        self.ward_reduction = reduction;
                         self.party[i].deeds.wards += 1;
                         self.log
-                            .push(format!("{} raises a Ward.", self.party[i].name));
+                            .push(format!("{} raises a {}.", self.party[i].name, ability.named()));
                     }
                 }
             }
@@ -451,7 +448,7 @@ impl Expedition {
             let mut damage = (self.foes[j].attack - victim.defense).max(1) as f32;
             let warded = self.ward > 0.0;
             if warded {
-                damage *= 1.0 - rules.ward_reduction;
+                damage *= 1.0 - self.ward_reduction;
             }
             let damage = damage.round().max(1.0) as i32;
             victim.deeds.taken += damage.min(victim.health);
@@ -533,7 +530,6 @@ impl Expedition {
             won,
             cleared,
             total: self.plan.encounters.len(),
-            element: self.element,
             strong_hits: self.strong_hits,
             resisted_hits: self.resisted_hits,
             coins: self.coins,
@@ -553,7 +549,9 @@ impl Expedition {
     }
 
     /// Deal a hit: the physical part is reduced by defense, the elemental part
-    /// is scaled by the triangle.
+    /// is scaled by the triangle, by the hit's element: its ability's, or
+    /// none for a plain hit, which is neutral.
+    #[allow(clippy::too_many_arguments)]
     fn strike(
         &mut self,
         data: &Data,
@@ -561,11 +559,12 @@ impl Expedition {
         target: usize,
         physical: f32,
         elemental: f32,
+        element: Option<Element>,
         verb: &str,
     ) {
         let rules = &data.rules;
         let foe = &mut self.foes[target];
-        let multiplier = rules.multiplier(self.element, foe.element);
+        let multiplier = rules.multiplier(element, foe.element);
         let damage = (physical - foe.defense as f32).max(0.0) + elemental * multiplier;
         let damage = damage.round().max(1.0) as i32;
         let deeds = &mut self.party[horse].deeds;
@@ -592,7 +591,7 @@ impl Expedition {
                 max_health: foe.max_health,
             },
             damage,
-            element: (elemental > 0.0).then_some(self.element),
+            element: element.filter(|_| elemental > 0.0),
             kind,
         });
         self.log.push(format!(
@@ -628,21 +627,21 @@ impl Expedition {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sim::data::{Slot, Stats};
+    use crate::sim::data::{AbilityDef, Slot, Stats};
 
     const TICK: f32 = 0.1;
 
     fn party(data: &Data) -> Vec<Horse> {
-        data.horses.iter().map(Horse::new).collect()
+        Horse::party(&data)
     }
 
-    fn run(data: &Data, seed: u64, level: u32, element: Element) -> Expedition {
-        run_with(data, seed, level, element, &party(data))
+    fn run(data: &Data, seed: u64, level: u32) -> Expedition {
+        run_with(data, seed, level, &party(data))
     }
 
-    fn run_with(data: &Data, seed: u64, level: u32, element: Element, party: &[Horse]) -> Expedition {
+    fn run_with(data: &Data, seed: u64, level: u32, party: &[Horse]) -> Expedition {
         let plan = Plan::generate(data, seed, level);
-        let mut expedition = Expedition::new(data, plan, party, element);
+        let mut expedition = Expedition::new(data, plan, party);
         // Ten minutes of game time is far past any real run.
         for _ in 0..6000 {
             expedition.tick(data, TICK);
@@ -653,7 +652,8 @@ mod tests {
         panic!("seed {seed} did not finish");
     }
 
-    /// A hand-made trail, attuned to Fire, standing in its first encounter.
+    /// A hand-made trail, with the starting party, standing in its first
+    /// encounter.
     fn fighting(data: &Data, level: u32, encounters: &[&[(&str, Element)]]) -> Expedition {
         let plan = Plan {
             seed: 7,
@@ -672,7 +672,7 @@ mod tests {
                 .collect(),
             bonus_after: None,
         };
-        let mut expedition = Expedition::new(data, plan, &party(data), Element::Fire);
+        let mut expedition = Expedition::new(data, plan, &party(data));
         expedition.start_encounter(data);
         expedition
     }
@@ -694,9 +694,11 @@ mod tests {
         let rules = Data::load().rules;
         use Element::*;
         for (attack, strong, weak) in [(Fire, Plant, Ice), (Plant, Ice, Fire), (Ice, Fire, Plant)] {
-            assert_eq!(rules.multiplier(attack, strong), 1.5);
-            assert_eq!(rules.multiplier(attack, weak), 0.75);
-            assert_eq!(rules.multiplier(attack, attack), 1.0);
+            assert_eq!(rules.multiplier(Some(attack), strong), 1.5);
+            assert_eq!(rules.multiplier(Some(attack), weak), 0.75);
+            assert_eq!(rules.multiplier(Some(attack), attack), 1.0);
+            // A hit with no element, a plain one, is neutral (#357).
+            assert_eq!(rules.multiplier(None, attack), 1.0);
         }
     }
 
@@ -716,8 +718,8 @@ mod tests {
     fn same_seed_same_run() {
         let data = Data::load();
         for seed in [1, 42, 9001] {
-            let a = run(&data, seed, 0, Element::Fire);
-            let b = run(&data, seed, 0, Element::Fire);
+            let a = run(&data, seed, 0);
+            let b = run(&data, seed, 0);
             assert_eq!(a.plan, b.plan);
             assert_eq!(a.outcome, b.outcome);
             assert_eq!(a.log, b.log);
@@ -728,18 +730,31 @@ mod tests {
         );
     }
 
-    /// The first trail should be winnable but not a formality, and the
-    /// element choice should matter. Run with `--nocapture` to see the rates.
+    /// The first trail should be winnable but not a formality, and which
+    /// abilities the horses carry should matter (#357). The choices are the
+    /// parties whose first two horses carry any of the abilities that deal
+    /// damage and whose third keeps the Ward: the best of them for a seed
+    /// against the worst. Run with `--nocapture` to see the rates.
     #[test]
     fn first_trail_balance() {
         let data = Data::load();
+        let damage: Vec<usize> = (0..data.abilities.len())
+            .filter(|&a| !matches!(data.abilities[a].kind, AbilityKind::Ward(..)))
+            .collect();
+        let ward = ability(&data, "ward");
+        let choices: Vec<[usize; 3]> =
+            damage.iter().flat_map(|&a| damage.iter().map(move |&b| [a, b, ward])).collect();
         let seeds = 300;
-        let (mut wins, mut best_wins, mut worst_wins, mut ticks) = (0, 0, 0, 0usize);
+        let (mut wins, mut best_wins, mut worst_wins, mut starting, mut ticks) = (0, 0, 0, 0, 0usize);
         for seed in 0..seeds {
-            let won: Vec<bool> = Element::ALL
+            let won: Vec<bool> = choices
                 .iter()
-                .map(|&element| {
-                    let run = run(&data, seed, 0, element);
+                .map(|abilities| {
+                    let mut horses = party(&data);
+                    for (horse, &ability) in horses.iter_mut().zip(abilities) {
+                        horse.ability = ability;
+                    }
+                    let run = run_with(&data, seed, 0, &horses);
                     ticks += run.log.len();
                     run.outcome.unwrap().won
                 })
@@ -747,14 +762,19 @@ mod tests {
             wins += won.iter().filter(|&&w| w).count();
             best_wins += won.iter().any(|&w| w) as usize;
             worst_wins += won.iter().all(|&w| w) as usize;
+            starting += run(&data, seed, 0).outcome.unwrap().won as usize;
         }
-        let rate = wins as f32 / (seeds * 3) as f32;
+        let runs = seeds as usize * choices.len();
+        let rate = wins as f32 / runs as f32;
         let best = best_wins as f32 / seeds as f32;
         let worst = worst_wins as f32 / seeds as f32;
-        println!("win rate: any element {rate:.2}, best {best:.2}, worst {worst:.2}");
-        println!("log lines per run: {}", ticks / (seeds as usize * 3));
+        let starting = starting as f32 / seeds as f32;
+        println!("win rate: any abilities {rate:.2}, best {best:.2}, worst {worst:.2}, the starting party {starting:.2}");
+        println!("log lines per run: {}", ticks / runs);
         assert!((0.25..=0.75).contains(&rate), "win rate {rate}");
-        assert!(best - worst >= 0.2, "element choice barely matters");
+        assert!((0.25..=0.75).contains(&starting), "the starting party wins {starting}");
+        // 0.75 when the abilities came in (#357): with the party element it was 0.5.
+        assert!(best - worst >= 0.5, "the abilities' elements barely matter");
     }
 
     /// Every enemy brought down is reported once, with the coins it dropped.
@@ -762,7 +782,7 @@ mod tests {
     fn every_kill_is_reported_with_its_coins() {
         let data = Data::load();
         for seed in 0..100 {
-            let run = run(&data, seed, 0, Element::Plant);
+            let run = run(&data, seed, 0);
             let outcome = run.outcome.clone().unwrap();
             let defeated = run.log.iter().filter(|line| line.contains("is defeated")).count();
             assert_eq!(run.kills.len(), defeated);
@@ -787,7 +807,7 @@ mod tests {
         let finals: Vec<&str> = data.encounters.finals.iter().flat_map(|e| deaths_of(e)).collect();
         let mut won = 0;
         for seed in 0..100 {
-            let run = run(&data, seed, 0, Element::Fire);
+            let run = run(&data, seed, 0);
             let spawns: Vec<&Spawn> = run.plan.encounters.iter().flatten().collect();
             for kill in &run.kills {
                 let known = spawns.iter().any(|spawn| {
@@ -815,7 +835,7 @@ mod tests {
         };
         let (mut won, mut lost) = (0, 0);
         for seed in 0..100 {
-            let run = run(&data, seed, 0, Element::Fire);
+            let run = run(&data, seed, 0);
             let outcome = run.outcome.clone().unwrap();
             let mut thrown: Vec<Gear> = run.kills.iter().flat_map(|kill| kill.gear.clone()).collect();
             let Some((last, earlier)) = run.kills.split_last() else {
@@ -843,8 +863,8 @@ mod tests {
         let data = Data::load();
         let mut seen = 0;
         for seed in 0..200 {
-            let a = run(&data, seed, 0, Element::Ice).outcome.unwrap();
-            let b = run(&data, seed, 0, Element::Ice).outcome.unwrap();
+            let a = run(&data, seed, 0).outcome.unwrap();
+            let b = run(&data, seed, 0).outcome.unwrap();
             assert_eq!(a.drops, b.drops);
             assert_eq!(a.trail_piece().is_some(), a.cleared > 0);
             for gear in &a.drops {
@@ -876,7 +896,7 @@ mod tests {
             .into_iter()
             .enumerate()
         {
-            run.strike(&data, 0, target, physical, elemental, "hits");
+            run.strike(&data, 0, target, physical, elemental, Some(Fire), "hits");
             let foe = &run.foes[target];
             dealt.push(foe.max_health - foe.health);
             assert_eq!(dealt[target], (5.0 + elemental * multiplier).round() as i32);
@@ -887,8 +907,18 @@ mod tests {
         // Defense never turns a hit into healing, and a hit with nothing
         // elemental in it is neither strong nor resisted.
         let before = run.foes[0].health;
-        run.strike(&data, 0, 0, defense * 0.5, 0.0, "hits");
+        run.strike(&data, 0, 0, defense * 0.5, 0.0, Some(Fire), "hits");
         assert_eq!(run.foes[0].health, before - 1);
+        assert_eq!((run.strong_hits, run.resisted_hits), (1, 1));
+
+        // A hit with no element, a plain one, is neutral against every
+        // enemy (#357): its elemental part is as it is.
+        for target in 0..3 {
+            let before = run.foes[target].health;
+            run.strike(&data, 0, target, physical, elemental, None, "hits");
+            assert_eq!(before - run.foes[target].health, (5.0 + elemental).round() as i32);
+            assert_eq!(run.hits.last().unwrap().element, None);
+        }
         assert_eq!((run.strong_hits, run.resisted_hits), (1, 1));
     }
 
@@ -911,17 +941,20 @@ mod tests {
         }
     }
 
-    /// Under the Ward a hit lands for less, by `ward_reduction`; the Mage
-    /// raises it without being told, and it runs out.
+    /// Under the Ward a hit lands for less, by its share in `abilities.ron`;
+    /// the horse that carries it raises it without being told, and it runs
+    /// out.
     #[test]
     fn the_ward_reduces_damage_taken_and_runs_out() {
         let data = Data::load();
-        let rules = &data.rules;
+        let (duration, reduction) = ward(&data);
+        let cooldown = def(&data, "ward").cooldown;
         let toad: &[&[(&str, Element)]] = &[&[("mire_toad", Element::Ice)]];
         let mut plain = fighting(&data, 0, toad);
         hold_the_party(&mut plain);
         let mut warded = plain.clone();
         warded.ward = f32::MAX;
+        warded.ward_reduction = reduction;
 
         // Long enough for the toad's first hit, too short for its second.
         let dt = plain.foes[0].attack_interval * 1.5;
@@ -929,7 +962,7 @@ mod tests {
         warded.tick(&data, dt);
         let (full, less) = (health_lost(&plain), health_lost(&warded));
         assert!(full > 1, "the toad's hit should be worth reducing");
-        assert_eq!(less, ((full as f32 * (1.0 - rules.ward_reduction)).round() as i32).max(1));
+        assert_eq!(less, ((full as f32 * (1.0 - reduction)).round() as i32).max(1));
         assert!(less < full);
         assert!(warded.log.last().unwrap().ends_with("(Warded)"));
         assert!(!plain.log.last().unwrap().ends_with("(Warded)"));
@@ -937,19 +970,20 @@ mod tests {
         let mut run = fighting(&data, 0, toad);
         assert_eq!(run.ward, 0.0);
         let mut raised = false;
-        for _ in 0..(rules.ward_cooldown / TICK) as usize + 1 {
+        for _ in 0..(cooldown / TICK) as usize + 1 {
             run.tick(&data, TICK);
-            assert!(run.ward <= rules.ward_duration);
+            assert!(run.ward <= duration);
             raised |= run.ward > 0.0;
         }
-        assert!(raised, "the Mage never raised a Ward");
+        assert!(raised, "the Ward was never raised");
+        assert_eq!(run.ward_reduction, reduction);
 
         let mut fading = fighting(&data, 0, toad);
         hold_the_party(&mut fading);
-        fading.ward = rules.ward_duration;
-        fading.tick(&data, rules.ward_duration * 0.5);
-        assert!(fading.ward > 0.0 && fading.ward < rules.ward_duration);
-        fading.tick(&data, rules.ward_duration);
+        fading.ward = duration;
+        fading.tick(&data, duration * 0.5);
+        assert!(fading.ward > 0.0 && fading.ward < duration);
+        fading.tick(&data, duration);
         assert_eq!(fading.ward, 0.0);
     }
 
@@ -1054,8 +1088,27 @@ mod tests {
         assert_eq!(lose(2), 1);
     }
 
-    fn horse_of(expedition: &Expedition, class: Class) -> usize {
-        expedition.party.iter().position(|f| f.class == class).unwrap()
+    /// An ability's place in `abilities.ron`, by its id.
+    fn ability(data: &Data, id: &str) -> usize {
+        data.ability_index(id)
+    }
+
+    /// The horse of the starting party that carries this ability.
+    fn horse_with(expedition: &Expedition, data: &Data, id: &str) -> usize {
+        let ability = ability(data, id);
+        expedition.party.iter().position(|f| f.ability == ability).unwrap()
+    }
+
+    fn def<'a>(data: &'a Data, id: &str) -> &'a AbilityDef {
+        &data.abilities[ability(data, id)]
+    }
+
+    /// A Ward's seconds and the share it takes off, from `abilities.ron`.
+    fn ward(data: &Data) -> (f32, f32) {
+        match def(data, "ward").kind {
+            AbilityKind::Ward(secs, reduction) => (secs, reduction),
+            kind => panic!("the ward is {kind:?}"),
+        }
     }
 
     /// Let one horse use its ability on the next tick, and nobody do
@@ -1072,89 +1125,93 @@ mod tests {
         expedition.log.iter().filter(|line| line.contains(text)).count()
     }
 
-    /// Focused Shot is one hit on the current target and no other, with the
-    /// Ranger's attack times `focused_shot_multiplier` and the elemental
-    /// part left as it is.
+    /// A Shot is one hit on the current target and no other, with the
+    /// horse's attack times the Shot's multiplier and its elemental in the
+    /// ability's element: Ember Shot's Fire, strong against Plant.
     #[test]
-    fn focused_shot_multiplies_the_attack_on_the_current_target() {
+    fn a_shot_multiplies_the_attack_on_the_current_target_in_its_element() {
         let data = Data::load();
         let rules = &data.rules;
+        let AbilityKind::Shot(multiplier) = def(&data, "ember_shot").kind else {
+            panic!("Ember Shot is a Shot");
+        };
         let mut run = fighting(
             &data,
             0,
             &[&[("corrupted_stag", Element::Plant), ("mire_toad", Element::Plant)]],
         );
-        let ranger = horse_of(&run, Class::Ranger);
-        only_the_ability_of(&mut run, ranger);
+        let shooter = horse_with(&run, &data, "ember_shot");
+        only_the_ability_of(&mut run, shooter);
         run.tick(&data, TICK);
 
-        let (attack, elemental) = run.power(ranger);
-        let physical = attack * rules.focused_shot_multiplier - run.foes[0].defense as f32;
+        let (attack, elemental) = run.power(shooter);
+        let physical = attack * multiplier - run.foes[0].defense as f32;
         let expected = (physical + elemental * rules.strong_multiplier).round() as i32;
         assert_eq!(run.foes[0].max_health - run.foes[0].health, expected);
         assert_eq!(run.foes[1].health, run.foes[1].max_health);
-        assert_eq!(lines_with(&run, "Focused Shot on"), 1);
+        assert_eq!(lines_with(&run, "Ember Shot (Fire) on"), 1);
         assert_eq!(run.strong_hits, 1);
+        assert_eq!(run.hits.last().unwrap().element, Some(Element::Fire));
 
-        // It is worth more than an ordinary hit, by the attack alone.
+        // It is worth more than a hit of the same element, by the attack alone.
         let before = run.foes[0].health;
-        run.strike(&data, ranger, 0, attack, elemental, "hits");
+        run.strike(&data, shooter, 0, attack, elemental, Some(Element::Fire), "hits");
         let ordinary = before - run.foes[0].health;
-        assert_eq!(
-            expected - ordinary,
-            (attack * (rules.focused_shot_multiplier - 1.0)).round() as i32
-        );
+        assert_eq!(expected - ordinary, (attack * (multiplier - 1.0)).round() as i32);
     }
 
-    /// Elemental Burst hits every enemy still standing with the Wizard's
-    /// elemental times `burst_multiplier`, by the triangle, past defense
-    /// and with no attack in it.
+    /// A Burst hits every enemy still standing with the horse's elemental
+    /// times its multiplier, in the ability's element by the triangle, past
+    /// defense and with no attack in it: Frost Burst's Ice.
     #[test]
-    fn elemental_burst_hits_every_standing_enemy_with_elemental_alone() {
+    fn a_burst_hits_every_standing_enemy_with_elemental_alone() {
         let data = Data::load();
         let rules = &data.rules;
+        let AbilityKind::Burst(multiplier) = def(&data, "frost_burst").kind else {
+            panic!("Frost Burst is a Burst");
+        };
         use Element::*;
         let mut run = fighting(
             &data,
             0,
             &[&[
-                ("corrupted_stag", Plant),
-                ("mire_toad", Fire),
-                ("thornling", Fire),
+                ("corrupted_stag", Fire),
                 ("mire_toad", Ice),
+                ("thornling", Fire),
+                ("mire_toad", Plant),
             ]],
         );
         assert!(run.foes[0].defense > 0, "the stag is the enemy with defense");
         // The thornling fell earlier in this fight.
         run.foes[2].health = 0;
-        let wizard = horse_of(&run, Class::Wizard);
-        only_the_ability_of(&mut run, wizard);
+        let burster = horse_with(&run, &data, "frost_burst");
+        only_the_ability_of(&mut run, burster);
         run.tick(&data, TICK);
 
-        let burst = run.power(wizard).1 * rules.burst_multiplier;
+        let burst = run.power(burster).1 * multiplier;
         for (target, multiplier) in [(0, rules.strong_multiplier), (1, 1.0), (3, rules.weak_multiplier)] {
             let foe = &run.foes[target];
             assert_eq!(foe.max_health - foe.health, (burst * multiplier).round() as i32, "{}", foe.name);
         }
-        assert_eq!(lines_with(&run, "Elemental Burst on"), 3);
+        assert_eq!(lines_with(&run, "Frost Burst (Ice) on"), 3);
+        assert!(run.hits.iter().all(|hit| hit.element == Some(Ice)));
         assert_eq!((run.strong_hits, run.resisted_hits), (1, 1));
         assert!(run.kills.is_empty(), "a fallen enemy is not hit again");
     }
 
     /// Each ability comes round once per cooldown, the first time after one
-    /// whole cooldown.
+    /// whole cooldown unless it says otherwise.
     #[test]
     fn the_shot_and_the_burst_keep_their_cooldowns() {
         let data = Data::load();
-        let rules = &data.rules;
-        for (class, cooldown, line) in [
-            (Class::Ranger, rules.focused_shot_cooldown, "Focused Shot on"),
-            (Class::Wizard, rules.burst_cooldown, "Elemental Burst on"),
-        ] {
+        for id in ["ember_shot", "frost_burst"] {
+            let ability = def(&data, id);
+            let (cooldown, line) = (ability.cooldown, format!("{} on", ability.named()));
+            let line = line.as_str();
             let mut run = fighting(&data, 0, &[&[("corrupted_stag", Element::Fire)]]);
-            let horse = horse_of(&run, class);
+            let horse = horse_with(&run, &data, id);
             let first = run.party[horse].ability_timer;
-            assert_eq!(first, cooldown);
+            assert_eq!(first, ability.first.unwrap_or(cooldown));
             only_the_ability_of(&mut run, horse);
             run.party[horse].ability_timer = first;
             run.foes[0].health = i32::MAX;
@@ -1236,8 +1293,10 @@ mod tests {
             let harder = Plan::generate(&data, seed, 5);
             assert_eq!(plan.encounters, harder.encounters);
             assert_eq!(plan.bonus_after, harder.bonus_after);
-            for element in Element::ALL {
-                assert_eq!(run(&data, seed, 0, element).plan, plan);
+            for ability in 0..data.abilities.len() {
+                let mut horses = party(&data);
+                horses[0].ability = ability;
+                assert_eq!(run_with(&data, seed, 0, &horses).plan, plan);
             }
         }
     }
@@ -1264,7 +1323,7 @@ mod tests {
         }
 
         let plan = Plan::generate(&data, 1, 0);
-        let expedition = Expedition::new(&data, plan, &geared, Element::Fire);
+        let expedition = Expedition::new(&data, plan, &geared);
         for (fighter, horse) in expedition.party.iter().zip(&geared) {
             let stats = horse.stats();
             assert_ne!(stats, horse.base);
@@ -1277,7 +1336,7 @@ mod tests {
 
         let wins = |party: &[Horse]| {
             (0..100)
-                .filter(|&seed| run_with(&data, seed, 0, Element::Ice, party).outcome.unwrap().won)
+                .filter(|&seed| run_with(&data, seed, 0, party).outcome.unwrap().won)
                 .count()
         };
         let (bare, worn) = (wins(&party(&data)), wins(&geared));
@@ -1294,7 +1353,7 @@ mod tests {
         let mut won = 0;
         for seed in 0..60 {
             let plan = Plan::generate(&data, seed, 1);
-            let mut run = Expedition::new(&data, plan, &party(&data), Element::Plant);
+            let mut run = Expedition::new(&data, plan, &party(&data));
             let mut fallen = vec![false; run.party.len()];
             let mut taken: Vec<Kill> = Vec::new();
             let mut coins = 0;
@@ -1382,7 +1441,7 @@ mod tests {
         let data = Data::load();
         let rules = &data.rules;
         let plan = Plan::generate(&data, 3, 0);
-        let mut run = Expedition::new(&data, plan, &party(&data), Element::Fire);
+        let mut run = Expedition::new(&data, plan, &party(&data));
         let timers = |run: &Expedition| -> Vec<(f32, f32)> {
             run.party.iter().map(|f| (f.attack_timer, f.ability_timer)).collect()
         };
@@ -1401,8 +1460,8 @@ mod tests {
 
         assert_eq!((run.phase, run.encounter), (Phase::Travelling, 0));
         assert!(run.foes.is_empty());
-        let mage = horse_of(&run, Class::Mage);
-        assert_eq!(run.party[mage].ability_timer, rules.ward_cooldown * 0.25);
+        let warder = horse_with(&run, &data, "ward");
+        assert_eq!(Some(run.party[warder].ability_timer), def(&data, "ward").first);
         // The first of the opening's hits, and the last.
         let opened = |run: &Expedition| {
             let last = rules.opening + rules.opening_stagger * (run.party.len() - 1) as f32;
@@ -1565,13 +1624,13 @@ mod tests {
         assert!((fast * speed as f32 - rules.attack_tempo).abs() < 1e-4);
 
         let plan = Plan::generate(&data, 3, 0);
-        let run = Expedition::new(&data, plan, &horses, Element::Fire);
+        let run = Expedition::new(&data, plan, &horses);
         assert_eq!(run.party[0].attack_interval, fast);
         assert_eq!(run.party[1].attack_interval, rules.attack_interval(horses[1].stats().speed));
         let speeds: Vec<i32> = horses.iter().map(|horse| horse.stats().speed).collect();
         let average = speeds.iter().sum::<i32>() as f32 / speeds.len() as f32;
         assert!((run.road_secs() - rules.travel_distance / average).abs() < 1e-4);
-        let before = Expedition::new(&data, Plan::generate(&data, 3, 0), &party(&data), Element::Fire);
+        let before = Expedition::new(&data, Plan::generate(&data, 3, 0), &party(&data));
         assert!(run.road_secs() < before.road_secs(), "a faster horse speeds the party");
 
         // Over a long fight the faster horse makes more hits.
@@ -1607,7 +1666,7 @@ mod tests {
         let (mut with_a_hit, mut together) = (0, 0);
         for seed in 0..200 {
             let plan = Plan::generate(&data, seed, 0);
-            let mut run = Expedition::new(&data, plan, &party(&data), Element::Fire);
+            let mut run = Expedition::new(&data, plan, &party(&data));
             while run.phase != Phase::Finished {
                 let fighting = run.phase == Phase::Fighting;
                 let before: Vec<f32> = run.party.iter().map(|f| f.attack_timer).collect();
@@ -1633,7 +1692,7 @@ mod tests {
         let (mut won, mut lost) = (0, 0);
         for seed in 0..200 {
             for level in [0, 6] {
-                let run = run(&data, seed, level, Element::Fire);
+                let run = run(&data, seed, level);
                 let outcome = run.outcome.as_ref().unwrap();
                 let deeds = &outcome.deeds;
                 assert_eq!(deeds.len(), run.party.len());
@@ -1653,7 +1712,8 @@ mod tests {
                     assert_eq!(deeds.fell, fighter.health == 0, "seed {seed}");
                     // The spring heals, so a horse may have lost more than it is short of.
                     assert!(deeds.taken >= fighter.max_health - fighter.health, "seed {seed}");
-                    assert!(deeds.wards == 0 || fighter.class == Class::Mage);
+                    let kind = data.abilities[fighter.ability].kind;
+                    assert!(deeds.wards == 0 || matches!(kind, AbilityKind::Ward(..)));
                 }
             }
         }
@@ -1669,7 +1729,7 @@ mod tests {
         let data = Data::load();
         let (mut foes, mut horses, mut bursts) = (0, 0, 0);
         for seed in 0..100 {
-            let run = run(&data, seed, 3, Element::Ice);
+            let run = run(&data, seed, 3);
             let outcome = run.outcome.as_ref().unwrap();
             let logged: Vec<i32> = run
                 .log
@@ -1689,8 +1749,12 @@ mod tests {
                         assert!(!line.contains("Warded") && hit.kind != HitKind::Warded);
                         assert_eq!(hit.kind == HitKind::Strong, line.ends_with("Strong!"));
                         assert_eq!(hit.kind == HitKind::Resisted, line.ends_with("Resisted"));
-                        assert!(hit.kind == HitKind::Plain || hit.element == Some(Element::Ice));
-                        bursts += line.contains("Elemental Burst") as u32;
+                        // A plain hit has no element, and only an ability's
+                        // hit is ever strong or resisted (#357).
+                        let plain = line.contains(" hits ");
+                        assert_eq!(plain, hit.element.is_none(), "{line}");
+                        assert!(hit.kind == HitKind::Plain || !plain, "{line}");
+                        bursts += line.contains("Frost Burst (Ice) on") as u32;
                     }
                     Struck::Horse(horse) => {
                         horses += 1;
@@ -1718,7 +1782,7 @@ mod tests {
             run.rng = Rng::new(seed);
             run.loot = Rng::new(seed);
             run.foes[0].health = 1;
-            run.strike(&data, 0, 0, 1.0, 0.0, "hits");
+            run.strike(&data, 0, 0, 1.0, 0.0, None, "hits");
             let kill = run.kills.pop().expect("the enemy fell");
             assert_eq!(run.coins, kill.coins);
             assert_eq!(run.drops, kill.gear);
@@ -1761,11 +1825,11 @@ mod tests {
         };
         // Rare and up.
         let higher = 2;
-        const TRAILS: u64 = 600;
+        const TRAILS: u64 = 2000;
         let (mut pieces, mut kills, mut found, mut before) = (0, 0, 0, 0.0);
         let mut chaff = vec![0u32; tiers.len()];
         for seed in 0..TRAILS {
-            let run = run(&data, seed, 0, Element::Plant);
+            let run = run(&data, seed, 0);
             let outcome = run.outcome.as_ref().unwrap();
             let killed: u32 = outcome.deeds.iter().map(|deeds| deeds.kills).sum();
             assert!(outcome.drops.len() as u32 >= killed, "seed {seed}");

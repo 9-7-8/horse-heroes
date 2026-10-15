@@ -6,7 +6,7 @@
 //! docs/item-card.md.
 
 use crate::game::{Action, Game, Hand, Piece, stats_line};
-use crate::sim::data::{RarityDef, Slot, Stats};
+use crate::sim::data::{AbilityKind, Data, RarityDef, Slot, Stats};
 use crate::sim::loot::{Gear, Horse, score};
 
 /// What a list says where the cargo is empty.
@@ -296,11 +296,11 @@ pub fn details(game: &Game, gear: &Gear) -> String {
          IN A FIGHT\n\
          Each horse hits at its own pace: {interval}, a little sooner or later each time.\n\
          attack: a hit's physical part, less the enemy's defense, never below 0.\n\
-         elemental: a hit's elemental part, {strong} where the party's element is strong, {weak} where it is resisted.\n\
+         elemental: a hit's elemental part, in its ability's element: {strong} where that is strong, {weak} where it is resisted. A plain hit's has no element.\n\
          defense: taken off each enemy hit, which still does at least 1.\n\
          health: what a horse can lose before it falls.\n\
          speed: a horse hits every {tempo} s divided by its speed, and the party walks between fights at its horses' average speed.\n\
-         Focused Shot hits with attack {focused}; Elemental Burst hits every enemy with elemental {burst}. A Ward takes {ward}% off enemy hits.",
+         {abilities}",
         name = gear.name,
         tier = rarity.name,
         per = table.health_per_point,
@@ -311,10 +311,32 @@ pub fn details(game: &Game, gear: &Gear) -> String {
         tempo = rules.attack_tempo,
         strong = times(rules.strong_multiplier),
         weak = times(rules.weak_multiplier),
-        focused = times(rules.focused_shot_multiplier),
-        burst = times(rules.burst_multiplier),
-        ward = (rules.ward_reduction * 100.0).round(),
+        abilities = abilities_line(data),
     )
+}
+
+/// What each ability does with the stats, in one line of the Details
+/// (#357): "Ember Shot (Fire) hits with attack x2.5; ...".
+fn abilities_line(data: &Data) -> String {
+    let said: Vec<String> = data
+        .abilities
+        .iter()
+        .map(|ability| {
+            let name = ability.named();
+            match ability.kind {
+                AbilityKind::Shot(multiplier) => format!("{name} hits with attack {}", times(multiplier)),
+                AbilityKind::Burst(multiplier) => {
+                    format!("{name} hits every enemy with elemental {}", times(multiplier))
+                }
+                AbilityKind::Ward(_, reduction) => {
+                    format!("a {name} takes {}% off enemy hits", (reduction * 100.0).round())
+                }
+            }
+        })
+        .collect();
+    let mut line = said.join("; ");
+    line[..1].make_ascii_uppercase();
+    line + "."
 }
 
 /// The comparison a press pins on a piece, wherever the piece is (#308,
@@ -530,8 +552,12 @@ mod tests {
         assert!(said.contains(&format!("This one has {}.", score(&game.data, gear.stats))), "{said}");
         assert!(said.contains(&format!("+{} health", game.data.gear.health_per_point)), "{said}");
         let rules = &game.data.rules;
-        for multiplier in [rules.strong_multiplier, rules.weak_multiplier, rules.focused_shot_multiplier] {
+        for multiplier in [rules.strong_multiplier, rules.weak_multiplier] {
             assert!(said.contains(&times(multiplier)), "{said}");
+        }
+        // Every ability, by its name and element (#357).
+        for ability in &game.data.abilities {
+            assert!(said.contains(&ability.named()), "{said}");
         }
         for stat in ["attack:", "elemental:", "defense:", "health:", "speed:"] {
             assert!(said.lines().any(|line| line.starts_with(stat)), "{stat} {said}");

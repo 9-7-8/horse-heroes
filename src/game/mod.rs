@@ -151,8 +151,9 @@ impl Plugin for GamePlugin {
 /// does which is `action` in `assets/data/places.ron`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 pub enum Action {
-    /// Fight the next trail with this element.
-    Element(Element),
+    /// Give the selected horse this ability, by its place in
+    /// `abilities.ron` (#357). Its element comes with it.
+    Ability(usize),
     /// Put a piece on the selected horse (#228): the piece whose card is
     /// open, or the one carried when none is. A carried piece is put on; a
     /// piece another horse wears changes places with what the selected
@@ -228,11 +229,10 @@ impl Hand {
 /// A change made in town, kept so that it can be taken back (#230): what it
 /// was, and everything it could touch as it was before it.
 struct Change {
-    /// What was done, as Undo says it: "Ice for the next trail".
+    /// What was done, as Undo says it: "Frost Burst for Juniper".
     what: String,
     party: Vec<Horse>,
     cargo: Vec<Gear>,
-    element: Element,
     /// Where the change took a piece from and to, when it moved one.
     moved: Option<(Piece, Piece)>,
 }
@@ -256,7 +256,6 @@ pub struct Game {
     /// Every piece carried and not worn, newest first. Nothing leaves it
     /// but onto a horse (#352); capacity and a keep rule are #34 and #167.
     cargo: Vec<Gear>,
-    pub element: Element,
     pub level: u32,
     pub coins: i32,
     /// The next trail while in camp, the current one while on it.
@@ -295,9 +294,8 @@ impl Game {
     fn new(seed: u64) -> Game {
         let data = Data::load();
         Game {
-            party: data.horses.iter().map(Horse::new).collect(),
+            party: Horse::party(&data),
             cargo: Vec::new(),
-            element: Element::Fire,
             level: 0,
             coins: 0,
             plan: Plan::generate(&data, seed, 0),
@@ -329,14 +327,13 @@ impl Game {
         game
     }
 
-    /// The party, the cargo and the element as they are now, to go back to
+    /// The party, its gear and abilities, and the cargo as they are now, to go back to
     /// if what is about to be done is undone.
     fn before(&self, what: String, moved: Option<(Piece, Piece)>) -> Change {
         Change {
             what,
             party: self.party.clone(),
             cargo: self.cargo.clone(),
-            element: self.element,
             moved,
         }
     }
@@ -358,14 +355,13 @@ impl Game {
     }
 
     /// Take back the last change of this town visit: the horses, the cargo
-    /// and the element are exactly what they were before it.
+    /// and their abilities are exactly what they were before it.
     fn undo(&mut self) {
         let Some(change) = self.changes.pop() else {
             return;
         };
         self.party = change.party;
         self.cargo = change.cargo;
-        self.element = change.element;
         if let Screen::Camp { note, .. } = &mut self.screen {
             *note = format!("Taken back: {}.", change.what);
         }
@@ -563,6 +559,14 @@ impl Game {
         self.reports.last()
     }
 
+    /// The horse whose ability was resisted the most on the last trail, if
+    /// any was (#357): the first of them, when two were alike.
+    pub fn most_resisted(&self) -> Option<usize> {
+        let deeds = &self.last_report()?.outcome.deeds;
+        let most = deeds.iter().map(|deeds| deeds.resisted_hits).max()?;
+        (most > 0).then(|| deeds.iter().position(|deeds| deeds.resisted_hits == most))?
+    }
+
     /// The kept report the Journal is open at: an earlier one, or in town
     /// the last trail's. None on the road while the report is the fight's.
     fn open_report(&self) -> Option<&Kept> {
@@ -635,7 +639,9 @@ impl Game {
             return Err("In town only.");
         }
         match action {
-            Action::Element(_)
+            Action::Ability(ability) if ability >= self.data.abilities.len() => Err("No such ability."),
+            Action::Ability(_) if hand.horse >= self.party.len() => Err("No horse is selected."),
+            Action::Ability(_)
             | Action::SetOut
             | Action::KeepGoing
             | Action::Earlier
@@ -738,12 +744,15 @@ impl Game {
             return;
         }
         match action {
-            // Choosing the element it already has is no change to undo.
-            Action::Element(element) if element == self.element => {}
-            Action::Element(element) => {
-                let before = self.before(format!("{} for the next trail", element.name()), None);
+            // Choosing the ability it already has is no change to undo.
+            Action::Ability(ability) if ability == self.party[hand.horse].ability => {}
+            Action::Ability(ability) => {
+                let horse = &self.party[hand.horse];
+                let what = format!("{} for {}", self.data.abilities[ability].name, horse.name);
+                let before = self.before(what, None);
                 self.changes.push(before);
-                self.element = element;
+                self.party[hand.horse].ability = ability;
+                self.lessons.raise(Event::Chose);
             }
             Action::Equip => {
                 let from = hand.open.unwrap_or(Piece::Carried(0));
@@ -818,7 +827,7 @@ impl Game {
         // The visit is over: nothing done in it can be taken back now.
         self.changes.clear();
         let expedition =
-            Expedition::new(&self.data, self.plan.clone(), &self.party, self.element);
+            Expedition::new(&self.data, self.plan.clone(), &self.party);
         self.screen = Screen::Trail(expedition);
         self.lessons.raise(Event::SetOut);
         self.lessons.leave();
@@ -1013,7 +1022,6 @@ pub fn stats_line(stats: Stats) -> String {
 /// latest, which is the last trail and its drop in town and the fight on the
 /// road. Shown beside `report_side`.
 pub fn report_text(game: &Game) -> String {
-    let rules = &game.data.rules;
     let mut out = String::new();
 
     if let Some(kept) = game.reading() {
@@ -1071,7 +1079,7 @@ pub fn report_text(game: &Game) -> String {
                     total
                 ),
             };
-            out += &format!("    element: {}\n", expedition.element.name());
+            out += "\n";
             if expedition.ward >= 0.05 {
                 out += &format!("Ward up: damage halved for {:.1}s\n", expedition.ward);
             } else {
@@ -1080,14 +1088,7 @@ pub fn report_text(game: &Game) -> String {
 
             out += "\nENEMIES\n";
             for foe in &expedition.foes {
-                let multiplier = rules.multiplier(expedition.element, foe.element);
-                let matchup = if multiplier > 1.0 {
-                    "  <- strong against it"
-                } else if multiplier < 1.0 {
-                    "  <- resisted"
-                } else {
-                    ""
-                };
+                let matchup = matchup(game, foe.element);
                 out += &format!(
                     "  {:<15} {:<5} {:>3}/{}{}\n",
                     foe.name,
@@ -1116,13 +1117,12 @@ fn dropped(outcome: &Outcome) -> String {
 fn outcome_lines(outcome: &Outcome) -> String {
     format!(
         "{}  cleared {}/{} encounters, +{} coins, {} gear\n\
-         {}: {} strong hits, {} resisted\n",
+         {} strong hits, {} resisted\n",
         if outcome.won { "VICTORY!" } else { "DEFEAT." },
         outcome.cleared,
         outcome.total,
         outcome.coins,
         outcome.drops.len(),
-        outcome.element.name(),
         outcome.strong_hits,
         outcome.resisted_hits,
     )
@@ -1160,7 +1160,33 @@ fn reports_list(game: &Game, open: &Kept) -> String {
     out
 }
 
-/// Beside the report: the trail ahead and the element to walk it with in
+/// Which horses' abilities are strong against an enemy of this element, and
+/// which are resisted by it (#357): "  <- strong: Juniper; resisted: Morrow".
+fn matchup(game: &Game, element: Element) -> String {
+    let rules = &game.data.rules;
+    let by = |strong: bool| -> Vec<&str> {
+        game.party
+            .iter()
+            .filter(|horse| {
+                let multiplier = rules.multiplier(game.data.abilities[horse.ability].element, element);
+                if strong { multiplier > 1.0 } else { multiplier < 1.0 }
+            })
+            .map(|horse| horse.name.as_str())
+            .collect()
+    };
+    let parts: Vec<String> = [("strong", by(true)), ("resisted", by(false))]
+        .into_iter()
+        .filter(|(_, names)| !names.is_empty())
+        .map(|(said, names)| format!("{said}: {}", names.join(", ")))
+        .collect();
+    if parts.is_empty() {
+        String::new()
+    } else {
+        format!("  <- {}", parts.join("; "))
+    }
+}
+
+/// Beside the report: the trail ahead and each horse's ability to walk it with in
 /// town, where the log of the fight is on the road; beside an earlier
 /// report, the list of those kept.
 pub fn report_side(game: &Game) -> String {
@@ -1187,11 +1213,13 @@ pub fn report_side(game: &Game) -> String {
                     .collect();
                 out += &format!("  {}. {}\n", i + 1, names.join(", "));
             }
+            out += "\nABILITIES\n";
+            for horse in &game.party {
+                out += &format!("  {:<8} {}\n", horse.name, game.data.abilities[horse.ability].named());
+            }
             out += &format!(
-                "\nELEMENT: {}\n\
-                 Fire beats Plant, Plant beats Ice, Ice beats Fire\n\
+                "Fire beats Plant, Plant beats Ice, Ice beats Fire\n\
                  (strong x{}, resisted x{})\n",
-                game.element.name(),
                 rules.strong_multiplier,
                 rules.weak_multiplier,
             );
@@ -1224,19 +1252,26 @@ mod tests {
     #[test]
     fn an_action_that_cannot_be_done_says_why() {
         let mut game = Game::new(6);
-        assert_eq!(game.can(Action::Element(Element::Ice), Hand::default()), Ok(()));
+        let frost = game.data.ability_index("frost_burst");
+        assert_eq!(game.can(Action::Ability(frost), Hand::default()), Ok(()));
+        let none = game.data.abilities.len();
+        assert_eq!(game.can(Action::Ability(none), Hand::default()), Err("No such ability."));
+        assert_eq!(game.can(Action::Ability(frost), Hand::horse(3)), Err("No horse is selected."));
         assert_eq!(game.can(Action::SetOut, Hand::default()), Ok(()));
         assert_eq!(game.can(Action::Equip, Hand::default()), Err("Nothing to equip."));
 
-        game.act(Action::Element(Element::Ice), Hand::horse(0));
-        assert_eq!(game.element, Element::Ice);
+        // An ability is the selected horse's and no other's (#357).
+        let before: Vec<usize> = game.party.iter().map(|horse| horse.ability).collect();
+        game.act(Action::Ability(frost), Hand::horse(0));
+        assert_eq!(game.party[0].ability, frost);
+        assert_eq!(game.party[2].ability, before[2]);
         game.act(Action::Equip, Hand::horse(0));
         assert!(game.in_town(), "a refused action changes nothing");
 
         game.act(Action::SetOut, Hand::horse(0));
         assert!(!game.in_town());
         for action in [
-            Action::Element(Element::Fire),
+            Action::Ability(0),
             Action::Equip,
             Action::SetOut,
             Action::KeepGoing,
@@ -1245,8 +1280,8 @@ mod tests {
             assert_eq!(game.can(action, Hand::default()), Err("In town only."));
         }
         assert_eq!(game.can(Action::Earlier, Hand::default()), Err("No earlier report."));
-        game.act(Action::Element(Element::Fire), Hand::horse(0));
-        assert_eq!(game.element, Element::Ice, "no change on the road");
+        game.act(Action::Ability(0), Hand::horse(0));
+        assert_eq!(game.party[0].ability, frost, "no change on the road");
     }
 
     /// A press does something exactly when `can` allows it (#233): with a
@@ -1375,16 +1410,16 @@ mod tests {
     }
 
     /// Undo (#230) steps back through the changes of a town visit, one at
-    /// a time, and the horses, the cargo and the element are exactly what
+    /// a time, and the horses, the cargo and the abilities are exactly what
     /// they were. It never reaches back past a departure.
     #[test]
     fn undo_steps_back_through_the_town_visit() {
-        type Seen = (Vec<[Option<Gear>; 3]>, Option<Gear>, Element);
+        type Seen = (Vec<[Option<Gear>; 3]>, Option<Gear>, Vec<usize>);
         let seen = |game: &Game| -> Seen {
             (
                 game.party.iter().map(|horse| horse.gear.clone()).collect(),
                 game.pending_drop().cloned(),
-                game.element,
+                game.party.iter().map(|horse| horse.ability).collect(),
             )
         };
         let mut game = Game::back_with_one_piece();
@@ -1394,26 +1429,23 @@ mod tests {
         assert_eq!(game.undone_move(), None);
 
         let mut states = vec![seen(&game)];
-        let other = match game.element {
-            Element::Ice => Element::Plant,
-            _ => Element::Ice,
-        };
+        let other = (game.party[0].ability + 1) % game.data.abilities.len();
         let swap = Hand {
             horse: 1,
             open: Some(Piece::Worn { horse: 0, slot }),
         };
         for (action, hand) in [
             (Action::Equip, Hand::horse(0)),
-            (Action::Element(other), Hand::horse(0)),
+            (Action::Ability(other), Hand::horse(0)),
             (Action::Equip, swap),
         ] {
             game.act(action, hand);
             assert_ne!(Some(&seen(&game)), states.last(), "{action:?} changed nothing");
             states.push(seen(&game));
         }
-        // What changes nothing leaves nothing to undo: the element it has
+        // What changes nothing leaves nothing to undo: the ability it has
         // already, and an Equip that is refused.
-        game.act(Action::Element(other), Hand::horse(0));
+        game.act(Action::Ability(other), Hand::horse(0));
         game.act(Action::Equip, Hand::horse(2));
         assert_eq!(seen(&game), states[3]);
 

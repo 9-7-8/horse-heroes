@@ -10,11 +10,12 @@ plays itself, and can be nudged. Pictures: [`docs/gallery`](docs/gallery/README.
 
 ## What is in it
 
-- A party of three, each with one ability for now: Juniper's Focused Shot
-  (single-target damage), Morrow's Elemental Burst (damage to every enemy)
-  and Sable's Ward (halves damage taken).
-- Three elements: Fire beats Plant, Plant beats Ice, Ice beats Fire. You pick
-  the party's element before each expedition and can see the trail ahead.
+- A party of three, each with one ability, chosen in town: Ember Shot (Fire)
+  and Thorn Shot (Plant) hit one enemy hard, Frost Burst (Ice) hits every
+  enemy, and the Ward halves damage taken.
+- Three elements, carried by the abilities: Fire beats Plant, Plant beats
+  Ice, Ice beats Fire. Plain hits have none. You can see the trail ahead
+  and its enemies' elements before setting out.
 - Generated expeditions: three encounters and a final enemy, different every
   run and reproducible from a seed.
 - Horse gear: one drop per expedition, for a head, body or saddle slot, in

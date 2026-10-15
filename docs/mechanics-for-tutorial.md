@@ -49,10 +49,10 @@ This is what a tutorial could be tested against now.
 | --- | --- | --- |
 | **The loop** | Nothing required | Town, trail, walk back to town. No town leaves by itself (#305); with Keep going on (G, on the Map) it leaves after 12 s, until a trail is lost |
 | **Setting out** | Space, or the Set out button; Keep going, to have it leave by itself | Waits in town |
-| **The party** | Nothing: Juniper, Morrow, Sable are fixed | One ability each, fired on a cooldown: Focused Shot (big single hit), Elemental Burst (hits all), Ward (halves damage) |
+| **The party** | Nothing: Juniper, Morrow, Sable are fixed | One ability each, fired on a cooldown (#357): Ember Shot (Fire) and Thorn Shot (Plant), a big single hit; Frost Burst (Ice), hits all; Ward, halves damage |
 | **A trail** | Nothing | 3 encounters, then a boss. A quarter of trails have a fairy spring that heals |
 | **Trail tracker** | Nothing | Footer marks: solid behind, ring for the current fight, outline ahead, a larger diamond for the boss |
-| **Party element** | Fire, Ice or Plant (F, I, P), in town only | Fire beats Plant beats Ice beats Fire: x1.5 strong, x0.75 resisted. Enemy elements are rolled per trail |
+| **Abilities' elements** | Each horse's ability, from the four (F, I, P, W), in town only | Fire beats Plant beats Ice beats Fire: x1.5 strong, x0.75 resisted, by the ability's element; plain hits are neutral. Enemy elements are rolled per trail. There is no party element since #357 |
 | **Winning and losing** | Nothing | A win raises the trail level: enemies +15% health and attack, drops +1 stat point. A loss costs nothing yet |
 | **The loot shower** | Nothing | A kill bursts coins that arc, bounce, settle and are vacuumed to the party; the boss gives the full fountain |
 | **Gear drop** | Whether to equip it, and on whom | One piece per run if any encounter was cleared. Nothing equips by itself (#351): left in cargo it stays carried, and the cargo keeps every piece (#352) |
@@ -314,7 +314,7 @@ asks. Steps 1 to 4 work in the game as built.
 | 2 | Loot comes out of kills, and rarity has a colour and a shape | First kill, first boss fountain | Yes |
 | 3 | Press a piece, read its card, Equip on the selected horse | First gear drop | Yes |
 | 4 | The trail tracker, and that a win makes the next trail harder | Second trail | Yes |
-| 5 | Elements: what beats what | First loss, or first resisted fight | Yes, as a party element |
+| 5 | Elements: what beats what | First loss, or first resisted fight | Yes, as each ability's element (#357) |
 | 6 | Failure is cheap and the party waits for you | First loss | 0.3.2 |
 | 7 | Choosing a destination; corrupt towns end in a boss | First town reached | 0.3.4 |
 | 8 | Primer then Finisher makes a reaction | First hard fight | 0.3.3 |
@@ -327,9 +327,9 @@ asks. Steps 1 to 4 work in the game as built.
 
 ## 6. Things a tutorial design will run into
 
-- **The built element system will be replaced.** One element for the whole
-  party (step 5) goes in 0.3.3, when elements move to abilities. Anything
-  taught about it now is taught twice.
+- **Elements are the abilities'** (#357, 0.2.4): the party element is
+  gone. A horse has one ability for now; points, slots and choosing in a
+  fight (#220, #222, #93) will add to what step 5 teaches, not replace it.
 - **Nothing equips by itself** (owner, 2026-10-12, #351). A drop left alone
   stays carried, so a new player who never opens a card walks every trail
   bare. That is a reason step 3 needs its prompt (mine).

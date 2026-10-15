@@ -193,8 +193,8 @@ pub enum Content {
     #[default]
     Planned,
     Gear,
-    /// The party's one element, the slice's stand-in for abilities.
-    Element,
+    /// The selected horse's ability and what it does (#357).
+    Abilities,
     Report,
     /// Every piece the party has, worn or carried, in a grid by type (#308).
     Inventory,
@@ -1206,7 +1206,7 @@ enum Fact {
     ReportedName,
     ReportedKind,
     ReportedWhere,
-    Element,
+    Abilities,
     Report,
     ReportSide,
     /// The heading of the fight log over the road, with its key.
@@ -1925,12 +1925,8 @@ fn spawn_content(
                     });
             }
         }
-        Content::Element => {
-            page.spawn((text(t, ""), Live(Fact::Element)));
-            page.spawn(reason(
-                t,
-                "Abilities are not built yet: the party fights with one element.",
-            ));
+        Content::Abilities => {
+            page.spawn((text(t, ""), Live(Fact::Abilities)));
         }
         Content::Gear => {
             page.spawn((text(t, ""), Live(Fact::SelectedStats)));
@@ -3398,7 +3394,7 @@ fn mark_chosen(
         let control = map.control(button.id);
         let (chosen, blocked) = match (control.action, control.switch) {
             (Some(action), _) => (
-                action == Action::Element(game.element)
+                action_chosen(&game, &shell, action)
                     || (action == Action::KeepGoing && game.keep_going()),
                 game.can(action, shell.hand()).is_err(),
             ),
@@ -4210,12 +4206,16 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
                 (_, Piece::Worn { horse, .. }) => format!("{} wears it.", game.party[horse].name),
             }
         }
-        Fact::Element => {
+        Fact::Abilities => {
             let rules = &game.data.rules;
+            let horse = &game.party[shell.horse().min(game.party.len() - 1)];
+            let ability = &game.data.abilities[horse.ability];
             format!(
-                "Party element: {}\nFire beats Plant, Plant beats Ice, Ice beats Fire \
-                 (strong x{}, resisted x{}).",
-                game.element.name(),
+                "{}: {}. {}\nA plain hit has no element; an ability's has its own. \
+                 Fire beats Plant, Plant beats Ice, Ice beats Fire (strong x{}, resisted x{}).",
+                horse.name,
+                ability.named(),
+                ability.does,
                 rules.strong_multiplier,
                 rules.weak_multiplier,
             )
@@ -4257,6 +4257,15 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
     }
 }
 
+/// Whether an action's control is shown chosen: an ability's while the
+/// selected horse has it (#357).
+fn action_chosen(game: &Game, shell: &Shell, action: Action) -> bool {
+    match action {
+        Action::Ability(ability) => game.party.get(shell.horse()).is_some_and(|horse| horse.ability == ability),
+        _ => false,
+    }
+}
+
 /// What a horse has of one tab of the horses' place (#311), under that
 /// tab's control in the horse's view. A part that is not built says so.
 fn horse_part(game: &Game, map: &Places, horse: usize, tab: usize) -> String {
@@ -4269,10 +4278,10 @@ fn horse_part(game: &Game, map: &Places, horse: usize, tab: usize) -> String {
     match tab {
         Some(tab) => match tab.content {
             Content::Gear => card::horse_wears(game, horse),
-            Content::Element => format!(
-                "The party fights with {}. A horse's own abilities are not built yet.",
-                game.element.name()
-            ),
+            Content::Abilities => {
+                let ability = &game.data.abilities[game.party[horse].ability];
+                format!("{}. {}", ability.named(), ability.does)
+            }
             Content::Planned => format!("Not built yet. {}", tab.job),
             Content::Report | Content::Inventory | Content::Hints => String::new(),
         },
@@ -4812,7 +4821,7 @@ mod tests {
             blocked_line(gear, &game, Hand::default()),
             "Undo: nothing changed this visit."
         );
-        game.act(Action::Element(crate::sim::data::Element::Ice), Hand::horse(0));
+        game.act(Action::Ability(1), Hand::horse(0));
         assert_eq!(blocked_line(gear, &game, Hand::default()), "");
     }
 
@@ -5362,15 +5371,23 @@ mod tests {
         assert_eq!(towards(elsewhere, CompassOctant::South, &parts), None);
     }
 
-    /// Everything the text overlay did is done from a control: each element,
-    /// equipping the drop, and setting out, once each.
+    /// Everything the text overlay did is done from a control: each ability
+    /// (#357), equipping the drop, and setting out, once each. An ability's
+    /// control is named as `abilities.ron` names it.
     #[test]
     fn everything_the_slice_can_do_has_its_one_control() {
         let places = Places::load();
-        let mut actions: Vec<Action> = crate::sim::data::Element::ALL
-            .into_iter()
-            .map(Action::Element)
-            .collect();
+        let data = crate::sim::data::Data::load();
+        for (at, ability) in data.abilities.iter().enumerate() {
+            let control = places.controls().iter().find(|control| control.action == Some(Action::Ability(at)));
+            assert_eq!(control.map(|control| control.name.as_str()), Some(ability.name.as_str()));
+        }
+        for control in places.controls() {
+            if let Some(Action::Ability(at)) = control.action {
+                assert!(at < data.abilities.len(), "{}", control.name);
+            }
+        }
+        let mut actions: Vec<Action> = (0..data.abilities.len()).map(Action::Ability).collect();
         actions.extend([
             Action::Equip,
             Action::SetOut,

@@ -145,12 +145,14 @@ of the card beside Changed only (`switch: Details` in `places.ron`,
     IN A FIGHT
     Each horse hits at its own pace: every 1.4 to 1.6 s, a little sooner or later each time.
     attack: a hit's physical part, less the enemy's defense, never below 0.
-    elemental: a hit's elemental part, x1.5 where the party's element is
-    strong, x0.75 where it is resisted.
+    elemental: a hit's elemental part, in its ability's element: x1.5
+    where that is strong, x0.75 where it is resisted. A plain hit's has
+    no element.
     defense: taken off each enemy hit, which still does at least 1.
     health: what a horse can lose before it falls.
-    Focused Shot hits with attack x2.5; Elemental Burst hits every enemy
-    with elemental x2. A Ward takes 50% off enemy hits.
+    Ember Shot (Fire) hits with attack x2.5; Frost Burst (Ice) hits every
+    enemy with elemental x2; Thorn Shot (Plant) hits with attack x2.5; a
+    Ward takes 50% off enemy hits.
 
 - **Every number is the data's**: the points, the health a point is worth
   and the weights from `gear.ron`, the rest from `rules.ron`. A change

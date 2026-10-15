@@ -31,7 +31,8 @@ menus (`GlobalZIndex(-1)`), so a number never covers a control.
   `fade_secs`.
 - **Many at once**: hits on one thing within half a number's life are set
   side by side, `spread` pixels apart, `row` to a row, the next row
-  `row_height` higher. An Elemental Burst puts one on each enemy. Past `most`
+  `row_height` higher. A Burst puts one on each enemy. A plain hit has no element (#357), so
+only an ability's hit is in an element's colour. Past `most`
   numbers the oldest go first.
 
 Every value is in `assets/data/damage_numbers.ron`.

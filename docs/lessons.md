@@ -248,8 +248,12 @@ at the gate under it until Got it.
 (first fight, until a kill is watched); each has one ability (first
 ability, until another is watched); each number is a hit (#249: first
 kill, until another kill is watched; docs/damage-numbers.md). The
-element's line is #299. `Resisted` and `Win` are raised and no lesson
-waits for them yet.
+party element's line (#299) went with the party element. **A resisted
+ability** (#357): due at the first resisted hit, shown in town, on the
+horse whose ability was resisted the most on the last trail
+(`Target::Resisted`, `Game::most_resisted`), pointing at Abilities;
+done when the player gives a horse another ability (`Chose`). `Win` is
+raised and no lesson waits for it yet.
 
 **The boss** (#360): as the first boss fight begins, the pop-up is beside
 the boss, named, saying it is the trail's last fight and the one with the

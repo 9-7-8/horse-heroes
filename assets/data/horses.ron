@@ -1,12 +1,12 @@
-// The starting party. `class` picks each horse's one ability until abilities
-// are bought from a shared pool (#221); it is never shown to the player.
+// The starting party. `ability` is the one each starts with, by its id in
+// abilities.ron (#357); the player changes it in town, on Horses, Abilities.
 // `speed` (#355) sets how often a horse hits (`attack_tempo` in rules.ron)
 // and, averaged over the party, how quickly it walks between encounters
 // (`travel_distance`). Kept apart, so the party does not hit in step: at
 // these, Juniper hits every 1.41 s, Sable 1.55, Morrow 1.63. Gaits will set
 // it (#334); until then it is a number per horse.
 [
-    (name: "Juniper", class: Ranger, stats: (health: 40, attack: 6, defense: 1, elemental: 1, speed: 22)),
-    (name: "Morrow",  class: Wizard, stats: (health: 30, attack: 3, defense: 0, elemental: 5, speed: 19)),
-    (name: "Sable",   class: Mage,   stats: (health: 35, attack: 3, defense: 1, elemental: 2, speed: 20)),
+    (name: "Juniper", ability: "ember_shot",  stats: (health: 40, attack: 6, defense: 1, elemental: 1, speed: 22)),
+    (name: "Morrow",  ability: "frost_burst", stats: (health: 30, attack: 3, defense: 0, elemental: 5, speed: 19)),
+    (name: "Sable",   ability: "ward",        stats: (health: 35, attack: 3, defense: 1, elemental: 2, speed: 20)),
 ]

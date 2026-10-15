@@ -11,7 +11,7 @@
 //             no action or shows is not built: it is drawn as unavailable, and a
 //             press says so and says what it will do.
 //   proposed  the issue is a proposal the owner has not decided.
-//   action    what it does today: Element(Fire), Equip, SetOut, KeepGoing,
+//   action    what it does today: Ability(0), Equip, SetOut, KeepGoing,
 //             Undo, Earlier, Later.
 //   note      a line that stays under its group of controls, whether or
 //             not it can be used.
@@ -52,7 +52,7 @@
                     controls: [
                         (name: "Take off", does: "Takes the piece in the open slot off the selected horse and puts it in the cargo.", issue: 227),
                         (name: "Compare", does: "Shows a piece beside the one it would replace, with the difference in each stat.", issue: 11),
-                        (name: "Undo", does: "Takes back the last change made during this town visit: gear and the element, one step a press. Setting out ends the visit, and nothing before it can be taken back.", action: Undo, key: "U"),
+                        (name: "Undo", does: "Takes back the last change made during this town visit: gear and abilities, one step a press. Setting out ends the visit, and nothing before it can be taken back.", action: Undo, key: "U"),
                         (name: "Save loadout", does: "Saves the party's gear and abilities under a name.", issue: 50),
                         (name: "Restore loadout", does: "Puts a saved loadout back on the party in one action.", issue: 50),
                         (name: "Sets", does: "Shows the party sets these pieces belong to, and how many pieces of each are worn.", issue: 36),
@@ -62,11 +62,14 @@
                     name: "Abilities",
                     key: "2",
                     job: "Which abilities the selected horse carries.",
-                    content: Element,
+                    content: Abilities,
                     controls: [
-                        (name: "Fire", does: "The party fights with Fire on the next trail.", action: Element(Fire), key: "F"),
-                        (name: "Ice", does: "The party fights with Ice on the next trail.", action: Element(Ice), key: "I"),
-                        (name: "Plant", does: "The party fights with Plant on the next trail.", action: Element(Plant), key: "P"),
+                        // One control per ability in abilities.ron, in its
+                        // order, named as it is (#357): Ability(0) is the first.
+                        (name: "Ember Shot", does: "Gives the selected horse Ember Shot: a heavy shot at the first enemy, in Fire.", action: Ability(0), key: "F"),
+                        (name: "Frost Burst", does: "Gives the selected horse Frost Burst: Ice on every enemy at once.", action: Ability(1), key: "I"),
+                        (name: "Thorn Shot", does: "Gives the selected horse Thorn Shot: a heavy shot at the first enemy, in Plant.", action: Ability(2), key: "P"),
+                        (name: "Ward", does: "Gives the selected horse the Ward: the party takes half damage from hits for 4 seconds.", action: Ability(3), key: "W"),
                         (name: "Equip ability", does: "Puts an ability the selected horse has bought into one of its slots.", issue: 222),
                         (name: "Spend points", does: "Buys an ability from the shared pool with the selected horse's ability points.", issue: 220),
                         (name: "Reassign points", does: "Takes the selected horse's ability points back, to spend again.", issue: 220),

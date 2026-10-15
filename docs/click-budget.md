@@ -51,10 +51,10 @@ nowhere else: the walk reads them there.
 - **Equip** puts the piece on the selected horse. Another horse is one more
   press, by either way (its row, or Z, X, C). From Horses, with the cargo
   in view, the count is the same: the piece in the cargo, then Equip; or E.
-- **A different ability** is the slice's stand-in: the party has one
-  element and no abilities yet (#220, #222). The count will be taken again
-  when a horse has abilities of its own, and the budget of 3 is sized for
-  that: the horse, the tab, the ability.
+- **A different ability** is a horse's one ability (#357): the tab and
+  the ability by pointer (2), its key alone by keys (1), for the selected
+  horse. Taken again 2026-10-15. The budget of 3 is sized for another
+  horse too: the horse, the tab, the ability.
 - **Why a piece was left behind**: no piece is, since #352, and since #351
   none goes on by itself either. The report says what was brought back and
   that it is carried ([item-card.md](item-card.md), "The appraisal in
@@ -87,7 +87,7 @@ picture of where some of the jobs end. The routine is
   those after take back what the job changed (Undo).
 - **A job is checked in the game, not on the screen.** Equipped means the
   piece that was in the cargo is worn; a different ability means the
-  party's element changed; set out means the party has left; the report
+  selected horse carries the one pressed; set out means the party has left; the report
   means the Journal is open on it at the latest report. A job that did not
   come out so is written "NOT DONE", whatever it counted.
 - **A pointer presses only what is in sight.** A press by pointer on

@@ -31,6 +31,7 @@
 //              Detailed  the player read a piece's card with its Details on
 //              Dragged   the player put a piece on a horse by dragging it
 //              Boss      a trail's boss fight began: its last encounter
+//              Chose     the player gave a horse another ability
 //   shown    where: Town, Road, or left out for either. A Town lesson that
 //            is showing when the party sets out waits for the next town,
 //            and is not offered by itself after it is left a second time.
@@ -47,6 +48,8 @@
 //                                      with no mark on any control
 //              Boss                    the boss in the scene, while its fight
 //                                      is on: the pop-up points at it
+//              Resisted                the horse whose ability was resisted
+//                                      the most on the last trail
 //            A lesson whose target is not there waits until it is.
 //   words    its one line, said after the target's name and key, and by
 //            itself in the Journal's list of hints (#300). Short: at
@@ -210,6 +213,17 @@ lessons: [
         target: Control("Undo"),
         words: "It is on, and its card shows it so. This takes it back until the party sets out.",
         done: Did(SetOut),
+    ),
+    // Abilities carry their elements (#357): at the first resisted hit, in
+    // town where it can be changed, on the horse whose ability it was.
+    // Done by giving a horse another ability.
+    (
+        id: "a resisted ability",
+        due: Resisted,
+        shown: Town,
+        target: Resisted,
+        words: "Its ability's element was resisted. Select it, then Abilities [2] to change it.",
+        done: Did(Chose),
     ),
 ],
 list: [

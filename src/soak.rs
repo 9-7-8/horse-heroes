@@ -28,7 +28,7 @@ use std::{
 use bevy::prelude::*;
 
 use crate::game::{Action, CAMP_SECS, Game, Hand, Killed, Screen, TICK, Uncollected};
-use crate::sim::data::{Data, Element, Stats};
+use crate::sim::data::{Data, Stats};
 use crate::sim::expedition::{Expedition, Outcome, Plan};
 use crate::sim::loot::Horse;
 
@@ -103,7 +103,10 @@ fn stats_text(stats: Stats) -> String {
     )
 }
 
-fn depart_line(trail: u32, expedition: &Expedition, waited: f32) -> String {
+fn depart_line(data: &Data, trail: u32, expedition: &Expedition, waited: f32) -> String {
+    // Each horse's ability, in the party's order (#357).
+    let abilities: Vec<&str> =
+        expedition.party.iter().map(|fighter| data.abilities[fighter.ability].id.as_str()).collect();
     let party: Vec<String> = expedition
         .party
         .iter()
@@ -115,10 +118,10 @@ fn depart_line(trail: u32, expedition: &Expedition, waited: f32) -> String {
         })
         .collect();
     format!(
-        "depart\ttrail={trail}\tseed={}\tlevel={}\telement={}\twaited={waited:.2}\tparty={}",
+        "depart\ttrail={trail}\tseed={}\tlevel={}\tabilities={}\twaited={waited:.2}\tparty={}",
         expedition.plan.seed,
         expedition.plan.level,
-        expedition.element.name(),
+        abilities.join(","),
         party.join(","),
     )
 }
@@ -220,7 +223,7 @@ fn record(
     }
     if let Screen::Trail(expedition) = &game.screen {
         if !soak.on_road {
-            let line = depart_line(soak.reported + 1, expedition, t - soak.in_town_since);
+            let line = depart_line(&game.data, soak.reported + 1, expedition, t - soak.in_town_since);
             soak.write(t, &line);
             soak.lines = 0;
             soak.finished = None;
@@ -521,8 +524,10 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
         // Damage: every hit takes at least 1.
         for line in &trail.lines {
             let dealt = party.iter().any(|(name, _)| line.starts_with(name.as_str()));
-            let hit = [" hits ", " Focused Shot on ", " Elemental Burst on "];
-            if !hit.iter().any(|verb| line.contains(verb)) {
+            let hit = [" hits ".to_string()]
+                .into_iter()
+                .chain(data.abilities.iter().map(|ability| format!(" {} on ", ability.named())));
+            if !hit.into_iter().any(|verb| line.contains(&verb)) {
                 continue;
             }
             match damage_of(line) {
@@ -676,25 +681,28 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
         }
 
         // The same trail walked again in the sim: line for line the same.
-        let element = Element::ALL
-            .into_iter()
-            .find(|element| element.name() == depart.text("element"));
+        let abilities: Vec<Option<usize>> = depart
+            .text("abilities")
+            .split(',')
+            .map(|id| data.abilities.iter().position(|ability| ability.id == id))
+            .collect();
         let horses: Option<Vec<Horse>> = party
             .iter()
-            .map(|(name, stats)| {
-                let def = data.horses.iter().find(|def| def.name == *name)?;
+            .zip(abilities.iter().copied().chain(std::iter::repeat(None)))
+            .map(|((name, stats), ability)| {
+                data.horses.iter().find(|def| def.name == *name)?;
                 Some(Horse {
                     name: name.clone(),
-                    class: def.class,
+                    ability: ability?,
                     base: *stats,
                     gear: [None, None, None],
                 })
             })
             .collect();
-        match (element, horses) {
-            (Some(element), Some(horses)) => {
+        match horses {
+            Some(horses) => {
                 let plan = Plan::generate(data, seed, level);
-                let mut again = Expedition::new(data, plan, &horses, element);
+                let mut again = Expedition::new(data, plan, &horses);
                 for _ in 0..1_000_000 {
                     if again.outcome.is_some() {
                         break;
@@ -1052,7 +1060,7 @@ mod tests {
     /// A run as `record` writes it, from the sim alone: trail after trail
     /// from town, with nothing worn.
     fn written(data: &Data, trails: u32) -> String {
-        let party: Vec<Horse> = data.horses.iter().map(Horse::new).collect();
+        let party: Vec<Horse> = Horse::party(&data);
         let mut drops = Uncollected::default();
         let (mut t, mut level, mut coins) = (0.0, 0, 0);
         let mut out = "0.00\tstart\tversion=test\tseed=6\tlimit=0\n".to_string();
@@ -1060,8 +1068,8 @@ mod tests {
         for number in 1..=trails {
             t += CAMP_SECS;
             let plan = Plan::generate(data, 5 + u64::from(number), level);
-            let mut expedition = Expedition::new(data, plan, &party, Element::Fire);
-            write(t, depart_line(number, &expedition, CAMP_SECS));
+            let mut expedition = Expedition::new(data, plan, &party);
+            write(t, depart_line(data, number, &expedition, CAMP_SECS));
             let mut lines = 0;
             let outcome = loop {
                 expedition.tick(data, TICK);
