@@ -1,0 +1,46 @@
+SESSION 2026-10-15, another project's best practices adopted
+
+ASKED
+  "Read C:\Users\Isabel\claude-best-practices.md. If there's something
+  you can update your own procedures to do with no conflicts, do that.
+  If there's advice that's conflicting, ask me about it."
+
+DONE
+  - build-and-run.txt: long runs in the foreground (a background one is
+    reaped on low memory); say how long, ask past 30 minutes; read the
+    log first; stash to tell a flake; PowerShell and \uXXXX traps.
+  - next-thing.txt: check it is not done already; grep what an issue
+    names; a new test seen to fail once; docs audit the code.
+  - release-a-build.txt: notes from the whole range since the last release.
+  - Memory: "Queue: ..." means file it and build it next; overnight
+    permission is narrow. (1b9b42d.) No code changed; nothing to run.
+
+DECIDED (by the owner)
+  - Kept: always release; up to ten mixed issues a release; visible
+    changes are still run and looked at; /next picks and starts.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - The wiki, gene, Gradle and Minecraft-client practices: not this
+    project's.
+
+PICK UP
+  #356, part 3: walk the click budget again (walk-the-click-budget.txt),
+  and make the selected-horse lesson point at the horse in the scene and
+  the Equip lesson show the Another horse list.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 10 closed.
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities
+    #358 A sound of its own for each ability
+    #359 Worn gear seen on the horse
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+    #363 A dragged piece dangles from the pointer, swinging
+    #364 A crash leaves a log beside the game
+  Riding along in part: #356 (menus).
