@@ -652,8 +652,10 @@ mod tests {
                 assert!(big.mark_radius * big_size > small.mark_radius * small_size);
             }
         }
+        // Gone before the starting party has walked to the next fight.
+        let road = data.rules.travel_secs(data.horses.iter().map(|horse| horse.stats.speed));
         for death in deaths.deaths.values() {
-            assert!(body_secs(death) < data.rules.travel_secs);
+            assert!(body_secs(death) < road);
         }
     }
 

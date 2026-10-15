@@ -16,8 +16,6 @@ pub struct Gear {
 pub struct Horse {
     pub name: String,
     pub class: Class,
-    /// Seconds between its ordinary hits (#354), from `horses.ron`.
-    pub attack_interval: f32,
     pub base: Stats,
     pub gear: [Option<Gear>; 3],
 }
@@ -27,7 +25,6 @@ impl Horse {
         Horse {
             name: def.name.clone(),
             class: def.class,
-            attack_interval: def.attack_interval,
             base: def.stats,
             gear: [None, None, None],
         }
@@ -43,7 +40,7 @@ impl Horse {
 
 /// One number for "is this piece better", counting health in stat points.
 pub fn score(data: &Data, stats: Stats) -> i32 {
-    stats.attack + stats.defense + stats.elemental + stats.health / data.gear.health_per_point
+    stats.attack + stats.defense + stats.elemental + stats.speed + stats.health / data.gear.health_per_point
 }
 
 /// Two horses change what they wear in one slot. Any horse can wear any

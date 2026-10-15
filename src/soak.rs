@@ -98,8 +98,8 @@ impl Soak {
 
 fn stats_text(stats: Stats) -> String {
     format!(
-        "{}/{}/{}/{}",
-        stats.health, stats.attack, stats.defense, stats.elemental
+        "{}/{}/{}/{}/{}",
+        stats.health, stats.attack, stats.defense, stats.elemental, stats.speed
     )
 }
 
@@ -109,8 +109,8 @@ fn depart_line(trail: u32, expedition: &Expedition, waited: f32) -> String {
         .iter()
         .map(|fighter| {
             format!(
-                "{}:{}/{}/{}/{}",
-                fighter.name, fighter.max_health, fighter.attack, fighter.defense, fighter.elemental
+                "{}:{}/{}/{}/{}/{}",
+                fighter.name, fighter.max_health, fighter.attack, fighter.defense, fighter.elemental, fighter.speed
             )
         })
         .collect();
@@ -340,6 +340,7 @@ fn parse_stats(text: &str) -> Option<Stats> {
         attack: numbers.next()??,
         defense: numbers.next()??,
         elemental: numbers.next()??,
+        speed: numbers.next()??,
     })
 }
 
@@ -685,7 +686,6 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
                 Some(Horse {
                     name: name.clone(),
                     class: def.class,
-                    attack_interval: def.attack_interval,
                     base: *stats,
                     gear: [None, None, None],
                 })
@@ -747,7 +747,7 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
             problems.add("the level in town did not follow the result", at.clone());
         }
         let walked: f32 = town.num("walked");
-        let travel = rules.travel_secs;
+        let travel = rules.travel_secs(party.iter().map(|(_, stats)| stats.speed));
         if won {
             walks_won.push(walked);
         }
@@ -1081,10 +1081,11 @@ mod tests {
                 }
             };
             write(t, outcome_line(number, &outcome));
-            t += data.rules.travel_secs;
+            let road = expedition.road_secs();
+            t += road;
             level += u32::from(outcome.won);
             coins += outcome.coins;
-            write(t, town_line(number, level, coins, data.rules.travel_secs, &drops, 100));
+            write(t, town_line(number, level, coins, road, &drops, 100));
         }
         write(t, format!("end\treason=limit\twall={t:.1}"));
         out

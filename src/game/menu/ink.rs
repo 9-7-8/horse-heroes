@@ -64,10 +64,11 @@ pub enum Stat {
     Attack,
     Defense,
     Elemental,
+    Speed,
 }
 
 impl Stat {
-    pub const ALL: [Stat; 4] = [Stat::Health, Stat::Attack, Stat::Defense, Stat::Elemental];
+    pub const ALL: [Stat; 5] = [Stat::Health, Stat::Attack, Stat::Defense, Stat::Elemental, Stat::Speed];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -75,6 +76,7 @@ impl Stat {
             Stat::Attack => "attack",
             Stat::Defense => "defense",
             Stat::Elemental => "elemental",
+            Stat::Speed => "speed",
         }
     }
 }
@@ -294,6 +296,7 @@ mod tests {
             attack: 2,
             defense: 4,
             elemental: 2,
+            speed: 3,
         });
         assert_eq!(
             inked(&format!("Legendary, Head  {line}")),
@@ -302,6 +305,7 @@ mod tests {
                 ("+2 attack", Ink::Stat(Stat::Attack)),
                 ("+4 defense", Ink::Stat(Stat::Defense)),
                 ("+2 elemental", Ink::Stat(Stat::Elemental)),
+                ("+3 speed", Ink::Stat(Stat::Speed)),
             ]
         );
     }
@@ -338,7 +342,7 @@ mod tests {
     /// horse's own table, which has no change.
     #[test]
     fn the_change_column_is_a_gain_or_a_loss() {
-        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
+        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental, speed: 0 };
         let table = card::table(stats(5, 0, 4, 2), stats(15, 2, 0, 2), card::Rows::All);
         assert_eq!(
             inked(&table),

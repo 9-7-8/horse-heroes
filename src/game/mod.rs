@@ -465,7 +465,16 @@ impl Game {
     /// between two encounters.
     pub fn secs_to_town(&self) -> Option<f32> {
         self.arriving
-            .map(|walked| (self.data.rules.travel_secs - walked).max(0.0))
+            .map(|walked| (self.road_secs() - walked).max(0.0))
+    }
+
+    /// Seconds the road between two encounters takes the party, at its
+    /// average speed (#355); the walk back to town is as long.
+    pub fn road_secs(&self) -> f32 {
+        match &self.screen {
+            Screen::Trail(expedition) => expedition.road_secs(),
+            Screen::Camp { .. } => self.data.rules.travel_secs(self.party.iter().map(|horse| horse.stats().speed)),
+        }
     }
 
     /// Whether Keep going is on: the party leaves town by itself.
@@ -980,7 +989,7 @@ pub fn advance(
                 };
                 // The party walks to town before it is in town, so the
                 // menus move when it is seen to arrive and not before.
-                if walked < game.data.rules.travel_secs {
+                if walked < game.road_secs() {
                     game.arriving = Some(walked);
                 } else {
                     game.return_to_camp(outcome);
@@ -992,12 +1001,7 @@ pub fn advance(
 
 pub fn stats_line(stats: Stats) -> String {
     let mut parts = Vec::new();
-    for (value, label) in [
-        (stats.health, "health"),
-        (stats.attack, "attack"),
-        (stats.defense, "defense"),
-        (stats.elemental, "elemental"),
-    ] {
+    for (label, value) in stats.named() {
         if value != 0 {
             parts.push(format!("+{value} {label}"));
         }

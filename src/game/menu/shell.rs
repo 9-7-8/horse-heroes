@@ -4122,10 +4122,8 @@ fn fact(game: &Game, uncollected: &Uncollected, shell: &Shell, map: &Places, fac
         Fact::SelectedHorse => format!("Selected horse: {}", selected.name),
         Fact::SelectedStats => {
             let stats = selected.stats();
-            format!(
-                "{}: health {}, attack {}, defense {}, elemental {}",
-                selected.name, stats.health, stats.attack, stats.defense, stats.elemental
-            )
+            let named: Vec<String> = stats.named().iter().map(|(label, value)| format!("{label} {value}")).collect();
+            format!("{}: {}", selected.name, named.join(", "))
         }
         Fact::Worn(horse, slot) => match &game.party[horse].gear[slot] {
             Some(gear) => gear.name.clone(),

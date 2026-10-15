@@ -145,6 +145,7 @@ pub struct StatColours {
     pub attack: Hex,
     pub defense: Hex,
     pub elemental: Hex,
+    pub speed: Hex,
 }
 
 impl Colours {
@@ -167,6 +168,7 @@ impl Colours {
             Ink::Stat(Stat::Attack) => self.stat.attack.0,
             Ink::Stat(Stat::Defense) => self.stat.defense.0,
             Ink::Stat(Stat::Elemental) => self.stat.elemental.0,
+            Ink::Stat(Stat::Speed) => self.stat.speed.0,
             Ink::Gain => self.change.gain.0,
             Ink::Loss => self.change.loss.0,
         }

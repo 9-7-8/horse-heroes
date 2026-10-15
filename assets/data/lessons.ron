@@ -136,6 +136,16 @@ lessons: [
         words: "Each number is a hit, sized by damage, coloured by element; a minus is a horse hit.",
         done: Watched(Kill),
     ),
+    // Speed (#355), on the fastest of the starting party, whose hits come
+    // the most often: seen in the hits around it once the game goes on.
+    (
+        id: "speed",
+        due: Kill,
+        shown: Road,
+        target: Horse(0),
+        words: "The faster a horse, the more often it hits. The party walks at their average speed.",
+        done: Watched(Kill),
+    ),
     // The boss (#360): on it as its fight begins, the first time only.
     (
         id: "the boss",

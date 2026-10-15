@@ -416,7 +416,7 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                 })
                 .with_children(|compared| {
                     compared.spawn(dim(t, "a comparison: gain, loss, same; then changed only"));
-                    let adds = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
+                    let adds = |health, attack, defense, elemental| Stats { health, attack, defense, elemental, speed: 0 };
                     let gear = Data::load().gear;
                     for words in [
                         "health 35 to 45 (+10)\nattack 5 to 3 (-2)".to_string(),

@@ -68,6 +68,10 @@ pub struct Stats {
     pub attack: i32,
     pub defense: i32,
     pub elemental: i32,
+    /// How often a horse hits and how quickly the party walks between
+    /// encounters (#355), by `attack_tempo` and `travel_distance` in
+    /// `rules.ron`.
+    pub speed: i32,
 }
 
 impl Stats {
@@ -77,7 +81,20 @@ impl Stats {
             attack: self.attack + other.attack,
             defense: self.defense + other.defense,
             elemental: self.elemental + other.elemental,
+            speed: self.speed + other.speed,
         }
+    }
+
+    /// Every stat with the word the menus name it by, in the one order
+    /// they are listed in.
+    pub fn named(self) -> [(&'static str, i32); 5] {
+        [
+            ("health", self.health),
+            ("attack", self.attack),
+            ("defense", self.defense),
+            ("elemental", self.elemental),
+            ("speed", self.speed),
+        ]
     }
 }
 
@@ -99,7 +116,11 @@ pub struct Rules {
     pub ward_cooldown: f32,
     pub ward_duration: f32,
     pub ward_reduction: f32,
-    pub travel_secs: f32,
+    /// Speed (#355): a horse's ordinary hits come `attack_tempo / speed`
+    /// seconds apart, and the road between encounters takes
+    /// `travel_distance / speed` at the party's average speed.
+    pub attack_tempo: f32,
+    pub travel_distance: f32,
     pub ordinary_encounters: usize,
     pub bonus_chance: f32,
     pub bonus_heal: f32,
@@ -119,14 +140,26 @@ impl Rules {
             1.0
         }
     }
+
+    /// Seconds between a horse's ordinary hits at its speed, before each
+    /// swing's jitter (#355): the faster, the more often.
+    pub fn attack_interval(&self, speed: i32) -> f32 {
+        self.attack_tempo / speed.max(1) as f32
+    }
+
+    /// Seconds the road between two encounters takes a party of these
+    /// speeds, which walks at their average (vision.md, Gaits).
+    pub fn travel_secs(&self, speeds: impl IntoIterator<Item = i32>) -> f32 {
+        let (sum, count) = speeds.into_iter().fold((0, 0), |(sum, count), speed| (sum + speed, count + 1));
+        let average = if count == 0 { 1.0 } else { sum as f32 / count as f32 };
+        self.travel_distance / average.max(1.0)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct HorseDef {
     pub name: String,
     pub class: Class,
-    /// Seconds between its ordinary hits (#354).
-    pub attack_interval: f32,
     pub stats: Stats,
 }
 
@@ -361,7 +394,7 @@ mod tests {
 
         assert!(!data.horses.is_empty());
         for horse in &data.horses {
-            assert!(horse.stats.health > 0 && horse.attack_interval > 0.0, "{}", horse.name);
+            assert!(horse.stats.health > 0 && horse.stats.speed > 0, "{}", horse.name);
             let Stats { attack, defense, elemental, .. } = horse.stats;
             assert!(attack >= 0 && defense >= 0 && elemental >= 0, "{}", horse.name);
             let named = data.horses.iter().filter(|h| h.name == horse.name).count();
@@ -446,7 +479,8 @@ mod tests {
 
         let rules = &data.rules;
         assert!(rules.ordinary_encounters > 0);
-        assert!(rules.opening > 0.0 && rules.opening_stagger > 0.0 && rules.travel_secs > 0.0);
+        assert!(rules.opening > 0.0 && rules.opening_stagger > 0.0);
+        assert!(rules.attack_tempo > 0.0 && rules.travel_distance > 0.0);
         // A swing is never due at once or before the last.
         assert!((0.0..1.0).contains(&rules.attack_jitter));
         assert!(rules.focused_shot_cooldown > 0.0 && rules.burst_cooldown > 0.0);

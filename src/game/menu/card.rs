@@ -45,12 +45,7 @@ fn changes(horse: &Horse, gear: &Gear) -> String {
     let mut out = String::new();
     let now = horse.stats();
     let off = worn.map_or(Stats::default(), |worn| worn.stats);
-    for (label, now, off, on) in [
-        ("health", now.health, off.health, gear.stats.health),
-        ("attack", now.attack, off.attack, gear.stats.attack),
-        ("defense", now.defense, off.defense, gear.stats.defense),
-        ("elemental", now.elemental, off.elemental, gear.stats.elemental),
-    ] {
+    for (((label, now), (_, off)), (_, on)) in now.named().into_iter().zip(off.named()).zip(gear.stats.named()) {
         let change = on - off;
         if change != 0 {
             out += &format!("\n{label} {now} to {} ({change:+})", now + change);
@@ -213,12 +208,7 @@ pub(super) fn table(equipped: Stats, selected: Stats, rows: Rows) -> String {
     let mut out = table_row("Piece", "Equipped", "Selected", "Change");
     let amount = |value: i32| if value == 0 { "-".to_string() } else { format!("+{value}") };
     let mut left_out = 0;
-    for (label, off, on) in [
-        ("health", equipped.health, selected.health),
-        ("attack", equipped.attack, selected.attack),
-        ("defense", equipped.defense, selected.defense),
-        ("elemental", equipped.elemental, selected.elemental),
-    ] {
+    for ((label, off), (_, on)) in equipped.named().into_iter().zip(selected.named()) {
         let change = match (off, on) {
             (0, 0) => continue,
             (0, on) => format!("{on:+} new"),
@@ -267,10 +257,11 @@ fn times(multiplier: f32) -> String {
     format!("x{}", (multiplier * 100.0).round() / 100.0)
 }
 
-/// How often the party's horses hit (#354): "every 1.4 s" when they agree,
-/// "every 1.4 to 1.6 s" when they do not.
+/// How often the party's horses hit (#354), by their speeds (#355): "every
+/// 1.4 s" when they agree, "every 1.4 to 1.6 s" when they do not.
 fn pace(game: &Game) -> String {
-    let intervals = game.party.iter().map(|horse| horse.attack_interval);
+    let rules = &game.data.rules;
+    let intervals = game.party.iter().map(|horse| rules.attack_interval(horse.stats().speed));
     let lo = intervals.clone().fold(f32::INFINITY, f32::min);
     let hi = intervals.fold(0.0, f32::max);
     let secs = |s: f32| (s * 100.0).round() / 100.0;
@@ -308,6 +299,7 @@ pub fn details(game: &Game, gear: &Gear) -> String {
          elemental: a hit's elemental part, {strong} where the party's element is strong, {weak} where it is resisted.\n\
          defense: taken off each enemy hit, which still does at least 1.\n\
          health: what a horse can lose before it falls.\n\
+         speed: a horse hits every {tempo} s divided by its speed, and the party walks between fights at its horses' average speed.\n\
          Focused Shot hits with attack {focused}; Elemental Burst hits every enemy with elemental {burst}. A Ward takes {ward}% off enemy hits.",
         name = gear.name,
         tier = rarity.name,
@@ -316,6 +308,7 @@ pub fn details(game: &Game, gear: &Gear) -> String {
         won = share(|r| r.win_weight),
         kill = share(|r| r.kill_weight),
         interval = pace(game),
+        tempo = rules.attack_tempo,
         strong = times(rules.strong_multiplier),
         weak = times(rules.weak_multiplier),
         focused = times(rules.focused_shot_multiplier),
@@ -404,12 +397,7 @@ fn weighed(game: &Game, piece: Piece, horse: usize, rows: Rows) -> Option<String
             selected.name,
             table_row("Piece", "Equipped", "", ""),
         );
-        for (label, value) in [
-            ("health", gear.stats.health),
-            ("attack", gear.stats.attack),
-            ("defense", gear.stats.defense),
-            ("elemental", gear.stats.elemental),
-        ] {
+        for (label, value) in gear.stats.named() {
             if value != 0 {
                 out += &format!("\n{}", table_row(label, &format!("+{value}"), "", ""));
             }
@@ -452,12 +440,8 @@ pub fn horse_sheet(game: &Game, horse: usize, health: &str) -> String {
         .fold(Stats::default(), |sum, gear| sum.plus(gear.stats));
     let now = horse.stats();
     let mut out = format!("{}\nHealth {health}\n\n{}", horse.name, sheet_row("", "horse", "gear", "now"));
-    for (label, base, gear, now) in [
-        ("health", horse.base.health, gear.health, now.health),
-        ("attack", horse.base.attack, gear.attack, now.attack),
-        ("defense", horse.base.defense, gear.defense, now.defense),
-        ("elemental", horse.base.elemental, gear.elemental, now.elemental),
-    ] {
+    let rows = horse.base.named().into_iter().zip(gear.named()).zip(now.named());
+    for (((label, base), (_, gear)), (_, now)) in rows {
         let gear = if gear == 0 { "-".to_string() } else { format!("{gear:+}") };
         out += &format!("\n{}", sheet_row(label, &base.to_string(), &gear, &now.to_string()));
     }
@@ -509,7 +493,7 @@ mod tests {
     /// piece adds in the same columns, and says new, lost and same in words.
     #[test]
     fn the_comparison_lines_its_stats_up() {
-        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
+        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental, speed: 0 };
         let table = table(stats(5, 0, 4, 2), stats(15, 2, 0, 2), Rows::All);
         let rows: Vec<&str> = table.lines().collect();
         assert_eq!(rows.len(), 5);
@@ -549,7 +533,7 @@ mod tests {
         for multiplier in [rules.strong_multiplier, rules.weak_multiplier, rules.focused_shot_multiplier] {
             assert!(said.contains(&times(multiplier)), "{said}");
         }
-        for stat in ["attack:", "elemental:", "defense:", "health:"] {
+        for stat in ["attack:", "elemental:", "defense:", "health:", "speed:"] {
             assert!(said.lines().any(|line| line.starts_with(stat)), "{stat} {said}");
         }
 
@@ -580,7 +564,7 @@ mod tests {
     /// and the card under the pointer is narrowed with the pinned one.
     #[test]
     fn changed_only_leaves_out_the_rows_that_are_the_same() {
-        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental };
+        let stats = |health, attack, defense, elemental| Stats { health, attack, defense, elemental, speed: 0 };
         let (equipped, selected) = (stats(5, 0, 4, 2), stats(15, 2, 0, 2));
         let all = table(equipped, selected, Rows::All);
         let changed = table(equipped, selected, Rows::Changed);
@@ -676,7 +660,8 @@ mod tests {
         let rows: Vec<&str> = sheet.lines().collect();
         assert_eq!(rows[0], game.party[0].name);
         assert_eq!(rows[1], "Health 7/9");
-        assert_eq!(rows.len(), 8, "{sheet}");
+        assert_eq!(rows.len(), 9, "{sheet}");
+        assert!(rows[8].starts_with("speed") && rows[8].ends_with(&game.party[0].stats().speed.to_string()));
         for row in &rows[4..] {
             assert!(row.len() <= 25, "{row}");
             let cells: Vec<&str> = row.split_whitespace().collect();

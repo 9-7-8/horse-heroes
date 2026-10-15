@@ -3,9 +3,16 @@
     strong_multiplier: 1.5,
     weak_multiplier: 0.75,
 
-    // Each horse hits at its own `attack_interval` (horses.ron, #354). Each
-    // swing comes up to this fraction sooner or later, seeded, so a long
-    // fight does not fall into a fixed pattern.
+    // Speed (#355). A horse's ordinary hits come `attack_tempo / speed`
+    // seconds apart, its speed in horses.ron plus its gear's. The road
+    // between two encounters, and back to town, takes
+    // `travel_distance / speed` at the party's average speed (vision.md,
+    // Gaits): 3.9 s for the starting party.
+    attack_tempo: 31.0,
+    travel_distance: 80.0,
+
+    // Each swing comes up to this fraction sooner or later, seeded, so a
+    // long fight does not fall into a fixed pattern (#354).
     attack_jitter: 0.1,
     // A fight opens with the horses' first hits one after another, in an
     // order rolled for the fight: the first at `opening`, the next
@@ -26,7 +33,6 @@
     ward_duration: 4.0,
     ward_reduction: 0.5,
 
-    travel_secs: 4.0,
     ordinary_encounters: 3,
 
     // A fairy spring that heals the party after one encounter.

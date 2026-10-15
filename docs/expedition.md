@@ -17,7 +17,7 @@ only because the player put it on a horse. A lost trail turns Keep going
 off.
 
 A trail that is over, won or lost, ends with a walk back to town
-(`Game::secs_to_town`, as long as `travel_secs`): the party is in town only
+(`Game::secs_to_town`, as long as the road between encounters, #355): the party is in town only
 when it has reached the town gate, and it stands still there. The walk is
 presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 
@@ -46,8 +46,17 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 - A trail is 3 ordinary encounters drawn from 5 hand-written pieces in a rolled
   order, then 1 of 2 finals. Each enemy's element is rolled. A quarter of
   trails have a fairy spring that heals the party after one encounter.
-- Each horse hits at its own cadence (#354): `attack_interval` per horse in
-  `horses.ron` (Juniper 1.4 s, Sable 1.55, Morrow 1.6), each swing up to
+- Speed is a stat (#355), in `horses.ron` (Juniper 22, Sable 20, Morrow 19)
+  and added to by gear like any other, though no piece rolls it yet. A
+  horse's ordinary hits come `attack_tempo / speed` seconds apart (31, so
+  1.41, 1.55 and 1.63 s); the road between encounters, and the walk back
+  to town, takes `travel_distance / speed` at the party's average speed
+  (80, so 3.9 s), fixed when the trail sets out. Both in `rules.ron`. It is
+  shown in the horse's view, the Gear tab's line and a piece's card, and
+  the card's Details say the rule. The scenery scrolls at one speed
+  whatever the party's; only the road's length in time changes.
+- Each horse hits at its own cadence (#354): its interval from its speed,
+  each swing up to
   `attack_jitter` (10%) sooner or later from the trail's own seeded RNG.
   Each fight opens out of step: the first hits come `opening` (0.8 s) in
   and `opening_stagger` (0.35 s) apart, in an order rolled per fight; the

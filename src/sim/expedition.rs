@@ -88,6 +88,8 @@ pub struct Fighter {
     pub attack: i32,
     pub defense: i32,
     pub elemental: i32,
+    /// Its speed, gear's included (#355), which its interval comes from.
+    pub speed: i32,
     pub deeds: Deeds,
     /// Seconds between its ordinary hits, before each swing's jitter (#354).
     attack_interval: f32,
@@ -223,6 +225,9 @@ pub struct Expedition {
     pub events: Vec<Event>,
     pub outcome: Option<Outcome>,
     travel: f32,
+    /// Seconds the road between two encounters takes this party, at its
+    /// average speed (#355).
+    road: f32,
     strong_hits: u32,
     resisted_hits: u32,
     rng: Rng,
@@ -236,6 +241,7 @@ pub struct Expedition {
 impl Expedition {
     pub fn new(data: &Data, plan: Plan, party: &[Horse], element: Element) -> Expedition {
         let rules = &data.rules;
+        let road = rules.travel_secs(party.iter().map(|horse| horse.stats().speed));
         let party = party
             .iter()
             .map(|horse| {
@@ -248,8 +254,9 @@ impl Expedition {
                     attack: stats.attack,
                     defense: stats.defense,
                     elemental: stats.elemental,
+                    speed: stats.speed,
                     deeds: Deeds::default(),
-                    attack_interval: horse.attack_interval,
+                    attack_interval: rules.attack_interval(stats.speed),
                     // Set when a fight opens.
                     attack_timer: f32::MAX,
                     ability_timer: match horse.class {
@@ -287,10 +294,16 @@ impl Expedition {
             drops: Vec::new(),
             events: Vec::new(),
             outcome: None,
-            travel: rules.travel_secs,
+            travel: road,
+            road,
             strong_hits: 0,
             resisted_hits: 0,
         }
+    }
+
+    /// Seconds the road between two encounters takes this party (#355).
+    pub fn road_secs(&self) -> f32 {
+        self.road
     }
 
     pub fn tick(&mut self, data: &Data, dt: f32) {
@@ -487,7 +500,7 @@ impl Expedition {
             self.log.push("A fairy spring restores the party.".into());
         }
         self.encounter += 1;
-        self.travel = rules.travel_secs;
+        self.travel = self.road;
         self.phase = Phase::Travelling;
     }
 
@@ -1245,6 +1258,7 @@ mod tests {
                     attack: 3,
                     defense: 2,
                     elemental: 3,
+                    speed: 0,
                 },
             });
         }
@@ -1360,9 +1374,9 @@ mod tests {
         assert!(elements.iter().all(|&seen| seen), "{elements:?}");
     }
 
-    /// The road to each encounter takes `travel_secs`, and no ability's timer
-    /// runs on it: an ability is no nearer at the end of the road. The
-    /// ordinary hits start again at each fight's opening (#354).
+    /// The road to each encounter takes the party's road time (#355), and
+    /// no ability's timer runs on it: an ability is no nearer at the end of
+    /// the road. The ordinary hits start again at each fight's opening (#354).
     #[test]
     fn the_road_takes_its_time_and_no_timer_runs_on_it() {
         let data = Data::load();
@@ -1396,7 +1410,8 @@ mod tests {
         };
 
         let before = timers(&run);
-        assert!((walk(&mut run) - rules.travel_secs).abs() <= TICK);
+        let road = run.road_secs();
+        assert!((walk(&mut run) - road).abs() <= TICK);
         assert_eq!(run.phase, Phase::Fighting);
         assert_eq!(run.foes.len(), run.plan.encounters[0].len());
         assert_eq!(lines_with(&run, "Encounter 1/"), 1);
@@ -1410,7 +1425,7 @@ mod tests {
         run.foes.clear();
         run.encounter_cleared(&data);
         assert_eq!((run.phase, run.encounter), (Phase::Travelling, 1));
-        assert!((walk(&mut run) - rules.travel_secs).abs() <= TICK);
+        assert!((walk(&mut run) - road).abs() <= TICK);
         assert_eq!(run.phase, Phase::Fighting);
         assert_eq!(lines_with(&run, "Encounter 2/"), 1);
         assert_eq!(abilities(&timers(&run)), abilities(&before));
@@ -1513,7 +1528,7 @@ mod tests {
             orders.insert(first.iter().map(|&(_, horse)| horse).collect::<Vec<_>>());
 
             for (horse, ticks) in swings.iter().enumerate() {
-                let interval = data.horses[horse].attack_interval;
+                let interval = rules.attack_interval(data.horses[horse].stats.speed);
                 let (lo, hi) = (interval * (1.0 - rules.attack_jitter), interval * (1.0 + rules.attack_jitter));
                 for gap in ticks.windows(2).map(|pair| (pair[1] - pair[0]) as f32 * TICK) {
                     assert!(lo - TICK - 1e-3 <= gap && gap <= hi + TICK + 1e-3, "seed {seed}, horse {horse}: {gap}");
@@ -1525,6 +1540,62 @@ mod tests {
         assert_eq!(orders.len(), 6, "{orders:?}");
         assert_eq!(swings(&data, 5), swings(&data, 5));
         assert_ne!(swings(&data, 5), swings(&data, 6));
+    }
+
+    /// Speed (#355): a faster horse hits more often, by `attack_tempo`, and
+    /// its gear's speed counts as its own does. The party walks between
+    /// encounters at its average speed, by `travel_distance`: one speed
+    /// sets both.
+    #[test]
+    fn speed_sets_how_often_a_horse_hits_and_how_fast_the_party_walks() {
+        let data = Data::load();
+        let rules = &data.rules;
+        let mut horses = party(&data);
+        let slow = rules.attack_interval(horses[0].stats().speed);
+        horses[0].gear[0] = Some(Gear {
+            name: "Swift Shoes".into(),
+            slot: Slot::ALL[0],
+            rarity: 0,
+            stats: Stats { speed: 10, ..Stats::default() },
+        });
+        let speed = horses[0].stats().speed;
+        assert_eq!(speed, horses[0].base.speed + 10);
+        let fast = rules.attack_interval(speed);
+        assert!(fast < slow, "{fast} {slow}");
+        assert!((fast * speed as f32 - rules.attack_tempo).abs() < 1e-4);
+
+        let plan = Plan::generate(&data, 3, 0);
+        let run = Expedition::new(&data, plan, &horses, Element::Fire);
+        assert_eq!(run.party[0].attack_interval, fast);
+        assert_eq!(run.party[1].attack_interval, rules.attack_interval(horses[1].stats().speed));
+        let speeds: Vec<i32> = horses.iter().map(|horse| horse.stats().speed).collect();
+        let average = speeds.iter().sum::<i32>() as f32 / speeds.len() as f32;
+        assert!((run.road_secs() - rules.travel_distance / average).abs() < 1e-4);
+        let before = Expedition::new(&data, Plan::generate(&data, 3, 0), &party(&data), Element::Fire);
+        assert!(run.road_secs() < before.road_secs(), "a faster horse speeds the party");
+
+        // Over a long fight the faster horse makes more hits.
+        let mut slow_run = fighting(&data, 0, &[&[("mire_toad", Element::Fire)]]);
+        let mut fast_run = slow_run.clone();
+        fast_run.party[0].attack_interval = fast;
+        let count = |run: &mut Expedition| {
+            for fighter in &mut run.party {
+                fighter.ability_timer = f32::MAX;
+            }
+            let foe = &mut run.foes[0];
+            foe.attack_timer = f32::MAX;
+            foe.health = i32::MAX;
+            foe.max_health = i32::MAX;
+            let mut hits = 0;
+            for _ in 0..2000 {
+                let before = run.party[0].attack_timer;
+                run.tick(&data, TICK);
+                hits += (run.party[0].attack_timer > before) as u32;
+            }
+            hits
+        };
+        let (slow_hits, fast_hits) = (count(&mut slow_run), count(&mut fast_run));
+        assert!(fast_hits > slow_hits, "{fast_hits} {slow_hits}");
     }
 
     /// Over a whole trail the horses rarely hit on the same tick (#354): the

@@ -1,11 +1,12 @@
 // The starting party. `class` picks each horse's one ability until abilities
 // are bought from a shared pool (#221); it is never shown to the player.
-// `attack_interval` is the seconds between its ordinary hits (#354), each a
-// little longer or shorter by `attack_jitter` in rules.ron; until a speed
-// stat sets it (#355) it is a number per horse. Kept apart, so the party
-// does not hit in step.
+// `speed` (#355) sets how often a horse hits (`attack_tempo` in rules.ron)
+// and, averaged over the party, how quickly it walks between encounters
+// (`travel_distance`). Kept apart, so the party does not hit in step: at
+// these, Juniper hits every 1.41 s, Sable 1.55, Morrow 1.63. Gaits will set
+// it (#334); until then it is a number per horse.
 [
-    (name: "Juniper", class: Ranger, attack_interval: 1.4,  stats: (health: 40, attack: 6, defense: 1, elemental: 1)),
-    (name: "Morrow",  class: Wizard, attack_interval: 1.6,  stats: (health: 30, attack: 3, defense: 0, elemental: 5)),
-    (name: "Sable",   class: Mage,   attack_interval: 1.55, stats: (health: 35, attack: 3, defense: 1, elemental: 2)),
+    (name: "Juniper", class: Ranger, stats: (health: 40, attack: 6, defense: 1, elemental: 1, speed: 22)),
+    (name: "Morrow",  class: Wizard, stats: (health: 30, attack: 3, defense: 0, elemental: 5, speed: 19)),
+    (name: "Sable",   class: Mage,   stats: (health: 35, attack: 3, defense: 1, elemental: 2, speed: 20)),
 ]
