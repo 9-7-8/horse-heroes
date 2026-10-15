@@ -69,6 +69,9 @@ order". First carried out 2026-10-10 for 0.2.0 (#197); corrected 2026-10-11 for
    written. A picture's address is pinned to a commit, so it does not
    change when the file does:
        https://raw.githubusercontent.com/9-7-8/horse-heroes/<commit>/docs/gallery/<folder>/<file>
+   Pictures go in as thumbnails that link to the full size, side by side,
+   so they do not take up the page (owner, 2026-10-15):
+       <a href="URL"><img src="URL" width="320" alt="..."></a>
    After publishing, open the release page and see that every picture
    loads. To change the notes of a release already out:
        gh release edit vX.Y.Z --notes-file <notes>
