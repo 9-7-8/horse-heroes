@@ -1,0 +1,43 @@
+SESSION 2026-10-15, a lesson pop-up when the boss is met (#360)
+
+ASKED
+  /next. Tiers 1 and 2 empty (#246 waits on her look). Tier 3, menus
+  first: #360 is labelled menus and #354, PICK UP's, is not, so #360.
+
+DONE
+  - A Boss event when a trail's last encounter begins, and a Boss target:
+    the lesson's pop-up stands beside the boss in the scene, named, and
+    points at it (Game::boss, place_boss, About::Boss). One lesson in
+    lessons.ron: "The trail's boss: its last fight, and the one with the
+    best loot." (f7ee3bf, closes #360.)
+    Tested: the_boss_is_met_once (shown as the first boss fight begins, the
+    game waits on it, not shown at the second boss), seen to fail with the
+    event taken out. Seen running at 1120x640, docs/gallery/2026-10-15-boss.
+
+DECIDED (for her)
+  - The words; finished by Got it; the pop-up's arrow is the only mark on
+    the boss.
+
+FOUND
+  - The picture was taken with --no-pause, so it shows the fight already
+    under way; the wait itself is held by the test, not a picture.
+
+NOT DONE
+  - Nothing of #360.
+
+PICK UP
+  #363, A dragged piece dangles from the pointer (menus): read the issue
+  and docs/menu-shell.md on dragging, then build it.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 1 of 10 closed.
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down (waits on her look)
+    #357 The most basic abilities
+    #358 A sound of its own for each ability
+    #359 Worn gear seen on the horse
+    #361 A look of its own for every piece
+    #363 A dragged piece dangles from the pointer, swinging
+    #364 A crash leaves a log beside the game
+  Riding along in part: #356 (menus).
