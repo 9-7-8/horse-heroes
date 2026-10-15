@@ -11,9 +11,11 @@ use bevy::{
     camera::ScalingMode,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
+    render::render_resource::Face,
     window::PrimaryWindow,
 };
 
+use super::menu::shell::Shell;
 use super::menu::tokens::Tokens;
 use super::{Game, SceneView, Screen};
 use crate::sim::data::Element;
@@ -62,6 +64,11 @@ const TIRED_STRIDE: f32 = 0.5;
 /// How dark a horse's hooves and hair are, as shares of its body's shade.
 const HOOF_SHADE: f32 = 0.45;
 const HAIR_SHADE: f32 = 0.3;
+/// How far the selected horse's outline stands out from it, in world units
+/// (#356): each piece has a shell this much bigger, drawn from the inside.
+const OUTLINE: f32 = 0.06;
+/// How much room round a horse a press still lands on it, in world units.
+const PRESS_MARGIN: f32 = 0.15;
 
 pub struct ScenePlugin {
     /// Start with the horses' hair hidden.
@@ -82,9 +89,99 @@ impl Plugin for ScenePlugin {
                     (sync_horses, swing_legs).chain(),
                     sync_enemies,
                     move_gate,
-                    toggle_hair,
+                    (toggle_hair, outline_selected).chain(),
                 ),
             );
+    }
+}
+
+/// The box a horse stands in, in its own space: what a press on the scene
+/// is tested against to find which horse it landed on (#356).
+#[derive(Resource, Clone, Copy)]
+pub struct HorseBox {
+    min: Vec3,
+    max: Vec3,
+}
+
+impl HorseBox {
+    fn of(parts: &[Part]) -> Self {
+        let mut min = Vec3::splat(f32::MAX);
+        let mut max = Vec3::splat(f32::MIN);
+        for part in parts {
+            for section in [&part.from, &part.to] {
+                for [x, y] in [section.top, section.bottom] {
+                    for z in [section.z - section.width / 2.0, section.z + section.width / 2.0] {
+                        min = min.min(Vec3::new(x, y, z));
+                        max = max.max(Vec3::new(x, y, z));
+                    }
+                }
+            }
+        }
+        HorseBox {
+            min: min - PRESS_MARGIN,
+            max: max + PRESS_MARGIN,
+        }
+    }
+
+    /// The horse a ray from the camera meets first, if it meets one: where
+    /// each stands to fight, as the party never leaves its places.
+    pub fn horse_on(&self, ray: Ray3d) -> Option<usize> {
+        (0..HORSE_X.len())
+            .filter_map(|i| {
+                let at = Vec3::new(HORSE_X[i], 0.0, HORSE_Z[i]);
+                entry(ray, at + self.min, at + self.max).map(|distance| (i, distance))
+            })
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i)
+    }
+}
+
+/// How far along a ray it enters a box, if it does: the slab test.
+fn entry(ray: Ray3d, min: Vec3, max: Vec3) -> Option<f32> {
+    let (mut near, mut far) = (f32::MIN, f32::MAX);
+    for axis in 0..3 {
+        let (origin, direction) = (ray.origin[axis], ray.direction[axis]);
+        if direction.abs() < 1e-6 {
+            if origin < min[axis] || origin > max[axis] {
+                return None;
+            }
+            continue;
+        }
+        let (a, b) = ((min[axis] - origin) / direction, (max[axis] - origin) / direction);
+        near = near.max(a.min(b));
+        far = far.min(a.max(b));
+    }
+    (near <= far && far >= 0.0).then_some(near)
+}
+
+/// The outline of one piece of a horse, shown while that horse is the one
+/// selected (#356).
+#[derive(Component)]
+struct Halo {
+    horse: usize,
+    kind: Kind,
+}
+
+/// The selected horse is outlined in the scene, in town and on the road,
+/// and the outline follows a press on another horse. Hair's outline goes
+/// with the hair.
+fn outline_selected(
+    shell: Option<Res<Shell>>,
+    bare: Res<Bare>,
+    mut halos: Query<(&Halo, &mut Visibility)>,
+) {
+    let Some(shell) = shell else {
+        return;
+    };
+    for (halo, mut visibility) in &mut halos {
+        let wanted = if halo.horse == shell.horse() {
+            hair_visibility(halo.kind, bare.0)
+        } else {
+            Visibility::Hidden
+        };
+        if *visibility != wanted {
+            *visibility = wanted;
+        }
     }
 }
 
@@ -223,17 +320,34 @@ fn setup(
     // all three.
     let shape = HorseShape::load();
     let horse = shape.base(shape.height);
-    let pieces: Vec<(Part, Handle<Mesh>)> = horse
-        .parts()
+    let parts = horse.parts();
+    commands.insert_resource(HorseBox::of(&parts));
+    let pieces: Vec<Piece3d> = parts
         .into_iter()
-        .map(|part| (part, meshes.add(piece_mesh(&part, joint_origin(&horse, part.joint)))))
+        .map(|part| {
+            let origin = joint_origin(&horse, part.joint);
+            Piece3d {
+                part,
+                mesh: meshes.add(piece_mesh(&part, origin, 0.0)),
+                halo: meshes.add(piece_mesh(&part, origin, OUTLINE)),
+            }
+        })
         .collect();
+    // The outline is the inside of a shell round each piece: only its far
+    // faces are drawn, so the horse covers all of it but a rim.
+    let halo = materials.add(StandardMaterial {
+        base_color: tokens.colour.accent.0,
+        unlit: true,
+        cull_mode: Some(Face::Front),
+        ..default()
+    });
     for (i, &x) in HORSE_X.iter().enumerate() {
         spawn_horse(
             &mut commands,
             &mut materials,
             &horse,
             &pieces,
+            &halo,
             bare.0,
             i,
             Vec3::new(x, 0.0, HORSE_Z[i]),
@@ -266,9 +380,41 @@ fn joint_origin(horse: &Frame, joint: Joint) -> Vec3 {
     }
 }
 
+/// One piece of the horse, with its mesh and its outline's.
+struct Piece3d {
+    part: Part,
+    mesh: Handle<Mesh>,
+    halo: Handle<Mesh>,
+}
+
+/// The corners of a piece's six faces, as indices into its eight corners:
+/// the four of the section it starts from, then the four it ends at.
+const FACES: [[usize; 4]; 6] = [
+    [0, 1, 2, 3],
+    [4, 5, 6, 7],
+    [0, 1, 5, 4],
+    [3, 2, 6, 7],
+    [0, 3, 7, 4],
+    [1, 2, 6, 5],
+];
+
+/// Each face's normal, pointing out of the solid whichever way round its
+/// corners were listed, and whether they were listed that way round.
+fn face_normals(corners: &[Vec3; 8]) -> [(Vec3, bool); 6] {
+    let middle = corners.iter().sum::<Vec3>() / 8.0;
+    FACES.map(|face| {
+        let [p0, p1, p2, p3] = face.map(|i| corners[i]);
+        let normal = (p2 - p0).cross(p3 - p1).normalize_or_zero();
+        let centre = (p0 + p1 + p2 + p3) / 4.0;
+        let outward = normal.dot(centre - middle) >= 0.0;
+        (if outward { normal } else { -normal }, outward)
+    })
+}
+
 /// The mesh of one piece: the solid between its two sections, flat-faced,
-/// placed relative to the joint it moves with.
-fn piece_mesh(part: &Part, origin: Vec3) -> Mesh {
+/// placed relative to the joint it moves with. `grow` moves every face out
+/// by that much, for the piece's outline.
+fn piece_mesh(part: &Part, origin: Vec3, grow: f32) -> Mesh {
     let corners = |section: &Section| {
         let (near, far) = (section.z + section.width / 2.0, section.z - section.width / 2.0);
         [
@@ -279,26 +425,34 @@ fn piece_mesh(part: &Part, origin: Vec3) -> Mesh {
         ]
     };
     let (a, b) = (corners(&part.from), corners(&part.to));
-    let middle = a.iter().chain(&b).sum::<Vec3>() / 8.0;
-    let faces = [
-        [a[0], a[1], a[2], a[3]],
-        [b[0], b[1], b[2], b[3]],
-        [a[0], a[1], b[1], b[0]],
-        [a[3], a[2], b[2], b[3]],
-        [a[0], a[3], b[3], b[0]],
-        [a[1], a[2], b[2], b[1]],
-    ];
+    let mut solid = [a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3]];
+    if grow > 0.0 {
+        // A corner is on three faces, and moves to where it is `grow` out
+        // from each of them, so each face stands that much further out.
+        let normals = face_normals(&solid);
+        solid = std::array::from_fn(|i| {
+            let on: Vec<Vec3> = FACES
+                .iter()
+                .zip(normals)
+                .filter(|(face, _)| face.contains(&i))
+                .map(|(_, (normal, _))| normal)
+                .collect();
+            let rows = Mat3::from_cols(on[0], on[1], on[2]).transpose();
+            let push = if rows.determinant().abs() > 1e-3 {
+                rows.inverse() * Vec3::splat(grow)
+            } else {
+                // Two of its faces lie flat together: out along them all.
+                on.iter().sum::<Vec3>().normalize_or_zero() * grow
+            };
+            // A sharp point would send it far out; it stops short.
+            solid[i] + push.clamp_length_max(3.0 * grow)
+        });
+    }
     let mut positions = Vec::new();
     let mut normals = Vec::new();
     let mut indices = Vec::new();
-    for face in faces {
-        // Whichever way round the face was listed, it faces out of the piece.
-        let mut normal = (face[2] - face[0]).cross(face[3] - face[1]).normalize_or_zero();
-        let centre = face.iter().sum::<Vec3>() / 4.0;
-        let outward = normal.dot(centre - middle) >= 0.0;
-        if !outward {
-            normal = -normal;
-        }
+    for (face, (normal, outward)) in FACES.iter().zip(face_normals(&solid)) {
+        let face = face.map(|i| solid[i]);
         let first = positions.len() as u32;
         let order = if outward { [0, 1, 2, 0, 2, 3] } else { [0, 2, 1, 0, 3, 2] };
         indices.extend(order.map(|i| first + i));
@@ -322,7 +476,8 @@ fn spawn_horse(
     commands: &mut Commands,
     materials: &mut Assets<StandardMaterial>,
     horse: &Frame,
-    pieces: &[(Part, Handle<Mesh>)],
+    pieces: &[Piece3d],
+    halo: &Handle<StandardMaterial>,
     bare: bool,
     index: usize,
     position: Vec3,
@@ -334,25 +489,31 @@ fn spawn_horse(
     let hoof = materials.add(grey(HOOF_SHADE));
     let hair = materials.add(grey(HAIR_SHADE));
 
-    let piece = |joint: Joint| {
-        let (body, hoof, hair) = (&body, &hoof, &hair);
-        pieces
-            .iter()
-            .filter(move |(part, _)| part.joint == joint)
-            .map(move |(part, mesh)| {
-                let material = match part.kind {
-                    Kind::Body => body,
-                    Kind::Hoof => hoof,
-                    Kind::Hair => hair,
-                };
-                (
-                    Piece(part.kind),
-                    Mesh3d(mesh.clone()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::default(),
-                    hair_visibility(part.kind, bare),
-                )
-            })
+    // Each piece, and beside it its outline, hidden until the horse is
+    // selected.
+    let spawn_pieces = |parent: &mut ChildSpawnerCommands, joint: Joint| {
+        for piece in pieces.iter().filter(|piece| piece.part.joint == joint) {
+            let kind = piece.part.kind;
+            let material = match kind {
+                Kind::Body => &body,
+                Kind::Hoof => &hoof,
+                Kind::Hair => &hair,
+            };
+            parent.spawn((
+                Piece(kind),
+                Mesh3d(piece.mesh.clone()),
+                MeshMaterial3d(material.clone()),
+                Transform::default(),
+                hair_visibility(kind, bare),
+            ));
+            parent.spawn((
+                Halo { horse: index, kind },
+                Mesh3d(piece.halo.clone()),
+                MeshMaterial3d(halo.clone()),
+                Transform::default(),
+                Visibility::Hidden,
+            ));
+        }
     };
     commands
         .spawn((
@@ -361,9 +522,7 @@ fn spawn_horse(
             Visibility::default(),
         ))
         .with_children(|trunk| {
-            for bundle in piece(Joint::Trunk) {
-                trunk.spawn(bundle);
-            }
+            spawn_pieces(trunk, Joint::Trunk);
             // Neck and head hang from a joint at the withers, which drops
             // them when the horse is exhausted.
             trunk
@@ -372,11 +531,7 @@ fn spawn_horse(
                     Transform::from_translation(joint_origin(horse, Joint::Neck)),
                     Visibility::default(),
                 ))
-                .with_children(|neck| {
-                    for bundle in piece(Joint::Neck) {
-                        neck.spawn(bundle);
-                    }
-                });
+                .with_children(|neck| spawn_pieces(neck, Joint::Neck));
             // Legs hang from a joint that swings; diagonal pairs move
             // together.
             for leg in 0..LEGS.len() {
@@ -387,11 +542,7 @@ fn spawn_horse(
                         Transform::from_translation(joint_origin(horse, Joint::Leg(leg))),
                         Visibility::default(),
                     ))
-                    .with_children(|limb| {
-                        for bundle in piece(Joint::Leg(leg)) {
-                            limb.spawn(bundle);
-                        }
-                    });
+                    .with_children(|limb| spawn_pieces(limb, Joint::Leg(leg)));
             }
         });
 }
@@ -640,5 +791,47 @@ mod tests {
         assert_eq!(tired_pose(false, true), (false, false));
         assert_eq!(tired_pose(true, false), (true, true));
         assert_eq!(tired_pose(true, true), (true, false));
+    }
+
+    /// A press finds the horse under it from the camera's angle, the nearer
+    /// one where two overlap, and nothing between them or above them.
+    #[test]
+    fn a_press_finds_the_horse_under_it() {
+        let shape = HorseShape::load();
+        let parts = shape.base(shape.height).parts();
+        let horses = HorseBox::of(&parts);
+        let camera = camera_home();
+        let down = camera.forward();
+        let from = |point: Vec3| Ray3d::new(point - down * 40.0, down);
+        for i in 0..HORSE_X.len() {
+            assert_eq!(horses.horse_on(from(horse_centre(i))), Some(i), "horse {i}");
+        }
+        let between = (horse_centre(0) + horse_centre(1)) / 2.0 + Vec3::Y * 4.0;
+        assert_eq!(horses.horse_on(from(between)), None);
+        assert_eq!(horses.horse_on(from(Vec3::new(ENEMY_X[1], 0.5, 0.0))), None);
+    }
+
+    /// A piece's outline is the piece with every face moved out: it holds
+    /// the piece, and stands out from it by the outline's width.
+    #[test]
+    fn an_outline_stands_out_from_its_piece() {
+        let shape = HorseShape::load();
+        let horse = shape.base(shape.height);
+        for part in horse.parts() {
+            let size = |mesh: Mesh| {
+                let Some(bevy::mesh::VertexAttributeValues::Float32x3(points)) =
+                    mesh.attribute(Mesh::ATTRIBUTE_POSITION).cloned()
+                else {
+                    panic!("no positions");
+                };
+                points.iter().fold((Vec3::MAX, Vec3::MIN), |(lo, hi), p| {
+                    (lo.min(Vec3::from(*p)), hi.max(Vec3::from(*p)))
+                })
+            };
+            let (lo, hi) = size(piece_mesh(&part, Vec3::ZERO, 0.0));
+            let (out_lo, out_hi) = size(piece_mesh(&part, Vec3::ZERO, OUTLINE));
+            assert!(out_lo.cmple(lo).all() && out_hi.cmpge(hi).all(), "{part:?}");
+            assert!((out_hi - hi).max_element() >= OUTLINE * 0.99, "{part:?}");
+        }
     }
 }

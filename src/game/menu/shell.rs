@@ -41,6 +41,7 @@ use crate::game::{
     Action, Game, Hand, Piece, Raise, SceneView, Screen, Uncollected, fight_log, report_side,
     report_text, stats_line,
 };
+use crate::game::scene::HorseBox;
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
 use crate::sim::lessons::{EntryDef, Tick};
@@ -2172,9 +2173,25 @@ fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Cont
     }
 }
 
-/// A press on the scene closes the place that is open on the road (#307).
-fn on_scene_press(press: On<PointerPress>, game: Res<Game>, mut shell: ResMut<Shell>) {
-    if press.button == PointerButton::Primary && shell.is_open() {
+/// A press on a horse in the scene does what a press on it in the strip
+/// does: selects it and opens its view, in town and on the road (#356).
+/// Anywhere else on the scene it closes the place that is open on the road
+/// (#307).
+fn on_scene_press(
+    press: On<PointerPress>,
+    game: Res<Game>,
+    mut shell: ResMut<Shell>,
+    horses: Res<HorseBox>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera3d>>,
+) {
+    if press.button != PointerButton::Primary {
+        return;
+    }
+    let (camera, at) = *camera;
+    let ray = camera.viewport_to_world(at, press.pointer.position).ok();
+    if let Some(horse) = ray.and_then(|ray| horses.horse_on(ray)) {
+        shell.inspect(horse, None);
+    } else if shell.is_open() {
         shell.press_scene(game.in_town());
     }
 }

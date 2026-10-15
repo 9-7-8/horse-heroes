@@ -40,6 +40,7 @@ use crate::game::menu::shell::{
 };
 use crate::game::menu::parts::{DismissHint, SkipHints};
 use crate::game::menu::teach;
+use crate::game::scene::horse_centre;
 use crate::game::{Action, Game, Hand, Piece};
 use crate::sim::loot::Gear;
 use crate::sim::data::Element;
@@ -145,6 +146,9 @@ enum Step {
     PointAway,
     /// Press the scene with the pointer, above where any menu reaches (#307).
     Scene,
+    /// Press a horse in the scene with the pointer, at the middle of its
+    /// body (#356).
+    SceneHorse(usize),
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -278,7 +282,9 @@ impl Tour {
 
 /// A point of the scene in a window of any size: the smallest window is
 /// wider than this, and the scene never has less than a third of its height.
-const ON_THE_SCENE: Vec2 = Vec2::new(560.0, 100.0);
+/// It is sky, right of the party and above the enemies, as a press on a
+/// horse selects it (#356).
+const ON_THE_SCENE: Vec2 = Vec2::new(900.0, 30.0);
 
 /// Seconds for a press to show before the picture is taken: longer than the
 /// scene takes to move between its layouts.
@@ -320,6 +326,11 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         // A press on a horse opens everything about it (#311).
         Step::Horse(1),
         Step::Shot("a horse's view".into()),
+        // So does a press on the horse itself in the scene, and the outline
+        // follows it (#356).
+        Step::SceneHorse(2),
+        Step::Shot("a press on a horse in the scene".into()),
+        Step::SceneHorse(1),
         // Its parts are controls that go to their tab.
         Step::Part(1),
         Step::Shot("a part of the view goes to its tab".into()),
@@ -405,6 +416,10 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("a place open on the road again".into()),
         Step::Scene,
         Step::Shot("a press on the scene closes the place".into()),
+        // A press on a horse there opens its view, and the place with it.
+        Step::SceneHorse(0),
+        Step::Shot("on the road a press on a horse in the scene".into()),
+        Step::Scene,
         // The marks (#232): the party comes home to a place that shows
         // neither the cargo nor the report, so both are still unseen; the
         // report shows both, and both marks go.
@@ -815,9 +830,10 @@ fn tour(
         MessageWriter<PointerInput>,
         Single<Entity, With<PrimaryWindow>>,
         Query<&UiGlobalTransform>,
+        Single<(&Camera, &GlobalTransform), With<Camera3d>>,
     ),
 ) {
-    let (mut exit, mut pointer, window, transforms) = out;
+    let (mut exit, mut pointer, window, transforms, camera) = out;
     let (carried, reported, skips, got_its) = cells;
     let (horses, parts) = horses;
     let (map, shell) = menus;
@@ -923,6 +939,7 @@ fn tour(
         | Step::LetGo
         | Step::PointAway
         | Step::Scene
+        | Step::SceneHorse(_)
         | Step::Wait(_)
         | Step::SetOut
         | Step::Town
@@ -1037,6 +1054,15 @@ fn tour(
         send(ON_THE_SCENE, PointerAction::Press(PointerButton::Primary));
         send(ON_THE_SCENE, PointerAction::Release(PointerButton::Primary));
         tour.at = ON_THE_SCENE;
+    }
+    if let Step::SceneHorse(h) = step {
+        let (camera, at) = *camera;
+        if let Ok(to) = camera.world_to_viewport(at, horse_centre(*h)) {
+            send(to, PointerAction::Move { delta: to - tour.at });
+            send(to, PointerAction::Press(PointerButton::Primary));
+            send(to, PointerAction::Release(PointerButton::Primary));
+            tour.at = to;
+        }
     }
     if let Step::LetGo = step {
         send(tour.at, PointerAction::Release(PointerButton::Primary));

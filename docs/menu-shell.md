@@ -85,6 +85,18 @@ Which layout is wanted follows one thing, `Shell::is_open`:
   fight log and the pointer's card let a press through, and neither is ever
   under the pointer with a place open: the log is away, and the card is up
   only while the pointer is on its piece.
+- **A press on a horse in the scene** (#356) is a press on that horse,
+  in town and on the road, with every place closed too: it is selected and
+  its view opens (see "A horse's view"). It is not a press on the scene, so
+  it closes nothing. `on_scene_press` casts a ray from the camera through
+  the pointer and tests it against a box round each horse where it stands
+  (`HorseBox` in `scene.rs`, the horse's own size plus `PRESS_MARGIN`); the
+  nearest horse the ray meets wins.
+- **The selected horse is outlined** in the scene in the accent colour, and
+  the outline follows the selection however it was made (`outline_selected`
+  in `scene.rs`). Each piece of each horse has a shell `OUTLINE` (0.06 world
+  units) bigger than it, drawn unlit from the inside only, so the horse
+  covers all of it but a rim; only the selected horse's shells show.
 - In town a place is always open.
 
 `SceneView` (in `src/game/mod.rs`) holds how far the window is from the town
@@ -533,7 +545,8 @@ comparisons when you hover an item".
 
 ## A horse's view
 
-A press on a horse in the strip, or its key (Z, X, C), selects it and opens
+A press on a horse in the strip or in the scene (#356), or its key (Z, X,
+C), selects it and opens
 everything about it in the side panel of the place the player is in (#311;
 the owner: "Clicking a horse should open up an inspection screen that lets
 you view all the information about that horse"). `Shell::inspect`,
