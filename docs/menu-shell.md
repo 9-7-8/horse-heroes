@@ -165,8 +165,11 @@ lesson due while a fountain is in the air does not wait for it to land.
 - **A tab's hint marks its place too**, while the player is not at that
   place, so the mark is in sight whatever is open.
 - Both controls are reached with Tab and the arrows and pressed with
-  Enter, as every control is. A hint never makes a control unavailable and
-  never holds the party up.
+  Enter, as every control is. A hint never makes a control unavailable.
+- **A lesson's pop-up stops the game** while it is up (owner, 2026-10-12;
+  [lessons.md](lessons.md), "The game waits for the pop-up"). The menus
+  run on the real clock (`Time<Real>`: the pop-up's rise, hover, the
+  layout's move, the pointer's card, sound), so they move while it waits.
 - **The lessons raise it** (#290, [lessons.md](lessons.md)): `teach` asks
   the queue which lesson to show and makes that the hint. For looking at
   the pop-up by itself, `--hint` starts with a sample hint showing, and F6

@@ -88,14 +88,47 @@ the lesson waits for the next piece. Its mark goes on the piece wherever it
 is listed (`About::Piece`): the cargo, the report, the Gear tab, the
 Inventory.
 
-## It never holds anything up
+## The game waits for the pop-up
 
-The queue is told things and asked what to show. It is handed nothing of
-the game: `raise` takes an event and `show` takes a list of where things
-are. `Game::can` does not read it. Two tests hold this from outside: a
-first trail and town visit with no input goes tick for tick as it does with
-every lesson skipped, and every action can be done or not for the same
-reason whatever the lessons' state.
+**Every lesson pauses the game** (owner, 2026-10-12, #353), on the road
+as in town, until Got it is pressed or the thing it asks for is done. The
+fight, the walk home, the drops and the town's wait to leave all stop, and
+go on from where they were when it is answered. With hints off nothing
+pauses.
+
+- **How:** `teach::teach` pauses Bevy's virtual clock (`Time<Virtual>`)
+  while `waits_on` says a lesson's pop-up is up, shown by itself or asked
+  for again from the Journal. The sim, the scene and the fx run on that
+  clock; the menus, sound and the dev aids on the real one. The dev key's
+  sample and the answer to Skip all hints are not lessons and stop
+  nothing. A test runs the game's own systems frame by frame and holds
+  that no sim time passes while one is up, on the road and in town, and
+  that it goes on when answered.
+- **Not over a fountain.** While a kill's pieces are in the world (in the
+  air, on the ground or on their way, `Uncollected::pieces`) no new lesson
+  comes up, and the queue is not asked, so none counts as showing or is
+  watched unseen (`teach::follow_over`). It comes up once every piece has
+  arrived. `teach` runs after the drops are counted in (`drops::Thrown`).
+- **A lesson on the road is answered by Got it.** `Watched` lessons wait
+  for something to happen while they show, and nothing happens under a
+  pause, so they are put away rather than done. The opening's no longer
+  goes by itself when the first fight begins; the fight lesson's line no
+  longer says to watch.
+- **`--no-pause`** keeps the times a run had before (build-and-run.txt),
+  and the soak, which nobody is at, never pauses. The menu tour, the
+  click budget's walk and the lesson walk answer a lesson on the road with
+  Got it while they wait for time or for town, and leave town's up for
+  their pictures.
+
+Otherwise the queue is told things and asked what to show. It is handed
+nothing of the game: `raise` takes an event and `show` takes a list of
+where things are. `Game::can` does not read it. Two tests hold this from
+outside: a first trail and town visit with no input goes tick for tick as
+it does with every lesson skipped, and every action can be done or not for
+the same reason whatever the lessons' state.
+
+Chosen without the owner: a drop holds a lesson back until it has been
+collected, not only until it lands; `--no-pause` for timed pictures.
 
 ## Put away, turned off, found again
 
@@ -207,8 +240,8 @@ Heroes") and not approved line by line.
 **The opening** (#292): a new game starts with the party walking out of
 the gate, and the hint's pop-up says "You organise the gaggle. The horses
 walk, fight and collect loot by themselves." on `Party`, so no control is
-marked before the first fight. It is due on `SetOut` and goes when the
-first fight begins.
+marked before the first fight. It is due on `SetOut`, and the party waits
+at the gate under it until Got it.
 
 **The road, a starting set** until #295: the horses fight by themselves
 (first fight, until a kill is watched); each has one ability (first
@@ -245,7 +278,9 @@ first-time player can then say whose stats the comparison is about is
 
 ## Looking at it
 
-`--seed 6` at `IDLE_SHOT_AT=3` is the opening's line, at 5 the first
+`--seed 6` at any `IDLE_SHOT_AT` from 3 is the opening's line, the party
+waiting at the gate ([gallery](gallery/2026-10-14-pause/README.md)). With
+`--no-pause`, at 3 the opening's line, at 5 the first
 fight's lesson, at 12 the abilities', at 68 the piece's in town
 ([gallery](gallery/2026-10-12-lessons/README.md), taken when a game
 started in town and every time was 12 s later).

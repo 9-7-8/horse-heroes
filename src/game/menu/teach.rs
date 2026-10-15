@@ -3,15 +3,17 @@
 //! one line goes in the hint's pop-up beside the control it is about (#353)
 //! (#291). How it works: docs/lessons.md.
 //!
-//! Nothing here reaches the simulation or a control's availability: a
-//! lesson is a line and a mark, and the game goes on under it.
+//! Nothing here reaches the simulation or a control's availability. What a
+//! lesson's pop-up does to the game is to stop its clock while it is up, as
+//! the owner decided (2026-10-12): the fight, the walk and the town's wait
+//! go on from where they were when it is answered.
 
 use bevy::prelude::*;
 
 use super::shell::{About, Hint, PARTING, Places, Shell, Switch};
 use crate::fx::drops::Kind;
 use crate::fx::sound::Heard;
-use crate::game::{Game, Piece};
+use crate::game::{Game, Piece, Uncollected};
 use crate::sim::lessons::{Event, Found, Shown, State, Target};
 
 /// Where a lesson's target is now: the control its mark goes on, and
@@ -62,7 +64,16 @@ pub struct Held {
 /// the hint. A sample hint (the dev key's) is left alone. What the list of
 /// things to try paid for what the hands did is banked (#303), and how many
 /// coins that was comes back.
+#[cfg(test)]
 pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held) -> i32 {
+    follow_over(game, shell, map, held, false)
+}
+
+/// `follow`, with a kill's drops still in the world (`aloft`): in the air,
+/// on the ground or on their way to the party. No new lesson comes up then,
+/// so that none stops a fountain where it is or covers it (#353); it is
+/// asked for again once every piece has arrived.
+pub fn follow_over(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held, aloft: bool) -> i32 {
     let hand = shell.hand();
     let open = hand.open.is_some();
     if open && !held.card {
@@ -121,16 +132,21 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
         .map(|found| found.map_or(Found::Gone, |(_, found)| found))
         .collect();
     let in_town = game.in_town();
-    let wanted = game.lessons.show(in_town, &places).and_then(|lesson| {
-        let (about, at) = found[lesson]?;
-        Some(Hint {
-            lesson: game.lessons.defs()[lesson].id.clone(),
-            about,
-            words: game.lessons.words(lesson, at).into(),
-        })
-    });
-
     let ours = shell.hint().is_some_and(|hint| game.lessons.knows(&hint.lesson));
+    // The queue is not asked while drops are aloft, so no lesson counts as
+    // showing, and none is watched, while it is not on the screen.
+    let wanted = match aloft && !ours {
+        true => None,
+        false => game.lessons.show(in_town, &places).and_then(|lesson| {
+            let (about, at) = found[lesson]?;
+            Some(Hint {
+                lesson: game.lessons.defs()[lesson].id.clone(),
+                about,
+                words: game.lessons.words(lesson, at).into(),
+            })
+        }),
+    };
+
     match wanted {
         Some(hint) if shell.hint() != Some(&hint) && (ours || shell.hint().is_none()) => {
             shell.finish_hint();
@@ -250,23 +266,47 @@ pub fn again(game: &mut Game, shell: &mut Shell, map: &Places, row: usize) -> bo
     true
 }
 
+/// Whether a lesson's pop-up stops the game while it is up (#353). On in
+/// the game; off for a run nobody is at that keeps the times it had before
+/// the pause (`--no-pause`, and the soak).
+#[derive(Resource)]
+pub struct Pause(pub bool);
+
+/// Whether the game waits on the pop-up that is up: a lesson's, shown by
+/// itself or asked for again. The dev key's sample and the answer to Skip
+/// all hints are not lessons, and hold nothing up.
+pub fn waits_on(game: &Game, shell: &Shell) -> bool {
+    shell.hint().is_some_and(|hint| game.lessons.knows(&hint.lesson))
+}
+
 pub fn teach(
     mut game: ResMut<Game>,
     mut shell: ResMut<Shell>,
     map: Res<Places>,
+    uncollected: Res<Uncollected>,
+    pause: Res<Pause>,
+    mut clock: ResMut<Time<Virtual>>,
     mut held: Local<Held>,
     mut heard: MessageWriter<Heard>,
 ) {
+    let aloft = uncollected.pieces > 0;
     // A coin the list pays is heard as a coin reaching the party is.
-    for _ in 0..follow(&mut game, &mut shell, &map, &mut held) {
+    for _ in 0..follow_over(&mut game, &mut shell, &map, &mut held, aloft) {
         heard.write(Heard::Collected(Kind::Coin));
+    }
+    // The game's clock: the sim, the scene and the drops run on it. The
+    // menus run on the real one, so the pop-up and its controls still move.
+    match pause.0 && waits_on(&game, &shell) {
+        true if !clock.is_paused() => clock.pause(),
+        false if clock.is_paused() => clock.unpause(),
+        _ => {}
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::menu::shell::{Detail, Item, SAMPLE};
+    use crate::game::menu::shell::{Detail, Item, SAMPLE, sample_hint};
     use crate::game::{Action, CAMP_SECS, Hand, Screen, TICK, step};
     use crate::sim::data::Element;
     use crate::sim::lessons::{Done, LessonDef, Lessons, Progress, Shown};
@@ -1214,5 +1254,126 @@ mod tests {
         let mut game = Game::new(0);
         game.return_to_camp(one);
         assert!(game.lessons.happened(Event::Gear) && !game.lessons.happened(Event::Several));
+    }
+
+    /// While a kill's drops are in the world no lesson comes up (#353), and
+    /// the queue counts none as showing, so none is watched unseen. Once
+    /// they have arrived it comes up. One already up stays up.
+    #[test]
+    fn no_lesson_comes_up_over_a_fountain() {
+        let map = Places::load();
+        let mut game = Game::opening(6);
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        let opening = game.lessons.defs().iter().position(|def| def.target == Target::Party).unwrap();
+
+        for _ in 0..5 {
+            follow_over(&mut game, &mut shell, &map, &mut held, true);
+            assert_eq!(shell.hint(), None);
+            assert_eq!(game.lessons.showing(), None);
+        }
+        // Its fight begins while it is held back: it was never seen, so it
+        // was not watched.
+        while !game.lessons.happened(Event::Fight) {
+            pass(&mut game);
+            follow_over(&mut game, &mut shell, &map, &mut held, true);
+        }
+        assert!(!game.lessons.progress(opening).done && !game.lessons.progress(opening).seen);
+
+        follow_over(&mut game, &mut shell, &map, &mut held, false);
+        let up = shell.hint().cloned().expect("a lesson comes up once the drops are in");
+        follow_over(&mut game, &mut shell, &map, &mut held, true);
+        assert_eq!(shell.hint(), Some(&up), "one up stays up");
+    }
+
+    /// While a lesson's pop-up is up the game's clock stops (#353): frame
+    /// after frame no sim time passes, on the road and in town. Answered,
+    /// the game goes on from where it was. With the pause off (`--no-pause`)
+    /// it never stops; the dev key's sample stops nothing.
+    #[test]
+    fn a_lessons_popup_stops_the_game_until_it_is_answered() {
+        use crate::fx::sound::Heard;
+        use crate::game::{Killed, Landed, Withdrew, advance};
+        use bevy::time::{TimePlugin, TimeUpdateStrategy};
+        use std::time::Duration;
+
+        let app = |game: Game, pause: bool| {
+            let map = Places::load();
+            let mut app = App::new();
+            app.add_plugins(TimePlugin)
+                .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_secs_f32(TICK)))
+                .insert_resource(shell(&map))
+                .insert_resource(map)
+                .insert_resource(game)
+                .insert_resource(Uncollected::default())
+                .insert_resource(Pause(pause))
+                .add_message::<Heard>()
+                .add_message::<Killed>()
+                .add_message::<Withdrew>()
+                .add_message::<Landed>()
+                .add_systems(Update, (advance, teach).chain());
+            app
+        };
+        // Where the game is: the trail to the last detail, the time not yet
+        // stepped, and the town's wait.
+        let state = |app: &App| {
+            let game = app.world().resource::<Game>();
+            let screen = match &game.screen {
+                Screen::Trail(expedition) => format!("{expedition:?}"),
+                Screen::Camp { countdown, .. } => format!("town {countdown}"),
+            };
+            (screen, game.accumulator, game.arriving)
+        };
+        let up = |app: &App| waits_on(app.world().resource::<Game>(), app.world().resource::<Shell>());
+
+        // On the road: the opening comes up on the first frame.
+        let mut road = app(Game::opening(6), true);
+        road.update();
+        assert!(up(&road));
+        let before = state(&road);
+        for _ in 0..100 {
+            road.update();
+            assert_eq!(state(&road), before, "ten seconds with the pop-up up");
+        }
+        assert!(road.world().resource::<Time<Virtual>>().is_paused());
+
+        // Got it: the walk goes on from there, a tick a frame.
+        road.world_mut().resource_mut::<Shell>().dismiss_hint();
+        road.update();
+        road.update();
+        assert!(!up(&road) && !road.world().resource::<Time<Virtual>>().is_paused());
+        assert_ne!(state(&road), before, "going again");
+
+        // In town: the wait to leave stops too.
+        let mut town = Game::back_with_one_piece();
+        town.keep_going = true;
+        let mut town = app(town, true);
+        town.update();
+        assert!(up(&town), "the piece's lesson");
+        let before = state(&town);
+        for _ in 0..200 {
+            town.update();
+        }
+        assert_eq!(state(&town), before);
+        assert!(town.world().resource::<Game>().in_town(), "it did not leave by itself");
+
+        // With the pause off nothing stops.
+        let mut free = app(Game::opening(6), false);
+        free.update();
+        assert!(up(&free));
+        let before = state(&free);
+        free.update();
+        free.update();
+        assert_ne!(state(&free), before);
+
+        // The sample is not a lesson.
+        let mut sample = app(Game::opening(6), true);
+        sample.world_mut().resource_mut::<Shell>().skip_hints();
+        let hint = sample_hint(&Places::load(), 0);
+        sample.world_mut().resource_mut::<Shell>().show_again(hint);
+        sample.update();
+        let before = state(&sample);
+        sample.update();
+        sample.update();
+        assert_ne!(state(&sample), before);
     }
 }

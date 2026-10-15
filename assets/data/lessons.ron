@@ -5,8 +5,9 @@
 //
 // A lesson is something the player watches happen or does on the real
 // control, with one line beside it: never a page to read (the owner,
-// 2026-10-11). It never holds the party up and never makes a control
-// unavailable.
+// 2026-10-11). It never makes a control unavailable. While its pop-up is up
+// the game stops, on the road and in town, until Got it is pressed or its
+// thing is done (owner, 2026-10-12, #353); none comes up over a fountain.
 //
 //   id       its name: how it is known once put away. No two the same.
 //   due      what has to happen first. It counts the first time it happens
@@ -49,7 +50,9 @@
 //            the smallest window the line has room for about a hundred
 //            letters, the name included, and a piece's name is long.
 //   done     what finishes it:
-//              Watched(Kill)  that happens while the lesson is showing
+//              Watched(Kill)  that happens while the lesson is showing.
+//                             The game stops under a lesson (#353), so
+//                             one on the road is answered by Got it
 //              Did(Equipped)  that happens once the lesson is due, shown or
 //                             not: the player needed no telling
 //   instead  the line to say when the state has moved on: when a Drop is
@@ -95,7 +98,7 @@
 lessons: [
     // The opening (#292): a new game starts with the party walking out of
     // the gate, and this is the one line beside it. No mark, so nothing
-    // looks as if it wants a press; it goes when the first fight begins.
+    // looks as if it wants a press but its Got it.
     (
         id: "the horses go by themselves",
         due: SetOut,
@@ -109,7 +112,7 @@ lessons: [
         due: Fight,
         shown: Road,
         target: Horse(0),
-        words: "The horses fight by themselves. Nothing here needs a press; watch this fight.",
+        words: "The horses fight by themselves. Nothing in a fight needs a press.",
         done: Watched(Kill),
     ),
     (

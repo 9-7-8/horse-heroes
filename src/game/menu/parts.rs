@@ -794,7 +794,7 @@ pub fn scrim(t: &Tokens) -> impl Bundle + use<> {
 /// hover, so input is never waiting on a flourish.
 pub fn style_parts(
     tokens: Res<Tokens>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     focus: Res<InputFocus>,
     focus_visible: Res<InputFocusVisible>,
     mut parts: Query<

@@ -1194,7 +1194,14 @@ impl Plugin for ShellPlugin {
                     show_place,
                     see,
                     (mark_chosen, mark_targets).chain(),
-                    (mark_unseen, teach::teach, point_out, show_hint, place_popup).chain(),
+                    (
+                        mark_unseen,
+                        teach::teach.after(crate::fx::drops::Thrown),
+                        point_out,
+                        show_hint,
+                        place_popup,
+                    )
+                        .chain(),
                     show_wearer,
                     (grow_cargo, show_carried, mark_lessons).chain(),
                     show_hover_card,
@@ -2739,7 +2746,7 @@ fn follow_the_party(
 /// waits for the pointer to rest; with one up, the next piece's shows at
 /// once, so that going down a column reads each in turn.
 fn point(
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     tokens: Res<Tokens>,
     game: Res<Game>,
     mut shell: ResMut<Shell>,
@@ -2963,7 +2970,7 @@ fn show_hover_card(
 /// Move the scene towards the layout the shell asks for, and the shell's
 /// top edge with it.
 fn move_scene(
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     tokens: Res<Tokens>,
     shell: Res<Shell>,
     mut view: ResMut<SceneView>,
@@ -3269,7 +3276,7 @@ fn show_hint(
 /// no control (the party) is over the middle of the scene, with no point.
 /// When a hint comes up its pop-up rises into place, which the eye catches.
 fn place_popup(
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     tokens: Res<Tokens>,
     shell: Res<Shell>,
     window: Single<&Window, With<PrimaryWindow>>,
@@ -3376,7 +3383,7 @@ pub const PARTING: &str = "where the hints went";
 /// (the lessons are #290). The first is about the Journal, which is in the
 /// bar in both layouts; then Set out in the footer, the first horse in the
 /// strip, and the first tab of the first place.
-fn sample_hint(map: &Places, which: usize) -> Hint {
+pub(super) fn sample_hint(map: &Places, which: usize) -> Hint {
     let journal = map.places.iter().position(|place| place.name == "Journal");
     let set_out = map.list.iter().find(|control| control.action == Some(Action::SetOut));
     let (about, words) = match (which % SAMPLE_HINTS, set_out) {

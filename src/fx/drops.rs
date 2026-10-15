@@ -357,12 +357,18 @@ impl Plugin for DropsPlugin {
             // the frame they fall (`game::road_is_held`).
             .add_systems(
                 Update,
-                (launch_kills, test_burst, fly)
+                (launch_kills.in_set(Thrown), test_burst, fly)
                     .chain()
                     .after(crate::game::advance),
             );
     }
 }
+
+/// Where a kill's pieces are thrown and counted in. The lessons look after
+/// it, so that none comes up over a fountain in the frame it is thrown
+/// (#353).
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Thrown;
 
 /// One drop in the world. The entity carries where it is and its squash; its
 /// child, the model, carries its tumble.

@@ -38,7 +38,8 @@ use crate::game::menu::shell::{
     CarriedCell, Content, ControlButton, HorseButton, PartButton, PlaceButton, Places, ReportedCell, Shell,
     SlotRow, TabButton,
 };
-use crate::game::menu::parts::SkipHints;
+use crate::game::menu::parts::{DismissHint, SkipHints};
+use crate::game::menu::teach;
 use crate::game::{Action, Game, Hand, Piece};
 use crate::sim::loot::Gear;
 use crate::sim::data::Element;
@@ -82,7 +83,7 @@ impl Plugin for DevScreenshotPlugin {
 
 fn shoot_then_exit(
     mut commands: Commands,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     shot: Res<Shot>,
     mut taken: Local<bool>,
     mut exit: MessageWriter<AppExit>,
@@ -790,7 +791,7 @@ fn tour_keys(mut tour: ResMut<Tour>, mut keys: ResMut<ButtonInput<KeyCode>>) {
 
 fn tour(
     mut commands: Commands,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     mut tour: ResMut<Tour>,
     mut game: ResMut<Game>,
     places: Query<(Entity, &PlaceButton)>,
@@ -801,6 +802,7 @@ fn tour(
         Query<(Entity, &CarriedCell)>,
         Query<(Entity, &ReportedCell)>,
         Query<Entity, With<SkipHints>>,
+        Query<Entity, With<DismissHint>>,
     ),
     controls: Query<(Entity, &ControlButton)>,
     menus: (Res<Places>, Res<Shell>),
@@ -816,12 +818,22 @@ fn tour(
     ),
 ) {
     let (mut exit, mut pointer, window, transforms) = out;
-    let (carried, reported, skips) = cells;
+    let (carried, reported, skips, got_its) = cells;
     let (horses, parts) = horses;
     let (map, shell) = menus;
     // Its fields one by one: the step is read while the counts are kept.
     let tour = &mut *tour;
     tour.wait -= time.delta_secs();
+    // A lesson's pop-up stops the game until it is answered (#353). On the
+    // road, while the walk waits for time to pass or for town, it is
+    // answered with Got it, as a player who reads each and goes on would.
+    // Town's are left up, for the pictures.
+    let waiting = tour.wait > 0.0 || matches!(tour.steps.get(tour.next), Some(Step::Town));
+    if waiting && !game.in_town() && teach::waits_on(&game, &shell) {
+        if let Some(entity) = got_its.iter().next() {
+            commands.trigger(Activate { entity });
+        }
+    }
     if tour.wait > 0.0 {
         return;
     }

@@ -362,7 +362,7 @@ fn setup(
 
 fn play(
     mut commands: Commands,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     game: Res<Game>,
     shower: Res<Shower>,
     clips: Res<Clips>,

@@ -10,7 +10,7 @@ pub mod ink;
 pub mod parts;
 pub mod picture;
 pub mod shell;
-mod teach;
+pub mod teach;
 pub mod tokens;
 
 pub struct MenuPlugin {
@@ -18,11 +18,15 @@ pub struct MenuPlugin {
     pub show_parts: bool,
     /// Start with the sample hint showing (`--hint`). F6 toggles it.
     pub hint: bool,
+    /// A lesson's pop-up stops the game while it is up (#353). Off with
+    /// `--no-pause` and in the soak, which nobody is at.
+    pub pause: bool,
 }
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(tokens::Tokens::load())
+            .insert_resource(teach::Pause(self.pause))
             .add_plugins(TabNavigationPlugin)
             .add_plugins(shell::ShellPlugin { hint: self.hint })
             .add_plugins(gallery::GalleryPlugin {

@@ -50,6 +50,10 @@ fn main() {
         .add_plugins(game::menu::MenuPlugin {
             show_parts: std::env::args().any(|arg| arg == "--parts"),
             hint: std::env::args().any(|arg| arg == "--hint"),
+            // `--no-pause` keeps the times a run had before a lesson's
+            // pop-up stopped the game, for pictures taken by the clock.
+            pause: !std::env::args().any(|arg| arg == "--no-pause")
+                && std::env::var_os("IDLE_SOAK").is_none(),
         })
         .add_plugins(fx::FxPlugin {
             burst: std::env::args().any(|arg| arg == "--burst"),
