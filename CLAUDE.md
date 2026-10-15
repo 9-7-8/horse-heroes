@@ -119,6 +119,13 @@ is split into patches, `x.y.0`, `x.y.1` and on, each with its own milestone
 and label. A release that would pass ten gets a new patch, not an eleventh
 issue.
 
+**Always release** (owner, 2026-10-14: "Make sure you always release, even
+if you need me to look, cause i look at the releases"). An issue whose only
+unmet part is the owner looking does not hold a release back: when nothing
+else in the next release can be built, release it (`release-a-build.txt`)
+and she looks there. Those issues stay open in their milestone, as 0.2.1's
+did.
+
 A release's description always has pictures, ideally one to three for each
 feature it names (owner, 2026-10-11; `procedures/release-a-build.txt`).
 

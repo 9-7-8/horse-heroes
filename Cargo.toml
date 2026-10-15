@@ -1,6 +1,6 @@
 [package]
 name = "horse_heroes"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2024"
 description = "An idle RPG about a party of horses, their expeditions and their gear"
 license = "GPL-3.0-or-later"

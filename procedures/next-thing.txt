@@ -42,6 +42,9 @@ THE ORDER
    that is checked by running and looking (build-and-run.txt, step 4).
 
 3. Features. Only when tiers 1 and 2 are empty.
+   0. If every open issue of the next release waits only on the owner
+      looking, release it first (release-a-build.txt; owner, 2026-10-14:
+      "always release, even if you need me to look"). That is the part.
    a. The earliest release milestone with open issues (CLAUDE.md, Planning).
    b. Within it: what PICK UP names, if it is in that release; otherwise an
       issue the others in the release depend on; otherwise the lowest number.
