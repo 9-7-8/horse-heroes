@@ -1,0 +1,58 @@
+SESSION 2026-10-14, a press on a horse in the scene (#356, first part)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner.
+  Tier 2: nothing new untested. Tier 3, menus first: #308, #311 and #314
+  wait only on her look, so PICK UP's #356.
+
+DONE
+  - A press on a horse in the scene selects it and opens its view, in
+    town and on the road (every place closed too). Ray from the camera
+    against a box per horse (HorseBox, scene.rs). Tested (a ray finds each
+    horse, none between them or over the enemies); seen running in the
+    tour at 1120x640.
+  - The selected horse is outlined in the accent colour: an inside-out
+    shell round every piece, shown on the selected horse only. Tested (the
+    shell holds its piece and stands out by its width); seen running.
+  - Tour: Step::SceneHorse presses a horse in the scene; pictures in
+    docs/gallery/2026-10-14-press-a-horse. docs/menu-shell.md updated.
+    #356 commented, left open.
+
+DECIDED (by the session, for her)
+  - Outline in the accent gold, 0.06 world units wide.
+  - A press on a horse on the road opens the place with its view, as the
+    strip's press does.
+
+FOUND
+  - The tour's scene press (ON_THE_SCENE, 560x100) landed on Juniper's
+    head in the town layout once horses took presses; moved to sky
+    (900x30). A real player pressing a horse there to close a place now
+    gets the horse instead, which is what #356 asks.
+  - A shell offset by summing face normals is too thin on tapered pieces;
+    each corner is solved against its three faces instead.
+
+NOT DONE
+  - Where two pieces meet, a little gold shows inside the horse. Left.
+  - Nobody has pressed a horse with a real mouse.
+  - The click budget was not walked again (the strip still has its
+    buttons, so no count changed).
+
+PICK UP
+  #356, next part: take the horse buttons out of the strip, move their
+  health (over the horses in the scene or beside the coins, tried in the
+  running game), and make a drag onto a horse land on the horse in the
+  scene.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 10 closed.
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities
+    #358 A sound of its own for each ability
+    #359 Worn gear seen on the horse
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+    #363 A dragged piece dangles from the pointer, swinging
+    #364 A crash leaves a log beside the game
+  Riding along in part: #356 (menus).
