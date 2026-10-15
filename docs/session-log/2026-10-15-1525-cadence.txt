@@ -1,0 +1,55 @@
+SESSION 2026-10-15, each horse attacks at its own cadence (#354)
+
+ASKED
+  /next, no steer. Tiers 1 and 2 empty (#246 waits on her look). Tier 3:
+  #354, PICK UP's, the release's lowest open number.
+
+DONE
+  - #354 (0d4116d): each horse has its own attack_interval in horses.ron
+    (Juniper 1.4 s, Sable 1.55, Morrow 1.6), replacing the shared one in
+    rules.ron; each swing is up to attack_jitter (10%) sooner or later,
+    from a seeded RNG of the trail's own (cadence), so the enemies' picks
+    of whom to strike are not moved. Every fight opens out of step: first
+    hits at opening (0.8 s), opening_stagger (0.35 s) apart, in an order
+    rolled per fight. The card's Details say "every 1.4 to 1.6 s".
+    Tested: each_horse_hits_at_its_own_cadence (staggered opening, all six
+    orders, gaps within the jitter, same seed same fight) and
+    over_a_trail_the_horses_rarely_hit_together (4.6% of hit ticks shared,
+    was all), each seen to fail with the cadence broken. Win rate of the
+    first trail 0.68 -> 0.70. Seen running: --seed 6 --no-pause at 5.4 and
+    6.2 s, 6! then 11! then 8!.
+  - Tutorial: the first fight's lesson stands over exactly these hits; the
+    cadence is watched, not read. No new lesson.
+
+DECIDED (for her)
+  - The ordinary hits' timers start again at each fight's opening; the
+    abilities' timers run on from the last fight, as before.
+  - The intervals were chosen so damage per second stays as it was
+    (physical 8.0 -> 8.1, elemental 5.3 -> 5.1). #355 will work them out
+    from speed.
+
+FOUND
+  - The damage-numbers doc's picture times (17.9 s, --keep-going) were from
+    before the game started on the road; corrected to 5.4 / 6.2.
+
+NOT DONE
+  - Nothing left of #354.
+
+PICK UP
+  #355, A speed stat: replace attack_interval in horses.ron with a speed,
+  and a rule in rules.ron turning speed into the interval (and the party's
+  travel, the average speed); show it in the horse's view and the card.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 2 of 10 closed.
+    #354 Each horse attacks at its own cadence - closed
+    #355 A speed stat - unbuilt
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built-untested
+    #357 The most basic abilities - unbuilt
+    #358 A sound of its own for each ability - unbuilt
+    #359 Worn gear seen on the horse - unbuilt
+    #360 A lesson pop-up when the boss is met - closed
+    #361 A look of its own for every piece - unbuilt
+    #363 A dragged piece dangles from the pointer, swinging - built-untested
+    #364 A crash leaves a log beside the game - unbuilt
+  Riding along: #360 (menus, closed); in part #356 and #363 (menus, built).
