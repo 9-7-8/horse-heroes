@@ -18,7 +18,8 @@ use bevy::{
 use super::menu::shell::Shell;
 use super::menu::tokens::Tokens;
 use super::{Game, SceneView, Screen};
-use crate::sim::data::Element;
+use crate::fx::drops::rarity_colour;
+use crate::sim::data::{Element, Slot};
 use crate::sim::horse_shape::{Frame, HorseShape, Joint, Kind, LEGS, Part, Section};
 use crate::sim::rng::Rng;
 
@@ -67,6 +68,8 @@ const HAIR_SHADE: f32 = 0.3;
 /// How far the selected horse's outline stands out from it, in world units
 /// (#356): each piece has a shell this much bigger, drawn from the inside.
 const OUTLINE: f32 = 0.06;
+/// How far worn gear's dark rim stands out from it, in world units (#359).
+const WORN_RIM: f32 = 0.025;
 /// How much room round a horse a press still lands on it, in world units.
 const PRESS_MARGIN: f32 = 0.15;
 
@@ -90,6 +93,7 @@ impl Plugin for ScenePlugin {
                     sync_enemies,
                     move_gate,
                     (toggle_hair, outline_selected).chain(),
+                    show_worn,
                 ),
             );
     }
@@ -270,6 +274,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     bare: Res<Bare>,
     tokens: Res<Tokens>,
+    game: Res<Game>,
 ) {
     // Camera at the isometric elevation (about 35 degrees), looking across
     // the trail. Its projection covers the whole window and the menu shell
@@ -357,6 +362,35 @@ fn setup(
         cull_mode: Some(Face::Front),
         ..default()
     });
+    // What each slot's piece looks like worn (#359), in each rarity's colour.
+    let worn: Vec<WornPiece> = Slot::ALL
+        .into_iter()
+        .flat_map(|slot| horse.worn(slot).into_iter().map(move |part| (slot, part)))
+        .map(|(slot, part)| {
+            let origin = joint_origin(&horse, part.joint);
+            WornPiece {
+                slot,
+                joint: part.joint,
+                mesh: meshes.add(piece_mesh(&part, origin, 0.0)),
+                rim: meshes.add(piece_mesh(&part, origin, WORN_RIM)),
+            }
+        })
+        .collect();
+    let looks = WornLooks {
+        tiers: game
+            .data
+            .gear
+            .rarities
+            .iter()
+            .map(|rarity| materials.add(Color::from(rarity_colour(rarity))))
+            .collect(),
+        rim: materials.add(StandardMaterial {
+            base_color: Color::BLACK,
+            unlit: true,
+            cull_mode: Some(Face::Front),
+            ..default()
+        }),
+    };
     for (i, &x) in HORSE_X.iter().enumerate() {
         spawn_horse(
             &mut commands,
@@ -364,11 +398,14 @@ fn setup(
             &horse,
             &pieces,
             &halo,
+            &worn,
+            &looks,
             bare.0,
             i,
             Vec3::new(x, 0.0, HORSE_Z[i]),
         );
     }
+    commands.insert_resource(looks);
 
     let elements = ElementMaterials {
         fire: materials.add(tokens.colour.of(Element::Fire)),
@@ -401,6 +438,60 @@ struct Piece3d {
     part: Part,
     mesh: Handle<Mesh>,
     halo: Handle<Mesh>,
+}
+
+/// One piece of what a slot's gear looks like worn, with its mesh.
+struct WornPiece {
+    slot: Slot,
+    joint: Joint,
+    mesh: Handle<Mesh>,
+    rim: Handle<Mesh>,
+}
+
+/// A piece of gear as the horse wears it (#359): shown while the horse
+/// wears something in that slot, in its rarity's colour. A `rim` is its
+/// dark edge, so a pale piece still reads on a pale horse.
+#[derive(Component)]
+struct Worn {
+    horse: usize,
+    slot: Slot,
+    rim: bool,
+}
+
+/// Worn gear's material for each rarity, lowest first, and its rim's.
+#[derive(Resource)]
+struct WornLooks {
+    tiers: Vec<Handle<StandardMaterial>>,
+    rim: Handle<StandardMaterial>,
+}
+
+/// Each horse wears what the party says it wears, as soon as that changes:
+/// an Equip, a swap, an Undo or a drag.
+fn show_worn(
+    game: Res<Game>,
+    looks: Res<WornLooks>,
+    mut worn: Query<(&Worn, &mut Visibility, &mut MeshMaterial3d<StandardMaterial>)>,
+) {
+    for (worn, mut visibility, mut material) in &mut worn {
+        let tier = game
+            .party
+            .get(worn.horse)
+            .and_then(|horse| horse.gear[worn.slot.index()].as_ref())
+            .map(|gear| gear.rarity);
+        let wanted = match tier.and_then(|tier| looks.tiers.get(tier)) {
+            Some(_) if worn.rim => Visibility::Inherited,
+            Some(look) => {
+                if material.0 != *look {
+                    material.0 = look.clone();
+                }
+                Visibility::Inherited
+            }
+            None => Visibility::Hidden,
+        };
+        if *visibility != wanted {
+            *visibility = wanted;
+        }
+    }
 }
 
 /// The corners of a piece's six faces, as indices into its eight corners:
@@ -494,6 +585,8 @@ fn spawn_horse(
     horse: &Frame,
     pieces: &[Piece3d],
     halo: &Handle<StandardMaterial>,
+    worn: &[WornPiece],
+    looks: &WornLooks,
     bare: bool,
     index: usize,
     position: Vec3,
@@ -511,7 +604,7 @@ fn spawn_horse(
         for piece in pieces.iter().filter(|piece| piece.part.joint == joint) {
             let kind = piece.part.kind;
             let material = match kind {
-                Kind::Body => &body,
+                Kind::Body | Kind::Gear => &body,
                 Kind::Hoof => &hoof,
                 Kind::Hair => &hair,
             };
@@ -529,6 +622,21 @@ fn spawn_horse(
                 Transform::default(),
                 Visibility::Hidden,
             ));
+        }
+        // Gear over it, hidden until the horse wears something there.
+        for piece in worn.iter().filter(|piece| piece.joint == joint) {
+            for (rim, mesh, material) in [
+                (false, &piece.mesh, &looks.tiers[0]),
+                (true, &piece.rim, &looks.rim),
+            ] {
+                parent.spawn((
+                    Worn { horse: index, slot: piece.slot, rim },
+                    Mesh3d(mesh.clone()),
+                    MeshMaterial3d(material.clone()),
+                    Transform::default(),
+                    Visibility::Hidden,
+                ));
+            }
         }
     };
     commands

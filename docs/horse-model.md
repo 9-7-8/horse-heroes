@@ -77,6 +77,29 @@ walk and the exhausted pose ([death-events.md](death-events.md)) move.
 `--bare` starts with the hair hidden and F5 toggles it, to see the build
 underneath.
 
+## Worn gear
+
+A piece a horse wears is seen on it, at its simplest (#359), in its
+rarity's colour (`gear.ron`). `Frame::worn(slot)` gives its pieces, of
+`Kind::Gear`, built from the horse's own sections so it fits any horse:
+
+- **Head**: a band round the head behind the eyes, on the neck's joint.
+- **Body**: a blanket over the back from behind the withers to over the
+  hip, hanging 60% of the way down the trunk, through each of the trunk's
+  sections between so it never cuts into it.
+- **Saddle**: a block on the back, raised above it with flaps down the
+  sides, wider than the blanket so it lies over it.
+
+Each stands off what it covers (`swell`). `scene.rs` makes every horse each
+slot's pieces at launch, hidden, and `show_worn` shows them each frame the
+horse wears something there, in that piece's rarity's material, so Equip,
+a swap, Undo and a drag are seen at once. A thin black rim round each (the
+outline's trick, `WORN_RIM`) keeps a white Common piece readable on a pale
+horse. It moves with its joint, so it walks, fights and lies down with the
+horse. `--worn` starts every horse wearing a piece in each slot, rolled
+from the seed. The three-layer look of a piece (#361) and real gear models
+(#66) replace the flat colour.
+
 ## Tests
 
 `cargo test`, in `src/sim/horse_shape.rs`:
@@ -100,12 +123,16 @@ underneath.
   ears differ only in their side, and the trunk is on the middle;
 - a leg is level sections at its landmarks from the top down, a foreleg
   straight as far as the fetlock, a hind leg back from the stifle to the
-  hock and down from there.
+  hock and down from there;
+- worn gear is never one of the horse's pieces, moves with what it covers,
+  is wider and higher than it everywhere, and the saddle lies over the
+  blanket.
 
 ## Not built
 
 - Variation between horses inside the windows (#63).
-- Sockets for gear at the landmarks (#62).
+- Sockets for gear at the landmarks (#62); worn gear today is placed from
+  the trunk's and head's sections instead.
 - Coat colour; the shade is a placeholder.
 - Bending joints: a leg swings from one joint as a whole, and the neck
   turns about its base.

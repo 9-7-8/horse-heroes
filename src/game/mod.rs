@@ -126,6 +126,10 @@ pub struct GamePlugin {
     /// Start with this many pieces carried (`--cargo N`), rolled from the
     /// seed. A new game carries nothing.
     pub cargo: usize,
+    /// Start with every horse wearing a piece in each slot (`--worn`),
+    /// rolled from the seed, to see worn gear (#359). A new game wears
+    /// nothing.
+    pub worn: bool,
     /// Start in town instead of on the road (`--town`, and the menu tour
     /// and the click budget's walk, which begin with a town visit).
     pub town: bool,
@@ -142,6 +146,17 @@ impl Plugin for GamePlugin {
         for _ in 0..self.cargo {
             let gear = roll_gear(&game.data, &mut rng, false, 0);
             game.cargo.insert(0, gear);
+        }
+        if self.worn {
+            for horse in 0..game.party.len() {
+                for slot in 0..3 {
+                    // Rolled until one fits; a slot nothing fits stays empty.
+                    let fits = (0..100)
+                        .map(|_| roll_gear(&game.data, &mut rng, true, 0))
+                        .find(|gear| gear.slot.index() == slot);
+                    game.party[horse].gear[slot] = fits;
+                }
+            }
         }
         app.insert_resource(game)
             .init_resource::<SceneView>()

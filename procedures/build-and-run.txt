@@ -68,6 +68,9 @@ Use the cheapest step that can prove the change:
    The horses (docs/horse-model.md): --bare starts with their hair hidden
    and F5 toggles it. They stand still in a fight (IDLE_SHOT_AT=5) and
    in town (--town, 3), beside the town gate; they are walking at 1.5.
+   --worn starts every horse wearing a piece in each slot (#359): with
+   --town --seed 6 at 3 Sable's head is yellow and Morrow's saddle blue.
+   In the lesson walk, 04 has the halter on Sable and 05 on Juniper.
    The test burst's flash, on the road: --burst --burst-at 2 at 2.36.
    A flash lasts a third of a second, so a picture of one is a matter of
    a few hundredths.

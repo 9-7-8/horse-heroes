@@ -13,6 +13,8 @@ use std::ops::{Add, Mul, Sub};
 
 use serde::Deserialize;
 
+use super::data::Slot;
+
 /// One dimension: what the base horse has, and the least and most a horse
 /// may have. Ratios of the height, except where a field says otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
@@ -180,6 +182,9 @@ pub enum Kind {
     Body,
     Hoof,
     Hair,
+    /// A piece of gear worn over the horse (#359), from `Frame::worn`;
+    /// never one of `Frame::parts`.
+    Gear,
 }
 
 /// What a piece moves with: the trunk, the joint the neck and head hang
@@ -262,6 +267,34 @@ fn band(centre: V, axis: V, thick: f32, z: f32, width: f32) -> Section {
     edge(centre - axis * (thick / 2.0), centre + axis * (thick / 2.0), z, width)
 }
 
+/// How far along the head, as a share of its length, it is deepest.
+const HEAD_JAW: f32 = 0.38;
+
+/// The section a share `t` of the way from `a` to `b`.
+fn between(a: Section, b: Section, t: f32) -> Section {
+    let mix = |p: [f32; 2], q: [f32; 2]| [lerp(p[0], q[0], t), lerp(p[1], q[1], t)];
+    Section {
+        top: mix(a.top, b.top),
+        bottom: mix(a.bottom, b.bottom),
+        z: lerp(a.z, b.z, t),
+        width: lerp(a.width, b.width, t),
+    }
+}
+
+/// A section grown by `by` all round: longer at both ends of its edge, and
+/// wider on both sides.
+fn swell(s: Section, by: f32) -> Section {
+    let (dx, dy) = (s.top[0] - s.bottom[0], s.top[1] - s.bottom[1]);
+    let length = dx.hypot(dy).max(f32::EPSILON);
+    let (ux, uy) = (dx / length * by, dy / length * by);
+    Section {
+        top: [s.top[0] + ux, s.top[1] + uy],
+        bottom: [s.bottom[0] - ux, s.bottom[1] - uy],
+        z: s.z,
+        width: s.width + 2.0 * by,
+    }
+}
+
 impl Frame {
     fn half_length(&self) -> f32 {
         self.body_length / 2.0
@@ -279,7 +312,6 @@ impl Frame {
     }
 
     /// The poll: the top of the head, between the ears.
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn poll(&self) -> [f32; 2] {
         let (sin, cos) = self.neck_carriage.sin_cos();
         let poll = self.root() + V(cos, sin) * self.neck_length;
@@ -333,20 +365,15 @@ impl Frame {
         self.tail_dock + hang.0.hypot(hang.1) + (skirt.1 - self.tail_clearance)
     }
 
-    /// Every piece of the horse, standing.
-    pub fn parts(&self) -> Vec<Part> {
-        let h = self.height;
-        let half = self.half_length();
-        let (clear, depth, b) = (self.clearance, self.body_depth, self.bone);
-        let mut parts = Vec::new();
-        let mut add = |kind, joint, from, to| parts.push(Part { kind, joint, from, to });
-
-        // The trunk: narrow at the chest, deepest behind the forelegs,
-        // fullest through the ribs, a little in at the flank and broad again
-        // behind. The back dips between the withers and the croup, and the
-        // belly rises toward the flank.
+    /// The trunk's sections, from the chest back: narrow at the chest,
+    /// deepest behind the forelegs, fullest through the ribs, a little in at
+    /// the flank and broad again behind. The back dips between the withers
+    /// and the croup, and the belly rises toward the flank.
+    fn trunk(&self) -> [Section; 6] {
+        let (h, half) = (self.height, self.half_length());
+        let (clear, depth) = (self.clearance, self.body_depth);
         let flank = self.barrel_width.min(self.hindquarter_width) * 0.93;
-        let trunk = [
+        [
             upright(half, clear + 0.74 * depth, clear + 0.17 * depth, self.chest_width),
             upright(0.52 * half, h, clear, 0.97 * self.barrel_width),
             upright(
@@ -363,8 +390,95 @@ impl Frame {
                 clear + 0.3 * depth,
                 0.72 * self.hindquarter_width,
             ),
-        ];
-        for pair in trunk.windows(2) {
+        ]
+    }
+
+    /// The trunk's section at `x`, as its mesh has it between two sections.
+    fn trunk_at(&self, x: f32) -> Section {
+        let trunk = self.trunk();
+        let pair = trunk
+            .windows(2)
+            .find(|pair| x <= pair[0].top[0] && x >= pair[1].top[0])
+            .unwrap_or(&trunk[..2]);
+        let t = (pair[0].top[0] - x) / (pair[0].top[0] - pair[1].top[0]);
+        between(pair[0], pair[1], t)
+    }
+
+    /// The head's sections: a straight profile from the poll, deepest at
+    /// the jaw, tapering to a muzzle that is still blunt. The first is at
+    /// the poll and the second `HEAD_JAW` of the head's length along.
+    fn head(&self) -> [Section; 4] {
+        let poll = self.poll();
+        let poll = V(poll[0], poll[1]);
+        let throat = poll + V(-0.01 * self.height, -self.neck_throat);
+        let (face_sin, face_cos) = self.face_angle.sin_cos();
+        let (face, jaw) = (V(face_cos, -face_sin), V(-face_sin, -face_cos));
+        let head_at = |along: f32, deep: f32, width: f32| {
+            let top = poll + face * (along * self.head_length);
+            edge(top, top + jaw * deep, 0.0, width)
+        };
+        [
+            edge(poll, throat, 0.0, 0.8 * self.head_width),
+            head_at(HEAD_JAW, self.jaw_depth, self.head_width),
+            head_at(0.82, 1.1 * self.muzzle_depth, self.muzzle_width),
+            head_at(1.0, 0.85 * self.muzzle_depth, 0.9 * self.muzzle_width),
+        ]
+    }
+
+    /// What a piece worn in `slot` looks like on this horse, at its simplest
+    /// (#359): Head a band round the head behind the eyes, Body a blanket
+    /// over the back hanging down the sides, Saddle a block on the back over
+    /// the blanket. Each stands a little off what it covers, so it is seen
+    /// whole, and moves with the joint of what it covers.
+    pub fn worn(&self, slot: Slot) -> Vec<Part> {
+        let h = self.height;
+        let half = self.half_length();
+        let piece = |joint, sections: &[Section]| -> Vec<Part> {
+            sections
+                .windows(2)
+                .map(|pair| Part { kind: Kind::Gear, joint, from: pair[0], to: pair[1] })
+                .collect()
+        };
+        match slot {
+            Slot::Head => {
+                let head = self.head();
+                let at = |along: f32| swell(between(head[0], head[1], along / HEAD_JAW), 0.02 * h);
+                piece(Joint::Neck, &[at(0.08), at(0.34)])
+            }
+            Slot::Body => {
+                // From behind the withers to over the hip, through each of
+                // the trunk's sections between, so it never cuts into it.
+                let sections: Vec<Section> = [0.45, 0.10, -0.33, -0.5]
+                    .map(|x| {
+                        let s = self.trunk_at(x * half);
+                        let hem = s.top[1] + (s.bottom[1] - s.top[1]) * 0.6;
+                        swell(edge(V(s.top[0], s.top[1]), V(s.top[0], hem), 0.0, s.width), 0.01 * h)
+                    })
+                    .to_vec();
+                piece(Joint::Trunk, &sections)
+            }
+            Slot::Saddle => {
+                let sections: Vec<Section> = [0.38, 0.10, -0.08]
+                    .map(|x| {
+                        let s = self.trunk_at(x * half);
+                        let (top, flap) = (s.top[1] + 0.03 * h, s.top[1] - 0.12 * h);
+                        swell(edge(V(s.top[0], top), V(s.top[0], flap), 0.0, s.width), 0.025 * h)
+                    })
+                    .to_vec();
+                piece(Joint::Trunk, &sections)
+            }
+        }
+    }
+
+    /// Every piece of the horse, standing.
+    pub fn parts(&self) -> Vec<Part> {
+        let h = self.height;
+        let (clear, b) = (self.clearance, self.bone);
+        let mut parts = Vec::new();
+        let mut add = |kind, joint, from, to| parts.push(Part { kind, joint, from, to });
+
+        // The trunk, then the neck and head.
+        for pair in self.trunk().windows(2) {
             add(Kind::Body, Joint::Trunk, pair[0], pair[1]);
         }
 
@@ -405,25 +519,9 @@ impl Frame {
             add(Kind::Body, Joint::Neck, pair[0], pair[1]);
         }
 
-        // The head: a straight profile from the poll, deepest at the jaw,
-        // tapering to a muzzle that is still blunt.
         let (face_sin, face_cos) = self.face_angle.sin_cos();
-        let (face, jaw, brow) = (
-            V(face_cos, -face_sin),
-            V(-face_sin, -face_cos),
-            V(face_sin, face_cos),
-        );
-        let head_at = |along: f32, deep: f32, width: f32| {
-            let top = poll + face * (along * self.head_length);
-            edge(top, top + jaw * deep, 0.0, width)
-        };
-        let head = [
-            edge(poll, throat, 0.0, 0.8 * self.head_width),
-            head_at(0.38, self.jaw_depth, self.head_width),
-            head_at(0.82, 1.1 * self.muzzle_depth, self.muzzle_width),
-            head_at(1.0, 0.85 * self.muzzle_depth, 0.9 * self.muzzle_width),
-        ];
-        for pair in head.windows(2) {
+        let (face, brow) = (V(face_cos, -face_sin), V(face_sin, face_cos));
+        for pair in self.head().windows(2) {
             add(Kind::Body, Joint::Neck, pair[0], pair[1]);
         }
 
@@ -914,6 +1012,55 @@ mod tests {
                         .all(|section| (section.1 - hock).abs() < frame.bone));
                 }
             }
+        }
+    }
+
+    fn sections(parts: &[Part]) -> Vec<Section> {
+        let mut out: Vec<Section> = parts.iter().map(|part| part.from).collect();
+        out.extend(parts.last().map(|part| part.to));
+        out
+    }
+
+    /// Worn gear (#359) stands off what it covers, all round, so none of it
+    /// is lost inside the horse; it moves with what it covers; and it is
+    /// never one of the horse's own pieces.
+    #[test]
+    fn worn_gear_sits_over_what_it_covers() {
+        let shape = HorseShape::load();
+        let mut rng = Rng::new(359);
+        for round in 0..300 {
+            let frame = match round {
+                0 => shape.base(1.0),
+                _ => shape.varied(1.0, &mut || rng.unit()),
+            };
+            assert!(frame.parts().iter().all(|part| part.kind != Kind::Gear));
+            for slot in Slot::ALL {
+                let worn = frame.worn(slot);
+                assert!(!worn.is_empty(), "{slot:?}");
+                assert!(worn.iter().all(|part| part.kind == Kind::Gear));
+                let joint = if slot == Slot::Head { Joint::Neck } else { Joint::Trunk };
+                assert!(worn.iter().all(|part| part.joint == joint), "{slot:?}");
+                for s in sections(&worn) {
+                    let under = match slot {
+                        Slot::Head => {
+                            let head = frame.head();
+                            let t = (s.top[0] - head[0].top[0]) / (head[1].top[0] - head[0].top[0]);
+                            between(head[0], head[1], t)
+                        }
+                        _ => frame.trunk_at(s.top[0]),
+                    };
+                    assert!(s.width > under.width, "{slot:?} {s:?} over {under:?}");
+                    assert!(s.top[1] > under.top[1], "{slot:?} {s:?} over {under:?}");
+                }
+            }
+            // The saddle lies over the blanket where both are.
+            let (blanket, saddle) = (sections(&frame.worn(Slot::Body)), sections(&frame.worn(Slot::Saddle)));
+            for s in &saddle {
+                if let Some(b) = blanket.iter().find(|b| close(b.top[0], s.top[0], 1.0)) {
+                    assert!(s.width > b.width && s.top[1] > b.top[1], "{s:?} over {b:?}");
+                }
+            }
+            assert!(saddle.iter().any(|s| blanket.iter().any(|b| close(b.top[0], s.top[0], 1.0))));
         }
     }
 }

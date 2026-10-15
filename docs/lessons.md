@@ -290,8 +290,9 @@ none of which has to be done:
    one of the list it opens; left alone it stays carried. Finished by
    equipping, either way. Nothing equips by itself and no lesson names a horse
    for the piece (owner, 2026-10-12, #351).
-5. Once a piece is on, Undo: it takes it back until the party sets out.
-   Finished by setting out.
+5. Once a piece is on, Undo: its line sends the eye to the horse, where
+   the piece is now seen worn (#359), and says Undo takes it back until the
+   party sets out. Finished by setting out.
 6. Only after Equip has taken a piece from the horse that wore it: the
    horses exchanged pieces and nothing is lost. Never before a swap.
 

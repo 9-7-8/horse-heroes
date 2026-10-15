@@ -41,6 +41,7 @@ fn main() {
             bare: std::env::args().any(|arg| arg == "--bare"),
             keep_going: std::env::args().any(|arg| arg == "--keep-going"),
             cargo: cargo(),
+            worn: std::env::args().any(|arg| arg == "--worn"),
             // A new game starts on the road (#292); the tour and the walk
             // begin with a town visit.
             town: std::env::args().any(|arg| arg == "--town")

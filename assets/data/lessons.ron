@@ -211,7 +211,8 @@ lessons: [
         due: Equipped,
         shown: Town,
         target: Control("Undo"),
-        words: "It is on, and its card shows it so. This takes it back until the party sets out.",
+        // Worn gear is seen on the horse (#359): the line sends the eye there.
+        words: "It is on: see it on the horse. This takes it back until the party sets out.",
         done: Did(SetOut),
     ),
     // Abilities carry their elements (#357): at the first resisted hit, in
