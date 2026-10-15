@@ -1,0 +1,57 @@
+SESSION 2026-10-14, the horses leave the strip (#356, second part)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner.
+  Tier 2: nothing new untested. Tier 3, menus first: PICK UP's #356.
+
+DONE
+  - The status strip has no horse buttons. A press on a horse in the
+    scene selects it; Z X C select it directly (no Activate on a button).
+    Seen running in the tour, in town and on the road.
+  - Each horse has a tag under it in the scene: name over key and health
+    (parts::tag, HorseTag, place_tags). Drawn as a row, so it shows the
+    selection, a drag's target and a lesson's ring; not a control, so a
+    press goes through it and Tab passes it by (tour: 25 stops, 0 out of
+    sight). Seen at 1120x640 in town and on the road.
+  - A piece dragged onto a horse in the scene goes to that horse
+    (hold_over casts the pointer's ray against HorseBox while the scene
+    catcher is hovered). Seen in the tour: dragged onto Morrow, 30 -> 45.
+  - Tour: Step::Horse removed; SceneHorse presses, or only moves the
+    pointer after Point or DragTo. size.strip_horse_width removed.
+  - Docs: menu-shell.md, item-card.md, lessons.md, mechanics-for-tutorial
+    and philosophy/inventory.md no longer say "in the strip". Gallery:
+    docs/gallery/2026-10-14-horse-tags. #356 commented, left open.
+
+DECIDED (by the session, for her)
+  - The health goes on a tag under each horse, not beside the coins.
+  - Two short lines per tag, so three fit side by side at 1120x640; all
+    three level with the front horse, as the middle horse stands back and
+    its tag covered the others'.
+
+FOUND
+  - A one-line tag (name, key, health) was wider than the gap between
+    horses at the smallest window; they overlapped.
+
+NOT DONE
+  - Nobody has pressed or dragged onto a horse with a real mouse.
+  - The click budget was not walked again (#356 part 3).
+  - The status strip is now mostly empty space; left as it is.
+
+PICK UP
+  #356, part 2: on a piece's card, Equip names the selected horse, with a
+  drop-down beside it of the other horses in the line's order; choosing
+  one equips the piece on it, and the comparison follows the horse chosen.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 10 closed.
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities
+    #358 A sound of its own for each ability
+    #359 Worn gear seen on the horse
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+    #363 A dragged piece dangles from the pointer, swinging
+    #364 A crash leaves a log beside the game
+  Riding along in part: #356 (menus).
