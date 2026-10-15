@@ -19,18 +19,17 @@ DONE
     the_swing_is_the_same_at_any_frame_rate, each seen to fail once with
     the code broken; the picture test covers the empty cell. Seen running
     in the menu tour at 1120x640 and full size, pictures 89 to 93;
-    docs/gallery/2026-10-15-in-the-hand. Left open, labelled "built", for
+    docs/gallery/2026-10-15-in-the-hand. Left open for
     her dragging it with the mouse.
   - Cargo on the PATH: .claude/settings.local.json (git-ignored, this
     machine) sets env.PATH to the Machine and User PATH; "cargo" resolves
     in this session's shells now. build-and-run.txt says so.
   - The end step: end-session.txt's NEXT RELEASE now lists every issue of
     the release with a status: unbuilt, built-untested or closed (her
-    three words, set after the first summary). A new label "built" marks an issue open only for her
-    trying it; put on #246, #356 and #363. next-thing.txt says to label it.
+    three words, set after the first summary). It is said in chat only; a "built" label
+    was tried on GitHub and taken off again at her word.
 
 DECIDED (for her)
-  - The "built" label, to make built-untested checkable.
   - The piece in the hand is 36 px, on an 8 px string, under the pointer's
     card; it covers part of the target under the pointer, never its whole
     edge. The flight takes 0.14 s.

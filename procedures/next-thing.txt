@@ -69,8 +69,7 @@ DOING IT
     anything visible is run and looked at.
   - Commit code and data, with "Closes #N" when the issue's "done when" is
     met in full. If only part is met, say which part in a comment on the
-    issue and leave it open. If the only part left is the owner trying
-    it, label the issue "built" (end-session.txt, NEXT RELEASE).
+    issue and leave it open.
   - docs/<system>.md for a system built or changed. Writing it audits the
     code: a sentence the code does not bear out is fixed in one or the
     other, so leave time for that.

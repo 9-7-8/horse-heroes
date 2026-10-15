@@ -82,14 +82,18 @@ milestone, in version order, after the latest published release:
    three words, no others (owner, 2026-10-15: "unbuilt / built-untested /
    closed"):
        closed          the issue is closed.
-       built-untested  open and labelled "built": everything is built and
-                       committed and it waits only on her trying it. Put
-                       the label on when an issue is left open for that
-                       alone, and say so in a comment on it.
+       built-untested  open, and everything in it is built and committed;
+                       it waits only on her trying it. Tell it from the
+                       session logs' DONE and the code commits that name
+                       it. Nothing goes on GitHub for it: no label, no
+                       comment of status (owner, 2026-10-15: "It should be
+                       in chat only, not on the github issues page").
        unbuilt         any other open issue, whether nothing of it is
                        built, part of it is, or it waits on her ruling
                        (decision, proposed).
-       gh issue list --repo 9-7-8/horse-heroes --milestone "<x.y.z Theme>" --state all --json number,title,state,labels
+       gh issue list --repo 9-7-8/horse-heroes --milestone "<x.y.z Theme>" --state all
+   This block is said in chat at step 8, every time, as well as written in
+   the log.
    Example:
        0.2.4 Fixes from testing 0.2.3: 1 of 10 closed.
          #354 Each horse attacks at its own cadence - unbuilt
