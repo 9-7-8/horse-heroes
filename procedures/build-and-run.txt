@@ -84,7 +84,8 @@ Use the cheapest step that can prove the change:
    2026-10-15); at 28 an Elemental Burst's numbers on two enemies.
    Lessons (docs/lessons.md): --seed 6 at IDLE_SHOT_AT=3 has the
    opening's line, with no mark; at 5 the first fight's lesson, at 12 the
-   abilities', at 68 the piece's in town. F6 puts the sample over a
+   abilities', at 18 the numbers', at 24 speed's on Juniper (#355,
+   checked 2026-10-15), at 68 the piece's in town. F6 puts the sample over a
    lesson that is showing.
    IDLE_LESSON walks the first item's lessons by keys (#296): home from
    the first trail, walked from the opening, it opens the piece's card, selects another horse,

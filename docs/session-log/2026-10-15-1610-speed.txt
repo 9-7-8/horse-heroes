@@ -1,0 +1,57 @@
+SESSION 2026-10-15, a speed stat (#355)
+
+ASKED
+  /next, no steer. Tiers 1 and 2 empty (#246 waits on her look). Tier 3:
+  #355, PICK UP's.
+
+DONE
+  - #355 (a5892b0): speed is a stat (Stats.speed), in horses.ron
+    (Juniper 22, Sable 20, Morrow 19), added to by gear like the others.
+    A horse's hit interval is attack_tempo / speed (31: 1.41, 1.55, 1.63 s);
+    the road between encounters and the walk back to town take
+    travel_distance / the party's average speed (80: 3.9 s). Both in
+    rules.ron; attack_interval per horse and travel_secs are gone. Shown in
+    the horse's view, the Gear tab's line, the card's comparison (when a
+    piece has speed) and its Details, in a colour of its own (lime,
+    bbdd22, passes the_colours_are_apart). Stats::named() is now the one
+    list of stats every menu reads.
+    Tested: speed_sets_how_often_a_horse_hits_and_how_fast_the_party_walks,
+    seen to fail with each half of the rule broken. Seen running: --town
+    (Gear line ends "speed 22"), --seed 6 --no-pause at 24 (the lesson).
+  - Tutorial: a road lesson "speed" on Juniper, due after a kill, after
+    the numbers' lesson.
+
+DECIDED (for her)
+  - The rule is inverse (twice the speed, half the interval), and the
+    numbers keep damage per second and road time near what they were.
+  - No gear rolls speed yet; the issue said "later". The card shows it
+    only when a piece has it.
+  - The scenery scrolls at one speed whatever the party's speed: only the
+    road's length in time changes. A faster-looking walk would be its own
+    small issue if she wants it.
+
+FOUND
+  - The soak log's party stats are now five numbers; older logs no longer
+    parse.
+
+NOT DONE
+  - The horse's view (horse sheet) with its speed row was checked by test,
+    not by picture.
+
+PICK UP
+  #356 and #363 wait on her look; build #357, The most basic abilities:
+  each carries its element, and the party element goes.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 3 of 10 closed.
+    #354 Each horse attacks at its own cadence - closed
+    #355 A speed stat - closed
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down - built-untested
+    #357 The most basic abilities - unbuilt
+    #358 A sound of its own for each ability - unbuilt
+    #359 Worn gear seen on the horse - unbuilt
+    #360 A lesson pop-up when the boss is met - closed
+    #361 A look of its own for every piece - unbuilt
+    #363 A dragged piece dangles from the pointer, swinging - built-untested
+    #364 A crash leaves a log beside the game - unbuilt
+  Riding along: #360 (menus, closed); in part #356 and #363 (menus, built).
