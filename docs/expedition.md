@@ -46,6 +46,14 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
 - A trail is 3 ordinary encounters drawn from 5 hand-written pieces in a rolled
   order, then 1 of 2 finals. Each enemy's element is rolled. A quarter of
   trails have a fairy spring that heals the party after one encounter.
+- Each horse hits at its own cadence (#354): `attack_interval` per horse in
+  `horses.ron` (Juniper 1.4 s, Sable 1.55, Morrow 1.6), each swing up to
+  `attack_jitter` (10%) sooner or later from the trail's own seeded RNG.
+  Each fight opens out of step: the first hits come `opening` (0.8 s) in
+  and `opening_stagger` (0.35 s) apart, in an order rolled per fight; the
+  abilities' timers run on from the last fight. Over trails the horses hit
+  on the same tick about one time in twenty (test
+  `over_a_trail_the_horses_rarely_hit_together`).
 - Every hit is `max(attack - defense, 0) + elemental x triangle`, at least 1.
   Triangle: Fire > Plant > Ice > Fire, x1.5 strong, x0.75 resisted.
 - Juniper: Focused Shot, x2.5 attack on the current target every 4 s.

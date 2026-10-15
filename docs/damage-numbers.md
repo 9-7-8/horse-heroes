@@ -50,6 +50,7 @@ shown on the road, done by watching the next kill. At `--seed 6
 
 ## Looking at it
 
-`--seed 6 --keep-going` with `IDLE_SHOT_AT=17.9` has the first exchange: 6!,
-8! and 11! side by side over the Mire Toad, -3 over Morrow. At 40, an
-Elemental Burst's 10 and 15! over two enemies.
+`--seed 6 --no-pause` with `IDLE_SHOT_AT=5.4` has the first fight's opening:
+Sable's 6! and then Morrow's 11! over the Mire Toad, one after the other
+(#354); at 6.2 Juniper's 8! has come, and -3 over Morrow. (Before #354 the
+three came on one tick, side by side; checked 2026-10-15.)

@@ -1,7 +1,7 @@
 //! One expedition: a generated trail and the automatic fight along it.
 //! Everything here follows from the seed, the party and the chosen element.
 
-use super::data::{Class, Data, Element};
+use super::data::{Class, Data, Element, Rules};
 use super::lessons::Event;
 use super::loot::{Gear, Horse, Odds, roll_gear, roll_piece};
 use super::rng::Rng;
@@ -89,6 +89,8 @@ pub struct Fighter {
     pub defense: i32,
     pub elemental: i32,
     pub deeds: Deeds,
+    /// Seconds between its ordinary hits, before each swing's jitter (#354).
+    attack_interval: f32,
     attack_timer: f32,
     ability_timer: f32,
 }
@@ -227,6 +229,8 @@ pub struct Expedition {
     /// The kills' pieces are rolled apart from the fight, so the fight goes
     /// as it would with no gear thrown.
     loot: Rng,
+    /// The order a fight opens in and each swing's jitter (#354).
+    cadence: Rng,
 }
 
 impl Expedition {
@@ -245,7 +249,9 @@ impl Expedition {
                     defense: stats.defense,
                     elemental: stats.elemental,
                     deeds: Deeds::default(),
-                    attack_timer: rules.attack_interval,
+                    attack_interval: horse.attack_interval,
+                    // Set when a fight opens.
+                    attack_timer: f32::MAX,
                     ability_timer: match horse.class {
                         Class::Ranger => rules.focused_shot_cooldown,
                         Class::Wizard => rules.burst_cooldown,
@@ -261,6 +267,9 @@ impl Expedition {
             // with how the fight happens to go.
             rng: Rng::new(plan.seed ^ 0xC0FF_EE00_F00D_5EED),
             loot: Rng::new(plan.seed ^ 0x4B11_4B11_4B11_4B11),
+            // The horses' cadence has its own rolls too, so the enemies'
+            // choices of whom to strike are not moved by it.
+            cadence: Rng::new(plan.seed ^ 0x0CAD_E4CE_0CAD_E4CE),
             plan,
             element,
             party,
@@ -331,11 +340,31 @@ impl Expedition {
             self.plan.encounters.len(),
             names.join(", ")
         ));
+        self.open_fight(&data.rules);
         self.events.push(Event::Fight);
         if self.encounter + 1 == self.plan.encounters.len() {
             self.events.push(Event::Boss);
         }
         self.phase = Phase::Fighting;
+    }
+
+    /// Each fight opens out of step (#354): the horses' first hits come one
+    /// after another, `opening_stagger` apart, in an order rolled for the
+    /// fight. Only the ordinary hits start again; the abilities' timers run
+    /// on from the last fight.
+    fn open_fight(&mut self, rules: &Rules) {
+        let mut order: Vec<usize> = (0..self.party.len()).collect();
+        self.cadence.shuffle(&mut order);
+        for (place, &horse) in order.iter().enumerate() {
+            self.party[horse].attack_timer = rules.opening + rules.opening_stagger * place as f32;
+        }
+    }
+
+    /// The time to a horse's next ordinary hit: its own interval, a little
+    /// sooner or later each swing (#354).
+    fn next_swing(&mut self, rules: &Rules, horse: usize) -> f32 {
+        let jitter = rules.attack_jitter * (self.cadence.unit() * 2.0 - 1.0);
+        self.party[horse].attack_interval * (1.0 + jitter)
     }
 
     fn fight(&mut self, data: &Data, dt: f32) {
@@ -350,7 +379,7 @@ impl Expedition {
             self.party[i].ability_timer -= dt;
 
             if self.party[i].attack_timer <= 0.0 {
-                self.party[i].attack_timer += rules.attack_interval;
+                self.party[i].attack_timer += self.next_swing(rules, i);
                 if let Some(target) = self.target() {
                     let (attack, elemental) = self.power(i);
                     self.strike(data, i, target, attack, elemental, "hits");
@@ -1331,8 +1360,9 @@ mod tests {
         assert!(elements.iter().all(|&seen| seen), "{elements:?}");
     }
 
-    /// The road to each encounter takes `travel_secs`, and no timer runs on
-    /// it: a hit or an ability is no nearer at the end of the road.
+    /// The road to each encounter takes `travel_secs`, and no ability's timer
+    /// runs on it: an ability is no nearer at the end of the road. The
+    /// ordinary hits start again at each fight's opening (#354).
     #[test]
     fn the_road_takes_its_time_and_no_timer_runs_on_it() {
         let data = Data::load();
@@ -1341,6 +1371,9 @@ mod tests {
         let mut run = Expedition::new(&data, plan, &party(&data), Element::Fire);
         let timers = |run: &Expedition| -> Vec<(f32, f32)> {
             run.party.iter().map(|f| (f.attack_timer, f.ability_timer)).collect()
+        };
+        let abilities = |timers: &[(f32, f32)]| -> Vec<f32> {
+            timers.iter().map(|&(_, ability)| ability).collect()
         };
         let walk = |run: &mut Expedition| {
             let mut ticks = 0;
@@ -1356,30 +1389,39 @@ mod tests {
         assert!(run.foes.is_empty());
         let mage = horse_of(&run, Class::Mage);
         assert_eq!(run.party[mage].ability_timer, rules.ward_cooldown * 0.25);
-        assert!(run.party.iter().all(|f| f.attack_timer == rules.attack_interval));
+        // The first of the opening's hits, and the last.
+        let opened = |run: &Expedition| {
+            let last = rules.opening + rules.opening_stagger * (run.party.len() - 1) as f32;
+            run.party.iter().all(|f| (rules.opening..=last).contains(&f.attack_timer))
+        };
 
         let before = timers(&run);
         assert!((walk(&mut run) - rules.travel_secs).abs() <= TICK);
         assert_eq!(run.phase, Phase::Fighting);
         assert_eq!(run.foes.len(), run.plan.encounters[0].len());
         assert_eq!(lines_with(&run, "Encounter 1/"), 1);
-        assert_eq!(timers(&run), before);
+        assert_eq!(abilities(&timers(&run)), abilities(&before));
+        assert!(opened(&run), "{:?}", timers(&run));
 
+        // Halfway to the next hits, the fight is won.
+        for fighter in &mut run.party {
+            fighter.attack_timer = 0.5;
+        }
         run.foes.clear();
         run.encounter_cleared(&data);
         assert_eq!((run.phase, run.encounter), (Phase::Travelling, 1));
         assert!((walk(&mut run) - rules.travel_secs).abs() <= TICK);
         assert_eq!(run.phase, Phase::Fighting);
         assert_eq!(lines_with(&run, "Encounter 2/"), 1);
-        assert_eq!(timers(&run), before);
+        assert_eq!(abilities(&timers(&run)), abilities(&before));
+        assert!(opened(&run), "{:?}", timers(&run));
     }
 
-    /// An ordinary hit comes once every `attack_interval` from each horse,
-    /// and lands on the first enemy still standing and no other.
+    /// An ordinary hit lands on the first enemy still standing and no other.
+    /// How often each horse hits is `each_horse_hits_at_its_own_cadence`.
     #[test]
-    fn each_horse_hits_the_first_standing_enemy_once_an_interval() {
+    fn each_horse_hits_the_first_standing_enemy() {
         let data = Data::load();
-        let rules = &data.rules;
         use Element::Fire;
         let mut run = fighting(
             &data,
@@ -1401,20 +1443,114 @@ mod tests {
         };
         let horses = run.party.len();
 
-        // Three and a half intervals: three hits from each horse.
-        for _ in 0..(rules.attack_interval * 3.5 / TICK).round() as usize {
-            run.tick(&data, TICK);
-        }
-        assert_eq!((hits(&run, 0), hits(&run, 1), hits(&run, 2)), (0, 3 * horses, 0));
+        let all = |run: &Expedition| (0..3).map(|foe| hits(run, foe)).sum::<usize>();
+        let until = |run: &mut Expedition, total: usize| {
+            for _ in 0..1000 {
+                if all(run) >= total {
+                    return;
+                }
+                run.tick(&data, TICK);
+            }
+            panic!("the hits never came");
+        };
+
+        until(&mut run, 3 * horses);
+        assert_eq!((hits(&run, 0), hits(&run, 2)), (0, 0));
         assert_eq!(run.foes[2].health, run.foes[2].max_health);
 
-        // The toad falls, and the next round of hits goes to the sprite.
+        // The toad falls, and the next hits go to the sprite.
         run.foes[1].health = 0;
-        for _ in 0..(rules.attack_interval / TICK).round() as usize {
-            run.tick(&data, TICK);
-        }
-        assert_eq!((hits(&run, 0), hits(&run, 1), hits(&run, 2)), (0, 3 * horses, horses));
+        let on_toad = hits(&run, 1);
+        until(&mut run, on_toad + horses);
+        assert_eq!((hits(&run, 0), hits(&run, 1)), (0, on_toad));
+        assert!(hits(&run, 2) >= horses);
         assert_eq!(run.phase, Phase::Fighting);
+    }
+
+    /// The ticks on which each horse made an ordinary hit, horse by horse,
+    /// over a long fight nobody can win or lose, opened with `seed`.
+    fn swings(data: &Data, seed: u64) -> Vec<Vec<usize>> {
+        let mut run = fighting(data, 0, &[&[("mire_toad", Element::Fire)]]);
+        run.cadence = Rng::new(seed);
+        run.open_fight(&data.rules);
+        for fighter in &mut run.party {
+            fighter.ability_timer = f32::MAX;
+        }
+        let foe = &mut run.foes[0];
+        foe.attack_timer = f32::MAX;
+        foe.health = i32::MAX;
+        foe.max_health = i32::MAX;
+        let mut swings = vec![Vec::new(); run.party.len()];
+        for tick in 0..2000 {
+            let before: Vec<f32> = run.party.iter().map(|f| f.attack_timer).collect();
+            run.tick(data, TICK);
+            for (horse, fighter) in run.party.iter().enumerate() {
+                if fighter.attack_timer > before[horse] {
+                    swings[horse].push(tick);
+                }
+            }
+        }
+        swings
+    }
+
+    /// Each horse hits at its own cadence (#354): a fight opens with the
+    /// horses' first hits one after another, in an order that changes from
+    /// fight to fight; each next hit comes the horse's own interval later,
+    /// give or take `attack_jitter`; and the same seed plays the same fight.
+    #[test]
+    fn each_horse_hits_at_its_own_cadence() {
+        let data = Data::load();
+        let rules = &data.rules;
+        let mut orders = std::collections::HashSet::new();
+        for seed in 0..200 {
+            let swings = swings(&data, seed);
+            let mut first: Vec<(usize, usize)> =
+                swings.iter().enumerate().map(|(horse, ticks)| (ticks[0], horse)).collect();
+            first.sort();
+            for pair in first.windows(2) {
+                assert!(pair[0].0 < pair[1].0, "seed {seed}: the fight opens in step, {first:?}");
+            }
+            orders.insert(first.iter().map(|&(_, horse)| horse).collect::<Vec<_>>());
+
+            for (horse, ticks) in swings.iter().enumerate() {
+                let interval = data.horses[horse].attack_interval;
+                let (lo, hi) = (interval * (1.0 - rules.attack_jitter), interval * (1.0 + rules.attack_jitter));
+                for gap in ticks.windows(2).map(|pair| (pair[1] - pair[0]) as f32 * TICK) {
+                    assert!(lo - TICK - 1e-3 <= gap && gap <= hi + TICK + 1e-3, "seed {seed}, horse {horse}: {gap}");
+                }
+                let mean = (ticks[ticks.len() - 1] - ticks[0]) as f32 * TICK / (ticks.len() - 1) as f32;
+                assert!((mean / interval - 1.0).abs() < 0.03, "seed {seed}, horse {horse}: {mean}");
+            }
+        }
+        assert_eq!(orders.len(), 6, "{orders:?}");
+        assert_eq!(swings(&data, 5), swings(&data, 5));
+        assert_ne!(swings(&data, 5), swings(&data, 6));
+    }
+
+    /// Over a whole trail the horses rarely hit on the same tick (#354): the
+    /// share of the ticks with a hit that have two or more. Run with
+    /// `--nocapture` to see it. In step, as before #354, it was all of them.
+    #[test]
+    fn over_a_trail_the_horses_rarely_hit_together() {
+        let data = Data::load();
+        let (mut with_a_hit, mut together) = (0, 0);
+        for seed in 0..200 {
+            let plan = Plan::generate(&data, seed, 0);
+            let mut run = Expedition::new(&data, plan, &party(&data), Element::Fire);
+            while run.phase != Phase::Finished {
+                let fighting = run.phase == Phase::Fighting;
+                let before: Vec<f32> = run.party.iter().map(|f| f.attack_timer).collect();
+                run.tick(&data, TICK);
+                let hit = run.party.iter().zip(&before).filter(|(f, b)| f.attack_timer > **b).count();
+                if fighting && hit > 0 {
+                    with_a_hit += 1;
+                    together += (hit > 1) as usize;
+                }
+            }
+        }
+        let share = together as f32 / with_a_hit as f32;
+        println!("ticks with a hit: {with_a_hit}, with two or more: {together} ({share:.3})");
+        assert!(share < 0.1, "{share}");
     }
 
     /// A kill's coins are within its enemy's range in `enemies.ron`, and over

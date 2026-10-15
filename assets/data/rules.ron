@@ -3,7 +3,15 @@
     strong_multiplier: 1.5,
     weak_multiplier: 0.75,
 
-    attack_interval: 1.5,
+    // Each horse hits at its own `attack_interval` (horses.ron, #354). Each
+    // swing comes up to this fraction sooner or later, seeded, so a long
+    // fight does not fall into a fixed pattern.
+    attack_jitter: 0.1,
+    // A fight opens with the horses' first hits one after another, in an
+    // order rolled for the fight: the first at `opening`, the next
+    // `opening_stagger` later, and so on.
+    opening: 0.8,
+    opening_stagger: 0.35,
 
     // Ranger: bonus hit on the current target.
     focused_shot_cooldown: 4.0,

@@ -685,6 +685,7 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
                 Some(Horse {
                     name: name.clone(),
                     class: def.class,
+                    attack_interval: def.attack_interval,
                     base: *stats,
                     gear: [None, None, None],
                 })

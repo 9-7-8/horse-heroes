@@ -267,6 +267,20 @@ fn times(multiplier: f32) -> String {
     format!("x{}", (multiplier * 100.0).round() / 100.0)
 }
 
+/// How often the party's horses hit (#354): "every 1.4 s" when they agree,
+/// "every 1.4 to 1.6 s" when they do not.
+fn pace(game: &Game) -> String {
+    let intervals = game.party.iter().map(|horse| horse.attack_interval);
+    let lo = intervals.clone().fold(f32::INFINITY, f32::min);
+    let hi = intervals.fold(0.0, f32::max);
+    let secs = |s: f32| (s * 100.0).round() / 100.0;
+    if secs(lo) == secs(hi) {
+        format!("every {} s", secs(lo))
+    } else {
+        format!("every {} to {} s", secs(lo), secs(hi))
+    }
+}
+
 /// The card's third layer (#228; docs/philosophy/menus.md, "The item is the
 /// handle"): the formulas and assumptions behind a piece, behind the
 /// Details switch. How it was rolled, from `gear.ron`, and what each of its
@@ -289,7 +303,7 @@ pub fn details(game: &Game, gear: &Gear) -> String {
          Odds of {tier}: {lost} of a lost trail's own piece, {won} of a won trail's, {kill} of a kill's pieces.\n\
          \n\
          IN A FIGHT\n\
-         Each horse hits every {interval} s.\n\
+         Each horse hits at its own pace: {interval}, a little sooner or later each time.\n\
          attack: a hit's physical part, less the enemy's defense, never below 0.\n\
          elemental: a hit's elemental part, {strong} where the party's element is strong, {weak} where it is resisted.\n\
          defense: taken off each enemy hit, which still does at least 1.\n\
@@ -301,7 +315,7 @@ pub fn details(game: &Game, gear: &Gear) -> String {
         lost = share(|r| r.weight),
         won = share(|r| r.win_weight),
         kill = share(|r| r.kill_weight),
-        interval = rules.attack_interval,
+        interval = pace(game),
         strong = times(rules.strong_multiplier),
         weak = times(rules.weak_multiplier),
         focused = times(rules.focused_shot_multiplier),

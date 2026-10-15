@@ -79,8 +79,9 @@ Use the cheapest step that can prove the change:
    away, about the next kind of control each time. With --hint --seed 6
    at IDLE_SHOT_AT=53.9 the final fountain is in the air above it.
    Damage numbers (docs/damage-numbers.md): --seed 6 at
-   IDLE_SHOT_AT=5.9 has 6!, 8! and 11! side by side over the first enemy
-   and -3 over Morrow; at 28 an Elemental Burst's numbers on two enemies.
+   IDLE_SHOT_AT=5.4 has 6! and then 11! over the first enemy, one after
+   the other (#354), and at 6.2 8! and -3 over Morrow (checked
+   2026-10-15); at 28 an Elemental Burst's numbers on two enemies.
    Lessons (docs/lessons.md): --seed 6 at IDLE_SHOT_AT=3 has the
    opening's line, with no mark; at 5 the first fight's lesson, at 12 the
    abilities', at 68 the piece's in town. F6 puts the sample over a

@@ -16,6 +16,8 @@ pub struct Gear {
 pub struct Horse {
     pub name: String,
     pub class: Class,
+    /// Seconds between its ordinary hits (#354), from `horses.ron`.
+    pub attack_interval: f32,
     pub base: Stats,
     pub gear: [Option<Gear>; 3],
 }
@@ -25,6 +27,7 @@ impl Horse {
         Horse {
             name: def.name.clone(),
             class: def.class,
+            attack_interval: def.attack_interval,
             base: def.stats,
             gear: [None, None, None],
         }

@@ -143,7 +143,7 @@ of the card beside Changed only (`switch: Details` in `places.ron`,
     trail's, none of a kill's pieces.
 
     IN A FIGHT
-    Each horse hits every 1.5 s.
+    Each horse hits at its own pace: every 1.4 to 1.6 s, a little sooner or later each time.
     attack: a hit's physical part, less the enemy's defense, never below 0.
     elemental: a hit's elemental part, x1.5 where the party's element is
     strong, x0.75 where it is resisted.

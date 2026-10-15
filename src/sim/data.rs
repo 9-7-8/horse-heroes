@@ -85,7 +85,13 @@ impl Stats {
 pub struct Rules {
     pub strong_multiplier: f32,
     pub weak_multiplier: f32,
-    pub attack_interval: f32,
+    /// How much sooner or later a horse's swing may come, as a fraction of
+    /// its interval (#354).
+    pub attack_jitter: f32,
+    /// When a fight's first hit comes, and how far apart the horses' first
+    /// hits are (#354).
+    pub opening: f32,
+    pub opening_stagger: f32,
     pub focused_shot_cooldown: f32,
     pub focused_shot_multiplier: f32,
     pub burst_cooldown: f32,
@@ -119,6 +125,8 @@ impl Rules {
 pub struct HorseDef {
     pub name: String,
     pub class: Class,
+    /// Seconds between its ordinary hits (#354).
+    pub attack_interval: f32,
     pub stats: Stats,
 }
 
@@ -353,7 +361,7 @@ mod tests {
 
         assert!(!data.horses.is_empty());
         for horse in &data.horses {
-            assert!(horse.stats.health > 0, "{}", horse.name);
+            assert!(horse.stats.health > 0 && horse.attack_interval > 0.0, "{}", horse.name);
             let Stats { attack, defense, elemental, .. } = horse.stats;
             assert!(attack >= 0 && defense >= 0 && elemental >= 0, "{}", horse.name);
             let named = data.horses.iter().filter(|h| h.name == horse.name).count();
@@ -438,7 +446,9 @@ mod tests {
 
         let rules = &data.rules;
         assert!(rules.ordinary_encounters > 0);
-        assert!(rules.attack_interval > 0.0 && rules.travel_secs > 0.0);
+        assert!(rules.opening > 0.0 && rules.opening_stagger > 0.0 && rules.travel_secs > 0.0);
+        // A swing is never due at once or before the last.
+        assert!((0.0..1.0).contains(&rules.attack_jitter));
         assert!(rules.focused_shot_cooldown > 0.0 && rules.burst_cooldown > 0.0);
         assert!(rules.ward_cooldown > 0.0);
         assert!((0.0..=1.0).contains(&rules.bonus_chance));
