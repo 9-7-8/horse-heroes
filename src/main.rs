@@ -2,10 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use bevy::{
+    log::LogPlugin,
     prelude::*,
     window::{WindowResizeConstraints, WindowResolution},
 };
 
+mod crash_log;
 mod dev_screenshot;
 mod fx;
 mod game;
@@ -31,13 +33,24 @@ fn main() {
     if let Some((width, height)) = window_size() {
         window.resolution = WindowResolution::new(width, height);
     }
+    // A panic and the log are written beside the exe (#364).
+    let seed = seed();
+    crash_log::install(seed);
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(window),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(window),
+                    ..default()
+                })
+                .set(LogPlugin {
+                    custom_layer: crash_log::file_layer,
+                    ..default()
+                }),
+        )
+        .add_plugins(crash_log::CrashTestPlugin)
         .add_plugins(game::GamePlugin {
-            seed: seed(),
+            seed,
             bare: std::env::args().any(|arg| arg == "--bare"),
             keep_going: std::env::args().any(|arg| arg == "--keep-going"),
             cargo: cargo(),
