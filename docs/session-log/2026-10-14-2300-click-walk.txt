@@ -1,0 +1,46 @@
+SESSION 2026-10-14, click budget walked again (#236)
+
+ASKED
+  /next, with no steer. Tier 1: only #246, which waits on the owner
+  watching. Tier 2: nothing new untested. Tier 3, menus first: of PICK UP's
+  list, the only unmet part needing nothing unbuilt was #236's "the walk is
+  repeated" - the start on the road, the lesson pop-ups and dragging all
+  landed after the last walk (2026-10-12).
+
+DONE
+  - Walked the click budget (seed 6, 1120x640). Every count is as on
+    2026-10-11; nothing over, nothing NOT DONE. Seen running: the walk's
+    pictures were read. docs/click-budget.md updated; #236 commented, left
+    open (#99, #170, a newcomer watched).
+
+DECIDED (by the session, for her)
+  - The lesson pop-up after the first equip is not counted in the job: it
+    comes after the job is done and once a game. Noted in the doc.
+
+FOUND
+  - The session-log names from 2015 on carry times later than the clock
+    (the machine said 18:26 here). This one is named 2300 so it sorts as
+    the newest.
+  - cargo is not on the shell's PATH; ~/.cargo/bin by full path works.
+
+NOT DONE
+  - Nobody has walked it with a real mouse.
+
+PICK UP
+  0.2.1 has nothing left that can be built. Read the "done when" of #308,
+  #311 and #314 (0.2.3, menus); if none has a buildable unmet part, build
+  #356 (0.2.4, menus): select a horse by pressing it in the scene.
+
+NEXT RELEASE
+  0.2.4 Fixes from testing 0.2.3: 0 of 10 closed.
+    #354 Each horse attacks at its own cadence
+    #355 A speed stat
+    #356 Select a horse by pressing it in the scene, and Equip with a drop-down
+    #357 The most basic abilities
+    #358 A sound of its own for each ability
+    #359 Worn gear seen on the horse
+    #360 A lesson pop-up when the boss is met
+    #361 A look of its own for every piece
+    #363 A dragged piece dangles from the pointer, swinging
+    #364 A crash leaves a log beside the game
+  Riding along: none since 0.2.3.
