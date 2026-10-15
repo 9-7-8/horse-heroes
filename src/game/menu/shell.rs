@@ -28,6 +28,7 @@ use bevy::{
 use serde::Deserialize;
 
 use super::card;
+use super::held::{self, Held};
 use super::teach;
 use super::ink;
 use super::picture::{self, picture, picture_of, reported_picture};
@@ -536,6 +537,9 @@ pub struct Shell {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Drag {
     pub piece: Piece,
+    /// The cell it was taken from, which it goes back to if let go where
+    /// it may not go (#363).
+    pub from: Entity,
     pub onto: Option<Onto>,
 }
 
@@ -614,9 +618,9 @@ impl Shell {
         self.drag
     }
 
-    /// A drag begins on a piece (#228).
-    pub fn take(&mut self, piece: Piece) {
-        self.drag = Some(Drag { piece, onto: None });
+    /// A drag begins on a piece (#228), taken from a cell.
+    pub fn take(&mut self, piece: Piece, from: Entity) {
+        self.drag = Some(Drag { piece, from, onto: None });
     }
 
     /// The dragged piece is over a place it may go, or over none.
@@ -1259,6 +1263,7 @@ impl Plugin for ShellPlugin {
         }
         app.insert_resource(shell)
             .insert_resource(places)
+            .init_resource::<Held>()
             .add_systems(Startup, spawn)
             .add_systems(
                 Update,
@@ -1284,7 +1289,7 @@ impl Plugin for ShellPlugin {
                         .chain(),
                     show_wearer,
                     (grow_cargo, show_carried, mark_lessons).chain(),
-                    show_hover_card,
+                    (show_hover_card, held::hold).chain(),
                     picture::show_pictures,
                     show_reasons,
                     show_facts,
@@ -3006,23 +3011,32 @@ fn on_drag_start(
         (None, None) => game.reported_piece(),
     };
     if let Some(piece) = piece.filter(|piece| game.piece(*piece).is_some()) {
-        shell.take(piece);
+        shell.take(piece, drag.entity);
     }
 }
 
 /// The pointer lets a dragged piece go (#228). Over a horse or slot it may
 /// go to, that is Equip for that horse, and a card open on the piece goes
-/// with it; anywhere else nothing changes.
-fn on_drag_end(_: On<PointerDragEnd>, mut game: ResMut<Game>, mut shell: ResMut<Shell>) {
-    let Some(Drag {
-        piece,
-        onto: Some(onto),
-    }) = shell.let_go()
-    else {
+/// with it; anywhere else nothing changes. The piece in the hand goes into
+/// the cell it went to, or back into its own (#363).
+fn on_drag_end(
+    _: On<PointerDragEnd>,
+    mut game: ResMut<Game>,
+    mut shell: ResMut<Shell>,
+    mut held: ResMut<Held>,
+) {
+    let Some(drag) = shell.let_go() else {
         return;
     };
-    if let Some((from, to)) = game.drop_piece(piece, onto.horse, onto.slot) {
-        shell.piece_moved(from, to);
+    let moved = drag
+        .onto
+        .and_then(|onto| Some((onto.cell, game.drop_piece(drag.piece, onto.horse, onto.slot)?)));
+    match moved {
+        Some((cell, (from, to))) => {
+            shell.piece_moved(from, to);
+            held.land(cell, to);
+        }
+        None => held.land(drag.from, drag.piece),
     }
 }
 

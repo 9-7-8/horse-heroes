@@ -7,6 +7,8 @@
 
 use bevy::prelude::*;
 
+use super::held::Held;
+use super::shell::Shell;
 use super::tokens::Tokens;
 use crate::fx::drops::rarity_colour;
 use crate::game::{Game, Piece};
@@ -169,13 +171,15 @@ pub fn draw(
     }
 }
 
-/// The slot and the tier a square is to show, if it is about anything.
-fn wanted(game: &Game, of: Of) -> Option<(usize, Option<usize>)> {
+/// The slot and the tier a square is to show, if it is about anything. The
+/// piece in the hand (#363) has gone from its cell, which shows the slot
+/// empty until the piece is back in a cell.
+fn wanted(game: &Game, of: Of, lifted: Option<Piece>) -> Option<(usize, Option<usize>)> {
     let piece = match of {
         Of::At(piece) => piece,
         Of::Reported => game.reported_piece()?,
     };
-    let tier = game.piece(piece).map(|gear| gear.rarity);
+    let tier = game.piece(piece).map(|gear| gear.rarity).filter(|_| lifted != Some(piece));
     match piece {
         Piece::Worn { horse, slot } => {
             (horse < game.party.len() && slot < Slot::ALL.len()).then_some((slot, tier))
@@ -189,10 +193,13 @@ pub fn show_pictures(
     mut commands: Commands,
     tokens: Res<Tokens>,
     game: Res<Game>,
+    shell: Res<Shell>,
+    held: Res<Held>,
     mut squares: Query<(Entity, &mut Picture, &mut Node)>,
 ) {
+    let lifted = held.lifted(&shell);
     for (entity, mut picture, mut node) in &mut squares {
-        let wanted = wanted(&game, picture.of);
+        let wanted = wanted(&game, picture.of, lifted);
         if picture.shown == Some(wanted) {
             continue;
         }
@@ -247,19 +254,26 @@ mod tests {
         let gear = game.pending_drop().unwrap().clone();
         let slot = gear.slot.index();
         let worn = Piece::Worn { horse: 0, slot };
-        assert_eq!(wanted(&game, Of::At(worn)), Some((slot, None)));
-        assert_eq!(wanted(&game, Of::At(Piece::Carried(0))), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&game, Of::At(worn), None), Some((slot, None)));
+        assert_eq!(wanted(&game, Of::At(Piece::Carried(0)), None), Some((slot, Some(gear.rarity))));
 
         let mut on = home();
         on.party[0].gear[slot] = Some(gear.clone());
-        assert_eq!(wanted(&on, Of::At(worn)), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&on, Of::At(worn), None), Some((slot, Some(gear.rarity))));
 
         let mut away = home();
         away.act(crate::game::Action::Equip, crate::game::Hand::horse(0));
-        assert_eq!(wanted(&away, Of::At(Piece::Carried(0))), None);
+        assert_eq!(wanted(&away, Of::At(Piece::Carried(0)), None), None);
         // The report's piece is pictured where it is: carried, then worn.
-        assert_eq!(wanted(&game, Of::Reported), Some((slot, Some(gear.rarity))));
-        assert_eq!(wanted(&away, Of::Reported), Some((slot, Some(gear.rarity))));
-        assert_eq!(wanted(&Game::new(6), Of::Reported), None);
+        assert_eq!(wanted(&game, Of::Reported, None), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&away, Of::Reported, None), Some((slot, Some(gear.rarity))));
+        assert_eq!(wanted(&Game::new(6), Of::Reported, None), None);
+
+        // The piece in the hand (#363) is gone from every cell that shows
+        // it, the report's too, and from no other.
+        let held = Some(Piece::Carried(0));
+        assert_eq!(wanted(&game, Of::At(Piece::Carried(0)), held), Some((slot, None)));
+        assert_eq!(wanted(&game, Of::Reported, held), Some((slot, None)));
+        assert_eq!(wanted(&on, Of::At(worn), held), Some((slot, Some(gear.rarity))));
     }
 }

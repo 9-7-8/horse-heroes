@@ -577,6 +577,8 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Carried(0),
         Step::Grab,
         Step::Carried(0),
+        // It comes out of its cell and hangs from the pointer (#363).
+        Step::Shot("a piece lifted out of the cargo".into()),
         Step::DragTo,
         Step::Fits(0),
         Step::Shot("dragging the drop onto its slot".into()),

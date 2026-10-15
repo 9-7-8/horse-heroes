@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 
+pub mod dangle;
 pub mod death;
 pub mod drops;
 pub mod numbers;

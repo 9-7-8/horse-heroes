@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Deserializer};
 
 use super::ink::{Ink, Stat};
+use crate::fx::dangle::Swing;
 use crate::fx::drops::rarity_colour;
 use crate::sim::data::{Element, GearTable};
 
@@ -15,6 +16,7 @@ pub struct Tokens {
     pub layout: Layout,
     pub time: Times,
     pub colour: Colours,
+    pub swing: Swing,
 }
 
 #[derive(Clone, Debug, Deserialize)]

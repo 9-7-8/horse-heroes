@@ -166,4 +166,27 @@
         // control, and differ from each other in grey.
         change: (gain: "8cffaf", loss: "cd8778"),
     ),
+
+    // A dragged piece in the hand (#363): it hangs from the pointer by a
+    // short string and swings as the pointer moves (src/fx/dangle.rs).
+    // side: the piece's picture, between a slot's and an Inventory tile's.
+    // hang: the string, from the pointer to the piece's top edge.
+    // gravity and hang together set how fast it swings back and forth
+    // (about twice a second); drive is how much of a change in the
+    // pointer's speed reaches it, so a quick move swings it to about 45
+    // degrees and a slow one tilts it a degree or two; damping is how
+    // quickly a swing dies away (most of it within a second); limit the
+    // furthest it swings, in degrees; step the fixed step it is worked out
+    // in, so it swings the same at any frame rate. fly: how long a piece let
+    // go takes to go into its cell.
+    swing: (
+        side: 36,
+        hang: 8,
+        gravity: 4000,
+        drive: 0.25,
+        damping: 5,
+        limit: 55,
+        step: 0.002,
+        fly: 0.14,
+    ),
 )

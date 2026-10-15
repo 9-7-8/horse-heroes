@@ -377,6 +377,24 @@ drag is Equip by another hand: E and the button do the same.
 - **Letting go** on a target is `Game::drop_piece`: Equip for that horse,
   one Undo, a card open on the piece goes with it. Anywhere else nothing
   changes.
+- **In the hand** (#363; `held.rs`, `fx/dangle.rs`). When the drag begins
+  the piece comes out of its cell: every cell that shows it, the report's
+  too, draws its slot empty (`picture::wanted`, given `Held::lifted`), and
+  its picture hangs from the pointer on a short string. It swings as a
+  damped pendulum, kicked by each change in the pointer's speed: a quick
+  move swings it back against the move, a stop lets it settle within a
+  second or so, and a slow move tilts it a degree or two. Let go, it flies
+  the short way (`swing.fly`, 0.14 s) into the cell it went to, a slot or
+  a horse's tag, or back into its own (`Drag::from`); the cell shows it
+  again once it is there. The game has changed already by then: nothing
+  waits on the flight.
+  - The numbers are `swing` in `menu.ron`. The swing is worked out in
+    fixed steps of 2 ms, so it is the same at any frame rate.
+  - The piece is under the pointer's card (`GlobalZIndex` 3 to the card's
+    5), so the preview is never behind it, and the pointer passes through
+    it (`Pickable::IGNORE` on every part). Hanging under the pointer, it
+    covers part of the target the pointer is on, never that target's edge
+    all round.
 - Its tutorial is an entry on the list of things to try, "Drag a piece onto
   a horse." (`Dragged`), once something has been equipped.
 
@@ -385,9 +403,13 @@ inside the window, over the cell's far end (`beside`).
 
 Tests: `a_dragged_piece_goes_where_equip_would_put_it` (`mod.rs`),
 `a_dragged_piece_previews_the_drop` (`card.rs`),
-`a_target_of_a_drag_stands_out_without_colour` (`parts.rs`). The menu tour
-drags with Bevy's own pointer (`Step::Grab`, `DragTo`, `LetGo`); pictures:
-`docs/gallery/2026-10-14-dragging`.
+`a_target_of_a_drag_stands_out_without_colour` (`parts.rs`), and for the
+piece in the hand `it_settles_from_a_push`,
+`a_slow_move_barely_tilts_it`, `the_swing_is_the_same_at_any_frame_rate`
+(`dangle.rs`) and `a_picture_is_of_the_piece_or_of_the_empty_slot`
+(`picture.rs`). The menu tour drags with Bevy's own pointer (`Step::Grab`,
+`DragTo`, `LetGo`); pictures: `docs/gallery/2026-10-14-dragging`, and
+`docs/gallery/2026-10-15-in-the-hand` for the piece in the hand.
 
 ## The appraisal in camp
 
