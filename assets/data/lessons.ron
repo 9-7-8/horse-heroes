@@ -194,7 +194,7 @@ list: [
     (id: "compare on another horse", due: Gear, words: "Card open, select another horse.", done: Compared, coins: 3),
     (id: "equip it", due: Gear, words: "Put the piece on a horse.", done: Equipped, coins: 3),
     // The card's third layer (#228): its formulas, once a card has been seen.
-    (id: "read the details", due: Card, words: "Turn on a card's Details.", done: Detailed, coins: 2),
+    (id: "read the details", due: Card, words: "Open a piece, press Details [V].", done: Detailed, coins: 2),
     // Dragging (#228), the equal of Equip, once Equip has been done.
     (id: "drag a piece", due: Equipped, words: "Drag a piece onto a horse.", done: Dragged, coins: 2),
     (id: "open every place", due: Gear, words: "Open every place in the bar.", done: Toured, coins: 5),
