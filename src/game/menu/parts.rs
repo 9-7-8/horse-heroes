@@ -56,6 +56,10 @@ pub struct Pointed;
 #[derive(Component)]
 pub struct Pointer;
 
+/// The point of a lesson's pop-up toward the control it is about (#353).
+#[derive(Component)]
+pub struct PopupArrow;
+
 /// On a part a dragged piece may be let go on (#228): drawn as a target
 /// while the drag lasts.
 #[derive(Component)]
@@ -654,50 +658,85 @@ pub fn reason(t: &Tokens, why: &str) -> impl Bundle + use<> {
     )
 }
 
-/// A lesson's one line (#291): the mark its control carries, that control's
-/// name and key, what is said about it, and the two controls that put it
-/// away. It has one line's height whatever it says, so a line that is too
-/// long is cut and never pushes anything down.
-pub fn hint(t: &Tokens, about: &str, key: Option<&str>, words: &str) -> impl Bundle + use<> {
+/// A lesson as a pop-up (#353, after the one line of #291): a panel with a
+/// thick edge and a shadow, so it stands out from the menus without its
+/// colour, and a point toward the control it is about. In it, the mark that
+/// control carries with its name and key; the one line said about it, in
+/// the title's size, wrapping within the pop-up's width; and the two
+/// controls that put it away. Where it stands is the shell's to say.
+pub fn popup(t: &Tokens, about: &str, key: Option<&str>, words: &str) -> impl Bundle + use<> {
     (
         Node {
-            width: Val::Percent(100.0),
-            height: Val::Px(t.size.hint_height),
-            align_items: AlignItems::Center,
-            column_gap: Val::Px(t.space.m),
-            padding: UiRect::horizontal(Val::Px(t.space.l)),
+            width: Val::Px(t.size.popup_width),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(t.space.m),
+            padding: UiRect::all(Val::Px(t.space.l)),
+            border: UiRect::all(Val::Px(t.size.popup_border)),
+            border_radius: BorderRadius::all(Val::Px(t.size.radius)),
             flex_shrink: 0.0,
             ..default()
         },
+        BackgroundColor(t.colour.panel.0),
+        BorderColor::all(pointer_colour(&t.colour)),
+        // A shadow under it, so it lies over the menus and not among them.
+        BoxShadow::new(
+            t.colour.scrim.0,
+            Val::Px(0.0),
+            Val::Px(t.space.s),
+            Val::Px(t.space.xs),
+            Val::Px(t.space.l),
+        ),
+        UiTransform::default(),
         children![
+            // The point toward its control, half out of the edge nearest it.
             (
+                PopupArrow,
                 Node {
-                    width: Val::Px(t.size.pointer),
-                    height: Val::Px(t.size.pointer),
-                    flex_shrink: 0.0,
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(-t.size.popup_arrow / 2.0 - t.size.popup_border),
+                    left: Val::Px(t.space.l),
+                    width: Val::Px(t.size.popup_arrow),
+                    height: Val::Px(t.size.popup_arrow),
                     ..default()
                 },
                 diamond(t),
             ),
-            (text(t, about), HintText::About, TextLayout::no_wrap()),
-            (
-                dim(t, &key.map(|k| format!("[{k}]")).unwrap_or_default()),
-                HintText::Key,
-                TextLayout::no_wrap(),
-            ),
             (
                 Node {
-                    flex_grow: 1.0,
-                    min_width: Val::Px(0.0),
-                    height: Val::Percent(100.0),
                     align_items: AlignItems::Center,
-                    overflow: Overflow::clip(),
+                    column_gap: Val::Px(t.space.m),
                     ..default()
                 },
-                children![(text(t, words), HintText::Words, TextLayout::no_wrap())],
+                children![
+                    (
+                        Node {
+                            width: Val::Px(t.size.pointer),
+                            height: Val::Px(t.size.pointer),
+                            flex_shrink: 0.0,
+                            ..default()
+                        },
+                        diamond(t),
+                    ),
+                    (text(t, about), HintText::About, TextLayout::no_wrap()),
+                    (
+                        dim(t, &key.map(|k| format!("[{k}]")).unwrap_or_default()),
+                        HintText::Key,
+                        TextLayout::no_wrap(),
+                    ),
+                ],
             ),
-            (small_button(t, "Got it", Some("Esc")), DismissHint),
-            (small_button(t, "Skip all hints", None), SkipHints),
+            (title(t, words), HintText::Words),
+            (
+                Node {
+                    justify_content: JustifyContent::FlexEnd,
+                    column_gap: Val::Px(t.space.m),
+                    ..default()
+                },
+                children![
+                    (small_button(t, "Got it", Some("Esc")), DismissHint),
+                    (small_button(t, "Skip all hints", None), SkipHints),
+                ],
+            ),
         ],
     )
 }
@@ -836,8 +875,15 @@ pub fn style_parts(
         if *border != edge {
             *border = edge;
         }
-        if ring.color != paint.ring {
-            ring.color = paint.ring;
+        // The control a lesson is about is ringed in the pop-up's colour
+        // (#353), so it is plain and not only marked on a corner. Focus and
+        // a drag's target keep their own rings.
+        let wanted = match pointed && !look.focused && !look.target {
+            true => pointer_colour(&tokens.colour),
+            false => paint.ring,
+        };
+        if ring.color != wanted {
+            ring.color = wanted;
         }
 
         // The part's own text and mark, stopping at any part nested inside it.

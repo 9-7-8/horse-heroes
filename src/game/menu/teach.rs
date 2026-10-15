@@ -1,6 +1,6 @@
 //! The lessons in the menus (#290): the queue of `sim::lessons` is told what
 //! the player's hands did, is asked which lesson to show, and that lesson's
-//! one line goes on the hint's line with its mark on the control it is about
+//! one line goes in the hint's pop-up beside the control it is about (#353)
 //! (#291). How it works: docs/lessons.md.
 //!
 //! Nothing here reaches the simulation or a control's availability: a
@@ -56,7 +56,7 @@ pub struct Held {
     there: bool,
 }
 
-/// Keep the hint's line to the lessons. The queue hears what the player's
+/// Keep the hint to the lessons. The queue hears what the player's
 /// hands did here: a piece's card opened, another horse selected, a hint put
 /// away, every hint skipped. Then the game is looked at again, and the lesson to show now is
 /// the hint. A sample hint (the dev key's) is left alone. What the list of
@@ -1070,7 +1070,7 @@ mod tests {
     /// (#297), the card open for some of them, by the file's own lessons and
     /// never their names. It leaves on the tick a game without lessons
     /// leaves on, with every piece it had where it was, and no town lesson
-    /// is left on the hint's line. A lesson it cut off is waiting, not put
+    /// is left up. A lesson it cut off is waiting, not put
     /// away; it is offered at the next town, and not at the one after when
     /// the party leaves it again.
     #[test]

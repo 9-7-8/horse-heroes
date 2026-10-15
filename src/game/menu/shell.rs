@@ -32,9 +32,9 @@ use super::teach;
 use super::ink;
 use super::picture::{self, picture, picture_of, reported_picture};
 use super::parts::{
-    ClosePanel, CounterValue, DismissHint, HintText, NotBuilt, Part, PartText, Pointed, RowValue, SkipHints,
-    Stop, Target, Unseen, button, cell, counter, dim, hint, panel, reason, row, side_panel, tab, text, title,
-    trail_mark,
+    ClosePanel, CounterValue, DismissHint, HintText, NotBuilt, Part, PartText, Pointed, PopupArrow, RowValue,
+    SkipHints, Stop, Target, Unseen, button, cell, counter, dim, panel, popup, reason, row, side_panel, tab, text,
+    title, trail_mark,
 };
 use super::tokens::Tokens;
 use crate::game::{
@@ -1039,16 +1039,23 @@ enum Page {
     /// The parts of a horse's view, in a place's side panel: there while
     /// the detail is a horse (#311).
     HorseParts(usize),
-    /// What the hint's line says with every place closed and no hint: how
-    /// to open a place.
+    /// What the hint's line says with every place closed: how to open a
+    /// place.
     RoadView,
-    /// The hint, on its line (#291).
+    /// The hint, as a pop-up by its control (#353).
     Hint,
 }
 
-/// The shell's hint: the one whose words follow `Shell::hint`.
+/// The shell's hint: the pop-up whose words follow `Shell::hint`.
 #[derive(Component)]
 struct HintLine;
+
+/// How far a pop-up has come up (#353), and the hint it came up for.
+#[derive(Default)]
+struct Rising {
+    hint: Option<Hint>,
+    secs: f32,
+}
 
 /// What a scroll key moves (#304): the page of a tab, or what a place's side
 /// panel says.
@@ -1187,7 +1194,7 @@ impl Plugin for ShellPlugin {
                     show_place,
                     see,
                     (mark_chosen, mark_targets).chain(),
-                    (mark_unseen, teach::teach, point_out, show_hint).chain(),
+                    (mark_unseen, teach::teach, point_out, show_hint, place_popup).chain(),
                     show_wearer,
                     (grow_cargo, show_carried, mark_lessons).chain(),
                     show_hover_card,
@@ -1324,10 +1331,9 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                 });
 
             // The hint's line (#291): one line under the strip that keeps
-            // its height whatever it holds, so a hint coming or going moves
-            // nothing. With every place closed it is all that is left
-            // between the strip and the footer, and without a hint it says
-            // there how to open a place.
+            // its height. With every place closed it is all that is left
+            // between the strip and the footer, and it says there how to
+            // open a place. The hint itself is a pop-up (#353).
             root.spawn(Node {
                 height: Val::Px(t.size.hint_height),
                 flex_shrink: 0.0,
@@ -1350,7 +1356,6 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
                         "On the road. Open a place to look and plan; press it again, the scene, or Escape, to give the scene its room back.",
                     ));
                 });
-                line.spawn((hint(t, "", None, ""), Page::Hint, HintLine));
             });
 
             // The places. All of them exist all the time; one is shown. The
@@ -1627,6 +1632,16 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
         border: UiRect::all(Val::Px(t.size.border)),
         ..default()
     });
+
+    // A lesson's pop-up (#353): over everything but the hover card's
+    // comparison, beside the control it is about. `place_popup` puts it.
+    commands
+        .spawn((popup(t, "", None, ""), Page::Hint, HintLine, GlobalZIndex(4)))
+        .entry::<Node>()
+        .and_modify(|mut node| {
+            node.position_type = PositionType::Absolute;
+            node.display = Display::None;
+        });
 
     // The fight log (#306): at the top left of the scene, above the party
     // and away from where an enemy falls. The newest line is the lowest.
@@ -2988,7 +3003,7 @@ fn show_place(
             Page::HorseParts(place) => shell
                 .detail(place)
                 .is_some_and(|detail| matches!(detail.item, Item::Horse(_))),
-            Page::RoadView => !place_in_view && shell.hint().is_none(),
+            Page::RoadView => !place_in_view,
             Page::Hint => shell.hint().is_some(),
         };
         let wanted = if shown { Display::Flex } else { Display::None };
@@ -3245,6 +3260,104 @@ fn show_hint(
                 text.0 = wanted.clone();
             }
         }
+    }
+}
+
+/// Put the hint's pop-up beside the control it is about (#353): under it
+/// when there is room and over it when not, so it never covers it, centred
+/// on it as far as the window allows, with its point toward it. A hint on
+/// no control (the party) is over the middle of the scene, with no point.
+/// When a hint comes up its pop-up rises into place, which the eye catches.
+fn place_popup(
+    time: Res<Time>,
+    tokens: Res<Tokens>,
+    shell: Res<Shell>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    targets: Query<(Entity, &ComputedNode, &UiGlobalTransform, &InheritedVisibility), With<Pointed>>,
+    popup: Single<(&mut Node, &ComputedNode, &mut UiTransform), With<HintLine>>,
+    arrow: Single<(&mut Node, &mut Visibility), (With<PopupArrow>, Without<HintLine>)>,
+    mut rising: Local<Rising>,
+) {
+    let Some(hint) = shell.hint() else {
+        rising.hint = None;
+        return;
+    };
+    if rising.hint.as_ref() == Some(hint) {
+        rising.secs += time.delta_secs();
+    } else {
+        *rising = Rising { hint: Some(hint.clone()), secs: 0.0 };
+    }
+    let t = &*tokens;
+    let window = window.size();
+    let (mut node, computed, mut transform) = popup.into_inner();
+    let (mut arrow, mut arrow_seen) = arrow.into_inner();
+    let height = match computed.size().y * computed.inverse_scale_factor() {
+        drawn if drawn > 0.0 => drawn,
+        // Not drawn yet: about what two lines and the controls take.
+        _ => 4.0 * t.size.control_height,
+    };
+    let (width, margin) = (t.size.popup_width, t.space.l);
+    // The control where it is drawn now: the first of its marks in view.
+    let target = targets
+        .iter()
+        .filter(|(_, drawn, _, seen)| seen.get() && drawn.size().x > 0.0)
+        .min_by_key(|(entity, ..)| *entity)
+        .map(|(_, drawn, at, _)| {
+            let scale = drawn.inverse_scale_factor();
+            let (_, _, middle) = at.to_scale_angle_translation();
+            Rect::from_center_size(middle * scale, drawn.size() * scale)
+        });
+    let reach = t.size.popup_gap + t.size.popup_arrow / 2.0;
+    let (left, top, bottom, point) = match target {
+        Some(target) => {
+            let below = target.max.y + reach + height <= window.y - margin || target.min.y - reach - height < margin;
+            let left = (target.center().x - width / 2.0).clamp(margin, (window.x - width - margin).max(margin));
+            match below {
+                true => (left, Val::Px(target.max.y + reach), Val::Auto, Some((true, target.center().x - left))),
+                false => (left, Val::Auto, Val::Px(window.y - target.min.y + reach), Some((false, target.center().x - left))),
+            }
+        }
+        None => ((window.x - width) / 2.0, Val::Percent(20.0), Val::Auto, None),
+    };
+    if (node.left, node.top, node.bottom) != (Val::Px(left), top, bottom) {
+        (node.left, node.top, node.bottom) = (Val::Px(left), top, bottom);
+    }
+
+    let seen = match point {
+        Some(_) => Visibility::Inherited,
+        None => Visibility::Hidden,
+    };
+    if *arrow_seen != seen {
+        *arrow_seen = seen;
+    }
+    if let Some((below, across)) = point {
+        let edge = Val::Px(-t.size.popup_arrow / 2.0 - t.size.popup_border);
+        let (top, bottom) = if below { (edge, Val::Auto) } else { (Val::Auto, edge) };
+        let inside = t.size.radius + t.space.s;
+        let most = (width - t.size.popup_arrow - 2.0 * t.size.popup_border - inside).max(inside);
+        let at = Val::Px((across - t.size.popup_arrow / 2.0 - t.size.popup_border).clamp(inside, most));
+        if (arrow.top, arrow.bottom, arrow.left) != (top, bottom, at) {
+            (arrow.top, arrow.bottom, arrow.left) = (top, bottom, at);
+        }
+    }
+
+    // It rises toward its control, and grows to its size as it does.
+    let done = match t.time.popup > 0.0 {
+        true => (rising.secs / t.time.popup).min(1.0),
+        false => 1.0,
+    };
+    let eased = 1.0 - (1.0 - done).powi(3);
+    let from = match point {
+        Some((false, _)) => -t.size.popup_rise,
+        _ => t.size.popup_rise,
+    };
+    let wanted = UiTransform {
+        translation: Val2::px(0.0, from * (1.0 - eased)),
+        scale: Vec2::splat(0.92 + 0.08 * eased),
+        ..default()
+    };
+    if *transform != wanted {
+        *transform = wanted;
     }
 }
 

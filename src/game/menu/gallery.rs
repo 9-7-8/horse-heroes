@@ -11,7 +11,7 @@ use bevy::{
 
 use super::parts::{
     self, ConfirmAction, ConfirmCancel, CounterValue, Look, Part, Pointed, ShowLook, Stop, Unseen,
-    button, card, confirmation, counter, dim, hint, panel, reason, row, scrim, side_panel,
+    button, card, confirmation, counter, dim, panel, popup, reason, row, scrim, side_panel,
     small_button, tab, text, title, trail_mark,
 };
 use super::card::{Rows, table};
@@ -285,15 +285,20 @@ fn spawn(commands: &mut Commands, t: &Tokens) {
                                 ..default()
                             })
                             .with_children(|hints| {
-                                hints.spawn(dim(t, "the hint: with a key, without one, and a line too long for its room"));
-                                hints.spawn(hint(t, "Equip", Some("E"), "Put the open piece on the selected horse."));
-                                hints.spawn(hint(t, "Sable", None, "A press opens everything about this horse."));
-                                hints.spawn(hint(
-                                    t,
-                                    "Journal",
-                                    Some("J"),
-                                    "A line too long for its room is cut where the room ends, and the two controls that put it away keep their places at the far end of it.",
-                                ));
+                                hints.spawn(dim(t, "the hint's pop-up (#353), with its point, about a control with a key"));
+                                hints
+                                    .spawn(Node {
+                                        padding: UiRect::top(Val::Px(t.size.popup_arrow)),
+                                        ..default()
+                                    })
+                                    .with_children(|popups| {
+                                        popups.spawn(popup(
+                                            t,
+                                            "Equip",
+                                            Some("E"),
+                                            "You choose who wears it. Left alone it stays carried, and nothing is lost.",
+                                        ));
+                                    });
                                 hints.spawn(dim(t, "its controls, in each state"));
                                 hints.spawn(line(gap)).with_children(|states| {
                                     for (_, look) in parts::six() {

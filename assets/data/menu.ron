@@ -86,6 +86,17 @@
         hint_height: 22,
         hint_control: 20,
         pointer: 6,
+        // A lesson's pop-up (#353), beside the control it is about and never
+        // over it: its width, which holds a line of 85 letters on two lines;
+        // its edge, thicker than any control's, so it is told from the
+        // menus with the colour taken away; the side of the square, stood
+        // on a corner, that points from it to its control; how far it is
+        // from that control; and how far it rises as it comes up.
+        popup_width: 340,
+        popup_border: 3,
+        popup_arrow: 14,
+        popup_gap: 10,
+        popup_rise: 14,
     ),
 
     // The split of the window between the 3D scene, at the top, and the
@@ -107,7 +118,9 @@
     // shows, so that a pointer on its way somewhere else raises nothing.
     // Once a card is up, the next piece's card shows at once.
     // layout: how long the scene takes to move between its two sizes.
-    time: (hover: 0.08, hover_card: 0.25, layout: 0.45),
+    // popup: how long a lesson's pop-up takes to come up (#353): a movement
+    // the eye catches, and short, so nothing waits on it.
+    time: (hover: 0.08, hover_card: 0.25, layout: 0.45, popup: 0.22),
 
     colour: (
         screen: "14171a",

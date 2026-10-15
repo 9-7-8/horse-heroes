@@ -67,6 +67,11 @@ pub struct Sizes {
     pub hint_height: f32,
     pub hint_control: f32,
     pub pointer: f32,
+    pub popup_width: f32,
+    pub popup_border: f32,
+    pub popup_arrow: f32,
+    pub popup_gap: f32,
+    pub popup_rise: f32,
 }
 
 /// The split of the window between the scene and the menus.
@@ -91,6 +96,7 @@ pub struct Times {
     pub hover: f32,
     pub hover_card: f32,
     pub layout: f32,
+    pub popup: f32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
