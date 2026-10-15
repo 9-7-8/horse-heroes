@@ -41,6 +41,8 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
             return Some((About::Piece(piece), found));
         }
         Target::Party => About::Party,
+        // On the boss in the scene, while its fight is on (#360).
+        Target::Boss => About::Boss(game.boss()?.0),
     };
     Some((about, Found::Here))
 }
@@ -191,6 +193,7 @@ fn target_name(target: &Target, game: &Game) -> String {
         Target::Selected => "the selected horse".into(),
         Target::Drop => "the newest piece".into(),
         Target::Party => "the party".into(),
+        Target::Boss => "the boss".into(),
     }
 }
 
@@ -378,7 +381,8 @@ mod tests {
         let game = Game::new(6);
         for def in game.lessons.defs() {
             match &def.target {
-                Target::Drop => {}
+                // Found in a boss fight: `the_boss_is_met_once`.
+                Target::Drop | Target::Boss => {}
                 Target::Control(name) => {
                     let named = map.controls().iter().filter(|control| control.name == *name);
                     assert_eq!(named.count(), 1, "{}: the control `{name}`", def.id);
@@ -431,6 +435,53 @@ mod tests {
         }
         assert_ne!(hinted(&shell), Some(opening.as_str()), "the fight puts it away");
         assert_eq!(game.lessons.state(at), State::Done);
+    }
+
+    /// The boss's lesson (#360), from `lessons.ron`: it comes up beside the
+    /// boss as its fight begins, with nothing aloft, and the game waits on
+    /// it until Got it; the fight then goes on. At the next trail's boss it
+    /// is not shown again.
+    #[test]
+    fn the_boss_is_met_once() {
+        let map = Places::load();
+        let mut game = Game::opening(6);
+        game.keep_going = true;
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        let boss = game.lessons.defs().iter().position(|def| def.target == Target::Boss);
+        let boss = game.lessons.defs()[boss.expect("lessons.ron has the boss's lesson")].id.clone();
+        assert_eq!(find(&Target::Boss, &map, &game, 0), None, "no boss on the way out");
+
+        let mut met = 0;
+        let mut fought = false;
+        for _ in 0..20000 {
+            follow(&mut game, &mut shell, &map, &mut held);
+            let at_boss = game.boss().is_some();
+            if at_boss && !fought {
+                // The fight has just begun: nothing has been struck yet.
+                met += 1;
+                if met == 1 {
+                    let (slot, _) = game.boss().unwrap();
+                    assert_eq!(hinted(&shell), Some(boss.as_str()), "said as the fight begins");
+                    assert_eq!(shell.hint().unwrap().about, About::Boss(slot));
+                    assert!(waits_on(&game, &shell), "the game waits on it");
+                } else {
+                    assert_ne!(hinted(&shell), Some(boss.as_str()), "said at a later boss");
+                }
+            }
+            fought = at_boss;
+            // Anything showing is answered, as a player would.
+            if waits_on(&game, &shell) {
+                shell.dismiss_hint();
+                follow(&mut game, &mut shell, &map, &mut held);
+            }
+            if met >= 2 && !at_boss {
+                break;
+            }
+            pass(&mut game);
+        }
+        assert!(met >= 2, "two boss fights were met, {met}");
+        let at = game.lessons.defs().iter().position(|def| def.id == boss).unwrap();
+        assert_eq!(game.lessons.state(at), State::PutAway, "answered by Got it");
     }
 
     /// Every event a lesson can wait for is one the game raises: the trail

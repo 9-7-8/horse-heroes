@@ -332,6 +332,9 @@ impl Expedition {
             names.join(", ")
         ));
         self.events.push(Event::Fight);
+        if self.encounter + 1 == self.plan.encounters.len() {
+            self.events.push(Event::Boss);
+        }
         self.phase = Phase::Fighting;
     }
 

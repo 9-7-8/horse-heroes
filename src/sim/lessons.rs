@@ -57,11 +57,13 @@ pub enum Event {
     Detailed,
     /// The player put a piece on a horse by dragging it there (#228).
     Dragged,
+    /// A trail's boss fight began: its last encounter (#360).
+    Boss,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 18] = [
+    pub const ALL: [Event; 19] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -80,6 +82,7 @@ impl Event {
         Event::Another,
         Event::Detailed,
         Event::Dragged,
+        Event::Boss,
     ];
 }
 
@@ -109,6 +112,8 @@ pub enum Target {
     /// The party as a whole, on no control: the line is said with no mark,
     /// so nothing is shown as wanting a press (#292).
     Party,
+    /// The boss of the trail, in the scene, while its fight is on (#360).
+    Boss,
 }
 
 /// What finishes a lesson: the player watched something happen, or did it.

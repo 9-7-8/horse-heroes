@@ -41,7 +41,7 @@ use crate::game::{
     Action, Game, Hand, Piece, Raise, SceneView, Screen, Uncollected, fight_log, report_side,
     report_text, stats_line,
 };
-use crate::game::scene::{HorseBox, horse_feet, line_order};
+use crate::game::scene::{HorseBox, enemy_centre, enemy_size, horse_feet, line_order};
 use crate::sim::data::Slot;
 use crate::sim::expedition::Phase;
 use crate::sim::lessons::{EntryDef, Tick};
@@ -470,6 +470,9 @@ pub enum About {
     /// The whole party, on no control: no mark and no name, only the words
     /// (#292).
     Party,
+    /// The boss in the scene, by the place it stands in (#360). Not a
+    /// control: the pop-up points at it and nothing is pressed.
+    Boss(usize),
 }
 
 /// A lesson's one line (#291), on the hint's line under the status strip,
@@ -1005,6 +1008,11 @@ pub struct HorseTag(pub usize);
 #[derive(Component)]
 struct TagSpot(usize);
 
+/// Where the boss is drawn in the scene (#360): a box over it that nothing
+/// sees, for a lesson's pop-up to stand beside and point at.
+#[derive(Component)]
+struct BossSpot;
+
 /// A part of a horse's view (#311): a press goes to the tab of the horses'
 /// place where that part is changed.
 #[derive(Component)]
@@ -1262,7 +1270,7 @@ impl Plugin for ShellPlugin {
                     escape,
                     follow_the_party,
                     (hold_over, point, offer).chain(),
-                    (move_scene, place_tags).chain(),
+                    (move_scene, place_tags, place_boss).chain(),
                     show_place,
                     see,
                     (mark_chosen, mark_targets, show_equip).chain(),
@@ -1726,6 +1734,14 @@ fn spawn(mut commands: Commands, tokens: Res<Tokens>, places: Res<Places>, game:
             children![(tag(t, &horse.name, places.horse_key(h)), HorseTag(h), Live(Fact::Health(h)))],
         ));
     }
+    // The boss's box (#360): `place_boss` keeps it over the boss.
+    commands.spawn((
+        Node { position_type: PositionType::Absolute, display: Display::None, ..default() },
+        BossSpot,
+        GlobalZIndex(-1),
+        Pickable::IGNORE,
+        Visibility::Hidden,
+    ));
 
     // The fight log (#306): at the top left of the scene, above the party
     // and away from where an enemy falls. The newest line is the lowest.
@@ -3175,6 +3191,47 @@ fn place_tags(
     }
 }
 
+/// Keep the boss's box over the boss while its fight is on (#360): the
+/// square the body is drawn in, as the camera sees it. Gone otherwise.
+fn place_boss(
+    game: Res<Game>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera3d>>,
+    spot: Single<(&mut Node, &mut Visibility), With<BossSpot>>,
+) {
+    let (camera, at) = *camera;
+    let (mut node, mut visibility) = spot.into_inner();
+    let drawn = game.boss().and_then(|(slot, foe)| {
+        let (middle, half) = (enemy_centre(slot, foe.max_health), enemy_size(foe.max_health) / 2.0);
+        let corners = [Vec3::new(-half, half, 0.0), Vec3::new(half, -half, 0.0)];
+        let ends: Vec<Vec2> = corners
+            .iter()
+            .map(|corner| camera.world_to_viewport(at, middle + *corner).ok())
+            .collect::<Option<_>>()?;
+        Some(Rect::from_corners(ends[0], ends[1]))
+    });
+    let (display, wanted) = match drawn {
+        Some(rect) => {
+            let place = (
+                Val::Px(rect.min.x),
+                Val::Px(rect.min.y),
+                Val::Px(rect.width()),
+                Val::Px(rect.height()),
+            );
+            if (node.left, node.top, node.width, node.height) != place {
+                (node.left, node.top, node.width, node.height) = place;
+            }
+            (Display::Flex, Visibility::Inherited)
+        }
+        None => (Display::None, Visibility::Hidden),
+    };
+    if node.display != display {
+        node.display = display;
+    }
+    if *visibility != wanted {
+        *visibility = wanted;
+    }
+}
+
 /// Move the scene towards the layout the shell asks for, and the shell's
 /// top edge with it.
 fn move_scene(
@@ -3367,6 +3424,7 @@ fn point_out(
             Option<&ControlButton>,
             Option<&CarriedCell>,
             Option<&SlotRow>,
+            Has<BossSpot>,
             Has<Pointed>,
         ),
         Or<(
@@ -3376,11 +3434,12 @@ fn point_out(
             With<ControlButton>,
             With<CarriedCell>,
             With<SlotRow>,
+            With<BossSpot>,
         )>,
     >,
 ) {
     let about = shell.hint().map(|hint| hint.about);
-    for (entity, place, tab, horse, control, carried, slot, pointed) in &controls {
+    for (entity, place, tab, horse, control, carried, slot, boss, pointed) in &controls {
         let wanted = match about {
             Some(About::Place(p)) => place.is_some_and(|button| button.0 == p),
             Some(About::Tab(p, t)) => {
@@ -3395,6 +3454,8 @@ fn point_out(
             Some(About::Piece(Piece::Worn { horse, slot: s })) => {
                 slot.is_some_and(|row| row.horse == horse && row.slot == s)
             }
+            // Wherever the boss stands: `place_boss` keeps its box on it.
+            Some(About::Boss(_)) => boss,
             Some(About::Party) | None => false,
         };
         if wanted && !pointed {
@@ -3427,6 +3488,7 @@ fn about_name(map: &Places, game: &Game, about: About) -> (String, Option<String
             .get(id)
             .map(|control| (control.name.clone(), key(control.key.as_deref()))),
         About::Piece(piece) => game.piece(piece).map(|gear| (gear.name.clone(), None)),
+        About::Boss(_) => game.boss().map(|(_, foe)| (foe.name.clone(), None)),
         About::Party => None,
     }
     .unwrap_or_default()

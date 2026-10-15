@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use serde::Deserialize;
 
 use crate::sim::data::{Data, Element, Stats};
-use crate::sim::expedition::{Expedition, Hit, Outcome, Phase, Plan, Struck};
+use crate::sim::expedition::{Expedition, Foe, Hit, Outcome, Phase, Plan, Struck};
 use crate::sim::lessons::{Event, Lessons};
 use crate::sim::loot::{Gear, Horse, roll_gear, swap_worn};
 use crate::sim::rng::Rng;
@@ -439,6 +439,25 @@ impl Game {
                 self.arriving.is_some() || expedition.phase == Phase::Travelling
             }
         }
+    }
+
+    /// The boss, while its fight is on (#360): the place it stands in among
+    /// the foes, and the foe. The trail's last encounter is its boss fight,
+    /// and the boss the biggest of it left standing.
+    pub fn boss(&self) -> Option<(usize, &Foe)> {
+        let Screen::Trail(expedition) = &self.screen else {
+            return None;
+        };
+        let last = expedition.encounter + 1 == expedition.plan.encounters.len();
+        if !last || expedition.phase != Phase::Fighting || self.arriving.is_some() {
+            return None;
+        }
+        expedition
+            .foes
+            .iter()
+            .enumerate()
+            .filter(|(_, foe)| foe.health > 0)
+            .max_by_key(|(slot, foe)| (foe.max_health, std::cmp::Reverse(*slot)))
     }
 
     /// Seconds of walking left before the party reaches town, while it is on

@@ -30,6 +30,7 @@
 //                        that is not the newest
 //              Detailed  the player read a piece's card with its Details on
 //              Dragged   the player put a piece on a horse by dragging it
+//              Boss      a trail's boss fight began: its last encounter
 //   shown    where: Town, Road, or left out for either. A Town lesson that
 //            is showing when the party sets out waits for the next town,
 //            and is not offered by itself after it is left a second time.
@@ -44,6 +45,8 @@
 //                                      now: in the cargo, or on a horse
 //              Party                   the party as a whole: the line alone,
 //                                      with no mark on any control
+//              Boss                    the boss in the scene, while its fight
+//                                      is on: the pop-up points at it
 //            A lesson whose target is not there waits until it is.
 //   words    its one line, said after the target's name and key, and by
 //            itself in the Journal's list of hints (#300). Short: at
@@ -132,6 +135,15 @@ lessons: [
         target: Horse(1),
         words: "Each number is a hit, sized by damage, coloured by element; a minus is a horse hit.",
         done: Watched(Kill),
+    ),
+    // The boss (#360): on it as its fight begins, the first time only.
+    (
+        id: "the boss",
+        due: Boss,
+        shown: Road,
+        target: Boss,
+        words: "The trail's boss: its last fight, and the one with the best loot.",
+        done: Watched(Win),
     ),
     (
         id: "press the piece",

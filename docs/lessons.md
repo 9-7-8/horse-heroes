@@ -17,7 +17,7 @@ One entry of `lessons.ron`, whose header says the same in full:
 | `id` | its name, by which a lesson put away is known again |
 | `due` | the event that has to happen first |
 | `shown` | `Town`, `Road`, or left out for either |
-| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), `Drop`, or `Party` (no control: the line alone, with no mark and no name, #292) |
+| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), `Drop`, `Party` (no control: the line alone, with no mark and no name, #292), or `Boss` (the boss in the scene while its fight is on, #360) |
 | `words` | its one line, 85 letters at most |
 | `done` | `Watched(event)`: it happens while the lesson shows. `Did(event)`: it happens once the lesson is due, shown or not |
 | `instead` | the line for a `Drop` that is no longer in the cargo but on a horse |
@@ -46,6 +46,7 @@ Plain facts (`Event`), told to the queue with `Lessons::raise`:
 | `Another` | `teach::follow`, when the card pinned is a carried piece's that is not the newest |
 | `Detailed` | `teach::follow`, when a piece's card is pinned with Details on (#228) |
 | `Dragged` | `Game::drop_piece`, when a dragged piece is let go on a horse or slot and put on (#228) |
+| `Boss` | the trail, with `Fight`, when its last encounter begins (#360) |
 
 An event makes its lessons due the first time it happens and never again,
 so a return to town does not replay the opening. A test holds that the game
@@ -249,6 +250,21 @@ ability, until another is watched); each number is a hit (#249: first
 kill, until another kill is watched; docs/damage-numbers.md). The
 element's line is #299. `Resisted` and `Win` are raised and no lesson
 waits for them yet.
+
+**The boss** (#360): as the first boss fight begins, the pop-up is beside
+the boss, named, saying it is the trail's last fight and the one with the
+best loot; the game waits on it until Got it. A boss is the last
+encounter's biggest foe still standing (`Game::boss`), and the box the
+pop-up points at is kept over its body by `place_boss` (`BossSpot`, seen
+by nobody). Like every lesson it waits while a kill's pieces are aloft;
+the fight begins after a walk, so they have usually arrived. Not shown at a
+later boss: `Boss` counts once. Test: `the_boss_is_met_once`. Picture:
+`--seed 6 --no-pause` at `IDLE_SHOT_AT=45`
+([gallery](gallery/2026-10-15-boss/README.md)).
+
+Chosen without the owner: its words; that it is finished by Got it (or the
+win, were it watched); that the pop-up points at the boss with no mark of
+its own on it.
 
 **The first item** (#296), in town, each finished by doing the thing and
 none of which has to be done:
