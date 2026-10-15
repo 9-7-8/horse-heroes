@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use super::menu::picture::LookImages;
 use super::menu::shell::Shell;
 use super::menu::tokens::Tokens;
-use super::{Game, SceneView, Screen};
+use super::{Game, Landed, SceneView, Screen};
 use crate::sim::data::{Element, Slot};
 use crate::sim::look::Look;
 use crate::sim::horse_shape::{Frame, HorseShape, Joint, Kind, LEGS, Part, Section};
@@ -65,6 +65,10 @@ const TIRED_LIE_HANG: f32 = 0.45;
 const TIRED_FOLD: f32 = std::f32::consts::FRAC_PI_2;
 const TIRED_BELLY: f32 = 0.08;
 const TIRED_STRIDE: f32 = 0.5;
+/// A horse's hit, a placeholder until it has an attack of its own: it tips
+/// forward this far, in radians, and back, over this many seconds.
+const LUNGE_TILT: f32 = 0.18;
+const LUNGE_SECS: f32 = 0.3;
 /// How dark a horse's hooves and hair are, as shares of its body's shade.
 const HOOF_SHADE: f32 = 0.45;
 const HAIR_SHADE: f32 = 0.3;
@@ -87,6 +91,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(Bare(self.bare))
             .init_resource::<LookImages>()
             .init_resource::<Tired>()
+            .init_resource::<Lunge>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -240,6 +245,18 @@ struct Neck(usize);
 struct Leg {
     horse: usize,
     phase: f32,
+}
+
+/// Seconds since each horse last landed a hit.
+#[derive(Resource)]
+struct Lunge {
+    since: [f32; HORSE_X.len()],
+}
+
+impl Default for Lunge {
+    fn default() -> Self {
+        Self { since: [LUNGE_SECS; HORSE_X.len()] }
+    }
 }
 
 /// How each horse is held, 0 to 1: `hang` is how far its head has dropped
@@ -867,13 +884,24 @@ fn swing_legs(
 
 /// A horse at no health stays in view, exhausted: its head hangs, and it
 /// lies down while the party stands. It is on its feet again in town.
+/// A horse that lands a hit tips forward and back.
 fn sync_horses(
     time: Res<Time>,
     game: Res<Game>,
+    mut landed: MessageReader<Landed>,
     mut tired: ResMut<Tired>,
+    mut lunge: ResMut<Lunge>,
     mut horses: Query<(&HorseBody, &mut Transform), Without<Neck>>,
     mut necks: Query<(&Neck, &mut Transform), Without<HorseBody>>,
 ) {
+    for since in &mut lunge.since {
+        *since = (*since + time.delta_secs()).min(LUNGE_SECS);
+    }
+    for Landed { hit, .. } in landed.read() {
+        if let Some(since) = hit.by.and_then(|horse| lunge.since.get_mut(horse)) {
+            *since = 0.0;
+        }
+    }
     let step = time.delta_secs() / TIRED_SECS;
     let towards = |now: f32, wanted: bool| {
         if wanted { (now + step).min(1.0) } else { (now - step).max(0.0) }
@@ -890,6 +918,11 @@ fn sync_horses(
         let y = -(body.leg_len - TIRED_BELLY) * eased(tired.lie[body.index]);
         if transform.translation.y != y {
             transform.translation.y = y;
+        }
+        let share = lunge.since[body.index] / LUNGE_SECS;
+        let rotation = Quat::from_rotation_z(-LUNGE_TILT * (share * std::f32::consts::PI).sin());
+        if transform.rotation != rotation {
+            transform.rotation = rotation;
         }
     }
     for (neck, mut transform) in &mut necks {

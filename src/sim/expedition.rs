@@ -139,6 +139,9 @@ pub struct Kill {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Hit {
     pub struck: Struck,
+    /// The horse that dealt it, by its place in the party; none for an
+    /// enemy's hit.
+    pub by: Option<usize>,
     /// The damage the hit did, as the fight log says it.
     pub damage: i32,
     /// The element of its elemental part, if it had one.
@@ -468,6 +471,7 @@ impl Expedition {
             ));
             self.hits.push(Hit {
                 struck: Struck::Horse(struck),
+                by: None,
                 damage,
                 element: None,
                 kind: if warded { HitKind::Warded } else { HitKind::Plain },
@@ -596,6 +600,7 @@ impl Expedition {
                 slot: target,
                 max_health: foe.max_health,
             },
+            by: Some(horse),
             damage,
             element: element.filter(|_| elemental > 0.0),
             kind,
