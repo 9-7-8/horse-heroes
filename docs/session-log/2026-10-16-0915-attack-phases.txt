@@ -1,0 +1,64 @@
+SESSION 2026-10-16 - attack phases: each hit wound up, landing on its step (#15)
+
+ASKED
+  /next, no steer. Build green, 251 tests. #246 waits on her look. Every
+  unbuilt menus issue depends on unbuilt systems (#362 on the stall #99,
+  #235 on storage and the stall, #234 on #201, #323 on #320). 0.2.5 waits
+  on #289 question 5 (a decision) and her look, so the next buildable
+  issue was in 0.3.0: #15, which #16 depends on.
+
+DONE
+  - b60083a: an ordinary hit, horse's or enemy's, leans back from
+    `wind_up` before it lands, swings in from `release`, is furthest
+    forward on the step the hit lands, and settles over `recovery`.
+    - Expedition::swing_in reads ahead (counts steps as tick does); the
+      sim is otherwise unchanged. Foe carries its enemies.ron id.
+    - assets/data/attacks.ron: a swing per attacker ("horse", each enemy
+      by id) and the flinch, moved out of scene.rs constants.
+    - Tests: swing_in_says_the_step_each_hit_lands_on (sim);
+      every_attacker_has_a_swing_that_fits_between_its_hits and
+      a_swing_lands_furthest_forward_on_its_hit (scene). Each seen to
+      fail with the code broken.
+    Checked: 254 tests; seen running, --seed 6 at 4.85, 5.0, 5.1, 5.25
+    (Morrow leaning back at 5.0, furthest forward at 5.25 as its 8
+    lands). Gallery docs/gallery/2026-10-16-attack-phases. Docs:
+    horse-model.md, build-and-run.txt times.
+
+DECIDED (for her)
+  - The numbers in attacks.ron (wind-up 0.3 to 0.6 s, lean back 0.10 to
+    0.16 rad, lunge 0.18 to 0.22). Slow enemies wind up longer.
+  - An ability's hit is not wound up: it tips in and out as before. Its
+    tell is #18.
+  - A wind-up whose hit never comes (the fight ends) eases back.
+  - No lesson: it is a thing watched, not a thing used.
+
+FOUND
+  - Restoring a file with Copy-Item keeps its old timestamp, so cargo
+    does not rebuild and the broken build's tests still fail. Touch the
+    file after restoring.
+
+NOT DONE
+  - She has not looked.
+
+PICK UP
+  Ask #289 question 5 with /answers; then #293 can start. If she is not
+  there, /next goes on to #16 (hit reactions), which #15 unblocked.
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
+  On main, from 0.3.0: #15 attack phases (closed).
