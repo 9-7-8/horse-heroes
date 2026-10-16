@@ -1758,8 +1758,8 @@ mod tests {
 
     /// Every hit that lands is told for its number (#249), in the order the
     /// fight log has it and for the damage it says; a horse's hit names the
-    /// enemy it struck, an enemy's the horse, and the Strong and Resisted
-    /// ones are the outcome's.
+    /// enemy it struck, an enemy's the horse, each names who dealt it, and
+    /// the Strong and Resisted ones are the outcome's.
     #[test]
     fn every_hit_is_told_as_the_log_says_it() {
         let data = Data::load();
@@ -1791,10 +1791,17 @@ mod tests {
                         assert_eq!(plain, hit.element.is_none(), "{line}");
                         assert!(hit.kind == HitKind::Plain || !plain, "{line}");
                         bursts += line.contains("Frost Burst (Ice) on") as u32;
+                        // The horse that dealt it is the one the line opens with.
+                        let Struck::Horse(by) = hit.by else { panic!("{line}: by {:?}", hit.by) };
+                        assert!(line.starts_with(&format!("{} ", run.party[by].name)), "{line}");
                     }
                     Struck::Horse(horse) => {
                         horses += 1;
                         assert!(line.contains(&format!(" hits {} for", run.party[horse].name)));
+                        // An enemy dealt it, so the line opens with no horse's name.
+                        let Struck::Foe { slot, max_health } = hit.by else { panic!("{line}: by {:?}", hit.by) };
+                        assert!(slot < 3 && max_health > 0);
+                        assert!(run.party.iter().all(|f| !line.starts_with(&format!("{} ", f.name))), "{line}");
                         assert_eq!(hit.kind == HitKind::Warded, line.ends_with("(Warded)"));
                         assert_eq!(hit.element, None);
                     }
