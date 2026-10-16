@@ -382,9 +382,9 @@ drag is Equip by another hand: E and the button do the same.
 - **From** a slot that holds a piece (Gear tab, Inventory), a carried piece
   (the cargo column, the Inventory) or the report's drop. In town only
   (`on_drag_start` in `shell.rs`).
-- **Onto** a slot of the piece's type, or a horse in the scene (#356; the
-  same ray as a press, its tag marked as the target and the preview beside
-  the tag), which takes
+- **Onto** a slot of the piece's type, or a horse in the scene or its tag
+  (#356, #368; the same test as a press, the tag first, then the ray; its
+  tag marked as the target and the preview beside the tag), which takes
   it in that type's slot (the Inventory has no tile for a horse's empty
   slot). Never onto the horse that wears it. `Game::drop_hand` says where it
   may go, by `can(Equip)` for that horse.

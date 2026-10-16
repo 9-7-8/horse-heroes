@@ -605,6 +605,18 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::LetGo,
         Step::Shot("the drop dragged onto a horse".into()),
         Step::Key(KeyCode::KeyU),
+        // Onto a horse's tag, as onto the horse (#368).
+        Step::Key(KeyCode::KeyB),
+        Step::Point,
+        Step::Carried(inventory),
+        Step::Grab,
+        Step::Carried(inventory),
+        Step::DragTo,
+        Step::Tag(2),
+        Step::Shot("dragging from the inventory onto a horse's tag".into()),
+        Step::LetGo,
+        Step::Shot("the drop dragged onto a horse's tag".into()),
+        Step::Key(KeyCode::KeyU),
         Step::PointAway,
         Step::Key(KeyCode::Escape),
         Step::Key(KeyCode::KeyH),
@@ -1072,11 +1084,15 @@ fn tour(
         && let Some((entity, _)) = horse_tags.iter().find(|(_, tag)| tag.0 == *h)
         && let (Ok(node), Ok(transform)) = (nodes.get(entity), transforms.get(entity))
     {
+        // After DragTo the pointer only goes there, as for a horse.
+        let aim = std::mem::replace(&mut tour.aim, Aim::Press);
         let (_, _, middle) = transform.to_scale_angle_translation();
         let to = middle * node.inverse_scale_factor();
         send(to, PointerAction::Move { delta: to - tour.at });
-        send(to, PointerAction::Press(PointerButton::Primary));
-        send(to, PointerAction::Release(PointerButton::Primary));
+        if aim == Aim::Press {
+            send(to, PointerAction::Press(PointerButton::Primary));
+            send(to, PointerAction::Release(PointerButton::Primary));
+        }
         tour.at = to;
     }
     if let Step::Scene = step {

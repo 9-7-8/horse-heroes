@@ -2335,16 +2335,21 @@ fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Cont
 }
 
 /// The tags under the horses in the scene, where they are on the screen.
-type Tags<'w, 's> = Query<'w, 's, (&'static HorseTag, &'static ComputedNode, &'static UiGlobalTransform, &'static InheritedVisibility)>;
+type Tags<'w, 's> = Query<
+    'w,
+    's,
+    (Entity, &'static HorseTag, &'static ComputedNode, &'static UiGlobalTransform, &'static InheritedVisibility),
+>;
 
 /// The horse whose tag is under a point of the window, in logical pixels
-/// (#367). The tags let a press through to the scene, so it is found here.
+/// (#367, #368). The tags let the pointer through to the scene, so it is
+/// found here.
 fn tag_under(tags: &Tags, position: Vec2) -> Option<usize> {
     tags.iter()
-        .find(|(_, node, transform, shown)| {
+        .find(|(_, _, node, transform, shown)| {
             shown.get() && !node.is_empty() && node.contains_point(**transform, position / node.inverse_scale_factor())
         })
-        .map(|(tag, ..)| tag.0)
+        .map(|(_, tag, ..)| tag.0)
 }
 
 /// A press on a horse in the scene, or on its tag, selects it and opens its
@@ -3068,8 +3073,8 @@ fn on_drag_end(
 
 /// While a piece is dragged, the horse or slot under the pointer that it may
 /// be let go on (#228): a slot of its type first, then a horse in the scene
-/// (#356), when the pointer is on the scene and not on a menu. The horse's
-/// tag stands for it, so the preview goes beside the tag.
+/// (#356), or its tag (#368), when the pointer is on the scene and not on a
+/// menu. The horse's tag stands for it, so the preview goes beside the tag.
 fn hold_over(
     game: Res<Game>,
     mut shell: ResMut<Shell>,
@@ -3080,7 +3085,7 @@ fn hold_over(
         Single<(&Camera, &GlobalTransform), With<Camera3d>>,
         Query<(&PointerId, &PointerLocation)>,
     ),
-    tags: Query<(Entity, &HorseTag)>,
+    tags: Tags,
 ) {
     let Some(drag) = shell.dragging() else {
         return;
@@ -3105,8 +3110,10 @@ fn hold_over(
                 .find(|(id, _)| **id == PointerId::Mouse)
                 .and_then(|(_, location)| location.location())?
                 .position;
-            let horse = horses.horse_on(camera.viewport_to_world(at, position).ok()?)?;
-            let (cell, _) = tags.iter().find(|(_, tag)| tag.0 == horse)?;
+            // A horse's tag stands for it here as well (#368).
+            let horse = tag_under(&tags, position)
+                .or_else(|| horses.horse_on(camera.viewport_to_world(at, position).ok()?))?;
+            let (cell, ..) = tags.iter().find(|(_, tag, ..)| tag.0 == horse)?;
             may(horse, None).then_some(Onto {
                 cell,
                 horse,
