@@ -14,8 +14,6 @@
     //   recovery: how long it takes after the hit to settle
     //   rear:     how far it has leaned back when the release starts
     //   lunge:    how far forward it leans as the hit lands
-    // An ability's hit (#18) is not wound up yet: it tips in and out over
-    // `recovery` from the moment it lands, as far as `lunge`.
     // The wind-up and recovery together stay shorter than the attacker's
     // time between hits (a test).
     swings: {
@@ -25,6 +23,18 @@
         "mire_toad":      (wind_up: 0.55, release: 0.12, recovery: 0.35, rear: 0.16, lunge: 0.22),
         "corrupted_stag": (wind_up: 0.60, release: 0.12, recovery: 0.35, rear: 0.14, lunge: 0.20),
         "hollow_wolf":    (wind_up: 0.35, release: 0.08, recovery: 0.25, rear: 0.12, lunge: 0.20),
+    },
+    // Each ability's own swing (#18), by its id in abilities.ron, in the
+    // same five numbers: longer and deeper than an ordinary hit, so it is
+    // read as coming. A shot draws far back and drives in; a burst rears
+    // and stamps down; a ward rears and settles upright as it is raised
+    // (no lunge). What each throws is in tells.ron. Wind-up and recovery
+    // fit inside its cooldown (a test).
+    casts: {
+        "ember_shot":  (wind_up: 0.80, release: 0.20, recovery: 0.40, rear: 0.22, lunge: 0.26),
+        "thorn_shot":  (wind_up: 0.80, release: 0.20, recovery: 0.40, rear: 0.22, lunge: 0.26),
+        "frost_burst": (wind_up: 0.90, release: 0.15, recovery: 0.45, rear: 0.38, lunge: 0.12),
+        "ward":        (wind_up: 0.80, release: 0.25, recovery: 0.30, rear: 0.30, lunge: 0.00),
     },
     // Struck, any body tips back this far and steps back this far, and
     // returns, over `secs`.

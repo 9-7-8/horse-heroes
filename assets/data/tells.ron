@@ -1,0 +1,49 @@
+// What each ability throws as it is wound up and used, so it can be named
+// from the motion alone, with the HUD hidden (#18;
+// docs/philosophy/combat-rhythm.md). The horse's own swing for each, and
+// so when each phase starts, is in attacks.ron, `casts`; these are only
+// what is drawn round it. A shot and a burst take their ability's element
+// colour. Change one value at a time and look at it (--seed 6, a fight
+// from 5 s). Lengths are world units (a horse is about 2 long), times
+// seconds.
+(
+    // A shot: an orb gathers in front of the horse's chest through the
+    // wind-up and is thrown at the first enemy standing as the release
+    // starts, reaching it as the hit lands.
+    //   size:  its diameter, full grown
+    //   ahead: how far in front of the horse's middle it gathers, and how
+    //          far up
+    //   arc:   how high its flight rises in the middle
+    //   pulse: how far it swells and shrinks as it gathers, a share of its
+    //          size, and how many times a second
+    orb: (size: 0.7, ahead: (1.2, 0.35), arc: 1.2, pulse: (0.15, 6.0)),
+    // A burst: a ring of shards on the ground closes in round the horse
+    // through the wind-up, from `from` wide to `to`; on the release it
+    // rushes out to past the furthest enemy standing, reaching them as the
+    // hits land, and runs on `beyond` further as it shrinks away over
+    // `fade_secs`.
+    //   count: how many shards, each `size` on a side
+    //   across: the furthest it spreads across the trail, either side of
+    //           the horse, so a wide ring stays on the ground as a long
+    //           ellipse rather than leaving the trail
+    ring: (count: 40, size: 0.22, from: 3.0, to: 1.0, beyond: 2.0, fade_secs: 0.35, across: 1.6),
+    // The Ward: a glow round the horse raising it swells through the
+    // wind-up; as it is raised a bubble closes over every horse standing,
+    // `grow_secs` to full. It holds while the Ward lasts and, in its last
+    // `warn_secs`, flickers `flicker` times a second; when the Ward ends
+    // the bubble swells by `pop` and is gone in `pop_secs`.
+    //   radius: the bubble's, round a horse's middle: along the trail, up
+    //           and across it; the glow's is `glow` times it
+    //   alpha:  how much it covers what is behind it
+    ward: (
+        colour: "f4e3a1",
+        radius: (1.5, 1.25, 1.0),
+        alpha: 0.30,
+        glow: 0.8,
+        grow_secs: 0.15,
+        warn_secs: 1.0,
+        flicker: 6.0,
+        pop: 1.35,
+        pop_secs: 0.3,
+    ),
+)

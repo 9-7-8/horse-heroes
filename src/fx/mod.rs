@@ -10,6 +10,7 @@ pub mod impact;
 pub mod numbers;
 pub mod response;
 pub mod sound;
+pub mod tells;
 
 pub struct FxPlugin {
     /// Throw the test burst shortly after launch (`--burst`). F3 throws it
@@ -35,6 +36,7 @@ impl Plugin for FxPlugin {
         .add_plugins(response::ResponsePlugin)
         .add_plugins(numbers::NumbersPlugin)
         .add_plugins(impact::ImpactPlugin)
+        .add_plugins(tells::TellsPlugin)
         .add_plugins(sound::SoundPlugin { mute: self.mute });
     }
 }

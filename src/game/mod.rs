@@ -83,10 +83,11 @@ pub struct Landed {
     pub at: Vec3,
 }
 
-/// An ability was used (#358), by its place in `abilities.ron`. `fx` plays
-/// its sound.
+/// An ability was used (#358), by its place in `abilities.ron`, by the horse
+/// in that place in the party. `fx` plays its sound and shows it (#18).
 #[derive(Message)]
 pub struct Cast {
+    pub horse: usize,
     pub ability: usize,
 }
 
@@ -451,6 +452,12 @@ impl Game {
     /// while the last fountain of a won trail plays, and the ground and
     /// whatever lies on it stand still with it. It walks between encounters
     /// and on the way back to town.
+    /// Seconds the trail's steps run behind the clock: a hit or a cast due
+    /// in `n` seconds of steps lands `n` less this from now (#15, #18).
+    pub fn behind(&self) -> f32 {
+        self.accumulator
+    }
+
     pub fn party_moving(&self) -> bool {
         match &self.screen {
             Screen::Camp { .. } => false,
@@ -992,8 +999,8 @@ pub fn advance(
                     };
                     landed.write(Landed { hit, at });
                 }
-                for ability in expedition.casts.drain(..) {
-                    cast.write(Cast { ability });
+                for used in expedition.casts.drain(..) {
+                    cast.write(Cast { horse: used.horse, ability: used.ability });
                 }
                 for kill in std::mem::take(&mut expedition.kills) {
                     fell = true;

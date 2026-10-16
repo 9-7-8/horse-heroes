@@ -481,7 +481,7 @@ fn play(
         }
     }
     due.extend(launches.iter().map(|sound| (sound.as_str(), 1.0, 0.0)));
-    for Cast { ability } in casts.read() {
+    for Cast { ability, .. } in casts.read() {
         let sound = game.data.abilities[*ability].sound.as_str();
         if hearing.fight.pass(feel, sound) {
             due.push((sound, 1.0, 0.0));

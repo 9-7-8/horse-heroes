@@ -93,6 +93,11 @@ Use the cheapest step that can prove the change:
    Hit reactions (#16, docs/hit-reactions.md), --seed 6: at 5.27 sparks
    off the toad's left face and its bar trailing; at 5.75 Morrow's bar
    trailing; at 28.05 a Strong Frost Burst's sparks (checked 2026-10-16).
+   Ability tells (#18, docs/ability-tells.md), --seed 6: at 5.85 the
+   Ward's glow round Sable, at 7.0 its bubbles, at 9.5 them flickering;
+   at 7.8 Ember Shot's orb by Juniper, at 8.03 in flight; at 8.7 Frost
+   Burst's ring closed round Morrow, at 9.07 rushing out (checked
+   2026-10-16). RUST_LOG=info,horse_heroes::fx::tells=debug logs each use.
    Lessons (docs/lessons.md): --seed 6 at IDLE_SHOT_AT=3 has the
    opening's line, with no mark; at 5 the first fight's lesson, at 12 the
    abilities', at 18 the numbers', at 24 speed's on Juniper (#355,

@@ -267,6 +267,8 @@ struct Leg {
 pub struct Attacks {
     /// An ordinary hit's swing for "horse" and for each enemy by its id.
     pub swings: HashMap<String, Swing>,
+    /// Each ability's swing, by its id in `abilities.ron` (#18).
+    pub casts: HashMap<String, Swing>,
     pub flinch: Flinch,
     pub blows: Blows,
 }
@@ -339,6 +341,11 @@ impl Attacks {
     pub fn swing(&self, who: &str) -> Swing {
         *self.swings.get(who).unwrap_or_else(|| panic!("attacks.ron: no swing for `{who}`"))
     }
+
+    /// The swing of an ability, by its id.
+    pub fn cast(&self, ability: &str) -> Swing {
+        *self.casts.get(ability).unwrap_or_else(|| panic!("attacks.ron: no cast for `{ability}`"))
+    }
 }
 
 impl Swing {
@@ -358,7 +365,8 @@ impl Swing {
 
     /// How far it leans toward its foe `since` seconds after a hit of its
     /// lands: from the lunge back to upright when the hit was wound up, and
-    /// tipped in and out again when it was not (an ability's, #18).
+    /// tipped in and out again when it was not (one that came sooner than
+    /// its wind-up, as at the start of a fight).
     pub fn settled(&self, since: f32, wound: bool) -> f32 {
         let t = (since / self.recovery).clamp(0.0, 1.0);
         if wound {
@@ -397,8 +405,11 @@ impl Motion {
 
 #[derive(Clone, Copy)]
 struct Pose {
-    /// Whose swing it is: the horse's, or the enemy's standing in the place.
+    /// The swing of its last hit, which it settles from.
     swing: Swing,
+    /// The swing it is going into: the horse's own, its ability's when that
+    /// is coming (#18), or the enemy's standing in the place.
+    next: Swing,
     flinch: Flinch,
     /// How the last hit it took landed.
     blow: Blow,
@@ -413,7 +424,16 @@ struct Pose {
 
 impl Pose {
     fn still(swing: Swing, flinch: Flinch, blow: Blow) -> Pose {
-        Pose { swing, flinch, blow, since_hit: f32::INFINITY, since_struck: f32::INFINITY, wound: false, gather: 0.0 }
+        Pose {
+            swing,
+            next: swing,
+            flinch,
+            blow,
+            since_hit: f32::INFINITY,
+            since_struck: f32::INFINITY,
+            wound: false,
+            gather: 0.0,
+        }
     }
 
     /// How far toward white it is, from the last hit it took.
@@ -436,11 +456,11 @@ impl Pose {
     /// is (the fight is over, or it is down), let a wind-up already begun go
     /// back over a recovery rather than snap.
     fn gather_to(&mut self, due: Option<f32>, dt: f32) {
-        let wanted = due.map_or(0.0, |due| self.swing.gathered(due));
+        let wanted = due.map_or(0.0, |due| self.next.gathered(due));
         self.gather = if wanted != 0.0 {
             wanted
         } else {
-            let step = (self.swing.rear + self.swing.lunge) / self.swing.recovery * dt;
+            let step = (self.next.rear + self.next.lunge) / self.next.recovery * dt;
             self.gather.signum() * (self.gather.abs() - step).max(0.0)
         };
     }
@@ -460,9 +480,11 @@ fn move_with_hits(
     }
     for Landed { hit, .. } in landed.read() {
         if let Some(pose) = motion.of(hit.by) {
-            // An ordinary hit lands as its swing comes in; an ability's
-            // comes with no wind-up.
+            // A hit lands as its swing comes in, and settles from that
+            // swing; one that came before its wind-up could start (the
+            // first of a fight) only tips in and out.
             pose.wound = pose.gather > 0.0;
+            pose.swing = pose.next;
             pose.since_hit = 0.0;
             pose.gather = 0.0;
         }
@@ -485,14 +507,22 @@ fn move_with_hits(
     // A hit lands at the end of the step it is due in; the steps run
     // `accumulator` behind the clock.
     let due = |who: Struck| expedition.swing_in(who, TICK).map(|due| due - game.accumulator);
+    // A horse goes into its ability's swing once that is closer than the
+    // swing's wind-up (#18), and into its own otherwise.
     let horse = motion.attacks.swing("horse");
     for (i, pose) in motion.horse.iter_mut().enumerate() {
-        pose.swing = horse;
-        pose.gather_to(due(Struck::Horse(i)), dt);
+        let cast = expedition.party.get(i).and_then(|fighter| {
+            let swing = motion.attacks.cast(&game.data.abilities[fighter.ability].id);
+            let due = expedition.cast_in(i, TICK)? - game.accumulator;
+            (due < swing.wind_up).then_some((swing, due))
+        });
+        let (next, due) = cast.map_or((horse, due(Struck::Horse(i))), |(swing, due)| (swing, Some(due)));
+        pose.next = next;
+        pose.gather_to(due, dt);
     }
     for (slot, pose) in motion.foe.iter_mut().enumerate() {
         if let Some(foe) = expedition.foes.get(slot) {
-            pose.swing = motion.attacks.swing(&foe.id);
+            pose.next = motion.attacks.swing(&foe.id);
         }
         pose.gather_to(due(Struck::Foe { slot, max_health: 0 }), dt);
     }
@@ -1270,6 +1300,17 @@ mod tests {
             assert!(swing.wind_up + swing.recovery < *interval, "{id}: {interval}");
         }
         assert_eq!(attacks.swings.len(), attackers.len(), "attacks.ron names an attacker nobody is");
+        // Each ability's swing (#18) too, within its cooldown, and drawn
+        // further back than an ordinary hit, so it is read as coming.
+        for ability in &data.abilities {
+            let (id, swing) = (&ability.id, attacks.cast(&ability.id));
+            assert!(0.0 < swing.release && swing.release < swing.wind_up, "{id}");
+            assert!(swing.recovery > 0.0 && swing.lunge >= 0.0, "{id}");
+            assert!(swing.wind_up > attacks.swing("horse").wind_up, "{id}");
+            assert!(swing.rear > attacks.swing("horse").rear, "{id}");
+            assert!(swing.wind_up + swing.recovery < ability.cooldown, "{id}");
+        }
+        assert_eq!(attacks.casts.len(), data.abilities.len(), "attacks.ron names an ability nobody has");
         let flinch = attacks.flinch;
         assert!(flinch.secs > 0.0 && flinch.tilt > 0.0 && flinch.step > 0.0);
     }

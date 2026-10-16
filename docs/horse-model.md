@@ -83,8 +83,11 @@ furthest forward (`lunge`) on the step the hit lands, and settles over
 ahead of time (`Expedition::swing_in`, which counts steps as `tick` does,
 less the clock's `accumulator`), and a test holds that every hit lands on
 the step it said. Each attacker has its own swing: "horse" for every
-horse, each enemy by its id. An ability's hit is not wound up yet (#18): it
-tips in and out over `recovery`. A wind-up whose hit never comes (the
+horse, each enemy by its id. A horse's ability has a longer, deeper swing
+of its own (`casts`, by ability id; #18, [ability-tells.md](ability-tells.md)),
+which it goes into once the ability is closer than that swing's wind-up
+(`Expedition::cast_in`). A hit that comes before its wind-up could start
+(the first of a fight) only tips in and out over `recovery`. A wind-up whose hit never comes (the
 fight ended) goes back over a recovery rather than snapping. Whoever takes
 a hit tips back and steps back (`flinch`), times its kind's `recoil`, and
 flashes toward white ([hit-reactions.md](hit-reactions.md)). The sim's `Hit` says who dealt

@@ -159,6 +159,14 @@ pub enum Struck {
     Horse(usize),
 }
 
+/// One use of an ability: which horse of the party used it, and the
+/// ability by its place in `abilities.ron`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Used {
+    pub horse: usize,
+    pub ability: usize,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HitKind {
     Plain,
@@ -223,10 +231,10 @@ pub struct Expedition {
     pub kills: Vec<Kill>,
     /// Hits not yet shown, oldest first (#249). Taken as the kills are.
     pub hits: Vec<Hit>,
-    /// Abilities used and not yet heard, oldest first, by their place in
-    /// `abilities.ron` (#358). Taken as the hits are; a cast's hits, if it
-    /// has any, are in `hits` from the same tick.
-    pub casts: Vec<usize>,
+    /// Abilities used and not yet heard or shown, oldest first (#358, #18).
+    /// Taken as the hits are; a cast's hits, if it has any, are in `hits`
+    /// from the same tick.
+    pub casts: Vec<Used>,
     /// Every piece dropped so far, in order.
     pub drops: Vec<Gear>,
     /// What has happened that a lesson may wait for (#290), oldest first.
@@ -245,6 +253,20 @@ pub struct Expedition {
     loot: Rng,
     /// The order a fight opens in and each swing's jitter (#354).
     cadence: Rng,
+}
+
+/// Seconds to the end of the step of `dt` in which a timer of `timer` runs
+/// out, as `fight` counts it down; None for one too far off to count.
+fn steps_to(mut timer: f32, dt: f32) -> Option<f32> {
+    if dt <= 0.0 || timer > 1000.0 * dt {
+        return None;
+    }
+    let mut steps = 0;
+    while timer > 0.0 {
+        timer -= dt;
+        steps += 1;
+    }
+    Some(steps as f32 * dt)
 }
 
 impl Expedition {
@@ -387,19 +409,21 @@ impl Expedition {
         if self.phase != Phase::Fighting {
             return None;
         }
-        let mut timer = match who {
+        let timer = match who {
             Struck::Horse(horse) => self.party.get(horse).filter(|f| f.health > 0)?.attack_timer,
             Struck::Foe { slot, .. } => self.foes.get(slot).filter(|f| f.health > 0)?.attack_timer,
         };
-        if dt <= 0.0 || timer > 1000.0 * dt {
+        steps_to(timer, dt)
+    }
+
+    /// When a horse's ability is next used, for the presentation to wind it
+    /// up ahead of it (#18), counted as `swing_in` counts. None outside a
+    /// fight and for a horse that is down.
+    pub fn cast_in(&self, horse: usize, dt: f32) -> Option<f32> {
+        if self.phase != Phase::Fighting {
             return None;
         }
-        let mut steps = 0;
-        while timer > 0.0 {
-            timer -= dt;
-            steps += 1;
-        }
-        Some(steps as f32 * dt)
+        steps_to(self.party.get(horse).filter(|f| f.health > 0)?.ability_timer, dt)
     }
 
     /// The time to a horse's next ordinary hit: its own interval, a little
@@ -432,7 +456,7 @@ impl Expedition {
 
             if self.party[i].ability_timer <= 0.0 {
                 self.events.push(Event::Ability);
-                self.casts.push(self.party[i].ability);
+                self.casts.push(Used { horse: i, ability: self.party[i].ability });
                 let (attack, elemental) = self.power(i);
                 let ability = &data.abilities[self.party[i].ability];
                 let (element, verb) = (ability.element, format!("{} on", ability.named()));
@@ -1279,7 +1303,7 @@ mod tests {
             only_the_ability_of(&mut run, 0);
             run.foes[0].health = i32::MAX;
             run.tick(&data, TICK);
-            assert_eq!(run.casts, vec![index], "{}", ability.id);
+            assert_eq!(run.casts, vec![Used { horse: 0, ability: index }], "{}", ability.id);
 
             run.casts.clear();
             run.party[0].ability_timer = f32::MAX;
@@ -1669,6 +1693,35 @@ mod tests {
         let mut done = run.clone();
         done.phase = Phase::Finished;
         assert_eq!(done.swing_in(Struck::Horse(0), TICK), None);
+    }
+
+    /// `cast_in` says when each horse's ability is used, before it is (#18):
+    /// on the step it said and on no other, for every horse and so every
+    /// kind of ability; and never for a horse that is down.
+    #[test]
+    fn cast_in_says_the_step_each_ability_is_used_on() {
+        let data = Data::load();
+        let mut run = fighting(&data, 0, &[&[("mire_toad", Element::Fire)]]);
+        for fighter in &mut run.party {
+            fighter.health = i32::MAX / 2;
+        }
+        run.foes[0].health = i32::MAX / 2;
+        let mut seen = vec![0; run.party.len()];
+        for tick in 0..1200 {
+            let due: Vec<f32> = (0..run.party.len()).map(|horse| run.cast_in(horse, TICK).unwrap()).collect();
+            run.tick(&data, TICK);
+            for (horse, due) in due.into_iter().enumerate() {
+                let used = run.casts.iter().any(|cast| cast.horse == horse);
+                assert_eq!(used, (due - TICK).abs() < 1e-4, "tick {tick}, horse {horse}: due in {due}");
+                seen[horse] += used as usize;
+            }
+            run.casts.clear();
+            run.hits.clear();
+        }
+        assert!(seen.iter().all(|&n| n >= 5), "{seen:?}");
+        run.party[1].health = 0;
+        assert_eq!(run.cast_in(1, TICK), None);
+        assert_eq!(run.cast_in(9, TICK), None);
     }
 
     /// Each horse hits at its own cadence (#354): a fight opens with the
