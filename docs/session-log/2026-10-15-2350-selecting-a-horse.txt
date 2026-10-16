@@ -1,0 +1,59 @@
+SESSION 2026-10-15 (late) - selecting a horse (#366, #367, #368, #369)
+
+ASKED
+  After release 0.2.4: "clicking on the background should unselect a horse,
+  so there isn't always a highlighted horse". Then, queued: "clicking the
+  name plate should also select a horse"; "dropping gear on the nameplate
+  also equips it to that horse"; "the outline shouldn't outline every box,
+  only the sillhoutte of the horse".
+
+DONE
+  - #366 (f05f8c7): a press on the scene away from the horses unselects:
+    no outline, no lit tag (Shell::marked). The menus keep the last horse.
+    Checked: test; menu tour picture 10 (town) and 51 (road).
+  - #367 (a54a4f8): a press on a horse's tag selects it (tag_under, in
+    on_scene_press). Checked: tour picture 11.
+  - #368 (2fe4595): a piece let go on a tag is equipped on that horse; the
+    tag lights as the target. Checked: tour pictures 96, 97 (on Sable).
+    No unit test: it is a Bevy system; the tour covers it.
+  - #369 (503563d): the outline is the silhouette: each shell pushed 0.25
+    back from the orthographic camera. Checked: pictures on the road at
+    0.5 and 0.25.
+  - Gallery: docs/gallery/2026-10-15-selection.
+
+DECIDED (for her)
+  - All four filed in 0.3.0 with "menus": 0.2.5 holds ten. They ride the
+    next release.
+  - #366: the game still starts with Juniper selected; only a background
+    press unselects. Menus about one horse keep showing the last one.
+  - #369: push 0.25, not 0.5. The road hides the outline where a horse
+    meets it, so the hooves have none; 0.5 lost the lower legs too. A
+    clean outline everywhere needs a screen-space pass; not built.
+
+FOUND
+  - Before #367, a press on a tag went through to the scene and, after
+    #366, would have unselected the horse. Fixed by #367 in the same run.
+
+NOT DONE
+  - She has not looked at any of the four.
+
+PICK UP
+  Ask #289 (Decide: the opening) with /answers; #293 onwards wait on it.
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - unbuilt
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
