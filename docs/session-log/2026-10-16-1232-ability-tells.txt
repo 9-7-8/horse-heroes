@@ -1,0 +1,68 @@
+SESSION 2026-10-16 - ability tells (#18)
+
+ASKED
+  /next, no steer. Build green, 259 tests, no open bug but #246 (waits on
+  her look). PICK UP named #18 if #289 could not be asked; 0.2.5's other
+  open issues wait on #289, so #18 (0.3.0).
+
+DONE
+  - a7bc32f (Closes #18): each ability winds up and shows itself.
+    - Sim: Expedition::cast_in(horse, dt) says the step an ability is used
+      on, as swing_in does for hits; casts now say which horse (Used, and
+      the Cast message's `horse`).
+    - The horse's lean: each ability has its own swing in attacks.ron
+      `casts`, longer and deeper than an ordinary hit. Shot draws back and
+      drives in; Burst rears and stamps; Ward rears and settles.
+    - fx/tells.rs, numbers in tells.ron: a shot's orb of its element grows
+      in front of the horse and arcs to the first enemy, landing with the
+      hit; Frost Burst's ring of shards closes round the horse, then rushes
+      out along the trail through the enemies; the Ward's glow swells, then
+      a bubble over each standing horse while it lasts, flickering in its
+      last second and popping when it ends.
+    Checked: 263 tests; the new sim test and the numbers test each seen to
+    fail with the code or data broken. Seen running, --seed 6 at 5.85,
+    7.0, 7.8, 8.03, 8.7, 9.07, 9.5, 10.35. Gallery
+    docs/gallery/2026-10-16-ability-tells. Docs: ability-tells.md (new),
+    horse-model.md, build-and-run.txt times.
+
+DECIDED (for her)
+  - What each tell is (orb, ground ring, bubbles) and every number in
+    tells.ron and attacks.ron `casts`: first guesses.
+  - The Ward shows as a bubble over every horse, as it covers the party.
+  - No lesson: it is watched, not used (and 0.2.2's rule 5 asks for one
+    for a feature; #295 is where the abilities are taught as they fire).
+
+FOUND
+  - The burst's ring at full reach left the trail and filled the sky; it
+    now spreads no further across than `across` (a test holds it).
+  - The Ward's bubble is a murky khaki over the grey trail. It reads, but
+    the colour may want her eye.
+  - The pop lasts 0.3 s and was not caught in a still.
+
+NOT DONE
+  - She has not looked. "Named with the HUD hidden" is hers to judge.
+
+PICK UP
+  Ask #289 question 5 with /answers; then #293 can start. If she is not
+  there, /next goes on to #19 (announce the final enemy), the lowest
+  unbuilt 0.3.0 issue now #18 is done.
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
+  On main, from 0.3.0: #15 attack phases, #16 hit reactions, #18 ability
+  tells (closed).
