@@ -1,0 +1,46 @@
+SESSION 2026-10-16 - the tutorial trail cannot be lost
+
+ASKED
+  /next, no steer. Nothing buildable: #246 and the menus issues wait on her
+  look, #362 waits on #99 and #147, 0.2.5 waits on #289. So, as PICK UP
+  said, /answers on #289.
+
+DONE
+  - a7cf528: #289 question 3 answered and recorded in vision.md (Tutorials,
+    Open). Checked: docs only; cargo check and 246 tests green at the start,
+    no code changed since.
+  - #289 commented (5 still open); #294's Done when gains the test that
+    every starting ability set wins on every seed, and her confirmation.
+
+DECIDED (hers)
+  - The tutorial trail cannot be lost, by tuning alone: ordinary rules,
+    the starting party wins with any abilities on any seed, a test holds
+    it; no health floor, rescue or forced win. Chosen over a safety net,
+    over losable like any trail, and over a free loss.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - #289 question 5 (lessons on every launch until saving) is still open.
+
+PICK UP
+  Ask #289 question 5 with /answers; then #289 closes and #293 can start.
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - unbuilt
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
