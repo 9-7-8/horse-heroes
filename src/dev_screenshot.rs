@@ -35,7 +35,7 @@ use bevy::camera::NormalizedRenderTarget;
 use serde::Deserialize;
 
 use crate::game::menu::shell::{
-    CarriedCell, Content, ControlButton, PartButton, PlaceButton, Places, ReportedCell, Shell,
+    CarriedCell, Content, ControlButton, HorseTag, PartButton, PlaceButton, Places, ReportedCell, Shell,
     SlotRow, TabButton,
 };
 use crate::game::menu::parts::{DismissHint, SkipHints};
@@ -147,6 +147,8 @@ enum Step {
     /// Press a horse in the scene with the pointer, at the middle of its
     /// body (#356).
     SceneHorse(usize),
+    /// Press the tag under a horse in the scene (#367).
+    Tag(usize),
     /// Press a place and stop the scene part of the way through its move.
     PlaceMidway(usize),
     Wait(f32),
@@ -331,6 +333,10 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         // A press on the background unselects it (#366).
         Step::Scene,
         Step::Shot("a press on the background unselects the horse".into()),
+        // A press on a horse's tag selects it, as a press on the horse does
+        // (#367).
+        Step::Tag(0),
+        Step::Shot("a press on a horse's tag selects it".into()),
         Step::SceneHorse(1),
         // Its parts are controls that go to their tab.
         Step::Part(1),
@@ -832,6 +838,7 @@ fn tour(
         Query<(Entity, &ReportedCell)>,
         Query<Entity, With<SkipHints>>,
         Query<Entity, With<DismissHint>>,
+        Query<(Entity, &HorseTag)>,
     ),
     controls: Query<(Entity, &ControlButton)>,
     menus: (Res<Places>, Res<Shell>),
@@ -848,7 +855,7 @@ fn tour(
     ),
 ) {
     let (mut exit, mut pointer, window, transforms, camera) = out;
-    let (carried, reported, skips, got_its) = cells;
+    let (carried, reported, skips, got_its, horse_tags) = cells;
     let (map, shell) = menus;
     // Its fields one by one: the step is read while the counts are kept.
     let tour = &mut *tour;
@@ -952,6 +959,7 @@ fn tour(
         | Step::PointAway
         | Step::Scene
         | Step::SceneHorse(_)
+        | Step::Tag(_)
         | Step::Wait(_)
         | Step::SetOut
         | Step::Town
@@ -1059,6 +1067,17 @@ fn tour(
     if let Step::PointAway = step {
         send(Vec2::ONE, moved.clone());
         tour.at = Vec2::ONE;
+    }
+    if let Step::Tag(h) = step
+        && let Some((entity, _)) = horse_tags.iter().find(|(_, tag)| tag.0 == *h)
+        && let (Ok(node), Ok(transform)) = (nodes.get(entity), transforms.get(entity))
+    {
+        let (_, _, middle) = transform.to_scale_angle_translation();
+        let to = middle * node.inverse_scale_factor();
+        send(to, PointerAction::Move { delta: to - tour.at });
+        send(to, PointerAction::Press(PointerButton::Primary));
+        send(to, PointerAction::Release(PointerButton::Primary));
+        tour.at = to;
     }
     if let Step::Scene = step {
         send(ON_THE_SCENE, moved.clone());

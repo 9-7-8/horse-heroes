@@ -101,7 +101,9 @@ Which layout is wanted follows one thing, `Shell::is_open`:
   side at 1120 x 640. It is drawn as a row (`parts::tag`, `HorseTag`),
   so it shows the selected horse, a drag's target and a lesson's mark as the
   strip's buttons did, and a lesson about a horse points at it. It is not a
-  control: a press goes through it to the horse, and Tab passes it by. The
+  control, and Tab passes it by: a press goes through it to the scene,
+  where `on_scene_press` finds the tag under the pointer (`tag_under`) and
+  selects its horse, as a press on the horse does (#367). The
   three hang in one line, level with the front of the foremost horse
   (`scene::horse_feet`), so the horse standing back does not cover the
   others' tags; `place_tags` keeps them there as the scene moves, under

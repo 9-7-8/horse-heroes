@@ -2334,8 +2334,21 @@ fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Cont
     }
 }
 
-/// A press on a horse in the scene selects it and opens its view, in town
-/// and on the road (#356).
+/// The tags under the horses in the scene, where they are on the screen.
+type Tags<'w, 's> = Query<'w, 's, (&'static HorseTag, &'static ComputedNode, &'static UiGlobalTransform, &'static InheritedVisibility)>;
+
+/// The horse whose tag is under a point of the window, in logical pixels
+/// (#367). The tags let a press through to the scene, so it is found here.
+fn tag_under(tags: &Tags, position: Vec2) -> Option<usize> {
+    tags.iter()
+        .find(|(_, node, transform, shown)| {
+            shown.get() && !node.is_empty() && node.contains_point(**transform, position / node.inverse_scale_factor())
+        })
+        .map(|(tag, ..)| tag.0)
+}
+
+/// A press on a horse in the scene, or on its tag, selects it and opens its
+/// view, in town and on the road (#356, #367).
 /// Anywhere else on the scene it unselects the horse (#366) and closes the
 /// place that is open on the road (#307).
 fn on_scene_press(
@@ -2344,13 +2357,15 @@ fn on_scene_press(
     mut shell: ResMut<Shell>,
     horses: Res<HorseBox>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera3d>>,
+    tags: Tags,
 ) {
     if press.button != PointerButton::Primary {
         return;
     }
     let (camera, at) = *camera;
-    let ray = camera.viewport_to_world(at, press.pointer.position).ok();
-    if let Some(horse) = ray.and_then(|ray| horses.horse_on(ray)) {
+    let position = press.pointer.position;
+    let ray = camera.viewport_to_world(at, position).ok();
+    if let Some(horse) = tag_under(&tags, position).or_else(|| ray.and_then(|ray| horses.horse_on(ray))) {
         shell.inspect(horse, None);
     } else {
         shell.press_scene(game.in_town());
