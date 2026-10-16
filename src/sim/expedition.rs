@@ -101,6 +101,8 @@ pub struct Fighter {
 
 #[derive(Clone, Debug)]
 pub struct Foe {
+    /// Its id in `enemies.ron`, which the presentation looks it up by.
+    pub id: String,
     pub name: String,
     pub element: Element,
     pub health: i32,
@@ -330,6 +332,7 @@ impl Expedition {
                 let def = &data.enemies[spawn.enemy];
                 let health = (def.health as f32 * scale).round() as i32;
                 Foe {
+                    id: def.id.clone(),
                     name: def.name.clone(),
                     element: spawn.element,
                     health,
@@ -374,6 +377,29 @@ impl Expedition {
         for (place, &horse) in order.iter().enumerate() {
             self.party[horse].attack_timer = rules.opening + rules.opening_stagger * place as f32;
         }
+    }
+
+    /// When an ordinary hit by `who` lands, for the presentation to wind it
+    /// up ahead of it (#15): seconds to the end of the step of `dt` it lands
+    /// in, counted as `tick` counts them. None outside a fight and for a
+    /// body that is down. The hit is already rolled, so this only reads.
+    pub fn swing_in(&self, who: Struck, dt: f32) -> Option<f32> {
+        if self.phase != Phase::Fighting {
+            return None;
+        }
+        let mut timer = match who {
+            Struck::Horse(horse) => self.party.get(horse).filter(|f| f.health > 0)?.attack_timer,
+            Struck::Foe { slot, .. } => self.foes.get(slot).filter(|f| f.health > 0)?.attack_timer,
+        };
+        if dt <= 0.0 || timer > 1000.0 * dt {
+            return None;
+        }
+        let mut steps = 0;
+        while timer > 0.0 {
+            timer -= dt;
+            steps += 1;
+        }
+        Some(steps as f32 * dt)
     }
 
     /// The time to a horse's next ordinary hit: its own interval, a little
@@ -1600,6 +1626,49 @@ mod tests {
             }
         }
         swings
+    }
+
+    /// `swing_in` says when each ordinary hit lands, horse's and enemy's,
+    /// before it is dealt (#15): a hit by a body lands on the step it said,
+    /// and on no other. Only reading it changes nothing.
+    #[test]
+    fn swing_in_says_the_step_each_hit_lands_on() {
+        let data = Data::load();
+        for seed in 0..20 {
+            let mut run = fighting(&data, 0, &[&[("mire_toad", Element::Fire), ("hollow_wolf", Element::Ice)]]);
+            run.cadence = Rng::new(seed);
+            run.open_fight(&data.rules);
+            for fighter in &mut run.party {
+                fighter.ability_timer = f32::MAX;
+                fighter.health = i32::MAX / 2;
+            }
+            for foe in &mut run.foes {
+                foe.health = i32::MAX / 2;
+                foe.max_health = i32::MAX / 2;
+            }
+            let bodies: Vec<Struck> = (0..run.party.len())
+                .map(Struck::Horse)
+                .chain((0..run.foes.len()).map(|slot| Struck::Foe { slot, max_health: i32::MAX / 2 }))
+                .collect();
+            let mut seen = 0;
+            for tick in 0..600 {
+                let due: Vec<f32> = bodies.iter().map(|&who| run.swing_in(who, TICK).unwrap()).collect();
+                run.tick(&data, TICK);
+                for (&who, due) in bodies.iter().zip(due) {
+                    let dealt = run.hits.iter().any(|hit| hit.by == who);
+                    let now = (due - TICK).abs() < 1e-4;
+                    assert_eq!(dealt, now, "seed {seed}, tick {tick}, {who:?}: due in {due}");
+                    seen += dealt as usize;
+                }
+                run.hits.clear();
+            }
+            assert!(seen > 600 / 10, "seed {seed}: {seen} hits");
+        }
+        let run = fighting(&data, 0, &[&[("mire_toad", Element::Fire)]]);
+        assert_eq!(run.swing_in(Struck::Horse(9), TICK), None);
+        let mut done = run.clone();
+        done.phase = Phase::Finished;
+        assert_eq!(done.swing_in(Struck::Horse(0), TICK), None);
     }
 
     /// Each horse hits at its own cadence (#354): a fight opens with the

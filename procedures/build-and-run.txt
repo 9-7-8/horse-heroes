@@ -86,9 +86,10 @@ Use the cheapest step that can prove the change:
    IDLE_SHOT_AT=5.4 has 6! and then 11! over the first enemy, one after
    the other (#354), and at 6.2 8! and -3 over Morrow (checked
    2026-10-15); at 28 an Elemental Burst's numbers on two enemies.
-   The hit poses (#365), --seed 6: at 5.25 Morrow tips forward and the
-   toad flinches; at 5.72 the Gloom Sprite leans in, Morrow flinches and
-   Juniper tips forward (checked 2026-10-15).
+   The hit poses (#365, #15), --seed 6: at 5.0 Morrow leans back,
+   winding up; at 5.25 it is furthest forward as its 8 lands on the toad
+   (checked 2026-10-16); at 5.72 the Gloom Sprite leans in, Morrow
+   flinches and Juniper tips forward (checked 2026-10-15).
    Lessons (docs/lessons.md): --seed 6 at IDLE_SHOT_AT=3 has the
    opening's line, with no mark; at 5 the first fight's lesson, at 12 the
    abilities', at 18 the numbers', at 24 speed's on Juniper (#355,

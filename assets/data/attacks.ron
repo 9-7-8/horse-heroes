@@ -1,0 +1,32 @@
+// How a body moves when it strikes and is struck (#15, #365;
+// docs/philosophy/combat-rhythm.md). Placeholders, done with transforms only,
+// until horses and enemies move as their own; nothing here comes from a
+// model. The sim decides when a hit lands; these only say how it is shown
+// around that moment. Change one value at a time and look at it (--seed 6,
+// a fight from 5 s). Angles are radians, lengths world units (a horse is
+// about 2 long), times seconds.
+(
+    // An ordinary hit, for each attacker: "horse" for every horse, and each
+    // enemy by its id in enemies.ron.
+    //   wind_up:  how long before the hit lands it starts to lean back
+    //   release:  how long before the hit it stops gathering and swings in,
+    //             so the swing is furthest forward as the hit lands
+    //   recovery: how long it takes after the hit to settle
+    //   rear:     how far it has leaned back when the release starts
+    //   lunge:    how far forward it leans as the hit lands
+    // An ability's hit (#18) is not wound up yet: it tips in and out over
+    // `recovery` from the moment it lands, as far as `lunge`.
+    // The wind-up and recovery together stay shorter than the attacker's
+    // time between hits (a test).
+    swings: {
+        "horse":          (wind_up: 0.40, release: 0.10, recovery: 0.30, rear: 0.10, lunge: 0.18),
+        "thornling":      (wind_up: 0.45, release: 0.10, recovery: 0.30, rear: 0.12, lunge: 0.20),
+        "gloom_sprite":   (wind_up: 0.30, release: 0.08, recovery: 0.25, rear: 0.10, lunge: 0.18),
+        "mire_toad":      (wind_up: 0.55, release: 0.12, recovery: 0.35, rear: 0.16, lunge: 0.22),
+        "corrupted_stag": (wind_up: 0.60, release: 0.12, recovery: 0.35, rear: 0.14, lunge: 0.20),
+        "hollow_wolf":    (wind_up: 0.35, release: 0.08, recovery: 0.25, rear: 0.12, lunge: 0.20),
+    },
+    // Struck, any body tips back this far and steps back this far, and
+    // returns, over `secs`.
+    flinch: (tilt: 0.14, step: 0.25, secs: 0.3),
+)

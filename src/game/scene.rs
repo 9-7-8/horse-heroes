@@ -15,12 +15,13 @@ use bevy::{
     window::PrimaryWindow,
 };
 
+use serde::Deserialize;
 use std::collections::HashMap;
 
 use super::menu::picture::LookImages;
 use super::menu::shell::Shell;
 use super::menu::tokens::Tokens;
-use super::{Game, Landed, SceneView, Screen};
+use super::{Game, Landed, SceneView, Screen, TICK};
 use crate::sim::data::{Element, Slot};
 use crate::sim::expedition::Struck;
 use crate::sim::look::Look;
@@ -66,15 +67,6 @@ const TIRED_LIE_HANG: f32 = 0.45;
 const TIRED_FOLD: f32 = std::f32::consts::FRAC_PI_2;
 const TIRED_BELLY: f32 = 0.08;
 const TIRED_STRIDE: f32 = 0.5;
-/// Placeholders until horses and enemies move as their own (#365). Striking,
-/// a body tips forward this far, in radians, and back, over this many
-/// seconds; struck, it tips back this far and steps back this far, in world
-/// units, and returns.
-const LUNGE_TILT: f32 = 0.18;
-const LUNGE_SECS: f32 = 0.3;
-const FLINCH_TILT: f32 = 0.14;
-const FLINCH_STEP: f32 = 0.25;
-const FLINCH_SECS: f32 = 0.3;
 /// How dark a horse's hooves and hair are, as shares of its body's shade.
 const HOOF_SHADE: f32 = 0.45;
 const HAIR_SHADE: f32 = 0.3;
@@ -266,17 +258,89 @@ struct Leg {
     phase: f32,
 }
 
+/// How bodies move when they strike and are struck: the numbers in
+/// `assets/data/attacks.ron` (#15).
+#[derive(Clone, Debug, Deserialize)]
+pub struct Attacks {
+    /// An ordinary hit's swing for "horse" and for each enemy by its id.
+    pub swings: HashMap<String, Swing>,
+    pub flinch: Flinch,
+}
+
+/// An ordinary hit's four phases (`docs/philosophy/combat-rhythm.md`), each
+/// its own number: it leans back from `wind_up` seconds before the hit
+/// lands, swings in from `release` before, is furthest forward as it lands,
+/// and settles over `recovery` after.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Swing {
+    pub wind_up: f32,
+    pub release: f32,
+    pub recovery: f32,
+    pub rear: f32,
+    pub lunge: f32,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Flinch {
+    pub tilt: f32,
+    pub step: f32,
+    pub secs: f32,
+}
+
+impl Attacks {
+    pub fn load() -> Attacks {
+        ron::from_str(include_str!("../../assets/data/attacks.ron"))
+            .unwrap_or_else(|e| panic!("assets/data/attacks.ron: {e}"))
+    }
+
+    /// The swing of "horse", or of an enemy by its id.
+    pub fn swing(&self, who: &str) -> Swing {
+        *self.swings.get(who).unwrap_or_else(|| panic!("attacks.ron: no swing for `{who}`"))
+    }
+}
+
+impl Swing {
+    /// How far it leans toward its foe, in radians, `due` seconds before its
+    /// next hit lands: none until the wind-up, back to `rear` by the
+    /// release, then in, quickening, to `lunge` as it lands.
+    pub fn gathered(&self, due: f32) -> f32 {
+        if due >= self.wind_up {
+            0.0
+        } else if due >= self.release {
+            -self.rear * eased((self.wind_up - due) / (self.wind_up - self.release))
+        } else {
+            let t = (1.0 - due.max(0.0) / self.release).clamp(0.0, 1.0);
+            -self.rear + (self.rear + self.lunge) * t * t
+        }
+    }
+
+    /// How far it leans toward its foe `since` seconds after a hit of its
+    /// lands: from the lunge back to upright when the hit was wound up, and
+    /// tipped in and out again when it was not (an ability's, #18).
+    pub fn settled(&self, since: f32, wound: bool) -> f32 {
+        let t = (since / self.recovery).clamp(0.0, 1.0);
+        if wound {
+            self.lunge * (1.0 - eased(t))
+        } else {
+            self.lunge * (t * std::f32::consts::PI).sin()
+        }
+    }
+}
+
 /// How each horse and each enemy's place is moving from the hits it deals
 /// and takes.
 #[derive(Resource)]
 struct Motion {
+    attacks: Attacks,
     horse: [Pose; HORSE_X.len()],
     foe: [Pose; ENEMY_X.len()],
 }
 
 impl Default for Motion {
     fn default() -> Self {
-        Self { horse: [Pose::STILL; HORSE_X.len()], foe: [Pose::STILL; ENEMY_X.len()] }
+        let attacks = Attacks::load();
+        let still = Pose::still(attacks.swing("horse"), attacks.flinch);
+        Self { attacks, horse: [still; HORSE_X.len()], foe: [still; ENEMY_X.len()] }
     }
 }
 
@@ -289,40 +353,93 @@ impl Motion {
     }
 }
 
-/// Seconds since a body last struck and was struck.
 #[derive(Clone, Copy)]
 struct Pose {
-    lunge: f32,
-    flinch: f32,
+    /// Whose swing it is: the horse's, or the enemy's standing in the place.
+    swing: Swing,
+    flinch: Flinch,
+    /// Seconds since it last struck and was struck.
+    since_hit: f32,
+    since_struck: f32,
+    /// Whether its last hit was wound up.
+    wound: bool,
+    /// How far it leans going into its next hit, in radians.
+    gather: f32,
 }
 
 impl Pose {
-    const STILL: Pose = Pose { lunge: LUNGE_SECS, flinch: FLINCH_SECS };
+    fn still(swing: Swing, flinch: Flinch) -> Pose {
+        Pose { swing, flinch, since_hit: f32::INFINITY, since_struck: f32::INFINITY, wound: false, gather: 0.0 }
+    }
 
     /// How far it leans toward its foe, in radians, and how far it has
     /// stepped back from it, in world units.
     fn lean(&self) -> (f32, f32) {
-        let bump = |since: f32, secs: f32| (since / secs * std::f32::consts::PI).sin();
-        let lunge = bump(self.lunge, LUNGE_SECS);
-        let flinch = bump(self.flinch, FLINCH_SECS);
-        (LUNGE_TILT * lunge - FLINCH_TILT * flinch, FLINCH_STEP * flinch)
+        let t = (self.since_struck / self.flinch.secs).clamp(0.0, 1.0);
+        let flinch = (t * std::f32::consts::PI).sin();
+        (
+            self.gather + self.swing.settled(self.since_hit, self.wound) - self.flinch.tilt * flinch,
+            self.flinch.step * flinch,
+        )
+    }
+
+    /// Lean into a hit landing in `due` seconds, if one is coming; if none
+    /// is (the fight is over, or it is down), let a wind-up already begun go
+    /// back over a recovery rather than snap.
+    fn gather_to(&mut self, due: Option<f32>, dt: f32) {
+        let wanted = due.map_or(0.0, |due| self.swing.gathered(due));
+        self.gather = if wanted != 0.0 {
+            wanted
+        } else {
+            let step = (self.swing.rear + self.swing.lunge) / self.swing.recovery * dt;
+            self.gather.signum() * (self.gather.abs() - step).max(0.0)
+        };
     }
 }
 
-fn move_with_hits(time: Res<Time>, mut landed: MessageReader<Landed>, mut motion: ResMut<Motion>) {
+fn move_with_hits(
+    time: Res<Time>,
+    game: Res<Game>,
+    mut landed: MessageReader<Landed>,
+    mut motion: ResMut<Motion>,
+) {
     let dt = time.delta_secs();
     let motion = &mut *motion;
     for pose in motion.horse.iter_mut().chain(motion.foe.iter_mut()) {
-        pose.lunge = (pose.lunge + dt).min(LUNGE_SECS);
-        pose.flinch = (pose.flinch + dt).min(FLINCH_SECS);
+        pose.since_hit += dt;
+        pose.since_struck += dt;
     }
     for Landed { hit, .. } in landed.read() {
         if let Some(pose) = motion.of(hit.by) {
-            pose.lunge = 0.0;
+            // An ordinary hit lands as its swing comes in; an ability's
+            // comes with no wind-up.
+            pose.wound = pose.gather > 0.0;
+            pose.since_hit = 0.0;
+            pose.gather = 0.0;
         }
         if let Some(pose) = motion.of(hit.struck) {
-            pose.flinch = 0.0;
+            pose.since_struck = 0.0;
         }
+    }
+    let Screen::Trail(expedition) = &game.screen else {
+        for pose in motion.horse.iter_mut().chain(motion.foe.iter_mut()) {
+            pose.gather_to(None, dt);
+        }
+        return;
+    };
+    // A hit lands at the end of the step it is due in; the steps run
+    // `accumulator` behind the clock.
+    let due = |who: Struck| expedition.swing_in(who, TICK).map(|due| due - game.accumulator);
+    let horse = motion.attacks.swing("horse");
+    for (i, pose) in motion.horse.iter_mut().enumerate() {
+        pose.swing = horse;
+        pose.gather_to(due(Struck::Horse(i)), dt);
+    }
+    for (slot, pose) in motion.foe.iter_mut().enumerate() {
+        if let Some(foe) = expedition.foes.get(slot) {
+            pose.swing = motion.attacks.swing(&foe.id);
+        }
+        pose.gather_to(due(Struck::Foe { slot, max_health: 0 }), dt);
     }
 }
 
@@ -1050,6 +1167,53 @@ fn sync_enemies(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every attacker has a swing in `attacks.ron` (#15), its phases in
+    /// order, and its wind-up and recovery fit between two of its hits, so
+    /// one swing is over before the next begins.
+    #[test]
+    fn every_attacker_has_a_swing_that_fits_between_its_hits() {
+        let data = crate::sim::data::Data::load();
+        let attacks = Attacks::load();
+        let rules = &data.rules;
+        let fastest = data.horses.iter().map(|horse| horse.stats.speed).max().unwrap();
+        let horse = rules.attack_interval(fastest) * (1.0 - rules.attack_jitter);
+        let mut attackers = vec![("horse".to_string(), horse)];
+        attackers.extend(data.enemies.iter().map(|enemy| (enemy.id.clone(), enemy.attack_interval)));
+        for (id, interval) in &attackers {
+            let swing = attacks.swing(id);
+            assert!(0.0 < swing.release && swing.release < swing.wind_up, "{id}");
+            assert!(swing.recovery > 0.0 && swing.rear > 0.0 && swing.lunge > 0.0, "{id}");
+            assert!(swing.wind_up + swing.recovery < *interval, "{id}: {interval}");
+        }
+        assert_eq!(attacks.swings.len(), attackers.len(), "attacks.ron names an attacker nobody is");
+        let flinch = attacks.flinch;
+        assert!(flinch.secs > 0.0 && flinch.tilt > 0.0 && flinch.step > 0.0);
+    }
+
+    /// A swing leans back in its wind-up and is furthest forward as the hit
+    /// lands (#15), with no jump on the way; a wound-up hit settles from
+    /// there, and one with no wind-up tips in and out.
+    #[test]
+    fn a_swing_lands_furthest_forward_on_its_hit() {
+        let swing = Attacks::load().swing("horse");
+        assert_eq!(swing.gathered(swing.wind_up + 0.1), 0.0);
+        assert_eq!(swing.gathered(swing.wind_up), 0.0);
+        assert!((swing.gathered(swing.release) + swing.rear).abs() < 1e-5);
+        assert!((swing.gathered(0.0) - swing.lunge).abs() < 1e-5);
+        let steps = 1000;
+        let mut last = swing.gathered(swing.wind_up);
+        for i in (0..steps).rev() {
+            let now = swing.gathered(swing.wind_up * i as f32 / steps as f32);
+            assert!((now - last).abs() < 0.01, "a jump at {i}: {last} to {now}");
+            last = now;
+        }
+        assert!((swing.settled(0.0, true) - swing.lunge).abs() < 1e-5);
+        assert_eq!(swing.settled(swing.recovery, true), 0.0);
+        assert!(swing.settled(0.0, false).abs() < 1e-5);
+        assert!(swing.settled(swing.recovery / 2.0, false) > swing.lunge * 0.99);
+        assert!(swing.settled(f32::INFINITY, false).abs() < 1e-5);
+    }
 
     /// A horse that can fight is never held as an exhausted one; an
     /// exhausted one hangs its head, lies down while the party stands, and

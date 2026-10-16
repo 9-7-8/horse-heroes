@@ -75,11 +75,20 @@ pieces, a `Neck` joint and four `Leg` joints as children, which is what the
 walk and the exhausted pose ([death-events.md](death-events.md)) move.
 
 A hit moves both sides, as placeholders until bodies move as their own
-(#365): whoever lands it, horse or enemy, tips forward and back
-(`LUNGE_*`), and whoever takes it tips back and steps back (`FLINCH_*`).
-The sim's `Hit` says who dealt it (`by`) as well as who took it; the
-`Motion` resource keeps each horse's and each enemy place's time since,
-and an enemy leans on its base.
+(#365, #15); every number is in `assets/data/attacks.ron`. An ordinary
+hit, horse's or enemy's, is wound up ahead of it: the body leans back from
+`wind_up` seconds before the hit lands, swings in from `release`, is
+furthest forward (`lunge`) on the step the hit lands, and settles over
+`recovery`. The sim keeps deciding when; it only tells the presentation
+ahead of time (`Expedition::swing_in`, which counts steps as `tick` does,
+less the clock's `accumulator`), and a test holds that every hit lands on
+the step it said. Each attacker has its own swing: "horse" for every
+horse, each enemy by its id. An ability's hit is not wound up yet (#18): it
+tips in and out over `recovery`. A wind-up whose hit never comes (the
+fight ended) goes back over a recovery rather than snapping. Whoever takes
+a hit tips back and steps back (`flinch`). The sim's `Hit` says who dealt
+it (`by`) as well as who took it; the `Motion` resource keeps each horse's
+and each enemy place's pose, and an enemy leans on its base.
 
 `--bare` starts with the hair hidden and F5 toggles it, to see the build
 underneath.
