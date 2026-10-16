@@ -120,7 +120,21 @@ pub enum Target {
     /// The horse whose ability was resisted the most on the last trail
     /// (#357), while one was.
     Resisted,
+    /// The horse a piece was last put on this town visit, while that change
+    /// stands (#298).
+    Equipped,
 }
+
+/// What a lesson's words may hold that the game fills in when it is said
+/// (#298), and the most letters each can come to, for the length check.
+/// `teach::say` fills them.
+#[cfg(test)]
+pub const FILLED: [(&str, usize); 2] = [
+    // A stat of the horse as it was and as it is: "attack 12 to 15".
+    ("{change}", 32),
+    // The trail level, as the footer says it.
+    ("{level}", 3),
+];
 
 /// What finishes a lesson: the player watched something happen, or did it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
@@ -603,8 +617,14 @@ mod tests {
             for words in [Some(&def.words), def.instead.as_ref()].into_iter().flatten() {
                 assert!(!words.trim().is_empty(), "{}", def.id);
                 // One line, never a page (the owner, 2026-10-11), and
-                // short enough for the hint's line at the smallest window.
-                assert!(!words.contains('\n') && words.chars().count() <= 85, "{}: {words}", def.id);
+                // short enough for the hint's line at the smallest window,
+                // counted with what the game fills in at its longest.
+                let filled: usize = FILLED.iter().map(|(hole, most)| words.matches(hole).count() * most).sum();
+                let rest = FILLED.iter().fold(words.clone(), |rest, (hole, _)| rest.replace(hole, ""));
+                let long = rest.chars().count() + filled;
+                assert!(!words.contains('\n') && long <= 85, "{}, {long} letters: {words}", def.id);
+                // Nothing in braces but what the game fills in.
+                assert!(!rest.contains(['{', '}']), "{}: {words}", def.id);
             }
             // A Drop is the only target that moves.
             assert!(def.instead.is_none() || def.target == Target::Drop, "{}", def.id);
@@ -614,6 +634,30 @@ mod tests {
         let words = parting.words.trim();
         assert!(!words.is_empty() && !words.contains('\n') && words.chars().count() <= 85, "{words}");
         assert!(Lessons::new(Vec::new()).parting().is_none());
+    }
+
+    /// No lesson claims a result the report cannot show (#298;
+    /// philosophy/onboarding.md, "Do not oversell an upgrade"): the words
+    /// keep to stats and levels, and never say that a piece or a win made
+    /// anything easier, better or quicker.
+    #[test]
+    fn no_lesson_claims_what_the_report_cannot_show() {
+        const CLAIMS: [&str; 12] = [
+            "easier", "easy", "harder", "hard", "better", "worse", "safer", "quicker", "stronger", "weaker",
+            "improves", "improved",
+        ];
+        let lessons = Lessons::load();
+        let said = lessons
+            .defs()
+            .iter()
+            .flat_map(|def| [Some(&def.words), def.instead.as_ref()].into_iter().flatten().map(|w| (&def.id, w)))
+            .chain(lessons.entries().iter().map(|def| (&def.id, &def.words)));
+        for (id, words) in said {
+            let lower = words.to_lowercase();
+            for word in lower.split(|c: char| !c.is_alphabetic()) {
+                assert!(!CLAIMS.contains(&word), "{id}: \"{word}\" in {words}");
+            }
+        }
     }
 
     fn entry(id: &str, due: Event, done: Event, coins: i32) -> EntryDef {

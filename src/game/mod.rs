@@ -590,6 +590,19 @@ impl Game {
         (most > 0).then(|| deeds.iter().position(|deeds| deeds.resisted_hits == most))?
     }
 
+    /// The horse a piece was last put on this town visit, while that change
+    /// stands, and what it changed there (#298): its stats before that
+    /// Equip and as they are now.
+    pub fn last_equipped(&self) -> Option<(usize, Stats, Stats)> {
+        self.changes.iter().rev().find_map(|change| match change.moved? {
+            (_, Piece::Worn { horse, .. }) => {
+                let before = change.party.get(horse)?.stats();
+                Some((horse, before, self.party.get(horse)?.stats()))
+            }
+            _ => None,
+        })
+    }
+
     /// The kept report the Journal is open at: an earlier one, or in town
     /// the last trail's. None on the road while the report is the fight's.
     fn open_report(&self) -> Option<&Kept> {
@@ -1043,6 +1056,31 @@ pub fn stats_line(stats: Stats) -> String {
         }
     }
     parts.join("  ")
+}
+
+/// A horse's stats as they were and as they are, in a few words (#298):
+/// the stat that moved the most, counting health in stat points, as
+/// "attack 12 to 15", and how many more moved. Numbers only: never whether
+/// it is better.
+pub fn change_line(data: &Data, was: Stats, now: Stats) -> String {
+    let weight = |label: &str, by: i32| match label {
+        "health" => by.abs() as f32 / data.gear.health_per_point.max(1) as f32,
+        _ => by.abs() as f32,
+    };
+    let mut moved: Vec<_> = was
+        .named()
+        .into_iter()
+        .zip(now.named())
+        .filter(|((_, was), (_, now))| was != now)
+        .map(|((label, was), (_, now))| (label, was, now))
+        .collect();
+    // The biggest first; of two alike, the first named.
+    moved.sort_by(|a, b| weight(b.0, b.2 - b.1).total_cmp(&weight(a.0, a.2 - a.1)));
+    match moved.as_slice() {
+        [] => "no stat changed".into(),
+        [(label, was, now)] => format!("{label} {was} to {now}"),
+        [(label, was, now), rest @ ..] => format!("{label} {was} to {now} and {} more", rest.len()),
+    }
 }
 
 /// The report the Journal is open at: an earlier one that was kept, or the

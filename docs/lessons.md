@@ -17,8 +17,8 @@ One entry of `lessons.ron`, whose header says the same in full:
 | `id` | its name, by which a lesson put away is known again |
 | `due` | the event that has to happen first |
 | `shown` | `Town`, `Road`, or left out for either |
-| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), `Drop`, `Party` (no control: the line alone, with no mark and no name, #292), or `Boss` (the boss in the scene while its fight is on, #360) |
-| `words` | its one line, 85 letters at most |
+| `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), `Drop`, `Party` (no control: the line alone, with no mark and no name, #292), `Boss` (the boss in the scene while its fight is on, #360), `Resisted` (#357), or `Equipped` (the horse a piece was last put on this visit, while that change stands, `Game::last_equipped`, #298) |
+| `words` | its one line, 85 letters at most, counted with what the game fills in at its longest: `{change}`, the `Equipped` horse's stat that moved the most as it was and as it is (`change_line`: "attack 12 to 15 and 2 more", health counted in stat points), and `{level}`, the trail level (`teach::say`, #298) |
 | `done` | `Watched(event)`: it happens while the lesson shows. `Did(event)`: it happens once the lesson is due, shown or not |
 | `instead` | the line for a `Drop` that is no longer in the cargo but on a horse |
 
@@ -254,8 +254,8 @@ party element's line (#299) went with the party element. **A resisted
 ability** (#357): due at the first resisted hit, shown in town, on the
 horse whose ability was resisted the most on the last trail
 (`Target::Resisted`, `Game::most_resisted`), pointing at Abilities;
-done when the player gives a horse another ability (`Chose`). `Win` is
-raised and no lesson waits for it yet.
+done when the player gives a horse another ability (`Chose`). `Win`
+brings the two lessons of the next trail (below).
 
 **The boss** (#360): as the first boss fight begins, the pop-up is beside
 the boss, named, saying it is the trail's last fight and the one with the
@@ -292,11 +292,40 @@ none of which has to be done:
    one of the list it opens; left alone it stays carried. Finished by
    equipping, either way. Nothing equips by itself and no lesson names a horse
    for the piece (owner, 2026-10-12, #351).
-5. Once a piece is on, Undo: its line sends the eye to the horse, where
-   the piece is now seen worn (#359), and says Undo takes it back until the
-   party sets out. Finished by setting out.
+5. Once a piece is on, on the horse it went on, where it is now seen worn
+   (#359): what it changed there, as it was and as it is ("defense 1 to 5
+   and 3 more with it on", #298), and that Undo takes it back until the
+   party sets out. Finished by setting out. Undo takes the lesson's horse
+   back with the piece, and it waits for the next Equip.
 6. Only after Equip has taken a piece from the horse that wore it: the
    horses exchanged pieces and nothing is lost. Never before a swap.
+
+**The next trail, explained honestly** (#298;
+`philosophy/onboarding.md`, "Do not oversell an upgrade"). What a piece
+changed is said on Equip, above; what the win changed is said apart, after
+the first item's lessons, in town after the first win:
+
+- On Set out, beside the footer's "Level N trail.": "A win raises the
+  trail level, now N: enemies gain health and attack, pieces stats." True
+  of the sim: enemy health and attack scale by `level_scaling` a level, and
+  a piece's points by one a level (`loot::roll_piece`).
+- The opening's exit line, on the Map: Keep going there sends the party
+  out by itself until a trail is lost, and it can be left to it. On the
+  place, not the control: Keep going stands in for the itinerary and
+  nothing may depend on it, so only the words name it (change them with
+  #201).
+
+Both are answered by Got it (`Watched(Win)`, which never happens in town);
+setting out with one up cuts it off, and it is offered once more. No line
+says a piece or a win made anything easier or better:
+`no_lesson_claims_what_the_report_cannot_show` holds the file's words and
+the list's to a list of such words. Whether a first-time player can say
+why the second trail was harder is #301's to find out
+([gallery](gallery/2026-10-16-next-trail-honestly/README.md)).
+
+Chosen without the owner: the words; the stat that moved the most and a
+count of the rest, not every stat; the Map for the exit line; Got it, not
+Set out, finishes the two win lessons.
 
 A player who presses nothing is shown the first and no other, and the
 party leaves as it would have. Coins are not mentioned. Whether a

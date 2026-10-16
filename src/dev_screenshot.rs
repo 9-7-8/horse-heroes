@@ -705,6 +705,14 @@ fn plan_lesson(mut tour: ResMut<Tour>) {
         Step::Key(KeyCode::Escape),
         Step::Shot("a swap loses nothing".into()),
         Step::Key(KeyCode::Escape),
+        Step::Shot("a resisted ability".into()),
+        // After the first win (#298): the level, then what the party does
+        // by itself, each put away in turn.
+        Step::Key(KeyCode::Escape),
+        Step::Shot("a win raises the level".into()),
+        Step::Key(KeyCode::Escape),
+        Step::Shot("it can be left".into()),
+        Step::Key(KeyCode::Escape),
         Step::Shot("put away and nothing follows".into()),
         // Found again (#300): the Journal's list, a press on the piece's
         // row, and the switch in Settings.

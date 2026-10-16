@@ -50,11 +50,18 @@
 //                                      is on: the pop-up points at it
 //              Resisted                the horse whose ability was resisted
 //                                      the most on the last trail
+//              Equipped                the horse a piece was last put on this
+//                                      town visit, while that change stands
 //            A lesson whose target is not there waits until it is.
 //   words    its one line, said after the target's name and key, and by
 //            itself in the Journal's list of hints (#300). Short: at
 //            the smallest window the line has room for about a hundred
-//            letters, the name included, and a piece's name is long.
+//            letters, the name included, and a piece's name is long. The
+//            game fills in two things (#298): {change}, the stat of the
+//            horse a piece last went on that moved the most, as it was and
+//            as it is ("attack 12 to 15 and 2 more"), and {level}, the trail
+//            level. No line claims what the report cannot show: stats and
+//            levels, never "easier" or "better" (a test holds a list).
 //   done     what finishes it:
 //              Watched(Kill)  that happens while the lesson is showing.
 //                             The game stops under a lesson (#353), so
@@ -206,13 +213,15 @@ lessons: [
         words: "The two horses exchanged pieces. Nothing is lost.",
         done: Did(SetOut),
     ),
+    // On the horse it went on, worn gear seen there (#359), with what it
+    // changed on that horse as it was and as it is (#298): the numbers, never
+    // that a fight will go better.
     (
         id: "it is on",
         due: Equipped,
         shown: Town,
-        target: Control("Undo"),
-        // Worn gear is seen on the horse (#359): the line sends the eye there.
-        words: "It is on: see it on the horse. This takes it back until the party sets out.",
+        target: Equipped,
+        words: "{change} with it on. Undo takes it back until you set out.",
         done: Did(SetOut),
     ),
     // Abilities carry their elements (#357): at the first resisted hit, in
@@ -225,6 +234,32 @@ lessons: [
         target: Resisted,
         words: "Its ability's element was resisted. Select it, then Abilities [2] to change it.",
         done: Did(Chose),
+    ),
+    // The next trail, explained honestly (#298): after the first win, apart
+    // from what a piece changed, that the win raised the level, on Set out
+    // where the footer says the level. Stats, not "harder". Answered by Got
+    // it (Win does not happen in town); setting out cuts it off and it is
+    // offered once more.
+    (
+        id: "a win raises the level",
+        due: Win,
+        shown: Town,
+        target: Control("Set out"),
+        words: "A win raises the trail level, now {level}: enemies gain health and attack, pieces stats.",
+        done: Watched(Win),
+    ),
+    // The opening's exit line (#298): what the party does next by itself,
+    // and that it can be left to it. Answered by Got it, as above. On the
+    // Map, where the itinerary will be: Keep going stands in for it and
+    // nothing may depend on it (places.ron), so only these words name it,
+    // and change when #201 ships.
+    (
+        id: "it can be left",
+        due: Win,
+        shown: Town,
+        target: Place("Map"),
+        words: "Keep going here sends the party out by itself till a trail is lost: leave it to it.",
+        done: Watched(Win),
     ),
 ],
 list: [

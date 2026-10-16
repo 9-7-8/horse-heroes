@@ -13,7 +13,7 @@ use bevy::prelude::*;
 use super::shell::{About, Hint, PARTING, Places, Shell, Switch};
 use crate::fx::drops::Kind;
 use crate::fx::sound::Heard;
-use crate::game::{Game, Piece, Uncollected};
+use crate::game::{Game, Piece, Uncollected, change_line};
 use crate::sim::lessons::{Event, Found, Shown, State, Target};
 
 /// Where a lesson's target is now: the control its mark goes on, and
@@ -45,8 +45,22 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
         Target::Boss => About::Boss(game.boss()?.0),
         // On the horse whose ability was resisted the most last trail (#357).
         Target::Resisted => About::Horse(game.most_resisted()?),
+        // On the horse a piece was last put on, while that stands (#298).
+        Target::Equipped => About::Horse(game.last_equipped()?.0),
     };
     Some((about, Found::Here))
+}
+
+/// A lesson's line as it is said now: with what the game fills in (#298),
+/// `{change}` the last-equipped horse's stat as it was and as it is, and
+/// `{level}` the trail level.
+fn say(game: &Game, lesson: usize, found: Found) -> String {
+    let words = game.lessons.words(lesson, found);
+    let change = match game.last_equipped() {
+        Some((_, was, now)) => change_line(&game.data, was, now),
+        None => "no stat changed".into(),
+    };
+    words.replace("{change}", &change).replace("{level}", &game.plan.level.to_string())
 }
 
 /// What the player's hands held when the lessons last looked: whether a
@@ -146,7 +160,7 @@ pub fn follow_over(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut 
             Some(Hint {
                 lesson: game.lessons.defs()[lesson].id.clone(),
                 about,
-                words: game.lessons.words(lesson, at).into(),
+                words: say(game, lesson, at),
             })
         }),
     };
@@ -197,6 +211,7 @@ fn target_name(target: &Target, game: &Game) -> String {
         Target::Party => "the party".into(),
         Target::Boss => "the boss".into(),
         Target::Resisted => "the horse whose ability was resisted".into(),
+        Target::Equipped => "the horse the piece went on".into(),
     }
 }
 
@@ -242,7 +257,7 @@ pub fn listed(game: &Game, map: &Places, selected: usize, row: usize) -> Option<
         _ => " A press shows it again.",
     };
     Some(Listed {
-        words: game.lessons.words(lesson, found.unwrap_or(Found::Here)).into(),
+        words: say(game, lesson, found.unwrap_or(Found::Here)),
         line: format!("{became}. {place}, on {}.{press}", target_name(&def.target, game)),
         showing,
         can: !showing && here && found.is_some(),
@@ -267,7 +282,7 @@ pub fn again(game: &mut Game, shell: &mut Shell, map: &Places, row: usize) -> bo
     shell.show_again(Hint {
         lesson: game.lessons.defs()[lesson].id.clone(),
         about,
-        words: game.lessons.words(lesson, found).into(),
+        words: say(game, lesson, found),
     });
     true
 }
@@ -405,6 +420,65 @@ mod tests {
         }
     }
 
+    /// After an Equip the lesson is on the horse the piece went on, and says
+    /// what it changed there as it was and as it is (#298), from the stats
+    /// themselves. Undo takes the change back, and the lesson's horse with
+    /// it; the trail level is said as the footer says it.
+    #[test]
+    fn the_equip_lesson_says_what_it_changed() {
+        let map = Places::load();
+        let mut game = Game::back_with_one_piece();
+        let lesson = |id: &str, target, words: &str| LessonDef {
+            id: id.into(),
+            due: Event::Gear,
+            shown: Shown::Town,
+            target,
+            words: words.into(),
+            done: Done::Did(Event::SetOut),
+            instead: None,
+        };
+        game.lessons = Lessons::new(vec![
+            lesson("on", Target::Equipped, "{change}, with it on."),
+            lesson("level", Target::Party, "Level {level}."),
+        ]);
+        assert_eq!(find(&Target::Equipped, &map, &game, 0), None, "nothing put on yet");
+        let was = game.party[1].stats();
+        game.act(Action::Equip, Hand::horse(1));
+        let now = game.party[1].stats();
+        assert_ne!(was, now);
+        assert_eq!(game.last_equipped(), Some((1, was, now)));
+        assert_eq!(find(&Target::Equipped, &map, &game, 0), Some((About::Horse(1), Found::Here)));
+        let line = say(&game, 0, Found::Here);
+        assert_eq!(line, format!("{}, with it on.", change_line(&game.data, was, now)));
+        assert_ne!(line, "no stat changed, with it on.");
+        assert_eq!(say(&game, 1, Found::Here), format!("Level {}.", game.plan.level));
+
+        game.act(Action::Undo, Hand::default());
+        assert_eq!(game.last_equipped(), None);
+        assert_eq!(find(&Target::Equipped, &map, &game, 0), None);
+    }
+
+    /// The change is said by the stat that moved the most, health counted
+    /// in stat points, and how many more moved; numbers only.
+    #[test]
+    fn a_change_is_said_by_its_biggest_stat() {
+        use crate::sim::data::{Data, Stats};
+        let data = Data::load();
+        let per = data.gear.health_per_point;
+        let was = Stats { health: 40, attack: 10, defense: 2, elemental: 0, speed: 3 };
+        assert_eq!(change_line(&data, was, was), "no stat changed");
+        let attack = Stats { attack: 13, ..was };
+        assert_eq!(change_line(&data, was, attack), "attack 10 to 13");
+        // Health by its points: one point's worth less than attack's three.
+        let both = Stats { health: 40 + per, ..attack };
+        assert_eq!(change_line(&data, was, both), "attack 10 to 13 and 1 more");
+        let more = Stats { health: 40 + per * 4, ..both };
+        assert_eq!(change_line(&data, was, more), format!("health 40 to {} and 1 more", 40 + per * 4));
+        // A loss is said as plainly as a gain.
+        let less = Stats { defense: 0, ..was };
+        assert_eq!(change_line(&data, was, less), "defense 2 to 0");
+    }
+
     /// Every lesson in the file names a target that exists: a place, a tab
     /// or a control of `places.ron` by its name, and no control's name that
     /// two controls share; a horse the party has. A piece is looked for in
@@ -417,7 +491,8 @@ mod tests {
             match &def.target {
                 // Found in a boss fight: `the_boss_is_met_once`.
                 // Found after a resisted trail: `a_resisted_ability_is_taught_on_its_horse`.
-                Target::Drop | Target::Boss | Target::Resisted => {}
+                // Found after an Equip: `the_equip_lesson_says_what_it_changed`.
+                Target::Drop | Target::Boss | Target::Resisted | Target::Equipped => {}
                 Target::Control(name) => {
                     let named = map.controls().iter().filter(|control| control.name == *name);
                     assert_eq!(named.count(), 1, "{}: the control `{name}`", def.id);
