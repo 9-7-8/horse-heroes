@@ -86,7 +86,8 @@ the step it said. Each attacker has its own swing: "horse" for every
 horse, each enemy by its id. An ability's hit is not wound up yet (#18): it
 tips in and out over `recovery`. A wind-up whose hit never comes (the
 fight ended) goes back over a recovery rather than snapping. Whoever takes
-a hit tips back and steps back (`flinch`). The sim's `Hit` says who dealt
+a hit tips back and steps back (`flinch`), times its kind's `recoil`, and
+flashes toward white ([hit-reactions.md](hit-reactions.md)). The sim's `Hit` says who dealt
 it (`by`) as well as who took it; the `Motion` resource keeps each horse's
 and each enemy place's pose, and an enemy leans on its base.
 

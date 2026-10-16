@@ -1,0 +1,49 @@
+// What a hit leaves at what it strikes, besides its number, its flash and its
+// flinch (attacks.ron): a spray of sparks, and a health bar that drops at
+// once with a trailing piece that follows it down (#16;
+// docs/philosophy/combat-rhythm.md, feedback-chain.md). Change one value at
+// a time and look at it (--seed 6, a fight from 5 s). Lengths are world
+// units (a horse is about 2 long), speeds units a second, times seconds.
+(
+    // Sparks for each kind of hit, sprayed up off the face that was struck,
+    // back toward the attacker. A warded hit on a horse throws a resisted
+    // one's.
+    //   count: how many
+    //   speed: how fast each leaves, from the first to the second
+    //   size:  each one's side
+    // Strong throws the most, fastest and biggest; resisted the fewest (a
+    // test).
+    sparks: (
+        strong:   (count: 14, speed: (4.0, 7.5), size: 0.30),
+        plain:    (count: 7,  speed: (2.5, 5.0), size: 0.20),
+        resisted: (count: 3,  speed: (1.2, 2.5), size: 0.12),
+    ),
+    // How far in front of a horse's middle its chest is, where a foe
+    // strikes it.
+    horse_chest: 0.9,
+    // How much of a spark's flight goes upward rather than outward, and how
+    // fast it falls.
+    lift: 0.6,
+    gravity: 18.0,
+    // A spark is gone this long after it was thrown, shrinking all the way.
+    spark_secs: 0.35,
+    // Sparks take the colour of the hit's number; a resisted hit's are this
+    // much toward grey.
+    resisted_grey: 0.6,
+
+    // Health bars, over every enemy and every horse on a trail. Sizes are
+    // pixels on the screen.
+    bar_width: 64.0,
+    bar_height: 7.0,
+    // How far over a horse's middle, and over an enemy's top, a bar sits.
+    horse_above: 1.25,
+    enemy_above: 0.7,
+    // The trailing piece holds where the health was for `hold_secs`, then
+    // falls to it at `drain` of a whole bar a second.
+    hold_secs: 0.35,
+    drain: 1.2,
+    back: "1a1a1ae0",
+    trail: "f4eedc",
+    foe: "e0484a",
+    horse: "5cc860",
+)

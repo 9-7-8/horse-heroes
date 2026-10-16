@@ -9,6 +9,7 @@
 use bevy::{
     asset::RenderAssetUsages,
     camera::ScalingMode,
+    color::Mix,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
     render::render_resource::Face,
@@ -23,7 +24,7 @@ use super::menu::shell::Shell;
 use super::menu::tokens::Tokens;
 use super::{Game, Landed, SceneView, Screen, TICK};
 use crate::sim::data::{Element, Slot};
-use crate::sim::expedition::Struck;
+use crate::sim::expedition::{HitKind, Struck};
 use crate::sim::look::Look;
 use crate::sim::horse_shape::{Frame, HorseShape, Joint, Kind, LEGS, Part, Section};
 use crate::sim::rng::Rng;
@@ -45,6 +46,8 @@ pub const TRAIL_DEPTH: f32 = 5.0;
 /// Scenery wraps around once it is this far left of the origin.
 const WRAP: f32 = 20.0;
 const HORSE_X: [f32; 3] = [-1.5, -4.5, -7.5];
+/// How many horses the scene has places for.
+pub const HORSE_PLACES: usize = HORSE_X.len();
 const HORSE_Z: [f32; 3] = [0.6, -0.6, 0.6];
 /// About how high the middle of a horse's body is.
 const HORSE_MIDDLE: f32 = 1.2;
@@ -265,6 +268,45 @@ pub struct Attacks {
     /// An ordinary hit's swing for "horse" and for each enemy by its id.
     pub swings: HashMap<String, Swing>,
     pub flinch: Flinch,
+    pub blows: Blows,
+}
+
+/// How hard each kind of hit lands on what it strikes (#16).
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Blows {
+    pub strong: Blow,
+    pub plain: Blow,
+    pub resisted: Blow,
+}
+
+impl Blows {
+    /// A warded hit lands as a resisted one.
+    pub fn of(&self, kind: HitKind) -> Blow {
+        match kind {
+            HitKind::Strong => self.strong,
+            HitKind::Plain => self.plain,
+            HitKind::Resisted | HitKind::Warded => self.resisted,
+        }
+    }
+}
+
+/// How a body takes one kind of hit: its flinch times `recoil`, and a flash
+/// toward white of `flash` that fades over `flash_secs`.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Blow {
+    pub recoil: f32,
+    pub flash: f32,
+    pub flash_secs: f32,
+}
+
+impl Blow {
+    /// How far toward white a body is `since` seconds after the blow: all of
+    /// `flash` as it lands, fading fast and then slowly, gone at
+    /// `flash_secs`.
+    pub fn flash_at(&self, since: f32) -> f32 {
+        let left = (1.0 - since / self.flash_secs).clamp(0.0, 1.0);
+        self.flash * left * left
+    }
 }
 
 /// An ordinary hit's four phases (`docs/philosophy/combat-rhythm.md`), each
@@ -339,7 +381,7 @@ struct Motion {
 impl Default for Motion {
     fn default() -> Self {
         let attacks = Attacks::load();
-        let still = Pose::still(attacks.swing("horse"), attacks.flinch);
+        let still = Pose::still(attacks.swing("horse"), attacks.flinch, attacks.blows.plain);
         Self { attacks, horse: [still; HORSE_X.len()], foe: [still; ENEMY_X.len()] }
     }
 }
@@ -358,6 +400,8 @@ struct Pose {
     /// Whose swing it is: the horse's, or the enemy's standing in the place.
     swing: Swing,
     flinch: Flinch,
+    /// How the last hit it took landed.
+    blow: Blow,
     /// Seconds since it last struck and was struck.
     since_hit: f32,
     since_struck: f32,
@@ -368,15 +412,20 @@ struct Pose {
 }
 
 impl Pose {
-    fn still(swing: Swing, flinch: Flinch) -> Pose {
-        Pose { swing, flinch, since_hit: f32::INFINITY, since_struck: f32::INFINITY, wound: false, gather: 0.0 }
+    fn still(swing: Swing, flinch: Flinch, blow: Blow) -> Pose {
+        Pose { swing, flinch, blow, since_hit: f32::INFINITY, since_struck: f32::INFINITY, wound: false, gather: 0.0 }
+    }
+
+    /// How far toward white it is, from the last hit it took.
+    fn flash(&self) -> f32 {
+        self.blow.flash_at(self.since_struck)
     }
 
     /// How far it leans toward its foe, in radians, and how far it has
     /// stepped back from it, in world units.
     fn lean(&self) -> (f32, f32) {
         let t = (self.since_struck / self.flinch.secs).clamp(0.0, 1.0);
-        let flinch = (t * std::f32::consts::PI).sin();
+        let flinch = (t * std::f32::consts::PI).sin() * self.blow.recoil;
         (
             self.gather + self.swing.settled(self.since_hit, self.wound) - self.flinch.tilt * flinch,
             self.flinch.step * flinch,
@@ -417,7 +466,13 @@ fn move_with_hits(
             pose.since_hit = 0.0;
             pose.gather = 0.0;
         }
+        let blow = motion.attacks.blows.of(hit.kind);
         if let Some(pose) = motion.of(hit.struck) {
+            // A weaker blow on the heels of a stronger one does not cut its
+            // flash and flinch short.
+            if pose.since_struck >= pose.flinch.secs || blow.recoil >= pose.blow.recoil {
+                pose.blow = blow;
+            }
             pose.since_struck = 0.0;
         }
     }
@@ -466,11 +521,29 @@ fn eased(t: f32) -> f32 {
 #[derive(Component)]
 struct EnemyBody(usize);
 
+/// Each enemy's colour by its element. Each enemy place has a material of
+/// its own, so that one can flash without the others (#16).
 #[derive(Resource)]
-struct ElementMaterials {
-    fire: Handle<StandardMaterial>,
-    ice: Handle<StandardMaterial>,
-    plant: Handle<StandardMaterial>,
+struct ElementColours {
+    fire: Color,
+    ice: Color,
+    plant: Color,
+}
+
+/// Each horse's own materials and the colour each is when not flashing:
+/// body, hooves and hair.
+#[derive(Resource)]
+struct HorseShades(Vec<[(Handle<StandardMaterial>, Color); 3]>);
+
+/// Turn `material` toward white by `flash`, from `colour`; touched only when
+/// that changes it, so a still body costs nothing.
+fn tint(materials: &mut Assets<StandardMaterial>, material: &Handle<StandardMaterial>, colour: Color, flash: f32) {
+    let wanted = if flash > 0.0 { colour.mix(&Color::WHITE, flash) } else { colour };
+    if materials.get(material).is_some_and(|m| m.base_color != wanted)
+        && let Some(mut m) = materials.get_mut(material)
+    {
+        m.base_color = wanted;
+    }
 }
 
 fn setup(
@@ -595,8 +668,9 @@ fn setup(
             ..default()
         }),
     };
+    let mut shades = Vec::new();
     for (i, &x) in HORSE_X.iter().enumerate() {
-        spawn_horse(
+        shades.push(spawn_horse(
             &mut commands,
             &mut materials,
             &horse,
@@ -607,20 +681,21 @@ fn setup(
             bare.0,
             i,
             Vec3::new(x, 0.0, HORSE_Z[i]),
-        );
+        ));
     }
     commands.insert_resource(looks);
+    commands.insert_resource(HorseShades(shades));
 
-    let elements = ElementMaterials {
-        fire: materials.add(tokens.colour.of(Element::Fire)),
-        ice: materials.add(tokens.colour.of(Element::Ice)),
-        plant: materials.add(tokens.colour.of(Element::Plant)),
+    let elements = ElementColours {
+        fire: tokens.colour.of(Element::Fire),
+        ice: tokens.colour.of(Element::Ice),
+        plant: tokens.colour.of(Element::Plant),
     };
     for (i, &x) in ENEMY_X.iter().enumerate() {
         commands.spawn((
             EnemyBody(i),
             Mesh3d(cube.clone()),
-            MeshMaterial3d(elements.fire.clone()),
+            MeshMaterial3d(materials.add(elements.fire)),
             Transform::from_xyz(x, 0.5, 0.0),
             Visibility::Hidden,
         ));
@@ -830,13 +905,14 @@ fn spawn_horse(
     bare: bool,
     index: usize,
     position: Vec3,
-) {
+) -> [(Handle<StandardMaterial>, Color); 3] {
     let mut rng = Rng::new(0x4057E + index as u64);
     let shade = 0.55 + 0.45 * rng.unit();
     let grey = |share: f32| Color::srgb(shade * share, shade * share, shade * share);
     let body = materials.add(grey(1.0));
     let hoof = materials.add(grey(HOOF_SHADE));
     let hair = materials.add(grey(HAIR_SHADE));
+    let shades = [(body.clone(), grey(1.0)), (hoof.clone(), grey(HOOF_SHADE)), (hair.clone(), grey(HAIR_SHADE))];
 
     // Each piece, and beside it its outline, hidden until the horse is
     // selected.
@@ -909,6 +985,7 @@ fn spawn_horse(
                     .with_children(|limb| spawn_pieces(limb, Joint::Leg(leg)));
             }
         });
+    shades
 }
 
 fn hair_visibility(kind: Kind, bare: bool) -> Visibility {
@@ -1069,11 +1146,14 @@ fn swing_legs(
 /// A horse at no health stays in view, exhausted: its head hangs, and it
 /// lies down while the party stands. It is on its feet again in town.
 /// A horse that lands a hit tips forward and back, and one that is hit
-/// flinches.
+/// flashes and flinches, harder for a harder blow (#16).
+#[allow(clippy::too_many_arguments)]
 fn sync_horses(
     time: Res<Time>,
     game: Res<Game>,
     motion: Res<Motion>,
+    shades: Res<HorseShades>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut tired: ResMut<Tired>,
     mut horses: Query<(&HorseBody, &mut Transform), Without<Neck>>,
     mut necks: Query<(&Neck, &mut Transform), Without<HorseBody>>,
@@ -1105,6 +1185,10 @@ fn sync_horses(
         if transform.rotation != rotation {
             transform.rotation = rotation;
         }
+        let flash = motion.horse[body.index].flash();
+        for (material, colour) in shades.0.get(body.index).into_iter().flatten() {
+            tint(&mut materials, material, *colour, flash);
+        }
     }
     for (neck, mut transform) in &mut necks {
         let drop = TIRED_HANG * eased(tired.hang[neck.0]) + TIRED_LIE_HANG * eased(tired.lie[neck.0]);
@@ -1116,19 +1200,20 @@ fn sync_horses(
 }
 
 /// An enemy that lands a hit tips forward and back, and one that is hit
-/// flinches.
+/// flashes and flinches, harder for a harder blow (#16).
 fn sync_enemies(
     game: Res<Game>,
     motion: Res<Motion>,
-    elements: Res<ElementMaterials>,
+    elements: Res<ElementColours>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut enemies: Query<(
         &EnemyBody,
         &mut Visibility,
         &mut Transform,
-        &mut MeshMaterial3d<StandardMaterial>,
+        &MeshMaterial3d<StandardMaterial>,
     )>,
 ) {
-    for (body, mut visibility, mut transform, mut material) in &mut enemies {
+    for (body, mut visibility, mut transform, material) in &mut enemies {
         let foe = match &game.screen {
             // On the way back to town the trail's enemies are behind the
             // party; `fx` shows the ones left standing drawing off.
@@ -1150,14 +1235,12 @@ fn sync_enemies(
         transform.scale = Vec3::splat(size);
         transform.rotation = rotation;
         transform.translation = base + rotation * (Vec3::Y * size / 2.0) + Vec3::X * back;
-        let wanted = match foe.element {
-            Element::Fire => &elements.fire,
-            Element::Ice => &elements.ice,
-            Element::Plant => &elements.plant,
+        let colour = match foe.element {
+            Element::Fire => elements.fire,
+            Element::Ice => elements.ice,
+            Element::Plant => elements.plant,
         };
-        if material.0 != *wanted {
-            material.0 = wanted.clone();
-        }
+        tint(&mut materials, &material.0, colour, motion.foe[body.0].flash());
         if *visibility != Visibility::Inherited {
             *visibility = Visibility::Inherited;
         }
@@ -1189,6 +1272,35 @@ mod tests {
         assert_eq!(attacks.swings.len(), attackers.len(), "attacks.ron names an attacker nobody is");
         let flinch = attacks.flinch;
         assert!(flinch.secs > 0.0 && flinch.tilt > 0.0 && flinch.step > 0.0);
+    }
+
+    /// A strong hit lands harder than a plain one, and a plain one harder
+    /// than a resisted or warded one, in recoil, flash and how long the
+    /// flash lasts (#16), so they are told apart without the number. A
+    /// flash is whole as the hit lands, only fades, and is gone in its time.
+    #[test]
+    fn a_stronger_blow_is_a_bigger_reaction() {
+        let blows = Attacks::load().blows;
+        let order = [HitKind::Resisted, HitKind::Plain, HitKind::Strong].map(|kind| blows.of(kind));
+        for pair in order.windows(2) {
+            let (weak, strong) = (pair[0], pair[1]);
+            assert!(weak.recoil < strong.recoil, "{weak:?} {strong:?}");
+            assert!(weak.flash < strong.flash, "{weak:?} {strong:?}");
+            assert!(weak.flash_secs < strong.flash_secs, "{weak:?} {strong:?}");
+        }
+        assert_eq!(blows.of(HitKind::Warded).flash, blows.resisted.flash);
+        for blow in order {
+            assert!(blow.recoil > 0.0 && (0.0..=1.0).contains(&blow.flash) && blow.flash_secs > 0.0);
+            assert_eq!(blow.flash_at(0.0), blow.flash);
+            assert_eq!(blow.flash_at(blow.flash_secs), 0.0);
+            assert_eq!(blow.flash_at(f32::INFINITY), 0.0);
+            let mut last = blow.flash;
+            for step in 1..=100 {
+                let now = blow.flash_at(blow.flash_secs * step as f32 / 100.0);
+                assert!(now <= last, "{blow:?} grew at {step}");
+                last = now;
+            }
+        }
     }
 
     /// A swing leans back in its wind-up and is furthest forward as the hit

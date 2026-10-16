@@ -29,4 +29,16 @@
     // Struck, any body tips back this far and steps back this far, and
     // returns, over `secs`.
     flinch: (tilt: 0.14, step: 0.25, secs: 0.3),
+    // How hard each kind of hit lands on what it takes it (#16), so a
+    // strong hit, a plain one and a resisted one can be told apart without
+    // reading a number. A warded hit on a horse lands as a resisted one.
+    //   recoil:     times the flinch above
+    //   flash:      how far the body goes to white as it is struck, 0 to 1
+    //   flash_secs: how long the flash takes to fade
+    // Strong is the biggest in all three, resisted the smallest (a test).
+    blows: (
+        strong:   (recoil: 1.7, flash: 0.85, flash_secs: 0.24),
+        plain:    (recoil: 1.0, flash: 0.55, flash_secs: 0.14),
+        resisted: (recoil: 0.4, flash: 0.20, flash_secs: 0.08),
+    ),
 )
