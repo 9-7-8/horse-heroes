@@ -1,0 +1,67 @@
+SESSION 2026-10-16 - the next trail, explained honestly (#298)
+
+ASKED
+  /next, no steer. Build green, 248 tests; the one open bug (#246) waits on
+  her look; tier 2 was emptied last session. PICK UP named #289 question 5,
+  a decision (skipped by /next), so the next buildable issue of 0.2.5:
+  #298 (#293 onwards wait on #289).
+
+DONE
+  - b9172b4: three lessons and a wording test.
+    - On Equip, on the horse the piece went on: the stat that moved the
+      most, as it was and as it is, and a count of the rest ("defense 1 to
+      5 and 3 more with it on. Undo takes it back until you set out.").
+      New Target::Equipped (Game::last_equipped) and {change} in words
+      (change_line; teach::say fills it).
+    - After the first win, in town: "A win raises the trail level, now
+      {level}: ...", on Set out beside the footer's level.
+    - The exit line, on the Map: Keep going there sends the party out by
+      itself till a trail is lost: leave it to it.
+    - no_lesson_claims_what_the_report_cannot_show: no "easier", "better"
+      and the like in the lessons or the list; the 85-letter check counts
+      what the game fills in at its longest.
+    Checked: 251 tests (the wording test seen to fail with "easier" put in
+    a line); the lesson walk, pictures 04, 07, 08 read; gallery
+    docs/gallery/2026-10-16-next-trail-honestly. The walk has three new
+    steps for them.
+
+DECIDED (for her)
+  - The stat that moved the most plus a count, not every stat (the line
+    has room for about 85 letters).
+  - The exit line is on the Map, not on Keep going: places.ron says
+    nothing may depend on Keep going (it goes with #201). Only its words
+    name it.
+  - Both win lessons are finished by Got it (Watched(Win)), so setting out
+    cuts them off and they come once more, rather than being done by it.
+  - The Equip lesson moved from Undo to the horse.
+
+FOUND
+  - `git checkout -- file` to restore after a seen-to-fail edit threw away
+    the session's uncommitted edits to that file; redone. Restore from a
+    saved copy, not from git, when the file has uncommitted work.
+
+NOT DONE
+  - #298's third "done when" (a first-time player can say why the second
+    trail was harder) is #301's play test; #298 stays open.
+  - #289 question 5 is still open.
+
+PICK UP
+  Ask #289 question 5 with /answers; then #289 closes and #293 can start.
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
