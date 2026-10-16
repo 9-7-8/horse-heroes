@@ -208,7 +208,7 @@ fn outline_selected(
         return;
     };
     for (halo, mut visibility) in &mut halos {
-        let wanted = if halo.horse == shell.horse() {
+        let wanted = if shell.marked() == Some(halo.horse) {
             hair_visibility(halo.kind, bare.0)
         } else {
             Visibility::Hidden

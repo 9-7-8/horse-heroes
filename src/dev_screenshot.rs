@@ -328,6 +328,9 @@ fn plan_tour(mut tour: ResMut<Tour>, places: Res<Places>) {
         Step::Shot("a horse's view".into()),
         Step::SceneHorse(2),
         Step::Shot("a press on a horse in the scene".into()),
+        // A press on the background unselects it (#366).
+        Step::Scene,
+        Step::Shot("a press on the background unselects the horse".into()),
         Step::SceneHorse(1),
         // Its parts are controls that go to their tab.
         Step::Part(1),

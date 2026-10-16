@@ -78,8 +78,11 @@ Which layout is wanted follows one thing, `Shell::is_open`:
   that is open, a press on the scene, or Escape with no side panel open,
   closes it.
 - **A press on the scene** (#307) closes the open place in one press, side
-  panel and all; the place is found as it was left. In town, and with every
-  place closed, it does nothing. It lands on `SceneCatcher`, a node the size
+  panel and all; the place is found as it was left. In town and on the
+  road it also unselects the horse (#366): none is outlined or has its tag
+  marked (`Shell::marked`) until a horse is pressed or its key used. The
+  menus that are about one horse keep showing the last one chosen, named in
+  their heading (`Shell::horse`). It lands on `SceneCatcher`, a node the size
   of the window that lies behind every menu (`GlobalZIndex(-1)`), so a press
   a menu takes never reaches it; `Shell::press_scene` is what it does. The
   fight log and the pointer's card let a press through, and neither is ever
@@ -105,7 +108,8 @@ Which layout is wanted follows one thing, `Shell::is_open`:
   the menus (`GlobalZIndex(-1)`). The horses and their health were in the
   status strip until 2026-10-14.
 - **The selected horse is outlined** in the scene in the accent colour, and
-  the outline follows the selection however it was made (`outline_selected`
+  the outline follows the selection however it was made, and goes with a
+  press on the background (`outline_selected`
   in `scene.rs`). Each piece of each horse has a shell `OUTLINE` (0.06 world
   units) bigger than it, drawn unlit from the inside only, so the horse
   covers all of it but a rim; only the selected horse's shells show.

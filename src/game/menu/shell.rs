@@ -497,6 +497,10 @@ pub struct Shell {
     /// closed, which gives its room to the scene.
     showing: bool,
     horse: usize,
+    /// Whether the selected horse is marked in the scene and the tags. A
+    /// press on the background takes the mark away (#366); the menus still
+    /// show the last horse chosen.
+    marked: bool,
     tabs: Vec<usize>,
     details: Vec<Option<Detail>>,
     /// The piece the pointer rests on and the cell it is in, while its card
@@ -558,6 +562,7 @@ impl Shell {
             place: 0,
             showing: true,
             horse: 0,
+            marked: true,
             tabs: vec![0; places],
             details: vec![None; places],
             pointed: None,
@@ -821,6 +826,12 @@ impl Shell {
         self.horse
     }
 
+    /// The horse outlined in the scene, with its tag lit: the selected one,
+    /// unless a press on the background has unselected it (#366).
+    pub fn marked(&self) -> Option<usize> {
+        self.marked.then_some(self.horse)
+    }
+
     /// Whether the Gear tab shows this horse's gear (#314): the selected
     /// horse's, and no other's.
     pub fn wears(&self, horse: usize) -> bool {
@@ -871,10 +882,12 @@ impl Shell {
         }
     }
 
-    /// A press on the scene (#307). On the road it puts the open place away,
-    /// whatever is open in it, and the scene has its room back. In town,
-    /// where a place is always open, it does nothing.
+    /// A press on the scene away from the horses. It unselects the horse
+    /// (#366). On the road it also puts the open place away (#307), whatever
+    /// is open in it, and the scene has its room back; in town a place is
+    /// always open.
     pub fn press_scene(&mut self, in_town: bool) {
+        self.marked = false;
         if !in_town {
             self.close();
         }
@@ -892,6 +905,7 @@ impl Shell {
     /// compared on that horse.
     pub fn inspect(&mut self, horse: usize, opener: Option<Entity>) {
         self.horse = horse;
+        self.marked = true;
         self.showing = true;
         let place = self.place;
         if self.detail(place).is_some_and(|detail| detail.item.piece().is_some()) {
@@ -2322,8 +2336,8 @@ fn spawn_reasons(parent: &mut ChildSpawnerCommands, t: &Tokens, controls: &[Cont
 
 /// A press on a horse in the scene selects it and opens its view, in town
 /// and on the road (#356).
-/// Anywhere else on the scene it closes the place that is open on the road
-/// (#307).
+/// Anywhere else on the scene it unselects the horse (#366) and closes the
+/// place that is open on the road (#307).
 fn on_scene_press(
     press: On<PointerPress>,
     game: Res<Game>,
@@ -2338,7 +2352,7 @@ fn on_scene_press(
     let ray = camera.viewport_to_world(at, press.pointer.position).ok();
     if let Some(horse) = ray.and_then(|ray| horses.horse_on(ray)) {
         shell.inspect(horse, None);
-    } else if shell.is_open() {
+    } else {
         shell.press_scene(game.in_town());
     }
 }
@@ -3358,7 +3372,7 @@ fn mark_chosen(
     for (entity, place, tab, horse, slot, carried, reported, selected) in &controls {
         let wanted = place.is_some_and(|place| place.0 == shell.place() && shell.is_open())
             || tab.is_some_and(|tab| tab.tab == shell.tab(tab.place))
-            || horse.is_some_and(|horse| horse.0 == shell.horse())
+            || horse.is_some_and(|horse| shell.marked() == Some(horse.0))
             || slot.is_some_and(|row| {
                 shell.detail(row.place).is_some_and(|detail| {
                     detail.tab == row.tab
@@ -5865,7 +5879,7 @@ mod tests {
 
     /// A press on the scene (#307) puts the place away on the road, side
     /// panel and all, and it is found as it was left; in town, and with
-    /// every place closed, it changes nothing.
+    /// every place closed, it changes nothing but the mark (#366).
     #[test]
     fn a_press_on_the_scene_closes_the_place_on_the_road_only() {
         let mut shell = Shell::new(5);
@@ -5876,6 +5890,7 @@ mod tests {
         };
         shell.open(1);
         shell.show_detail(1, detail);
+        shell.marked = false;
         let in_town = shell.clone();
         shell.press_scene(true);
         assert_eq!(shell, in_town, "nothing in town");
@@ -5886,6 +5901,23 @@ mod tests {
         assert_eq!(shell, closed, "nothing with every place closed");
         shell.open(1);
         assert_eq!(shell, in_town, "as it was left");
+    }
+
+    /// A press on the background unselects the horse, in town and on the
+    /// road (#366): no horse is marked. The menus keep the last one, and a
+    /// press on a horse marks it again.
+    #[test]
+    fn a_press_on_the_background_unselects_the_horse() {
+        for in_town in [true, false] {
+            let mut shell = Shell::new(5);
+            shell.inspect(2, None);
+            assert_eq!(shell.marked(), Some(2));
+            shell.press_scene(in_town);
+            assert_eq!(shell.marked(), None, "in town: {in_town}");
+            assert_eq!(shell.horse(), 2, "the menus keep the last horse");
+            shell.inspect(1, None);
+            assert_eq!(shell.marked(), Some(1));
+        }
     }
 
     /// The pointer shows the card of a piece (#228), and not of an empty

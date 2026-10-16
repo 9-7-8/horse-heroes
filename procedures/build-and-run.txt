@@ -114,8 +114,8 @@ Use the cheapest step that can prove the change:
    after the second trail (about four and a half minutes on 2026-10-14;
    on the road it answers each lesson with Got it while it waits):
        $env:IDLE_TOUR = "screenshots/tour"; cargo run -- --seed 6 *> run.log
-   The card's Details (#228) are the tour's pictures 60 to 63; dragging
-   a piece onto a slot and onto a horse, with Bevy's own pointer, 89 to 93
+   The card's Details (#228) are the tour's pictures 63 to 65; dragging
+   a piece onto a slot and onto a horse, with Bevy's own pointer, 90 to 94
    (89 is the piece lifted into the hand, #363; checked 2026-10-15).
    The tour logs "tour: Tab makes N stops, M of them out of sight"; M is
    0, and anything else is a hidden page taking the focus (#244).
