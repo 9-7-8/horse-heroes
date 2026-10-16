@@ -595,8 +595,16 @@ Set are the tiers with a beam.
   combat rules, ordered so each of the three abilities is seen and the drop
   is a plain upgrade. The generator takes over from the second trail (#294,
   designed in #293). She chose this over a first trail rolled from a gentle
-  pool and over one rolled like any other. Whether it can be lost is a
-  separate question and still open (#289, question 3).
+  pool and over one rolled like any other. ~~Whether it can be lost is a
+  separate question and still open (#289, question 3).~~ *Answered below.*
+- **The tutorial trail cannot be lost, by tuning alone** (confirmed
+  2026-10-16, #289 question 3). It is tuned under the ordinary combat rules
+  so the starting party wins it with any abilities it may carry and on any
+  seed, and a test holds that. There is no tutorial-only rule: no health
+  floor, no rescue, no forced win. Failure is taught later, once there is a
+  preparation choice to learn from (#178). She chose this over a tutorial-only
+  safety net, over a trail that can be lost like any other, and over one
+  whose loss costs nothing.
 - The opening is releases 0.2.2 to 0.2.4 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
@@ -773,9 +781,9 @@ leaves to flesh out (#316: how complex a signature may be, each breed's
 pools; #267: the colour genetics of a breed, the body loci, which gait
 boosts what in a pet), and the tactics proposal, which is advice she handed
 over and not yet her decision (#338, [tactics.md](tactics.md)). Of the
-opening (#289), two questions are left for 0.2.4: whether the tutorial trail
-can be lost (3), and whether lessons play again on every launch until saving
-exists (5).
+opening (#289), one question is left: whether lessons play again on every
+launch until saving exists (5). Whether the tutorial trail can be lost (3)
+was answered 2026-10-16: no, by tuning.
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,
