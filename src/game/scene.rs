@@ -81,6 +81,11 @@ const HAIR_SHADE: f32 = 0.3;
 /// How far the selected horse's outline stands out from it, in world units
 /// (#356): each piece has a shell this much bigger, drawn from the inside.
 const OUTLINE: f32 = 0.06;
+/// How far each shell is pushed back from the camera (#369), in world units.
+/// The camera is orthographic, so it does not move on the screen; it falls
+/// behind the horse's own pieces, which hide the rims where they meet and
+/// leave only the outline round the whole horse.
+const OUTLINE_PUSH: f32 = 0.25;
 /// How far worn gear's dark rim stands out from it, in world units (#359).
 const WORN_RIM: f32 = 0.025;
 /// How much room round a horse a press still lands on it, in world units.
@@ -198,16 +203,20 @@ struct Halo {
 
 /// The selected horse is outlined in the scene, in town and on the road,
 /// and the outline follows a press on another horse. Hair's outline goes
-/// with the hair.
+/// with the hair. Each shell is kept `OUTLINE_PUSH` behind its piece as
+/// seen from the camera, whichever way its joint has turned (#369).
 fn outline_selected(
     shell: Option<Res<Shell>>,
     bare: Res<Bare>,
-    mut halos: Query<(&Halo, &mut Visibility)>,
+    camera: Single<&GlobalTransform, With<Camera3d>>,
+    joints: Query<&GlobalTransform, Without<Halo>>,
+    mut halos: Query<(&Halo, &ChildOf, &mut Transform, &mut Visibility)>,
 ) {
     let Some(shell) = shell else {
         return;
     };
-    for (halo, mut visibility) in &mut halos {
+    let back = camera.forward() * OUTLINE_PUSH;
+    for (halo, parent, mut transform, mut visibility) in &mut halos {
         let wanted = if shell.marked() == Some(halo.horse) {
             hair_visibility(halo.kind, bare.0)
         } else {
@@ -215,6 +224,11 @@ fn outline_selected(
         };
         if *visibility != wanted {
             *visibility = wanted;
+        }
+        if wanted != Visibility::Hidden
+            && let Ok(joint) = joints.get(parent.parent())
+        {
+            transform.translation = joint.affine().inverse().transform_vector3(back);
         }
     }
 }

@@ -114,7 +114,13 @@ Which layout is wanted follows one thing, `Shell::is_open`:
   press on the background (`outline_selected`
   in `scene.rs`). Each piece of each horse has a shell `OUTLINE` (0.06 world
   units) bigger than it, drawn unlit from the inside only, so the horse
-  covers all of it but a rim; only the selected horse's shells show.
+  covers all of it but a rim; only the selected horse's shells show. Each
+  shell is pushed `OUTLINE_PUSH` (0.25) straight back from the camera
+  (#369): the camera is orthographic, so it stays where it is on the
+  screen, but it falls behind the horse's own pieces, so the rims where
+  pieces meet are hidden and only the silhouette is outlined. The road
+  hides it where the horse meets the ground, so the hooves have no outline;
+  a bigger push hides more of the legs.
 - In town a place is always open.
 
 `SceneView` (in `src/game/mod.rs`) holds how far the window is from the town
