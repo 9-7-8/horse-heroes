@@ -113,6 +113,19 @@ mod tests {
     }
 
     #[test]
+    fn pick_reaches_every_item_evenly() {
+        let mut rng = Rng::new(5);
+        let items = ['a', 'b', 'c', 'd'];
+        let mut counts = [0u32; 4];
+        for _ in 0..100_000 {
+            let picked = rng.pick(&items);
+            counts[items.iter().position(|item| item == picked).unwrap()] += 1;
+        }
+        assert!(counts.iter().all(|&n| (24_000..26_000).contains(&n)), "{counts:?}");
+        assert_eq!(rng.pick(&['x']), &'x');
+    }
+
+    #[test]
     fn shuffle_keeps_every_item_and_reaches_every_order() {
         let mut rng = Rng::new(4);
         let mut orders = std::collections::HashSet::new();

@@ -635,6 +635,22 @@ mod tests {
         assert!((look.reach() - 1.4).abs() < 1e-6 && (look.thickness() - 1.2).abs() < 1e-6);
     }
 
+    /// The party walks the road at its horses' average speed (vision.md,
+    /// Gaits): a slow horse slows it and a fast one hurries it, by the mean.
+    #[test]
+    fn the_road_takes_the_party_s_average_speed() {
+        let rules = Data::load().rules;
+        let close = |a: f32, b: f32| (a - b).abs() < 1e-4;
+        let at = |speed: f32| rules.travel_distance / speed;
+        assert!(close(rules.travel_secs([4]), at(4.0)));
+        assert!(close(rules.travel_secs([2, 4, 6]), at(4.0)));
+        assert!(close(rules.travel_secs([1, 2]), at(1.5)));
+        assert!(rules.travel_secs([8, 8, 8]) < rules.travel_secs([4, 4, 4]));
+        // No horses, or no speed, is a walk at speed 1, never a division by 0.
+        assert!(close(rules.travel_secs([]), at(1.0)));
+        assert!(close(rules.travel_secs([0, 0]), at(1.0)));
+    }
+
     /// Every element beats one other and is beaten by one other.
     #[test]
     fn the_triangle_is_a_cycle() {
