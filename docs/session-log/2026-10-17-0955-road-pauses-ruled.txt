@@ -1,0 +1,50 @@
+SESSION 2026-10-17 09:55 - six road pauses ruled (#293 call 6, the last)
+=======================================================================
+
+ASKED
+  /answers, no steer. Earliest decision: #293, call 6 (#295 as written).
+
+DONE
+  - 88ec549: vision.md and opening.md record call 6. Docs only; cargo
+    check and test green (270).
+  - #293: commented, `decision` label removed (all six calls answered);
+    left open for opening.md's redraw for call 4.
+  - #295 body rewritten to the six pauses, with a Revised line.
+  - #294 and #176 commented.
+
+DECIDED (hers)
+  - #293 call 6: six lesson pauses on the first trail's road, as the sheet
+    has them; no line per ability, no tracker or loot line; "no horse can
+    die" moves to the first fall (#176). Chosen over a line per ability and
+    over #295 as first written.
+  - Mine, not asked: #293 kept open (not closed) because "her changes are
+    in it" is unmet until opening.md is redrawn for call 4.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - docs/opening.md redrawn for call 4 (one resisted fight): fights table,
+    Elements paragraph, worksheet point 8, "Later than the opening", town
+    beats. Which fight resists is left to #294.
+
+PICK UP
+  /next: redraw docs/opening.md for #293 call 4 and close #293, then #294.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt (all calls ruled; sheet redraw left)
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
