@@ -41,7 +41,7 @@ as a resisted one. Tests hold that order for every number
 
 ## Seen
 
-`--seed 6 --no-pause`: at 5.27 Morrow's 8 has just landed on the Mire Toad,
+`--seed 6`: at 5.27 Morrow's 8 has just landed on the Mire Toad,
 its sparks off the toad's left face and its bar's trailing piece showing;
 at 5.75 the Gloom Sprite's 3 on Morrow, whose bar trails; at 28.05 a Strong
 Frost Burst on a Thornling. Pictures: `docs/gallery/2026-10-16-hit-reactions`.

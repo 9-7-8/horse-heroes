@@ -288,8 +288,7 @@ pub fn again(game: &mut Game, shell: &mut Shell, map: &Places, row: usize) -> bo
 }
 
 /// Whether a lesson's pop-up stops the game while it is up (#353). On in
-/// the game; off for a run nobody is at that keeps the times it had before
-/// the pause (`--no-pause`, and the soak).
+/// the game; off only in the soak, which nobody is at.
 #[derive(Resource)]
 pub struct Pause(pub bool);
 
@@ -1455,7 +1454,7 @@ mod tests {
 
     /// While a lesson's pop-up is up the game's clock stops (#353): frame
     /// after frame no sim time passes, on the road and in town. Answered,
-    /// the game goes on from where it was. With the pause off (`--no-pause`)
+    /// the game goes on from where it was. With the pause off (the soak)
     /// it never stops; the dev key's sample stops nothing.
     #[test]
     fn a_lessons_popup_stops_the_game_until_it_is_answered() {

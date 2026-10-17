@@ -81,21 +81,46 @@ impl Plugin for DevScreenshotPlugin {
     }
 }
 
+/// How long a lesson's pop-up stays up in a timed picture run before it is
+/// answered with Got it: a player reading its line.
+const READING_SECS: f32 = 1.0;
+
+/// `IDLE_SHOT`: the picture is taken at `IDLE_SHOT_AT` seconds of the
+/// game's clock, which stops while a lesson's pop-up is up (#353), so a time
+/// means the same moment of the game whatever lessons came before it. Each
+/// lesson is answered with Got it after `READING_SECS`, as a player who
+/// reads it and goes on would (owner, 2026-10-17: no `--no-pause`).
 fn shoot_then_exit(
     mut commands: Commands,
-    time: Res<Time<Real>>,
+    real: Res<Time<Real>>,
+    game_time: Res<Time<Virtual>>,
     shot: Res<Shot>,
-    mut taken: Local<bool>,
+    game: Res<Game>,
+    shell: Res<Shell>,
+    got_its: Query<Entity, With<DismissHint>>,
+    mut reading: Local<f32>,
+    mut taken: Local<Option<f32>>,
     mut exit: MessageWriter<AppExit>,
 ) {
-    let t = time.elapsed_secs();
-    if !*taken && t >= shot.at_secs {
-        *taken = true;
+    if teach::waits_on(&game, &shell) {
+        *reading += real.delta_secs();
+        if *reading >= READING_SECS
+            && let Some(entity) = got_its.iter().next()
+        {
+            commands.trigger(Activate { entity });
+            *reading = 0.0;
+        }
+    } else {
+        *reading = 0.0;
+    }
+    let now = real.elapsed_secs();
+    if taken.is_none() && game_time.elapsed_secs() >= shot.at_secs {
+        *taken = Some(now);
         commands
             .spawn(Screenshot::primary_window())
             .observe(save_to_disk(shot.path.clone()));
     }
-    if t >= shot.at_secs + 2.0 {
+    if taken.is_some_and(|at| now >= at + 2.0) {
         exit.write(AppExit::Success);
     }
 }

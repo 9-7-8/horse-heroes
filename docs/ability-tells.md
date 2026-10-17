@@ -57,7 +57,7 @@ system only draws it.
 
 ## Seen
 
-`--seed 6 --no-pause`. The log line `tell: <ability> by horse N at T`
+`--seed 6`. The log line `tell: <ability> by horse N at T`
 (`RUST_LOG=info,horse_heroes::fx::tells=debug`) says when each is used:
 the Ward at 6.0, Ember Shot at 8.1, Frost Burst at 9.1. At 5.85 the Ward's
 glow round Sable; at 7.0 the bubbles; at 7.8 the orb gathering in front of

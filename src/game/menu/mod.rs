@@ -19,8 +19,8 @@ pub struct MenuPlugin {
     pub show_parts: bool,
     /// Start with the sample hint showing (`--hint`). F6 toggles it.
     pub hint: bool,
-    /// A lesson's pop-up stops the game while it is up (#353). Off with
-    /// `--no-pause` and in the soak, which nobody is at.
+    /// A lesson's pop-up stops the game while it is up (#353). Off only in
+    /// the soak, which nobody is at.
     pub pause: bool,
 }
 

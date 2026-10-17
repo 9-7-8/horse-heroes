@@ -51,7 +51,7 @@ shown on the road, done by watching the next kill. At `--seed 6
 
 ## Looking at it
 
-`--seed 6 --no-pause` with `IDLE_SHOT_AT=5.4` has the first fight's opening:
+`--seed 6` with `IDLE_SHOT_AT=5.4` has the first fight's opening:
 Sable's 6! and then Morrow's 11! over the Mire Toad, one after the other
 (#354); at 6.2 Juniper's 8! has come, and -3 over Morrow. (Before #354 the
 three came on one tick, side by side; checked 2026-10-15.)

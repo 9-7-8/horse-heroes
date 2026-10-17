@@ -116,8 +116,12 @@ pauses.
   pause, so they are put away rather than done. The opening's no longer
   goes by itself when the first fight begins; the fight lesson's line no
   longer says to watch.
-- **`--no-pause`** keeps the times a run had before (build-and-run.txt),
-  and the soak, which nobody is at, never pauses. The menu tour, the
+- **Picture runs answer like a player** (owner, 2026-10-17: no
+  `--no-pause`). `IDLE_SHOT_AT` counts the game's clock, which stops under
+  a pop-up, so a time is the same moment of the game whatever lessons came
+  before it; each lesson is answered with Got it after a second's reading
+  (`dev_screenshot::READING_SECS`). The soak, which nobody is at, never
+  pauses. The menu tour, the
   click budget's walk and the lesson walk answer a lesson on the road with
   Got it while they wait for time or for town, and leave town's up for
   their pictures.
@@ -266,9 +270,9 @@ encounter's biggest foe still standing (`Game::boss`), and the box the
 pop-up points at is kept over its body by `place_boss` (`BossSpot`, seen
 by nobody). Like every lesson it waits while a kill's pieces are aloft;
 the fight begins after a walk, so they have usually arrived. Not shown at a
-later boss: `Boss` counts once. Test: `the_boss_is_met_once`. Picture:
-`--seed 6 --no-pause` at `IDLE_SHOT_AT=45`
-([gallery](gallery/2026-10-15-boss/README.md)).
+later boss: `Boss` counts once. Test: `the_boss_is_met_once`. Picture
+([gallery](gallery/2026-10-15-boss/README.md)), taken when timed pictures
+left lessons up; a timed picture now answers it first.
 
 Chosen without the owner: its words; that it is finished by Got it (or the
 win, were it watched); that the pop-up points at the boss with no mark of
@@ -336,12 +340,10 @@ first-time player can then say whose stats the comparison is about is
 
 ## Looking at it
 
-`--seed 6` at any `IDLE_SHOT_AT` from 3 is the opening's line, the party
-waiting at the gate ([gallery](gallery/2026-10-14-pause/README.md)). With
-`--no-pause`, at 3 the opening's line, at 5 the first
-fight's lesson, at 12 the abilities', at 68 the piece's in town
-([gallery](gallery/2026-10-12-lessons/README.md), taken when a game
-started in town and every time was 12 s later).
+A timed picture (`IDLE_SHOT_AT`) answers every lesson before it is taken,
+so it shows the game with none up; the road lessons as pop-ups are in the
+older pictures ([gallery](gallery/2026-10-12-lessons/README.md),
+[gallery](gallery/2026-10-14-pause/README.md)). Town's are seen by the walk:
 `IDLE_LESSON=<folder>` with `--seed 6` walks the first item's lessons by
 keys, ticking four of the things to try on the way and a fifth at its end
 ([gallery](gallery/2026-10-13-things-to-try/README.md)), and saves a picture of each

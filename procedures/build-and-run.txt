@@ -40,11 +40,13 @@ Use the cheapest step that can prove the change:
    it with Keep going on, and then it leaves again 12 s after arriving.
    (Until 2026-10-14 a game started in town and every time below was 12 s
    later, with --keep-going; the times were moved, and two checked.)
-   A lesson's pop-up stops the game until it is answered (#353), so with
-   nobody at it a run waits at the gate under the opening for good.
-   EVERY TIME BELOW IS WITH --no-pause, which shows the lessons and stops
-   nothing; the soak never pauses. Without it, seed 6 at any time from 3
-   is the opening, the party at the gate (checked at 8, 2026-10-14).
+   A lesson's pop-up stops the game until it is answered (#353). A timed
+   picture answers each with Got it after a second's reading, and
+   IDLE_SHOT_AT counts the game's clock, which stops under a pop-up, so
+   EVERY TIME BELOW IS GAME TIME and needs no flag; the picture shows no
+   lesson up (checked at 5.4 and 54.4, 2026-10-17). There is no
+   --no-pause (owner, 2026-10-17). A plain run with nobody at it waits at
+   the gate under the opening for good; the soak never pauses.
    --burst throws the loot shower's test burst 1 s after launch (F3 throws
    it at any time) and logs its frame times (docs/loot-shower.md); a
    picture at IDLE_SHOT_AT=2.4 is the burst in the air, at 3.6 its last
