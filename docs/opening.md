@@ -199,7 +199,7 @@ My calls in this draft, each easy to change:
 
 - **The boss.** A new, weaker final for the first trail only (the
   Yearling), rather than tuning the Stag or the Wolf, which every later
-  trail uses.
+  trail uses. *Confirmed by her 2026-10-17 (vision.md).*
 - **The spring** on the first trail, so that no horse falls in it. Without
   it the trail is still never lost, but Morrow sometimes falls.
 - **The trail's piece**: a Rare Halter, the same in every game, above any

@@ -609,6 +609,13 @@ Set are the tiers with a beam.
   (confirmed 2026-10-17, #289 question 5), as they do now: Skip all hints
   puts them all away for that run. She chose this over remembering them
   only for a first launch and over hints off by default.
+- **The tutorial trail ends in a boss of its own, the Corrupted Yearling**
+  (confirmed 2026-10-17, #293 call 1): a new, weaker final used only on the
+  first trail (the Stag's body; health 200, attack 6, defense 1, a blow
+  every 2 s, Fire; numbers are tuning). The Stag and the Wolf stay as they
+  are for every later trail. She chose this over retuning the Stag or the
+  Wolf, and over keeping the Stag, with which the starting party lost one
+  first trail in four.
 - The opening is releases 0.2.2 to 0.2.4 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
@@ -800,7 +807,10 @@ boosts what in a pet), and the tactics proposal, which is advice she handed
 over and not yet her decision (#338, [tactics.md](tactics.md)). The
 opening's questions (#289) are all answered: 3 on 2026-10-16 (the tutorial
 trail cannot be lost, by tuning) and 5 on 2026-10-17 (lessons play on every
-launch until saving exists).
+launch until saving exists). The tutorial trail's design (#293,
+docs/opening.md) has six calls of hers: 1 answered on 2026-10-17 (a boss of
+its own, the Corrupted Yearling); 2 to 6 still open (the spring, the
+trail's piece, no resisted hits, the second pop-up, #295 as written).
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,
