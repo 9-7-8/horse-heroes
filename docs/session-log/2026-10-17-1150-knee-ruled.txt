@@ -1,0 +1,39 @@
+ASKED
+  /answers, no steer.
+
+DONE
+  - Asked #278 question 2: the knee.
+  - Recorded in docs/philosophy/vision.md, The hock; horse-movement.md
+    noted. Commit 92c7b05.
+  - #278: comment with the answer; left open (question 3 remains).
+  - #370 revised to cover the knee as well as the hock (title and body).
+  - #279, #267: comments on how to read them now.
+  - cargo check and cargo test green (270 passed); no code changed.
+
+DECIDED
+  - Owner: the knee's centre is at 0.32 H, level with the hock, over
+    keeping 0.306 H.
+  - Mine: the knee's change goes in #370 rather than a new issue.
+
+FOUND
+  - Nothing.
+
+NOT DONE
+  - #370 is not built.
+
+PICK UP
+  - /next: 0.2.5 The opening is the next release; build what /next's order
+    names first (#293's sheet redraw or #294).
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element, at the first resisted fight - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
