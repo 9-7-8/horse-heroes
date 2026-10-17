@@ -1,0 +1,46 @@
+SESSION 2026-10-17 08:46 - the first boss ruled (#293 call 1)
+============================================================
+
+ASKED
+  /next, no steer. Build green, 270 tests; the one bug, #246, waits on her
+  look; nothing in 0.2.5 buildable before her #293 calls. Asked her what
+  the run should do: she chose "Ask the #293 calls" over releasing now, so
+  /answers on #293.
+
+DONE
+  - 3f5cf99: vision.md and opening.md record call 1. Docs only; cargo
+    check and test green.
+  - #293 and #294 commented.
+
+DECIDED (hers)
+  - #293 call 1: the first trail ends in a boss of its own, the Corrupted
+    Yearling (new, weaker, first trail only), over retuning the Stag or the
+    Wolf and over keeping the Stag.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - #293 calls 2 to 6 (the spring, the trail's piece, no resisted hits, the
+    second pop-up, #295 as written).
+
+PICK UP
+  /answers #293: call 2, the fairy spring before the boss.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt (call 1 of 6 ruled)
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
