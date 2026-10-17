@@ -146,7 +146,7 @@ they stand. "Seen" is how the player sees the connection.
 | the party fights by itself | `Fight`: the Thornling, about 4 s in | Fights are automatic | Do not hunt for an attack button | Reassured | The horses strike with no input | "The horses fight by themselves. Nothing in a fight needs a press." |
 | abilities fire by themselves | `Ability`: Sable's Ward, 2 s into fight 1 | Each horse's ability fires when ready | Watch for each one | Curiosity | The Ward's bubble over the party, its sound | "Each horse has one ability, and uses it by itself when it is ready." |
 | the numbers are hits | `Kill`: the Thornling, about 8 s in, once its loot has landed | Hits are sized by damage, coloured by element | Read the numbers | Understanding | The numbers just seen | "Each number is a hit, sized by damage, coloured by element; a minus is a horse hit." |
-| speed | `Kill`, next after the numbers | Faster horses hit more often | Notice Juniper's pace | Interest | Juniper's hits come most often | "The faster a horse, the more often it hits. The party walks at their average speed." |
+| speed | `Kill`: the first of fight 2 (her ruling, 2026-10-17) | Faster horses hit more often | Notice Juniper's pace | Interest | Juniper's hits come most often | "The faster a horse, the more often it hits. The party walks at their average speed." |
 | the boss | `Boss`: the Yearling's approach | The last fight has the best loot | Watch it | Anticipation | Its banner and bar, its approach | "The trail's boss: its last fight, and the one with the best loot." |
 
 Between them, with no line: the first loot landing and drawn in (the
@@ -220,7 +220,8 @@ My calls in this draft, each easy to change:
   the opening" are to be redrawn for it.*
 - **Two pop-ups after the first kill**: the numbers, then speed, back to
   back. I would move speed to the second kill or the second trail; it is
-  the only place the opening stacks two.
+  the only place the opening stacks two. *Confirmed by her 2026-10-17
+  (vision.md): speed moves to the first kill of fight 2.*
 - **Against #295 as written**, which this sheet would change: it names
   Focused Shot and Elemental Burst, which are now Ember Shot and Frost
   Burst (#357); it wants a line for each ability naming its horse, where one
