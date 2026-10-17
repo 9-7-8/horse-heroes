@@ -734,8 +734,14 @@ were filed under. Every number in the document is a proposal.
   "centre of the hock, about 57-63 cm" (`horse-shape.md`, replaced, kept
   there) and the Friesian's 0.364 in her breeds document's landmark table.
   The hind cannon shortens with it. The window round 0.32 is tuning and is
-  set on the implementing issue, not here. The knee (#278, question 2) and
-  the new joint centres (question 3) are still open.
+  set on the implementing issue, not here. ~~The knee (#278, question 2) and
+  the new joint centres (question 3) are still open.~~ *(replaced below)*
+- **Confirmed: the knee's centre is at 0.32 H** (53 cm), level with the
+  hock, as the source proposes (owner, 2026-10-17, #278 question 2). Put to
+  her as "take 0.32 H" against keeping 0.306 H; she took 0.32. It is the top
+  of her brief's 48-53 cm window, so the brief's line still holds; the
+  Friesian's 0.306 carpus in her breeds table is replaced. The new joint
+  centres (question 3) are still open.
 
 ## Builds are the player's (owner, testing 0.2.2, 2026-10-12)
 
@@ -855,8 +861,8 @@ docs/opening.md) had six calls of hers, all answered on 2026-10-17 (a
 boss of its own, the Corrupted Yearling; no spring, the Yearling tuned down
 instead; a fixed Rare Starlit Halter; one resisted fight; speed at fight
 2's first kill; six road pauses). The skeleton's #278: question 1, the
-hock, answered on 2026-10-17 (0.32 H); the knee and the new joint centres
-are left.
+hock, and question 2, the knee, answered on 2026-10-17 (both 0.32 H); the
+new joint centres are left.
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,
