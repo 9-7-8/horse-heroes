@@ -1,0 +1,44 @@
+SESSION 2026-10-17 - the opening decided (#289)
+
+ASKED
+  /next, no steer. Build green, 270 tests; #246 still waits on her look.
+  Nothing in 0.2.5 or 0.3.0 was buildable: 0.2.5's unbuilt issues all
+  hung on #289 question 5, so PICK UP's first step: ask it.
+
+DONE
+  - 0bb7a58 (Closes #289): question 5 answered and recorded in vision.md,
+    Tutorials. Questions 6 to 10 moved by comment to #156, #220, #34, #51
+    and #225 (#233, named by 10, is closed). Docs only; cargo check green.
+
+DECIDED (by her)
+  - Until saving exists (#44), the lessons play again on every launch, as
+    they do now; Skip all hints puts them away for that run. Chosen over
+    first launch only and over hints off by default. Nothing to build.
+
+FOUND
+  - Nothing.
+
+NOT DONE
+  - #293 not started.
+
+PICK UP
+  /next: #293, write docs/opening.md (the worksheet answers, the beat
+  sheet, the first trail) for her to correct. #289 no longer blocks it.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
