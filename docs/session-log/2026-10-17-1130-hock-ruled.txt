@@ -1,0 +1,41 @@
+ASKED
+  /answers, no steer.
+
+DONE
+  - Asked #278 question 1 (0.5.0, the earliest open decision): the hock.
+  - Recorded in docs/philosophy/vision.md, The hock; horse-shape.md's hock
+    line marked replaced with a note at its top; horse-movement.md noted.
+    Commit c35b10c.
+  - #278: comment with the answer; left open (questions 2 and 3 remain).
+  - #279: comment, the hock joint centre is 0.32 H now.
+  - #267: comment, the breeds table's Friesian 0.364 is replaced.
+  - Filed #370 (bug, 0.5.0, under #255): the hock is drawn at 0.364 H.
+  - cargo check and cargo test green (270 passed); no code changed.
+
+DECIDED
+  - Owner: the hock's centre is at 0.32 H, the skeleton source's figure,
+    over her brief's 57-63 cm and a meeting at 0.345 H.
+  - Mine: the window round 0.32 is tuning, left to #370.
+
+FOUND
+  - Nothing.
+
+NOT DONE
+  - #370 is not built (one question, one session).
+
+PICK UP
+  - /next: 0.2.5 The opening is the next release; build #293's sheet redraw
+    or #294, whichever /next's order names first.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element, at the first resisted fight - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
