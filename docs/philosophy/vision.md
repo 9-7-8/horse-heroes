@@ -716,6 +716,19 @@ were filed under. Every number in the document is a proposal.
   for a lesson that is showing. The tutorial rule above still holds: a
   pop-up shows or asks for one thing, with at most a line, and is never a
   wall of text.
+- **How the pop-ups behave** (confirmed 2026-10-17, #353, ruling on the
+  calls made while building it):
+  - A lesson waiting on a kill's loot comes up **once the pieces have
+    landed**, not once they are collected, so it pauses over loot glowing on
+    the ground. She chose this over waiting for the pickup.
+  - On the road a lesson to watch ends with **Got it only**: it pauses like
+    every lesson and the opening does not go on by itself. She chose this
+    over watched lessons that sit beside the fight without pausing.
+  - Equip's pop-up goes **beside the item card**, not over it, so the card
+    stays visible.
+  - **No `--no-pause` flag.** Picture runs and the menu tour answer each
+    lesson as a player would, and their timings are retimed. She chose this
+    over keeping a dev-only flag.
 
 ## The design priority
 
