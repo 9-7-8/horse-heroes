@@ -1,0 +1,48 @@
+ASKED
+  /next, no steer.
+
+DONE
+  - Tier 3, features (tiers 1 and 2 empty: #246 waits only on the owner
+    watching; build and 270 tests green). #293's last open part: the sheet
+    redrawn for call 4. Commit 28995fd, closes #293.
+  - docs/opening.md: the Mire Toad, fight 3, is Ice, so Juniper's Ember
+    Shot is resisted there once every run and the resisted-ability lesson
+    plays in the first town. Redrawn: worksheet point 8, the fights table,
+    Elements (with why this fight and this ability), the town beats (a row
+    for the lesson, and the order the town shows lessons in), "Later than
+    the opening" (now empty), "What is not taught", and the rule-on note.
+    The old measurements are marked as from a Fire Toad with a spring.
+  - Checked: read against lessons.ron's order and the element triangle in
+    src/sim/data.rs. Doc only; cargo test 270 passed.
+
+DECIDED
+  - Mine (call 4 left it to the build): fight 3, the Mire Toad, Ice;
+    Ember Shot is the resisted ability. Not fight 2 (it would spoil Frost
+    Burst's first Strong hit on three), not fight 1 (over before Frost
+    Burst fires), not the boss (its fight is the fountain's).
+
+FOUND
+  - The clock said 10:06; today's earlier logs run to 1200, so this one is
+    named 1210 to sort newest.
+
+NOT DONE
+  - Nothing measured: the Ice Toad's effect on the no-fall margin is for
+    #294's test, with the Yearling's tuning.
+
+PICK UP
+  - /next: build #294, the authored first trail, from docs/opening.md's
+    plan (Toad Ice, no spring, Yearling tuned until no horse falls, the
+    Starlit Halter, Resisted raised in every run).
+
+NEXT RELEASE
+  0.2.5 The opening: 4 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - closed
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element, at the first resisted fight - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
