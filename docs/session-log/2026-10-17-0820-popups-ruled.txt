@@ -1,0 +1,55 @@
+SESSION 2026-10-17 08:20 - the pop-ups as she ruled
+=================================================
+
+ASKED
+  "Ask me any open decisions off of the next release", then /next.
+
+DONE
+  - 01d1e89: her four rulings on #353 recorded in vision.md, Tutorials.
+  - 775556b: a lesson waits only on loot in the air (Uncollected::aloft)
+    and pauses over pieces on the ground. Tested; the test was seen to
+    fail against the old rule. A lesson about a control on the item card
+    stands beside the card, pointing across (place_popup, Side). Seen
+    running in the lesson walk: docs/gallery/2026-10-17-beside-the-card.
+  - 027f2ae: --no-pause removed. IDLE_SHOT_AT counts game time and a
+    timed run answers each lesson with Got it after 1 s. Seen running at
+    5.4 and 54.4 with --seed 6: both match their documented moments.
+    cargo test 270 passed.
+
+DECIDED (by her)
+  - A lesson waiting on loot comes up once it has landed, not collected.
+  - Road lessons end with Got it only (as built).
+  - Equip's pop-up goes beside the item card.
+  - No --no-pause flag.
+DECIDED (for her, on #353 to overrule)
+  - Timed pictures keep their times as game time rather than being
+    retimed; so a timed picture never shows a lesson up. The soak still
+    never pauses.
+
+FOUND
+  - #246 (bug, menus) waits only on her watching trails; skipped by /next.
+
+NOT DONE
+  - The menu tour was not re-run after the flag went.
+
+PICK UP
+  /next: #293, write docs/opening.md (the worksheet answers, the beat
+  sheet, the first trail) for her to correct.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
