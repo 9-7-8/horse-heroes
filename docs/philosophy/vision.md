@@ -639,6 +639,14 @@ Set are the tiers with a beam.
   the first kill says the numbers, the second fight's first kill says speed.
   She chose this over the second trail and over keeping both at the first
   kill.
+- **The first trail's road has six lesson pauses** (confirmed 2026-10-17,
+  #293 call 6): the role, fights by themselves, abilities (one line, at the
+  first to fire), the numbers, speed (fight 2) and the boss. Ember Shot and
+  Frost Burst are shown by their own looks and sounds, not a line each;
+  there is no trail-tracker line and no separate loot line. The "no horse
+  can die" line waits for the first fall (#176, #178). She chose this over a
+  line per ability (eight pauses) and over #295 as first written (about
+  nine, with a tracker and a loot line).
 - The opening is releases 0.2.2 to 0.2.4 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
@@ -831,10 +839,10 @@ over and not yet her decision (#338, [tactics.md](tactics.md)). The
 opening's questions (#289) are all answered: 3 on 2026-10-16 (the tutorial
 trail cannot be lost, by tuning) and 5 on 2026-10-17 (lessons play on every
 launch until saving exists). The tutorial trail's design (#293,
-docs/opening.md) has six calls of hers: 1 to 5 answered on 2026-10-17 (a
+docs/opening.md) had six calls of hers, all answered on 2026-10-17 (a
 boss of its own, the Corrupted Yearling; no spring, the Yearling tuned down
 instead; a fixed Rare Starlit Halter; one resisted fight; speed at fight
-2's first kill); 6 still open (#295 as written).
+2's first kill; six road pauses).
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,

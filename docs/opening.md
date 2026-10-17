@@ -229,4 +229,5 @@ My calls in this draft, each easy to change:
   keeps the road to six pauses; it wants a line for the trail tracker,
   which needs an event of its own (a fight cleared) and would be a seventh;
   and its loot line is said already by the opening's. #294's "equipped by
-  itself if left alone" was overruled by #351 and goes.
+  itself if left alone" was overruled by #351 and goes. *Confirmed by her
+  2026-10-17 (vision.md): six road pauses, as this sheet has them.*
