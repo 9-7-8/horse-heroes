@@ -69,7 +69,7 @@ is not in the code; #294's tests are what will hold these numbers.
 ## The first trail
 
 One fixed plan, kept as data (#294): the same fights, enemy elements,
-spring and trail's piece in every new game, whatever the seed. The seed
+no spring, and the same trail's piece in every new game, whatever the seed. The seed
 still moves what the ordinary rules roll: who an enemy strikes, each swing's
 timing, coins, and the pieces the kills throw.
 
@@ -78,7 +78,7 @@ timing, coins, and the pieces the kills throw.
 | 1 | One Thornling | Plant | One small enemy: the fight is read whole. Long enough (about 4 s) for the Ward, not for the shots |
 | 2 | Three Gloom Sprites | Fire | A group, for Frost Burst: Morrow's first use hits all three at once, each Strong. Ember Shot fires twice here |
 | 3 | One Mire Toad | Fire | The hardest hitter of the three: the Ward's halved hits are seen, and each ability fires once |
-| | A fairy spring | | Heals the party by 30% of its health, an ordinary rule (`bonus_heal`) |
+| | ~~A fairy spring~~ | | ~~Heals the party by 30% of its health~~. *No spring (her ruling, 2026-10-17): the Yearling is tuned down instead, so no horse falls* |
 | 4 | A Corrupted Yearling, the boss | Fire | The full fountain and the trail's piece. Long enough (12 to 14 s) for every ability to fire two or three times |
 
 **The Yearling** is a new enemy in `enemies.ron`, not a change to the
@@ -93,6 +93,10 @@ Shot meets Plant or Fire, Frost Burst Fire. About eight hits a trail are
 Strong, and are seen as such (coloured numbers, "Strong!" in the log), but
 elements are not taught on the first trail: the resisted-ability lesson
 waits for the second (variation, above), where it has something to say.
+
+*Since 2026-10-17 there is no spring (above); these numbers are from the
+draft that had one, and the Yearling's are to be re-tuned and re-measured
+without it.*
 
 **What was measured**, on today's rules, with the Yearling and the spring:
 
@@ -144,7 +148,7 @@ they stand. "Seen" is how the player sees the connection.
 
 Between them, with no line: the first loot landing and drawn in (the
 opening's line has said it is collected), Ember Shot and Frost Burst first
-seen in fight 2, the spring, the boss's fountain and the Starlit Halter's
+seen in fight 2, the boss's fountain and the Starlit Halter's
 fall, the walk home.
 
 ### In the first town
@@ -191,7 +195,7 @@ This is the first variation (worksheet, 8): the first trail never raises
 | Ability points and levels | The first level up | #220 (0.6.1) |
 | The itinerary; offline progress | The second town; the first time away | #201 (0.7.0), #31 (0.7.3) |
 | Coins | Named, not taught: nothing to spend them on yet | |
-| The fairy spring | Seen on the first trail, no line | |
+| The fairy spring | A later trail; not on the first (her ruling, 2026-10-17) | |
 
 ## For her to rule on
 
@@ -202,6 +206,8 @@ My calls in this draft, each easy to change:
   trail uses. *Confirmed by her 2026-10-17 (vision.md).*
 - **The spring** on the first trail, so that no horse falls in it. Without
   it the trail is still never lost, but Morrow sometimes falls.
+  *Overruled by her 2026-10-17 (vision.md): no spring; the Yearling is
+  tuned down until no horse falls.*
 - **The trail's piece**: a Rare Halter, the same in every game, above any
   kill's tier.
 - **No resisted hits** on the first trail, so elements wait for the second.

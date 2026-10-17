@@ -616,6 +616,12 @@ Set are the tiers with a beam.
   are for every later trail. She chose this over retuning the Stag or the
   Wolf, and over keeping the Stag, with which the starting party lost one
   first trail in four.
+- **The tutorial trail has no fairy spring; the Yearling is tuned down
+  instead** (confirmed 2026-10-17, #293 call 2): no horse falls on the first
+  trail, held by a test over many seeds, and that comes from a weaker boss,
+  not from a heal before it. Springs are first met on later trails. She chose
+  this over a fixed spring before the boss and over leaving a rare fall
+  (Morrow, about 1 run in 80) before falls are taught.
 - The opening is releases 0.2.2 to 0.2.4 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
@@ -808,9 +814,10 @@ over and not yet her decision (#338, [tactics.md](tactics.md)). The
 opening's questions (#289) are all answered: 3 on 2026-10-16 (the tutorial
 trail cannot be lost, by tuning) and 5 on 2026-10-17 (lessons play on every
 launch until saving exists). The tutorial trail's design (#293,
-docs/opening.md) has six calls of hers: 1 answered on 2026-10-17 (a boss of
-its own, the Corrupted Yearling); 2 to 6 still open (the spring, the
-trail's piece, no resisted hits, the second pop-up, #295 as written).
+docs/opening.md) has six calls of hers: 1 and 2 answered on 2026-10-17 (a
+boss of its own, the Corrupted Yearling; no spring, the Yearling tuned down
+instead); 3 to 6 still open (the trail's piece, no resisted hits, the
+second pop-up, #295 as written).
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,
