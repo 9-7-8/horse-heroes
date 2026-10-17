@@ -1,0 +1,56 @@
+SESSION 2026-10-17 10:10 - /answers split from a new /playtest
+==============================================================
+
+ASKED
+  /answers, no steer. The pick was #10 (0.3.0), whose only open part is her
+  listening; she answered "Not listened yet", so nothing was recorded. Then:
+  "Update your procedures: answers should only ask me for DECISIONS, not
+  tests. There should be a different procedure I can run for in-game tests
+  you need me to run."
+
+DONE
+  - procedures/answers.txt: decisions only; a `decision` issue that waits
+    only on her look is relabelled and skipped.
+  - procedures/playtest.txt and .claude/commands/playtest.md: new. Up to
+    four built-untested things, checked steps, one question call, passes
+    closed, failures filed as bugs, nothing fixed in the run.
+  - INDEX.txt and .claude/commands/answers.md updated.
+  - #10 and #187: `decision` label removed, commented that each waits on
+    /playtest.
+  Procedures only; cargo check and test green (270). Not yet run.
+
+DECIDED (hers)
+  - /answers asks decisions only; in-game tests get their own procedure.
+  - Mine, not asked: the name /playtest, the cap of four tests a run (the
+    question tool's limit), and that a test runs on the latest release
+    unless she says otherwise.
+
+FOUND
+  - #10 and #187 were labelled `decision` though each waited only on her
+    look.
+
+NOT DONE
+  - /playtest has never been run. /playtest may need a Claude Code restart
+    to appear.
+  - docs/opening.md's redraw for #293 call 4.
+
+PICK UP
+  /next: redraw docs/opening.md for #293 call 4 and close #293, then #294.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt (all calls ruled; sheet redraw left)
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
