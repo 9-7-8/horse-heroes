@@ -1,0 +1,45 @@
+SESSION 2026-10-17 09:05 - no spring on the first trail (#293 call 2)
+====================================================================
+
+ASKED
+  /answers, no steer. Earliest decision: #293, call 2 (the spring).
+
+DONE
+  - b40a0a1: vision.md and opening.md record call 2; opening.md's
+    measurements flagged as taken with the spring. Docs only; cargo check
+    and test green (270).
+  - #293 and #294 commented.
+
+DECIDED (hers)
+  - #293 call 2: no fairy spring on the first trail; the Yearling is tuned
+    down instead so that no horse falls, held by a test. Chosen over a fixed
+    spring before the boss and over allowing a rare fall.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - #293 calls 3 to 6 (the trail's piece, no resisted hits, the second
+    pop-up, #295 as written).
+  - The Yearling's tuned-down numbers: tuning on #294.
+
+PICK UP
+  /answers #293: call 3, the trail's piece (the Starlit Halter).
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt (calls 1-2 of 6 ruled)
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
