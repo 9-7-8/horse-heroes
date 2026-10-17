@@ -209,7 +209,7 @@ My calls in this draft, each easy to change:
   *Overruled by her 2026-10-17 (vision.md): no spring; the Yearling is
   tuned down until no horse falls.*
 - **The trail's piece**: a Rare Halter, the same in every game, above any
-  kill's tier.
+  kill's tier. *Confirmed by her 2026-10-17 (vision.md).*
 - **No resisted hits** on the first trail, so elements wait for the second.
 - **Two pop-ups after the first kill**: the numbers, then speed, back to
   back. I would move speed to the second kill or the second trail; it is

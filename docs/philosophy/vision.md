@@ -622,6 +622,12 @@ Set are the tiers with a beam.
   not from a heal before it. Springs are first met on later trails. She chose
   this over a fixed spring before the boss and over leaving a rare fall
   (Morrow, about 1 run in 80) before falls are taught.
+- **The tutorial trail's own piece is a fixed Starlit Halter, Rare**
+  (confirmed 2026-10-17, #293 call 3): the same in every game (yellow, the
+  ringed stone; attack +4, defense +2, health +10, its look rolled once from
+  a fixed seed; numbers are tuning), the one tier above anything the trail's
+  kills throw, so it stands out by colour and shape without a word. She chose
+  this over a Rare piece rolled per seed and over a fixed Legendary.
 - The opening is releases 0.2.2 to 0.2.4 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
@@ -814,10 +820,10 @@ over and not yet her decision (#338, [tactics.md](tactics.md)). The
 opening's questions (#289) are all answered: 3 on 2026-10-16 (the tutorial
 trail cannot be lost, by tuning) and 5 on 2026-10-17 (lessons play on every
 launch until saving exists). The tutorial trail's design (#293,
-docs/opening.md) has six calls of hers: 1 and 2 answered on 2026-10-17 (a
+docs/opening.md) has six calls of hers: 1 to 3 answered on 2026-10-17 (a
 boss of its own, the Corrupted Yearling; no spring, the Yearling tuned down
-instead); 3 to 6 still open (the trail's piece, no resisted hits, the
-second pop-up, #295 as written).
+instead; a fixed Rare Starlit Halter); 4 to 6 still open (no resisted hits,
+the second pop-up, #295 as written).
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,
