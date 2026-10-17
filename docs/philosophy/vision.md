@@ -628,6 +628,12 @@ Set are the tiers with a beam.
   a fixed seed; numbers are tuning), the one tier above anything the trail's
   kills throw, so it stands out by colour and shape without a word. She chose
   this over a Rare piece rolled per seed and over a fixed Legendary.
+- **One fight on the tutorial trail resists one of the starting party's
+  abilities** (confirmed 2026-10-17, #293 call 4), so the player meets
+  elements in the opening and the resisted-ability lesson plays in the first
+  town rather than the second. Which fight and which element are fixed in the
+  authored plan (#294); the trail must still be won with no horse falling.
+  She chose this over a first trail on which nothing is resisted.
 - The opening is releases 0.2.2 to 0.2.4 (#288). The advice on how to teach is
   [onboarding.md](onboarding.md); those two lines are hers and outrank it.
 
@@ -820,10 +826,10 @@ over and not yet her decision (#338, [tactics.md](tactics.md)). The
 opening's questions (#289) are all answered: 3 on 2026-10-16 (the tutorial
 trail cannot be lost, by tuning) and 5 on 2026-10-17 (lessons play on every
 launch until saving exists). The tutorial trail's design (#293,
-docs/opening.md) has six calls of hers: 1 to 3 answered on 2026-10-17 (a
+docs/opening.md) has six calls of hers: 1 to 4 answered on 2026-10-17 (a
 boss of its own, the Corrupted Yearling; no spring, the Yearling tuned down
-instead; a fixed Rare Starlit Halter); 4 to 6 still open (no resisted hits,
-the second pop-up, #295 as written).
+instead; a fixed Rare Starlit Halter; one resisted fight); 5 and 6 still
+open (the second pop-up, #295 as written).
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,

@@ -88,6 +88,9 @@ finals as they are cannot be the first boss: with the Stag, the starting
 party lost one first trail in four; with the Wolf and a spring before it,
 some sets of abilities still lost. Name and numbers are proposals.
 
+*Since 2026-10-17 one fight resists one ability (For her to rule on,
+below); this paragraph is the draft she overruled.*
+
 **Elements.** The starting party is never resisted on this trail: Ember
 Shot meets Plant or Fire, Frost Burst Fire. About eight hits a trail are
 Strong, and are seen as such (coloured numbers, "Strong!" in the log), but
@@ -211,6 +214,10 @@ My calls in this draft, each easy to change:
 - **The trail's piece**: a Rare Halter, the same in every game, above any
   kill's tier. *Confirmed by her 2026-10-17 (vision.md).*
 - **No resisted hits** on the first trail, so elements wait for the second.
+  *Overruled by her 2026-10-17 (vision.md): one fight resists one ability,
+  and the resisted-ability lesson plays in the first town. The sheet's
+  Elements paragraph, the fights table, worksheet point 8 and "Later than
+  the opening" are to be redrawn for it.*
 - **Two pop-ups after the first kill**: the numbers, then speed, back to
   back. I would move speed to the second kill or the second trail; it is
   the only place the opening stacks two.
