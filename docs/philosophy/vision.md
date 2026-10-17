@@ -725,6 +725,18 @@ Horse, Gypsy Vanner, Shetland, Thoroughbred, with walk, trot, canter and
 gallop) are the answer to "which breeds" (#267); and every release these
 were filed under. Every number in the document is a proposal.
 
+### The hock (#278, owner, 2026-10-17)
+
+- **Confirmed: the hock's centre is at 0.32 H** (53 cm at the reference
+  height), as the skeleton source proposes, level with the knee as that
+  source raises it. Put to her as "take 0.32 H" against keeping her brief's
+  0.364 H or meeting at 0.345 H; she chose 0.32. It replaces the brief's
+  "centre of the hock, about 57-63 cm" (`horse-shape.md`, replaced, kept
+  there) and the Friesian's 0.364 in her breeds document's landmark table.
+  The hind cannon shortens with it. The window round 0.32 is tuning and is
+  set on the implementing issue, not here. The knee (#278, question 2) and
+  the new joint centres (question 3) are still open.
+
 ## Builds are the player's (owner, testing 0.2.2, 2026-10-12)
 
 - **"The main choices people get to make in this game is their builds."**
@@ -842,7 +854,9 @@ launch until saving exists). The tutorial trail's design (#293,
 docs/opening.md) had six calls of hers, all answered on 2026-10-17 (a
 boss of its own, the Corrupted Yearling; no spring, the Yearling tuned down
 instead; a fixed Rare Starlit Halter; one resisted fight; speed at fight
-2's first kill; six road pauses).
+2's first kill; six road pauses). The skeleton's #278: question 1, the
+hock, answered on 2026-10-17 (0.32 H); the knee and the new joint centres
+are left.
 
 Issues labelled `proposed` are ruled on **per release** (owner, 2026-10-10):
 when a release is next to be built, its proposed issues are put to her then,

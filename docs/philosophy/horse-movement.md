@@ -243,7 +243,8 @@ as a separate behaviour. Never a regular swish locked to the stride.
   coordinates. It is an animator's setting throughout, and **it moves the
   hock to 0.32 H, below the window the owner's brief gives it** (0.345 to
   0.382; `horse-shape.md`), and the knee to the top of its own. That is hers
-  to rule on (#278).
+  to rule on (#278). *She took the 0.32 H hock on 2026-10-17 (`vision.md`,
+  The hock); the knee is still hers to rule on.*
 - **The horse is rigid pieces, not a skinned mesh** (`docs/horse-model.md`).
   So the source's advice for rigid pieces is the one that applies: pieces
   that overlap at the joints. `--bare` already hides the hair, which is how

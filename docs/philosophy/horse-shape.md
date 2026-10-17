@@ -4,6 +4,9 @@ The base horse: what it is, its proportions, and which features carry the
 likeness. This is the specification to build the horse model to, received
 from the owner as a brief for whoever (or whatever) makes the mesh.
 
+*2026-10-17: the hock is at 0.32 H now, not 57-63 cm (owner, #278;
+`vision.md`, The hock).*
+
 **The base is a mature, modern sport-type purebred Friesian:** tall and
 relatively long-legged, with a rectangular body, a long, high-set, arched
 neck, a refined head, and limbs that are substantial without being
@@ -68,7 +71,7 @@ hind legs are not straight columns. Use heights above the ground.
 | Elbow | about 96–103 |
 | Underside of chest behind the forelegs | 89 |
 | Centre of the front knee | about 48–53 |
-| Centre of the hock | about 57–63 |
+| Centre of the hock | about 57–63 (*replaced 2026-10-17: 0.32 H, 53 cm; `vision.md`, The hock*) |
 | Centre of the fetlock | about 18–22 |
 | Top of the hoof | about 10–12 |
 
