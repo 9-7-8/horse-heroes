@@ -1,0 +1,72 @@
+// Parallax (#254): layers of scenery behind the trail, each scrolling at a
+// share of the trail's speed, slower the further back it is, so the trail has
+// depth and a walk looks like going somewhere. They stand still when the
+// party does. Nearest layer first. Lengths are world units; the trail's far
+// edge is at z -2.5 and the camera looks from +z, so a layer further back is
+// a more negative z and sits higher on the screen.
+//
+// Nothing here may overlap the lane, hide a horse, an enemy or a drop, or be
+// taken for a target (docs/philosophy/fairyland-content.md, Trails): so the
+// shapes are round (enemies are cubes), dark, and greyer the further back,
+// and every layer stands behind the lane's far edge with its widest shape.
+//
+//   z          how far back the layer's middle is
+//   speed      its share of the trail's speed, from 0 (still) to 1 (the
+//              trail's own); further back is slower
+//   span       its shapes repeat over this length of trail; wider than the
+//              widest window, so the wrap is never seen
+//   count      how many shapes it has over its span
+//   shape      Mound (a half-buried ball) or Tree (a trunk and a crown)
+//   width      a shape's width, rolled between the two
+//   height     and its height
+//   colour     its colour, red, green, blue from 0 to 1
+//   ground     a strip of ground under it, as deep as `ground_depth`, so
+//              the layers are not floating on black
+//   seed       the shapes' places and sizes are rolled from this, so the
+//              same scenery comes back every run
+(
+    layers: [
+        // Bushes just beyond the lane.
+        (
+            z: -4.0,
+            speed: 0.75,
+            span: 80.0,
+            count: 22,
+            shape: Mound,
+            width: (0.8, 1.6),
+            height: (0.5, 1.0),
+            colour: (0.11, 0.19, 0.12),
+            ground: (0.08, 0.12, 0.08),
+            ground_depth: 3.0,
+            seed: 254001,
+        ),
+        // A wood.
+        (
+            z: -7.0,
+            speed: 0.5,
+            span: 80.0,
+            count: 16,
+            shape: Tree,
+            width: (1.0, 1.8),
+            height: (2.0, 3.4),
+            colour: (0.08, 0.14, 0.11),
+            ground: (0.06, 0.09, 0.07),
+            ground_depth: 3.0,
+            seed: 254002,
+        ),
+        // Far hills.
+        (
+            z: -11.0,
+            speed: 0.25,
+            span: 80.0,
+            count: 9,
+            shape: Mound,
+            width: (6.0, 11.0),
+            height: (1.5, 3.0),
+            colour: (0.07, 0.09, 0.12),
+            ground: (0.045, 0.055, 0.075),
+            ground_depth: 5.0,
+            seed: 254003,
+        ),
+    ],
+)

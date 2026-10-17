@@ -245,6 +245,67 @@ struct Piece(Kind);
 #[derive(Component)]
 struct Scrolling;
 
+/// A piece of background scenery (#254): it scrolls at `speed` times the
+/// trail's speed and comes round again every `span`.
+#[derive(Component)]
+struct Backdrop {
+    speed: f32,
+    span: f32,
+}
+
+/// The layers behind the trail: the numbers in `assets/data/parallax.ron`.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Parallax {
+    pub layers: Vec<Layer>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Layer {
+    pub z: f32,
+    pub speed: f32,
+    pub span: f32,
+    pub count: u32,
+    pub shape: Backshape,
+    pub width: (f32, f32),
+    pub height: (f32, f32),
+    pub colour: (f32, f32, f32),
+    pub ground: (f32, f32, f32),
+    pub ground_depth: f32,
+    pub seed: u64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+pub enum Backshape {
+    /// A half-buried ball, as wide as its width and as high as its height.
+    Mound,
+    /// A trunk with a round crown on it.
+    Tree,
+}
+
+impl Backshape {
+    /// How deep a shape of this width is, front to back.
+    fn depth(self, width: f32) -> f32 {
+        match self {
+            Backshape::Mound => 0.6 * width,
+            Backshape::Tree => 0.7 * width,
+        }
+    }
+}
+
+impl Parallax {
+    pub fn load() -> Parallax {
+        ron::from_str(include_str!("../../assets/data/parallax.ron"))
+            .unwrap_or_else(|e| panic!("assets/data/parallax.ron: {e}"))
+    }
+}
+
+/// Where a piece of a layer `span` long is after moving `step` to the left:
+/// always in the span's half on either side of the origin, so it comes
+/// round again and nothing grows with distance travelled.
+fn wrapped(x: f32, step: f32, span: f32) -> f32 {
+    (x - step + span / 2.0).rem_euclid(span) - span / 2.0
+}
+
 #[derive(Component)]
 struct HorseBody {
     index: usize,
@@ -620,6 +681,8 @@ fn setup(
         ));
     }
 
+    spawn_backdrop(&mut commands, &mut meshes, &mut materials, &Parallax::load());
+
     // The town gate: two posts and a beam, behind the lane.
     let timber = materials.add(Color::srgb(0.62, 0.52, 0.36));
     commands
@@ -731,6 +794,74 @@ fn setup(
         ));
     }
     commands.insert_resource(elements);
+}
+
+/// The layers behind the trail (#254): a strip of ground for each, and its
+/// shapes, placed and sized from its own seed.
+fn spawn_backdrop(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    parallax: &Parallax,
+) {
+    let ball = meshes.add(Sphere::new(0.5));
+    let post = meshes.add(Cylinder::new(0.5, 1.0));
+    let roll = |rng: &mut Rng, (lo, hi): (f32, f32)| lo + (hi - lo) * rng.unit();
+    // Flat silhouettes, unlit, so nothing behind the trail catches the light
+    // or a highlight to draw the eye from what is on it.
+    let mut flat = |(r, g, b): (f32, f32, f32)| {
+        materials.add(StandardMaterial {
+            base_color: Color::srgb(r, g, b),
+            unlit: true,
+            ..default()
+        })
+    };
+    for layer in &parallax.layers {
+        commands.spawn((
+            Mesh3d(meshes.add(Plane3d::default().mesh().size(4.0 * WRAP, layer.ground_depth))),
+            MeshMaterial3d(flat(layer.ground)),
+            Transform::from_xyz(0.0, 0.0, layer.z),
+        ));
+        let (r, g, b) = layer.colour;
+        let colour = flat((r, g, b));
+        let trunk = flat((r * 0.6, g * 0.6, b * 0.6));
+        let mut rng = Rng::new(layer.seed);
+        let gap = layer.span / layer.count as f32;
+        for i in 0..layer.count {
+            let x = -layer.span / 2.0 + (i as f32 + rng.unit()) * gap;
+            let width = roll(&mut rng, layer.width);
+            let height = roll(&mut rng, layer.height);
+            let depth = layer.shape.depth(width);
+            let at = Transform::from_xyz(x, 0.0, layer.z);
+            let backdrop = Backdrop { speed: layer.speed, span: layer.span };
+            match layer.shape {
+                Backshape::Mound => {
+                    commands.spawn((
+                        backdrop,
+                        Mesh3d(ball.clone()),
+                        MeshMaterial3d(colour.clone()),
+                        at.with_scale(Vec3::new(width, 2.0 * height, depth)),
+                    ));
+                }
+                Backshape::Tree => {
+                    commands.spawn((backdrop, at, Visibility::Inherited)).with_children(|tree| {
+                        tree.spawn((
+                            Mesh3d(post.clone()),
+                            MeshMaterial3d(trunk.clone()),
+                            Transform::from_xyz(0.0, 0.2 * height, 0.0)
+                                .with_scale(Vec3::new(0.15 * width, 0.4 * height, 0.15 * width)),
+                        ));
+                        tree.spawn((
+                            Mesh3d(ball.clone()),
+                            MeshMaterial3d(colour.clone()),
+                            Transform::from_xyz(0.0, 0.625 * height, 0.0)
+                                .with_scale(Vec3::new(width, 0.75 * height, depth)),
+                        ));
+                    });
+                }
+            }
+        }
+    }
 }
 
 /// Where a joint is, in the horse's own space.
@@ -1113,16 +1244,21 @@ pub fn enemy_centre(slot: usize, max_health: i32) -> Vec3 {
 fn scroll(
     time: Res<Time>,
     game: Res<Game>,
-    mut scenery: Query<&mut Transform, With<Scrolling>>,
+    mut scenery: Query<&mut Transform, (With<Scrolling>, Without<Backdrop>)>,
+    mut backdrop: Query<(&mut Transform, &Backdrop)>,
 ) {
     if !game.party_moving() {
         return;
     }
+    let step = SCROLL_SPEED * time.delta_secs();
     for mut transform in &mut scenery {
-        transform.translation.x -= SCROLL_SPEED * time.delta_secs();
+        transform.translation.x -= step;
         if transform.translation.x < -WRAP {
             transform.translation.x += 2.0 * WRAP;
         }
+    }
+    for (mut transform, layer) in &mut backdrop {
+        transform.translation.x = wrapped(transform.translation.x, layer.speed * step, layer.span);
     }
 }
 
@@ -1369,6 +1505,43 @@ mod tests {
         assert!(swing.settled(0.0, false).abs() < 1e-5);
         assert!(swing.settled(swing.recovery / 2.0, false) > swing.lunge * 0.99);
         assert!(swing.settled(f32::INFINITY, false).abs() < 1e-5);
+    }
+
+    /// The layers behind the trail (#254): each further back than the last
+    /// and slower, all slower than the trail and moving, none reaching into
+    /// the lane, and each wide enough that its wrap stays off the screen.
+    #[test]
+    fn the_far_layers_move_slower_and_stay_out_of_the_lane() {
+        let layers = Parallax::load().layers;
+        assert!(layers.len() >= 2, "two layers or more");
+        for pair in layers.windows(2) {
+            assert!(pair[1].z < pair[0].z, "nearest first");
+            assert!(pair[1].speed < pair[0].speed, "further back is slower");
+        }
+        for layer in &layers {
+            assert!(layer.speed > 0.0 && layer.speed < 1.0, "{} slower than the trail", layer.z);
+            assert!(layer.span >= 4.0 * WRAP, "{}: span as wide as the trail", layer.z);
+            assert!(layer.count > 0);
+            assert!(layer.width.0 > 0.0 && layer.width.0 <= layer.width.1);
+            assert!(layer.height.0 > 0.0 && layer.height.0 <= layer.height.1);
+            let front = layer.z + layer.shape.depth(layer.width.1) / 2.0;
+            assert!(front < -TRAIL_DEPTH / 2.0, "{}: its widest shape reaches the lane", layer.z);
+            assert!(layer.z + layer.ground_depth / 2.0 <= -TRAIL_DEPTH / 2.0 + 1e-4);
+        }
+    }
+
+    /// A piece of a layer comes round again: it stays within its span
+    /// however far the party walks, and a step moves it left by that much.
+    #[test]
+    fn a_layer_comes_round_again() {
+        let span = 80.0;
+        assert!((wrapped(10.0, 2.0, span) - 8.0).abs() < 1e-5);
+        assert!((wrapped(-39.0, 2.0, span) - 39.0).abs() < 1e-4);
+        let mut x = 0.0;
+        for _ in 0..100_000 {
+            x = wrapped(x, 0.37, span);
+            assert!((-span / 2.0..span / 2.0).contains(&x), "{x}");
+        }
     }
 
     /// A horse that can fight is never held as an exhausted one; an
