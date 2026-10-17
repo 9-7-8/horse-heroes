@@ -64,7 +64,9 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
   `attack_jitter` (10%) sooner or later from the trail's own seeded RNG.
   Each fight opens out of step: the first hits come `opening` (0.8 s) in
   and `opening_stagger` (0.35 s) apart, in an order rolled per fight; the
-  abilities' timers run on from the last fight. Over trails the horses hit
+  abilities' timers run on from the last fight. The final fight first
+  holds for `final_approach` (1.6 s) while its enemy comes up, every timer
+  stopped ([boss-announce.md](boss-announce.md), #19). Over trails the horses hit
   on the same tick about one time in twenty (test
   `over_a_trail_the_horses_rarely_hit_together`).
 - Every hit is `max(attack - defense, 0) + elemental x triangle`, at least 1.

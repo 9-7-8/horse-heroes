@@ -19,6 +19,11 @@
     // `opening_stagger` later, and so on.
     opening: 0.8,
     opening_stagger: 0.35,
+    // The trail's final enemy comes up the trail for this long before its
+    // fight's first blow, named and with its own bar (#19): the
+    // anticipation beat (docs/philosophy/loot-fountain.md). Nothing is
+    // struck or cast meanwhile.
+    final_approach: 1.6,
 
     // The abilities' numbers are in abilities.ron (#357).
 

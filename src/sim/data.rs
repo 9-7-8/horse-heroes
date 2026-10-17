@@ -142,6 +142,9 @@ pub struct Rules {
     /// hits are (#354).
     pub opening: f32,
     pub opening_stagger: f32,
+    /// Seconds the trail's final enemy takes to come up before its fight's
+    /// first blow (#19): nothing is struck or cast while it lasts.
+    pub final_approach: f32,
     /// Speed (#355): a horse's ordinary hits come `attack_tempo / speed`
     /// seconds apart, and the road between encounters takes
     /// `travel_distance / speed` at the party's average speed.
@@ -606,6 +609,7 @@ mod tests {
         let rules = &data.rules;
         assert!(rules.ordinary_encounters > 0);
         assert!(rules.opening > 0.0 && rules.opening_stagger > 0.0);
+        assert!(rules.final_approach > 0.0 && rules.final_approach < 5.0);
         assert!(rules.attack_tempo > 0.0 && rules.travel_distance > 0.0);
         // A swing is never due at once or before the last.
         assert!((0.0..1.0).contains(&rules.attack_jitter));

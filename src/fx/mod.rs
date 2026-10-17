@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 
+pub mod boss;
 pub mod dangle;
 pub mod death;
 pub mod drops;
@@ -37,6 +38,7 @@ impl Plugin for FxPlugin {
         .add_plugins(numbers::NumbersPlugin)
         .add_plugins(impact::ImpactPlugin)
         .add_plugins(tells::TellsPlugin)
+        .add_plugins(boss::BossPlugin)
         .add_plugins(sound::SoundPlugin { mute: self.mute });
     }
 }

@@ -1234,6 +1234,7 @@ fn sync_horses(
 fn sync_enemies(
     game: Res<Game>,
     motion: Res<Motion>,
+    announce: Res<crate::fx::boss::Announce>,
     elements: Res<ElementColours>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut enemies: Query<(
@@ -1260,8 +1261,10 @@ fn sync_enemies(
         // It leans and steps on its base; the horses are behind it, along -x.
         let size = enemy_size(foe.max_health);
         let (lean, back) = motion.foe[body.0].lean();
-        let rotation = Quat::from_rotation_z(lean);
-        let base = enemy_centre(body.0, foe.max_health) - Vec3::Y * size / 2.0;
+        // The final enemy coming up the trail (#19); nothing otherwise.
+        let (away, rear) = announce.approach(game.approach_left());
+        let rotation = Quat::from_rotation_z(lean + rear);
+        let base = enemy_centre(body.0, foe.max_health) + Vec3::X * away - Vec3::Y * size / 2.0;
         transform.scale = Vec3::splat(size);
         transform.rotation = rotation;
         transform.translation = base + rotation * (Vec3::Y * size / 2.0) + Vec3::X * back;

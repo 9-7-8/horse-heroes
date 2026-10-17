@@ -3242,13 +3242,16 @@ fn place_tags(
 /// square the body is drawn in, as the camera sees it. Gone otherwise.
 fn place_boss(
     game: Res<Game>,
+    announce: Res<crate::fx::boss::Announce>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera3d>>,
     spot: Single<(&mut Node, &mut Visibility), With<BossSpot>>,
 ) {
     let (camera, at) = *camera;
     let (mut node, mut visibility) = spot.into_inner();
+    // Where it is drawn while it comes up the trail, too (#19).
+    let away = Vec3::X * announce.approach(game.approach_left()).0;
     let drawn = game.boss().and_then(|(slot, foe)| {
-        let (middle, half) = (enemy_centre(slot, foe.max_health), enemy_size(foe.max_health) / 2.0);
+        let (middle, half) = (enemy_centre(slot, foe.max_health) + away, enemy_size(foe.max_health) / 2.0);
         let corners = [Vec3::new(-half, half, 0.0), Vec3::new(half, -half, 0.0)];
         let ends: Vec<Vec2> = corners
             .iter()

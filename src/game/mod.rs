@@ -486,6 +486,17 @@ impl Game {
             .max_by_key(|(slot, foe)| (foe.max_health, std::cmp::Reverse(*slot)))
     }
 
+    /// How much of the final enemy's approach is left (#19), from 1 as its
+    /// fight opens to 0 at its first blow; 0 at any other time.
+    pub fn approach_left(&self) -> f32 {
+        match &self.screen {
+            Screen::Trail(expedition) if expedition.phase == Phase::Fighting => {
+                (expedition.approach / self.data.rules.final_approach.max(1e-3)).clamp(0.0, 1.0)
+            }
+            _ => 0.0,
+        }
+    }
+
     /// Seconds of walking left before the party reaches town, while it is on
     /// its way back from a finished trail. The walk is as long as the one
     /// between two encounters.

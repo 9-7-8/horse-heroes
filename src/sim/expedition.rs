@@ -222,6 +222,9 @@ pub struct Expedition {
     /// Index of the encounter being fought, or travelled towards.
     pub encounter: usize,
     pub phase: Phase,
+    /// Seconds left of the final enemy's approach (#19): its fight is on,
+    /// but nothing is struck or cast until this is spent.
+    pub approach: f32,
     /// Seconds of a Ward left, and the share it takes off enemy hits.
     pub ward: f32,
     ward_reduction: f32,
@@ -311,6 +314,7 @@ impl Expedition {
             foes: Vec::new(),
             encounter: 0,
             phase: Phase::Travelling,
+            approach: 0.0,
             ward: 0.0,
             ward_reduction: 0.0,
             coins: 0,
@@ -385,6 +389,7 @@ impl Expedition {
         self.events.push(Event::Fight);
         if self.encounter + 1 == self.plan.encounters.len() {
             self.events.push(Event::Boss);
+            self.approach = data.rules.final_approach;
         }
         self.phase = Phase::Fighting;
     }
@@ -413,7 +418,7 @@ impl Expedition {
             Struck::Horse(horse) => self.party.get(horse).filter(|f| f.health > 0)?.attack_timer,
             Struck::Foe { slot, .. } => self.foes.get(slot).filter(|f| f.health > 0)?.attack_timer,
         };
-        steps_to(timer, dt)
+        Some(steps_to(self.approach, dt)? + steps_to(timer, dt)?)
     }
 
     /// When a horse's ability is next used, for the presentation to wind it
@@ -423,7 +428,8 @@ impl Expedition {
         if self.phase != Phase::Fighting {
             return None;
         }
-        steps_to(self.party.get(horse).filter(|f| f.health > 0)?.ability_timer, dt)
+        let timer = self.party.get(horse).filter(|f| f.health > 0)?.ability_timer;
+        Some(steps_to(self.approach, dt)? + steps_to(timer, dt)?)
     }
 
     /// The time to a horse's next ordinary hit: its own interval, a little
@@ -434,6 +440,12 @@ impl Expedition {
     }
 
     fn fight(&mut self, data: &Data, dt: f32) {
+        // The final enemy is still coming up (#19): the step that spends
+        // the approach is spent on it whole.
+        if self.approach > 0.0 {
+            self.approach -= dt;
+            return;
+        }
         let rules = &data.rules;
         self.ward = (self.ward - dt).max(0.0);
 
@@ -737,6 +749,9 @@ mod tests {
         };
         let mut expedition = Expedition::new(data, plan, &party(data));
         expedition.start_encounter(data);
+        // Its last encounter is a final one; these are tests of the fight,
+        // so it starts at the first blow. The approach has its own test.
+        expedition.approach = 0.0;
         expedition
     }
 
@@ -1722,6 +1737,65 @@ mod tests {
         run.party[1].health = 0;
         assert_eq!(run.cast_in(1, TICK), None);
         assert_eq!(run.cast_in(9, TICK), None);
+    }
+
+    /// The final enemy comes up before its fight's first blow (#19): its
+    /// fight opens with `final_approach` to spend, and an ordinary one with
+    /// none; while it lasts nothing is struck or cast; and `swing_in` and
+    /// `cast_in` count it, so the first blow after it lands on the step
+    /// they said as it began.
+    #[test]
+    fn the_final_enemy_comes_up_before_the_first_blow() {
+        let data = Data::load();
+        let approach = data.rules.final_approach;
+        let mut finals = 0;
+        for seed in 0..30 {
+            let plan = Plan::generate(&data, seed, 1);
+            let mut run = Expedition::new(&data, plan, &party(&data));
+            let mut was = Phase::Travelling;
+            // The step the first blow was said to land on, and the first
+            // ability, as the approach began.
+            let mut first: Option<(usize, usize)> = None;
+            for tick in 0..20_000 {
+                run.tick(&data, TICK);
+                if run.phase == Phase::Finished {
+                    break;
+                }
+                let last = run.encounter + 1 == run.plan.encounters.len();
+                if was == Phase::Travelling && run.phase == Phase::Fighting {
+                    let want = if last { approach } else { 0.0 };
+                    assert_eq!(run.approach, want, "seed {seed}, encounter {}", run.encounter);
+                    if last {
+                        finals += 1;
+                        let horses = 0..run.party.len();
+                        let blow = horses.clone().filter_map(|h| run.swing_in(Struck::Horse(h), TICK));
+                        let blow = blow.fold(f32::MAX, f32::min);
+                        let cast = horses.filter_map(|h| run.cast_in(h, TICK)).fold(f32::MAX, f32::min);
+                        assert!(blow > approach && cast > approach, "seed {seed}: {blow} {cast}");
+                        let at = |secs: f32| tick + (secs / TICK).round() as usize;
+                        first = Some((at(blow), at(cast)));
+                    }
+                }
+                if run.approach > 0.0 {
+                    assert!(run.hits.is_empty() && run.casts.is_empty(), "seed {seed}");
+                }
+                if let Some((blow, cast)) = first {
+                    // An ordinary hit has no element; a shot's has.
+                    let struck = run.hits.iter().any(|hit| matches!(hit.by, Struck::Horse(_)) && hit.element.is_none());
+                    if tick <= blow {
+                        assert_eq!(struck, tick == blow, "seed {seed}, tick {tick}, due {blow}");
+                    }
+                    if tick <= cast {
+                        assert_eq!(!run.casts.is_empty(), tick == cast, "seed {seed}, tick {tick}, cast due {cast}");
+                    }
+                }
+                was = run.phase;
+                run.hits.clear();
+                run.casts.clear();
+                run.kills.clear();
+            }
+        }
+        assert!(finals > 10, "{finals} final fights met");
     }
 
     /// Each horse hits at its own cadence (#354): a fight opens with the

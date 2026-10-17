@@ -1,0 +1,31 @@
+// The trail's final enemy, announced (#19; docs/philosophy/loot-fountain.md,
+// "Anticipation"): it comes up the trail into its place while the fight
+// holds for `final_approach` (rules.ron), and over the scene its name and its
+// own wide health bar come up with it and stay for the whole fight. Its small
+// bar over its head is not drawn; this one is its bar. Change one value at a
+// time and look at it (--seed 6; docs/boss-announce.md has the times).
+(
+    // How far back up the trail, in world units, it starts its approach
+    // (an enemy's place is 2.5 from the next; the farthest is at 8.5).
+    walk: 7.0,
+    // How much of the approach it has walked when it rears, and how far
+    // back it leans then (radians): it arrives and squares up.
+    rear_at: 0.8,
+    rear: 0.35,
+
+    // The banner, in pixels on the screen: the bar's width and height, the
+    // gap from the top of the window, and the least gap it keeps from the
+    // fight log's right edge (it is centred on the window when there is room).
+    bar_width: 380.0,
+    bar_height: 14.0,
+    top: 18.0,
+    beside_log: 24.0,
+    // The name's size in pixels; the element under it is the small text.
+    name_size: 22.0,
+    // After the kill the emptied bar and the name stay this long, fading.
+    linger: 0.9,
+    // Its colours. The trailing piece and the back are the small bars'
+    // (impacts.ron), which holds and drains as they do.
+    fill: "d0383c",
+    frame: "f4eedc",
+)

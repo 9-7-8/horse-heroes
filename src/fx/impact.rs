@@ -310,6 +310,8 @@ fn bars(
                 .map(|horse| (horse.health, horse.max_health, horse_centre(i) + Vec3::Y * impacts.horse_above)),
             // As the scene draws them: not on the way back to town.
             (Screen::Trail(_), Whose::Foe(_)) if game.secs_to_town().is_some() => None,
+            // The final enemy's bar is its banner's (`fx::boss`, #19).
+            (Screen::Trail(_), Whose::Foe(slot)) if game.boss().is_some_and(|(boss, _)| boss == slot) => None,
             (Screen::Trail(expedition), Whose::Foe(slot)) => {
                 expedition.foes.get(slot).filter(|foe| foe.health > 0).map(|foe| {
                     let top = enemy_size(foe.max_health) / 2.0 + impacts.enemy_above;
