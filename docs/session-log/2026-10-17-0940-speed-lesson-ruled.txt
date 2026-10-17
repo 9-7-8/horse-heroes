@@ -1,0 +1,46 @@
+SESSION 2026-10-17 09:40 - the speed lesson moved (#293 call 5)
+===============================================================
+
+ASKED
+  /answers, no steer. Earliest decision: #293, call 5 (the second pop-up).
+
+DONE
+  - 8f08251: vision.md and opening.md record call 5. Docs only; cargo
+    check and test green (270).
+  - #293 and #295 commented.
+
+DECIDED (hers)
+  - #293 call 5: the speed lesson moves to the first kill of fight 2, so
+    no two pop-ups come back to back. Chosen over the second trail and over
+    keeping both at the first kill.
+  - Mine, not asked: the code change (a lesson waiting for a later kill)
+    rides #295 by comment rather than a new issue, since 0.2.5 already holds
+    ten.
+
+FOUND
+  - lessons.ron's `due` counts only an event's first time; fight 2's first
+    kill needs a small extension.
+
+NOT DONE
+  - #293 call 6 (#295 as written).
+
+PICK UP
+  /answers #293: call 6, #295 as written.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt (calls 1-5 of 6 ruled)
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
