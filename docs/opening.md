@@ -49,11 +49,14 @@ is not in the code; #294's tests are what will hold these numbers.
    second trail its hits are bigger. That trail is level 1 and its enemies
    15% stronger, so the improvement is said apart from the level, never as
    "the next fight is easier".
-8. **First variation.** The second trail, rolled by the generator: another
-   order of fights, other enemies, rolled elements, and so the first
-   resisted hit. The player meets the first thing the opening did not show
-   and, in town, the resisted-ability lesson. Transfer is shown by the
-   player changing a piece or an ability for a reason they can say (#301).
+8. **First variation.** Inside the first trail, one fight: the Mire Toad
+   is Ice, and Juniper's Ember Shot is resisted there, its hit small and
+   pale beside the Strong ones before it (her ruling, 2026-10-17). In the
+   first town the resisted-ability lesson points at Juniper. Then the
+   second trail, rolled by the generator: another order of fights, other
+   enemies, rolled elements, the first thing the opening did not show.
+   Transfer is shown by the player changing a piece or an ability for a
+   reason they can say (#301).
 9. **Automation contract.** By itself: walking, fighting, abilities,
    collecting the loot, walking home. Waits for the player: setting out
    from town, every time, unless Keep going is on (it then leaves after
@@ -77,7 +80,7 @@ timing, coins, and the pieces the kills throw.
 | --- | --- | --- | --- |
 | 1 | One Thornling | Plant | One small enemy: the fight is read whole. Long enough (about 4 s) for the Ward, not for the shots |
 | 2 | Three Gloom Sprites | Fire | A group, for Frost Burst: Morrow's first use hits all three at once, each Strong. Ember Shot fires twice here |
-| 3 | One Mire Toad | Fire | The hardest hitter of the three: the Ward's halved hits are seen, and each ability fires once |
+| 3 | One Mire Toad | Ice | The hardest hitter of the three: the Ward's halved hits are seen, and each ability fires once. Ice resists Fire, so Ember Shot is resisted here (her ruling, 2026-10-17: one fight resists one ability); Frost Burst meets its own element and is plain |
 | | ~~A fairy spring~~ | | ~~Heals the party by 30% of its health~~. *No spring (her ruling, 2026-10-17): the Yearling is tuned down instead, so no horse falls* |
 | 4 | A Corrupted Yearling, the boss | Fire | The full fountain and the trail's piece. Long enough (12 to 14 s) for every ability to fire two or three times |
 
@@ -88,20 +91,37 @@ finals as they are cannot be the first boss: with the Stag, the starting
 party lost one first trail in four; with the Wolf and a spring before it,
 some sets of abilities still lost. Name and numbers are proposals.
 
-*Since 2026-10-17 one fight resists one ability (For her to rule on,
-below); this paragraph is the draft she overruled.*
+**Elements.** One fight resists one starting ability (her ruling,
+2026-10-17), so elements are met on the first trail and taught in the first
+town. Strong comes first: Ember Shot meets Plant and Fire in fights 1 and
+2, Frost Burst Fire in fight 2, and those hits are seen as Strong (coloured
+numbers, "Strong!" in the log). Then fight 3's Toad is Ice: Ice beats
+Fire, so Ember Shot's hit there is resisted, the smallest and palest number
+of the trail and "Resisted" in the log, right after the biggest. Frost
+Burst meets Ice there and is plain. The boss is Fire again, so the trail
+ends on Strong hits.
 
-**Elements.** The starting party is never resisted on this trail: Ember
-Shot meets Plant or Fire, Frost Burst Fire. About eight hits a trail are
-Strong, and are seen as such (coloured numbers, "Strong!" in the log), but
-elements are not taught on the first trail: the resisted-ability lesson
-waits for the second (variation, above), where it has something to say.
+Why this fight and this ability. Fight 3 is the last before the boss, so
+the contrast comes after both abilities have been seen to hit hard, and
+the boss's fight is not spent on it. Ember Shot fires every 4 s and fight
+3 lasts more than that, so it is resisted at least once in every run;
+Frost Burst against a Plant enemy would also do, but Plant is fight 1,
+which ends before Frost Burst's first use, and a Plant group in fight 2
+would spoil Frost Burst's first, Strong hit on three. Juniper is resisted,
+so the town's lesson points at Juniper, and the change it asks, Abilities
+[2], has two others to choose between. The element is data in #294's plan,
+as is the fight.
 
-*Since 2026-10-17 there is no spring (above); these numbers are from the
-draft that had one, and the Yearling's are to be re-tuned and re-measured
-without it.*
+The Toad at Ice lives a little longer than at Fire (Ember Shot does three
+quarters, Frost Burst no bonus), which #294's no-fall test measures with
+the Yearling's tuning.
 
-**What was measured**, on today's rules, with the Yearling and the spring:
+*Since 2026-10-17 there is no spring and the Toad is Ice (above); these
+numbers are from the draft that had a spring and a Fire Toad, and are to be
+re-tuned and re-measured by #294 without the one and with the other.*
+
+**What was measured**, on today's rules, with the Yearling, the spring and
+a Fire Toad:
 
 - The starting party wins every run, and no horse falls. Least health left
   at the end over 1000 seeds: Juniper 19 of 40, Morrow 1 of 30, Sable 14 of
@@ -166,6 +186,7 @@ doing the thing, and none has to be.
 | choose among them | `Several`: always, on this trail | The choice is the player's | Open another piece | Plenty | Another card | "The trail brought back more than one piece. Open another's card: you choose." |
 | equip or leave it | `Card` | Nothing equips by itself | Put one on, or leave it | Ownership | The piece worn on the horse (#359) | "You choose who: Equip's, or another from this list. Left alone, it stays carried." |
 | it is on | `Equipped` | What a piece changed, and Undo | Look at the horse | Achievement | The horse's numbers, as they were and are | "{change} with it on. Undo takes it back until you set out." |
+| a resisted ability | `Resisted`: the Toad, fight 3; shown in town, on Juniper | An ability's element can be resisted, and the player can change it | Select Juniper, Abilities [2], pick another | Insight | The small pale number seen on the road; the ability list | "Its ability's element was resisted. Select it, then Abilities [2] to change it." |
 | a swap loses nothing | `Swapped`, only after one | Swapping is safe | Swap freely | Safety | Both horses' pieces | "The two horses exchanged pieces. Nothing is lost." |
 | a win raises the level | `Win` | The next trail is stronger, and so are its pieces | Expect it | Honest stakes | "Level 1 trail." on the footer | "A win raises the trail level, now {level}: enemies gain health and attack, pieces stats." |
 | it can be left | `Win` | The party can go on by itself | Turn on Keep going, or not | Freedom | Keep going on the Map | "Keep going here sends the party out by itself till a trail is lost: leave it to it." |
@@ -177,20 +198,23 @@ card is seen), drag a piece onto a horse (2, once one is on), open every
 place in the bar (5), set out (2). Their behaviour is the doing; the
 feeling, a small coin's worth of reward for trying each control.
 
+The town shows one lesson at a time, the first in `lessons.ron`'s order
+whose thing is there, so the resisted ability comes after the gear lessons
+that fit and before the two that follow a win. Changing Juniper's ability is
+a choice, not the answer: Ember Shot is Strong on the boss, and the second
+trail's elements are rolled.
+
 ### Later than the opening
 
-| Beat | Event, when | Words |
-| --- | --- | --- |
-| a resisted ability | `Resisted`: the second trail at the soonest; in town | "Its ability's element was resisted. Select it, then Abilities [2] to change it." |
-
-This is the first variation (worksheet, 8): the first trail never raises
-`Resisted` for the starting party.
+Nothing: every lesson of `lessons.ron` today is met in the opening. The
+second trail is the first variation (worksheet, 8), with no lesson of its
+own.
 
 ## What is not taught, and when it joins
 
 | Not in the opening | Joins | Where |
 | --- | --- | --- |
-| Elements: what beats what | The first resisted hit, second trail on | the resisted-ability lesson |
+| Elements: the whole of what beats what | Seen, not said: the opening shows Strong and one resist; the triangle is learned on later trails' rolled elements | the resisted-ability lesson is the only line |
 | Losing a trail; nobody dies | The first fall or loss: never on the first trail | #176, #178 (0.3.2) |
 | Saving, and lessons kept | — | #44 (0.3.2), #47 |
 | Primers, Finishers, reactions | The first real reaction | #94, #95 (0.3.3) |
@@ -215,9 +239,9 @@ My calls in this draft, each easy to change:
   kill's tier. *Confirmed by her 2026-10-17 (vision.md).*
 - **No resisted hits** on the first trail, so elements wait for the second.
   *Overruled by her 2026-10-17 (vision.md): one fight resists one ability,
-  and the resisted-ability lesson plays in the first town. The sheet's
-  Elements paragraph, the fights table, worksheet point 8 and "Later than
-  the opening" are to be redrawn for it.*
+  and the resisted-ability lesson plays in the first town. Redrawn for it:
+  the Mire Toad is Ice and Ember Shot is resisted (Elements, above; which
+  fight and element were left to the build, and are mine).*
 - **Two pop-ups after the first kill**: the numbers, then speed, back to
   back. I would move speed to the second kill or the second trail; it is
   the only place the opening stacks two. *Confirmed by her 2026-10-17
