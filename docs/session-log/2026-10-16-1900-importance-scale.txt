@@ -1,0 +1,79 @@
+SESSION 2026-10-16 - one importance scale (#39)
+
+ASKED
+  /next, no steer. Build green, 265 tests, no bug but #246 (waits on her
+  look); open menu issues wait on her look or on unbuilt systems; 0.2.5
+  waits on #289 (a decision). So PICK UP's fallback: #39 (0.3.0).
+
+DONE
+  - c18f5ec (Closes #39): one importance scale.
+    - assets/data/importance.ron: Low, Medium, High, each a budget of
+      shake, flash, shake_secs, flash_secs and sound (how loud against
+      the recipe); and which event sits at which level: each rarity,
+      coins alone, each fountain, each death, landing, pickup, hit,
+      ability. Read by fx/importance.rs (the Importance resource).
+    - The screen response reads its burst's best rarity's level; every
+      sound plays at its event's level. Gone: each rarity's `response`
+      in gear.ron, response.coins/shake_secs/flash_secs and
+      sound.hit_level in loot_shower.ron. The settings' scales and
+      volume still turn every level down together.
+    - Heard::Burst and Heard::Died now carry the fountain's and death's
+      name, and the sound system looks up the sound and its level.
+    Checked: 268 tests; the three new ones each seen to fail with the
+    data or code broken (Magic set High; Medium's sound under Low's;
+    strength ignoring the rarity). Seen running: --seed 6 to 54.46 with
+    the sound log (every sound at its level: hits and routine 0.70,
+    abilities 0.85, launch_full 1.00); the final fountain, best piece
+    Magic, now neither shakes nor flashes. The test burst's Set flash at
+    2.36 is up over the scene, not the menus. Not heard by anyone.
+    Docs: importance.md (new, with the table), loot-shower.md,
+    tune-loot-feel.txt.
+
+DECIDED (for her)
+  - Five rarities onto three levels: Normal and Magic Low, Rare Medium,
+    Legendary and Set High. Low neither shakes nor flashes, so Normal
+    and Magic lose their small shakes, and Legendary shakes as hard as
+    Set. They are still told apart by colour, shape, beam and sound.
+  - The screen answers what dropped, not the kind of kill: a final kill
+    with only a Magic piece does nothing to the screen. Kinds of kill set
+    their launch and death sounds' level (ordinary Low, final High).
+  - Low's sound is the old hit level, 0.7, so landings, pickups and an
+    ordinary kill's sounds are quieter than before; abilities 0.85.
+  - No "pause" in a level: nothing reads one yet (importance.md says so).
+  - The struck body's own flash and recoil (attacks.ron blows) stay with
+    the hit: they say how hard, not how much it matters.
+  - No lesson: there is nothing new for the player to learn; it changes
+    how strong existing effects are.
+  All numbers are first guesses.
+
+FOUND
+  - #241 (a death's sound) looks built already: death_small and
+    death_big are in sounds.ron and played on a break.
+
+NOT DONE
+  - She has not looked or listened.
+
+PICK UP
+  Ask #289 question 5 with /answers; then #293 can start. If she is not
+  there, /next: check #241 against the code first (it looks built), then
+  #254 parallax, the next unbuilt 0.3.0 issue that is not a decision.
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
+  On main, from 0.3.0: #15, #16, #18, #19, #39 one importance scale
+  (closed).
