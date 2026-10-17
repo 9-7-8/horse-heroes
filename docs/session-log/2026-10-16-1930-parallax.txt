@@ -1,0 +1,63 @@
+SESSION 2026-10-16 - parallax (#254)
+
+ASKED
+  /next, no steer. Build green, 268 tests; #246 waits on her look; #241
+  checked against the code: built in ae5b3ad, waits only on her listening.
+  0.2.5 waits on #289 (a decision). So PICK UP's next: #254 (0.3.0).
+
+DONE
+  - e7b4f89 (Closes #254): three layers behind the trail.
+    - assets/data/parallax.ron: bushes (z -4, speed 0.75), a wood (z -7,
+      0.5), far hills (z -11, 0.25), each with its shape, sizes, colour,
+      a ground strip and a seed. Read by Parallax in src/game/scene.rs.
+    - They scroll in `scroll` only while the party moves, wrapping over
+      their span (80, the trail's width), so the count never grows.
+    - Flat, unlit, round shapes: no highlight to pull the eye, and not
+      cubes like the enemies.
+    Checked: 270 tests; the two new ones each seen to fail (the wood set
+    faster than the bushes; the wrap removed). Seen running: --seed 6 at
+    3 s and 6 s walking (stones moved most, then bushes, trees, hills
+    least), and at 6 s and 8 s in the first fight (nothing moved).
+    Docs: parallax.md (new).
+
+DECIDED (for her)
+  - Three layers: bushes, a wood, far hills. All numbers are first
+    guesses.
+  - Unlit silhouettes, darker and bluer further back. Lit, the hills came
+    out grey and shiny right where the loot flies; that read as too loud.
+  - The same three layers on every trail; per-trail or per-biome scenery
+    waits for #74 and the biomes.
+  - No lesson: there is nothing for the player to learn or do.
+
+FOUND
+  - A PowerShell .Replace on scene.rs silently matched nothing (CRLF
+    against the here-string's LF). Use the Edit tool for code.
+
+NOT DONE
+  - She has not looked.
+
+PICK UP
+  Ask #289 question 5 with /answers; then #293 can start. If she is not
+  there, /next: the 0.3.0 issues left are #10 (a decision), #241
+  (built-untested) and the menus ones (built-untested), so with nothing
+  buildable left in 0.2.5 or 0.3.0, check whether 0.2.5 should be
+  released for her to look at (next-thing.txt, 3.0).
+
+NEXT RELEASE
+  0.2.5 The opening: 2 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - unbuilt
+    #293 Design the tutorial trail - unbuilt
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
+  On main, from 0.3.0: #15, #16, #18, #19, #39, #254 parallax (closed).
