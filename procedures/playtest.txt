@@ -1,0 +1,82 @@
+PLAYTEST
+========
+Starts on: /playtest, "what do you need me to test", "give me something to
+           look at", "what should I try in the game".
+Leaves:    the owner's results on up to four things only she can check in the
+           running game, each recorded on its issue, passes closed, failures
+           filed as bugs, and the session ended.
+
+/answers asks for decisions; this asks for tests (owner, 2026-10-17:
+"answers should only ask me for DECISIONS, not tests"). A test is something
+built and committed that waits only on her eyes or ears: "does it look
+right", "can you hear the Rare", "does the menu feel easy". It records what
+she saw; it does not fix it.
+
+BEFORE ASKING
+  - git status. A dirty tree is finished or set aside first.
+  - gh release list --repo 9-7-8/horse-heroes --limit 1: the latest
+    release. She looks at releases (CLAUDE.md, "Always release"), so a test
+    is run on that build where it can be. Something built since it is
+    tested from the source only if she says so; otherwise release first
+    (release-a-build.txt) and say that is why.
+
+PICK UP TO FOUR TESTS
+1. Open issues that are built-untested: everything in them built and
+   committed, waiting only on her trying it. Find them from the newest
+   session log's NEXT RELEASE block, and from issue comments that say
+   "left open for the owner's look", "nobody has listened", "for the owner"
+   and the like:
+       gh issue list --repo 9-7-8/horse-heroes --state open --search "owner's look in:comments"
+   Read the issue and its comments: what is left must be a look, not code.
+2. Order: the next release's first (the one after the latest published),
+   menus issues first inside it (menus first), then earlier releases' left
+   over, then later releases', lowest number first.
+3. Take at most four (one question each, one question-tool call). Drop any
+   whose test needs something the build she has cannot show, and say so.
+
+GIVE HER THE STEPS
+  Before the question call, one short block, one line or two per test:
+  the issue, how to start it (the release build, a key such as F4, a flag
+  such as --bare, which screen), and the one thing to judge. Check every
+  key, flag and screen named against the code first; a step that does not
+  work wastes her run. Pictures or files she needs go to her with
+  SendUserFile.
+
+ASK
+  One call of the question tool, one question per test (up to four). Each:
+  the issue number, the thing to judge, and the options
+    - "Yes, it passes" (first; the test is hers, not mine, so no
+      "(Recommended)"),
+    - "No: <the likely ways it fails>" (one or two, from what the issue
+      says to look for), and she can add notes or pick Other,
+    - "Not tried yet".
+
+RECORD
+  For each answer, on 9-7-8/horse-heroes (Python through subprocess, as
+  answers.txt NOTES):
+  - Passes: a comment, "Owner tried it (<date>, release vX.Y.Z): passes",
+    with her notes; close the issue if nothing else in its "Done when" is
+    left. Otherwise say what is.
+  - Fails: a comment with what she said, in her words. File a "bug" issue
+    for the fix (why, what she saw, done when), in the next release's
+    milestone and label unless that release already holds ten, then the
+    next patch's (CLAUDE.md, Planning); "menus" if it is a menu. Link it
+    from the tested issue, which stays open.
+  - Not tried: nothing recorded.
+  - Anything she says that is a design call rather than a result: do not
+    record it here. Put it in a "decision" issue for /answers, or follow
+    record-a-design-change.txt if she stated it outright.
+  No status label on any issue (owner, 2026-10-15).
+
+THEN END THE SESSION
+  Run end-session.txt without being asked, unless every answer was "Not
+  tried yet": then nothing happened, so say so in one line and stop.
+
+REPORT
+  Each test and her result, the issues closed and the bugs filed, by number.
+
+DO NOT
+  - Ask a design question here, or a test in /answers.
+  - Offer a test whose steps were not checked against the build she has.
+  - Record "passes" for anything she did not try.
+  - Fix a failure in this run. /next picks up the bug (bugs come first).

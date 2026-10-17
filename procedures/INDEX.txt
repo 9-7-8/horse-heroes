@@ -33,7 +33,12 @@ next-thing.txt        /next, "next thing", "keep going", "build the next part"
 answers.txt           /answers, "ask me something", "what's still open"
                       Ask the owner one open question, commit her answer,
                       update the issues it touches, file the work it makes,
-                      and end the session.
+                      and end the session. Decisions only, never tests.
+
+playtest.txt          /playtest, "what do you need me to test"
+                      Give the owner up to four in-game tests of built work
+                      with checked steps, record her results, close passes,
+                      file failures as bugs, and end the session.
 
 release-a-build.txt   "release x.y.z", "build the installer"
                       Freeze the version, build and stage, package with Inno

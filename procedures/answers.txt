@@ -10,6 +10,14 @@ Leaves:    one open question answered by the owner, her answer in
 One question a run. It records a decision; it does not build one. The work an
 answer creates is filed, and /next picks it up by its order.
 
+Decisions only, never tests (owner, 2026-10-17: "answers should only ask me
+for DECISIONS, not tests"). A decision chooses what gets built. Anything
+that waits on her trying the game, looking or listening ("does it look
+right", "can you hear the Rare") is a test and goes to playtest.txt. An
+issue labelled "decision" whose only open part is such a look is
+mislabelled: take the label off, comment that it waits on /playtest, and
+pick again.
+
 BEFORE ASKING
   - git status. A dirty tree is finished or set aside first.
   - Read the "Open" section of docs/philosophy/vision.md.
@@ -92,6 +100,7 @@ NOTES
 
 DO NOT
   - Ask more than one question, or fold two into one.
+  - Ask her to try, look at or listen to anything (playtest.txt).
   - Offer an option that has not been checked against the code and the
     confirmed rules in vision.md.
   - Record a recommendation as her answer. Only what she chose is confirmed.
