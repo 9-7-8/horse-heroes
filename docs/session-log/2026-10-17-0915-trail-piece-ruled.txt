@@ -1,0 +1,43 @@
+SESSION 2026-10-17 09:15 - the trail's piece ruled (#293 call 3)
+================================================================
+
+ASKED
+  /answers, no steer. Earliest decision: #293, call 3 (the trail's piece).
+
+DONE
+  - d695514: vision.md and opening.md record call 3. Docs only; cargo
+    check and test green (270).
+  - #293 and #294 commented.
+
+DECIDED (hers)
+  - #293 call 3: the first trail's own piece is a fixed Starlit Halter,
+    Rare, the same in every game. Chosen over a Rare piece rolled per seed
+    and over a fixed Legendary.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - #293 calls 4 to 6 (no resisted hits, the second pop-up, #295 as
+    written).
+
+PICK UP
+  /answers #293: call 4, no resisted hits on the first trail.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt (calls 1-3 of 6 ruled)
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
