@@ -3590,17 +3590,30 @@ fn show_hint(
     }
 }
 
+/// Which side of what it is about a pop-up stands on.
+#[derive(Clone, Copy, PartialEq)]
+enum Side {
+    Below,
+    Above,
+    Left,
+    Right,
+}
+
 /// Put the hint's pop-up beside the control it is about (#353): under it
 /// when there is room and over it when not, so it never covers it, centred
-/// on it as far as the window allows, with its point toward it. A hint on
-/// no control (the party) is over the middle of the scene, with no point.
-/// When a hint comes up its pop-up rises into place, which the eye catches.
+/// on it as far as the window allows, with its point toward it. A control
+/// on the item card has its pop-up beside the card instead, on the side
+/// with room, so the card it is about stays in view (owner, 2026-10-17). A
+/// hint on no control (the party) is over the middle of the scene, with no
+/// point. When a hint comes up its pop-up rises into place, which the eye
+/// catches.
 fn place_popup(
     time: Res<Time<Real>>,
     tokens: Res<Tokens>,
     shell: Res<Shell>,
     window: Single<&Window, With<PrimaryWindow>>,
     targets: Query<(Entity, &ComputedNode, &UiGlobalTransform, &InheritedVisibility), With<Pointed>>,
+    pages: Query<(&Page, &ComputedNode, &UiGlobalTransform, &InheritedVisibility)>,
     popup: Single<(&mut Node, &ComputedNode, &mut UiTransform), With<HintLine>>,
     arrow: Single<(&mut Node, &mut Visibility), (With<PopupArrow>, Without<HintLine>)>,
     mut rising: Local<Rising>,
@@ -3635,16 +3648,39 @@ fn place_popup(
             Rect::from_center_size(middle * scale, drawn.size() * scale)
         });
     let reach = t.size.popup_gap + t.size.popup_arrow / 2.0;
-    let (left, top, bottom, point) = match target {
-        Some(target) => {
+    // The item card the control is on, if it is on one.
+    let card = target.and_then(|target| {
+        pages
+            .iter()
+            .filter(|(page, drawn, _, seen)| matches!(page, Page::Detail(_)) && seen.get() && drawn.size().x > 0.0)
+            .map(|(_, drawn, at, _)| {
+                let scale = drawn.inverse_scale_factor();
+                let (_, _, middle) = at.to_scale_angle_translation();
+                Rect::from_center_size(middle * scale, drawn.size() * scale)
+            })
+            .find(|card| card.contains(target.center()))
+    });
+    let (left, top, bottom, point) = match (target, card) {
+        (Some(target), Some(card)) => {
+            // Beside the card, level with the control, pointing across at it.
+            let before = card.min.x - reach - width >= margin || card.max.x + reach + width > window.x - margin;
+            let left = match before {
+                true => (card.min.x - reach - width).max(margin),
+                false => card.max.x + reach,
+            };
+            let top = (target.center().y - height / 2.0).clamp(margin, (window.y - height - margin).max(margin));
+            let side = if before { Side::Left } else { Side::Right };
+            (left, Val::Px(top), Val::Auto, Some((side, target.center().y - top)))
+        }
+        (Some(target), None) => {
             let below = target.max.y + reach + height <= window.y - margin || target.min.y - reach - height < margin;
             let left = (target.center().x - width / 2.0).clamp(margin, (window.x - width - margin).max(margin));
             match below {
-                true => (left, Val::Px(target.max.y + reach), Val::Auto, Some((true, target.center().x - left))),
-                false => (left, Val::Auto, Val::Px(window.y - target.min.y + reach), Some((false, target.center().x - left))),
+                true => (left, Val::Px(target.max.y + reach), Val::Auto, Some((Side::Below, target.center().x - left))),
+                false => (left, Val::Auto, Val::Px(window.y - target.min.y + reach), Some((Side::Above, target.center().x - left))),
             }
         }
-        None => ((window.x - width) / 2.0, Val::Percent(20.0), Val::Auto, None),
+        (None, _) => ((window.x - width) / 2.0, Val::Percent(20.0), Val::Auto, None),
     };
     if (node.left, node.top, node.bottom) != (Val::Px(left), top, bottom) {
         (node.left, node.top, node.bottom) = (Val::Px(left), top, bottom);
@@ -3657,14 +3693,24 @@ fn place_popup(
     if *arrow_seen != seen {
         *arrow_seen = seen;
     }
-    if let Some((below, across)) = point {
+    if let Some((side, along)) = point {
+        // Half out of the edge nearest the control, at the control.
         let edge = Val::Px(-t.size.popup_arrow / 2.0 - t.size.popup_border);
-        let (top, bottom) = if below { (edge, Val::Auto) } else { (Val::Auto, edge) };
         let inside = t.size.radius + t.space.s;
-        let most = (width - t.size.popup_arrow - 2.0 * t.size.popup_border - inside).max(inside);
-        let at = Val::Px((across - t.size.popup_arrow / 2.0 - t.size.popup_border).clamp(inside, most));
-        if (arrow.top, arrow.bottom, arrow.left) != (top, bottom, at) {
-            (arrow.top, arrow.bottom, arrow.left) = (top, bottom, at);
+        let length = match side {
+            Side::Below | Side::Above => width,
+            Side::Left | Side::Right => height,
+        };
+        let most = (length - t.size.popup_arrow - 2.0 * t.size.popup_border - inside).max(inside);
+        let at = Val::Px((along - t.size.popup_arrow / 2.0 - t.size.popup_border).clamp(inside, most));
+        let wanted = match side {
+            Side::Below => (edge, Val::Auto, at, Val::Auto),
+            Side::Above => (Val::Auto, edge, at, Val::Auto),
+            Side::Left => (at, Val::Auto, Val::Auto, edge),
+            Side::Right => (at, Val::Auto, edge, Val::Auto),
+        };
+        if (arrow.top, arrow.bottom, arrow.left, arrow.right) != wanted {
+            (arrow.top, arrow.bottom, arrow.left, arrow.right) = wanted;
         }
     }
 
@@ -3674,12 +3720,15 @@ fn place_popup(
         false => 1.0,
     };
     let eased = 1.0 - (1.0 - done).powi(3);
-    let from = match point {
-        Some((false, _)) => -t.size.popup_rise,
-        _ => t.size.popup_rise,
+    let rise = t.size.popup_rise * (1.0 - eased);
+    let (x, y) = match point {
+        Some((Side::Above, _)) => (0.0, -rise),
+        Some((Side::Left, _)) => (-rise, 0.0),
+        Some((Side::Right, _)) => (rise, 0.0),
+        _ => (0.0, rise),
     };
     let wanted = UiTransform {
-        translation: Val2::px(0.0, from * (1.0 - eased)),
+        translation: Val2::px(x, y),
         scale: Vec2::splat(0.92 + 0.08 * eased),
         ..default()
     };

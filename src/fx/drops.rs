@@ -390,6 +390,8 @@ struct Piece {
     settle: f32,
     /// Part of the test burst: the ground does not carry it off.
     pinned: bool,
+    /// It has come to rest once: it no longer counts as aloft.
+    down: bool,
     /// Seconds until it leaves the ground for the party. A test burst
     /// thrown to be looked at has none, and stays where it lands.
     pickup: Option<f32>,
@@ -411,6 +413,9 @@ impl Uncollected {
         self.coins -= piece.value;
         if !piece.pinned {
             self.pieces = self.pieces.saturating_sub(1);
+            if !piece.down {
+                self.aloft = self.aloft.saturating_sub(1);
+            }
             if collected {
                 self.collected += 1;
             } else {
@@ -633,6 +638,7 @@ fn spawn_burst(
             squash: 0.0,
             settle: 0.0,
             pinned,
+            down: false,
             pickup: collected.then_some(pickup),
             homing: None,
             value: match kind {
@@ -666,6 +672,7 @@ fn launch_kills(
         let launches = plan_burst(&shower, fountain, *bursts, kinds.len(), kill.at, &kill.standing);
         *bursts += 1;
         uncollected.pieces += kinds.len();
+        uncollected.aloft += kinds.len();
         uncollected.thrown += kinds.len();
         erupted.write(Erupted {
             in_secs: fountain.delay_secs,
@@ -778,6 +785,10 @@ fn fly(
             });
         }
         if piece.body.resting {
+            if !piece.down && !piece.pinned {
+                piece.down = true;
+                uncollected.aloft = uncollected.aloft.saturating_sub(1);
+            }
             if !was_resting {
                 // A coin lies on whichever face is nearer the ground.
                 let face_down = (piece.tumble * Vec3::Y).y < 0.0;

@@ -164,6 +164,10 @@ no control:
   window allows, `size.popup_gap` away. A square stood on a corner points
   from its nearest edge to the control. Of a control drawn in several
   places (a piece in the cargo and on a tab), the first in view is used.
+  A control on the item card (inside the open `Page::Detail`) has its
+  pop-up beside the card instead, on its left when there is room and on
+  its right when not, level with the control and pointing across at it,
+  so the card it is about stays in view (owner, 2026-10-17).
   A hint on no control (`About::Party`) is over the middle of the scene,
   with no point.
 - **The control is ringed** in the pop-up's colour, as well as marked on a

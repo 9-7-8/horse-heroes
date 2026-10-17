@@ -101,6 +101,9 @@ pub struct Uncollected {
     /// Pieces of kills' drops still in the world, coins and gear alike. `fx`
     /// counts them in as it throws them and out as they arrive.
     pub pieces: usize,
+    /// Of those, the ones not yet down: waiting to leave the body or in the
+    /// air. A lesson waits on these and not on the rest (#353).
+    pub aloft: usize,
     /// Kills' pieces since launch: thrown, taken by the party, and carried
     /// off by the ground before it could take them. Counts for the soak log
     /// (procedures/overnight-soak.txt); nothing in the game reads them.

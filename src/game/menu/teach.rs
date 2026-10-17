@@ -87,10 +87,10 @@ pub fn follow(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held)
     follow_over(game, shell, map, held, false)
 }
 
-/// `follow`, with a kill's drops still in the world (`aloft`): in the air,
-/// on the ground or on their way to the party. No new lesson comes up then,
-/// so that none stops a fountain where it is or covers it (#353); it is
-/// asked for again once every piece has arrived.
+/// `follow`, with a kill's drops still in the air (`aloft`). No new lesson
+/// comes up then, so that none stops a fountain mid-flight or covers it
+/// (#353); it is asked for again once every piece has landed, and pauses
+/// over them glowing on the ground (owner, 2026-10-17).
 pub fn follow_over(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut Held, aloft: bool) -> i32 {
     let hand = shell.hand();
     let open = hand.open.is_some();
@@ -310,7 +310,7 @@ pub fn teach(
     mut held: Local<Held>,
     mut heard: MessageWriter<Heard>,
 ) {
-    let aloft = uncollected.pieces > 0;
+    let aloft = uncollected.aloft > 0;
     // A coin the list pays is heard as a coin reaching the party is.
     for _ in 0..follow_over(&mut game, &mut shell, &map, &mut held, aloft) {
         heard.write(Heard::Collected(Kind::Coin));
@@ -1544,5 +1544,16 @@ mod tests {
         sample.update();
         sample.update();
         assert_ne!(state(&sample), before);
+
+        // Loot in the air holds a lesson back; loot that has landed does
+        // not, and the lesson pauses over it on the ground (owner,
+        // 2026-10-17).
+        let mut flying = app(Game::opening(6), true);
+        flying.insert_resource(Uncollected { pieces: 5, aloft: 2, ..default() });
+        flying.update();
+        assert!(!up(&flying), "not over a fountain in the air");
+        flying.insert_resource(Uncollected { pieces: 5, aloft: 0, ..default() });
+        flying.update();
+        assert!(up(&flying), "up over the pieces on the ground");
     }
 }

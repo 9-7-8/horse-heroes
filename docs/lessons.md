@@ -105,11 +105,12 @@ pauses.
   nothing. A test runs the game's own systems frame by frame and holds
   that no sim time passes while one is up, on the road and in town, and
   that it goes on when answered.
-- **Not over a fountain.** While a kill's pieces are in the world (in the
-  air, on the ground or on their way, `Uncollected::pieces`) no new lesson
-  comes up, and the queue is not asked, so none counts as showing or is
-  watched unseen (`teach::follow_over`). It comes up once every piece has
-  arrived. `teach` runs after the drops are counted in (`drops::Thrown`).
+- **Not over a fountain.** While a kill's pieces are in the air (waiting
+  to leave the body or falling, `Uncollected::aloft`) no new lesson comes
+  up, and the queue is not asked, so none counts as showing or is watched
+  unseen (`teach::follow_over`). It comes up once every piece has landed,
+  and pauses over them glowing on the ground (owner, 2026-10-17). `teach`
+  runs after the drops are counted in (`drops::Thrown`).
 - **A lesson on the road is answered by Got it.** `Watched` lessons wait
   for something to happen while they show, and nothing happens under a
   pause, so they are put away rather than done. The opening's no longer
@@ -128,8 +129,9 @@ outside: a first trail and town visit with no input goes tick for tick as
 it does with every lesson skipped, and every action can be done or not for
 the same reason whatever the lessons' state.
 
-Chosen without the owner: a drop holds a lesson back until it has been
-collected, not only until it lands; `--no-pause` for timed pictures.
+Ruled on by the owner, 2026-10-17 (vision.md, Tutorials): a drop holds a
+lesson back only until it lands; a lesson on the road is answered by Got
+it; a lesson on the item card stands beside the card; no `--no-pause`.
 
 ## Put away, turned off, found again
 
