@@ -1,0 +1,60 @@
+SESSION 2026-10-17 08:43 - the opening drafted (#293)
+====================================================
+
+ASKED
+  /next, no steer. Build green, 270 tests; the one bug, #246, waits on her
+  look. PICK UP named #293.
+
+DONE
+  - 67abad8: docs/opening.md, for her to correct. The ten worksheet
+    answers; the first trail as one fixed plan (Thornling Plant, three
+    Gloom Sprites Fire, Mire Toad Fire, a fairy spring, then a new weaker
+    boss, the Corrupted Yearling, Fire); the trail's piece (a Rare Starlit
+    Halter); every lesson and list entry of lessons.ron as a beat; what is
+    left for later. Docs only; cargo check and test green.
+  - Numbers measured with a throwaway sim test (reverted, not committed),
+    1000 seeds: the starting party always wins and no horse falls (Morrow
+    least, at 1 of 30); all 64 ability sets win every one of 200 seeds.
+  - #293 commented with the six calls that are hers and labelled
+    decision.
+
+DECIDED (for her, all on #293 to rule on)
+  - A new weaker first boss rather than retuning the Stag or the Wolf.
+  - A spring before the boss, so no horse falls.
+  - The trail's piece fixed as a Rare, above any kill's tier.
+  - No resisted hits for the starting party on the first trail.
+  - Recommended: speed's pop-up moved off the first kill; #295 trimmed to
+    six road pauses.
+
+FOUND
+  - The finals as they are cannot be a can't-lose first boss: with the
+    Stag the starting party loses one first trail in four.
+  - #295 still names Focused Shot and Elemental Burst; #294 still says the
+    drop equips itself (overruled by #351). Both said in opening.md.
+  - onboarding.md's "first trail is not forgiving" numbers (68%) are old;
+    left, since #294 replaces them.
+
+NOT DONE
+  - Her reading of opening.md (#293's done-when).
+
+PICK UP
+  /answers: ask her the six calls on #293 (docs/opening.md, "For her to
+  rule on"), then #294 builds the trail from her answers.
+
+NEXT RELEASE
+  0.2.5 The opening: 3 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - unbuilt (drafted; waits on her ruling)
+    #294 The tutorial trail - unbuilt
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Riding along (menus, 0.3.0):
+    #366 A press on the background unselects the horse - built-untested
+    #367 A press on a horse's name plate selects it - built-untested
+    #368 A piece dropped on a name plate is equipped - built-untested
+    #369 The outline is the silhouette - built-untested
