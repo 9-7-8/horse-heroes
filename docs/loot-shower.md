@@ -158,27 +158,21 @@ When a burst erupts, which is when its first piece leaves (the fountain's
 strongly depends on the best piece in the burst and not on how many pieces
 there are ([juice.md](philosophy/juice.md): never spend a higher level on a
 lower event). `best_tier` finds the highest rarity among the burst's gear;
-that rarity's `response` in `gear.ron` gives the two strengths, and a burst
-with no gear in it uses `response.coins` in `loot_shower.ron`:
+that rarity's level in `importance.ron` gives the two strengths and how
+long each lasts, and a burst with no gear in it is at the level `coins`
+there ([importance.md](importance.md), #39). Coins, Normal and Magic are
+Low, which neither shakes nor flashes; Rare is Medium (0.14 shake, 0.03
+flash); Legendary and Set are High (0.3, 0.07).
 
-| best piece | `shake`, world units | `flash`, 0 to 1 |
-|---|---|---|
-| coins alone | 0 | 0 |
-| Normal | 0.03 | 0 |
-| Magic | 0.06 | 0.015 |
-| Rare | 0.14 | 0.03 |
-| Legendary | 0.26 | 0.06 |
-| Set | 0.3 | 0.07 |
-
-So an ordinary kill, which drops only coins today, does nothing to the
-screen, and a final kill is answered by what it dropped.
+So a burst of coins and common pieces does nothing to the screen, and a
+final kill is answered by what it dropped, not by being the final kill.
 
 - The shake moves the camera across and up the screen (`shake_offset`),
   never further than its strength, `shake_hz` times a second, dying away
-  over `shake_secs`.
+  over its level's `shake_secs`.
 - The flash is a sheet of the best piece's rarity colour over the scene's
   share of the window, never over the menus. It starts at its strength and
-  only fades, over `flash_secs` (`flash_alpha`): one pulse, never a
+  only fades, over its level's `flash_secs` (`flash_alpha`): one pulse, never a
   flicker. It is mixed as light, so a small number shows a good deal: 0.07
   of pure green over the black background is a clear dark green.
 - `shake_scale` and `flash_scale` in `loot_shower.ron` multiply every shake
@@ -189,9 +183,7 @@ screen, and a final kill is answered by what it dropped.
 
 The test burst answers too (its best piece is the Set), so F3 is how to
 look at a response. All of these numbers are first guesses and nobody has
-tuned them. There is no single low, medium and high scale shared with
-combat and town, which [juice.md](philosophy/juice.md) asks for once those
-have effects of their own.
+tuned them.
 
 ## Sound
 
@@ -213,7 +205,13 @@ What is heard, and where it is named:
 | a piece touches the ground | `land_coin`, a clink; `land_gear`, a thud | `sound.land_coin`, `sound.land_gear` |
 | a piece reaches the party | `pickup_coin`, a tick; `pickup_gear`, a soft note | `sound.pickup_coin`, `sound.pickup_gear` |
 | a horse uses its ability (#358) | one for each: Ember Shot a flare rushing up, Frost Burst a shimmer of falling glassy notes, Thorn Shot a low twang, Ward a soft swell | the ability's `sound`, `abilities.ron` |
-| a horse's hit lands on an enemy | by the hit's element: `hit_plain` a thump, `hit_fire` a crackle, `hit_ice` a tink, `hit_plant` a woody knock, at `sound.hit_level` | `sound.hits`, `loot_shower.ron` |
+| a horse's hit lands on an enemy | by the hit's element: `hit_plain` a thump, `hit_fire` a crackle, `hit_ice` a tink, `hit_plant` a woody knock | `sound.hits`, `loot_shower.ron` |
+
+How loud each is played against its recipe is its event's level in
+`importance.ron` ([importance.md](importance.md)): a hit, a landing and a
+pickup are Low, an ability Medium, a drop sound its rarity's level, and a
+launch and a death their kill's. `sound.volume` turns all of them down
+together.
 
 An enemy's hit on a horse makes no sound. The sim tells each use of an
 ability in `Expedition::casts`, which `advance` sends on as `Cast`; the

@@ -1,0 +1,55 @@
+// How important a thing that happens is, on one scale for the whole game
+// (#39; docs/philosophy/juice.md, Juice the decision, not every number). There
+// are three levels, and each sets what an event at it may spend. No effect
+// sets its own strength: it names its level below and reads the level's
+// numbers, so changing a level here changes every effect at it. The table of
+// which event sits where is docs/importance.md.
+//
+//   Low     routine gains: quiet, and the same every time
+//   Medium  decisions and thresholds: seen and heard
+//   High    rare, game-changing, first-time: a reveal with room around it
+//
+// A level's budget:
+//   shake        how far the view is thrown, in world units
+//   flash        how solid the flash over the scene is at its start, 0 clear
+//                to 1 opaque; it is mixed as light, so a small number shows a
+//                good deal
+//   shake_secs, flash_secs   how long each takes to die away
+//   sound        how loud its sounds are played against the way their recipe
+//                in sounds.ron was written, 0 to 1
+// The settings' scales (shake_scale and flash_scale in loot_shower.ron, and
+// its volume) turn every level down together.
+(
+    low:    (shake: 0.0,  flash: 0.0,  shake_secs: 0.25, flash_secs: 0.2,  sound: 0.7),
+    medium: (shake: 0.14, flash: 0.03, shake_secs: 0.3,  flash_secs: 0.25, sound: 0.85),
+    high:   (shake: 0.3,  flash: 0.07, shake_secs: 0.4,  flash_secs: 0.35, sound: 1.0),
+
+    // A burst's screen response is the level of the best piece in it, by its
+    // rarity in gear.ron; `coins` is a burst with no gear in it. A piece's
+    // drop sound, as it is thrown, is played at its rarity's level too.
+    rarities: {
+        "Normal": Low,
+        "Magic": Low,
+        "Rare": Medium,
+        "Legendary": High,
+        "Set": High,
+    },
+    coins: Low,
+
+    // A kill's launch sound, by its fountain in loot_shower.ron, and its
+    // body's breaking, by its death in deaths.ron.
+    fountains: {
+        "small": Low,
+        "full": High,
+    },
+    deaths: {
+        "small": Low,
+        "big": High,
+    },
+
+    // The rest of what can be heard.
+    landing: Low,  // a piece touching the ground
+    pickup: Low,   // a piece reaching the party
+    hit: Low,      // a horse's hit on an enemy
+    ability: Medium, // an ability being used
+)

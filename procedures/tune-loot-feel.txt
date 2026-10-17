@@ -24,8 +24,11 @@ STEPS
    scattered as literals. If it is not there yet, move it there first.
    The drop's numbers are in assets/data/loot_shower.ron; the burst and
    arc are per fountain there ("small", "full"), so say which one changed.
-   The screen's response is `response` there (how long, how fast, and the
-   two scales) and each rarity's `response` in assets/data/gear.ron.
+   The screen's response is `response` there (how fast, and the two
+   scales); how strong and how long it is, and how loud each sound is
+   played, are the three levels in assets/data/importance.ron, and which
+   rarity or event sits at which level is there too (docs/importance.md).
+   Changing a level changes everything at it.
    A death's numbers (the fall, the shards, the mark) are per death in
    assets/data/deaths.ron ("small", "big"); the test burst has no body,
    so a death is looked at on a real kill (build-and-run.txt, step 4).

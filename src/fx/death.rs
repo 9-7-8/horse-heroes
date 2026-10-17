@@ -384,7 +384,7 @@ fn play(
         }
         // It breaks: the body goes, and its shards and its mark take its place.
         commands.entity(entity).despawn();
-        heard.write(Heard::Died(death.sound.clone()));
+        heard.write(Heard::Died(body.death.clone()));
         let shades = look.of(body.element);
         let side = shard_side(death, body.size);
         for shard in plan_shards(death, body.seed, body.centre, body.size) {

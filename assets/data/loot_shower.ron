@@ -76,20 +76,16 @@
 
     // Screen response. When a burst erupts (its first piece leaves) the scene
     // shakes and flashes once, as strongly as the best piece in it says and
-    // no more for there being many: each rarity has its `response` in
-    // gear.ron, and `coins` here is a burst with no gear in it. The flash is
-    // the colour of that best piece and covers the scene, not the menus.
+    // no more for there being many: how strongly, and for how long, is that
+    // piece's rarity's level in importance.ron. The flash is the colour of
+    // that best piece and covers the scene, not the menus.
     //   shake_scale, flash_scale   multiply every shake and every flash;
     //                              0 turns that one off
-    //   shake_secs, flash_secs     how long each takes to die away
     //   shake_hz                   how fast the view is thrown to and fro
     response: (
         shake_scale: 1.0,
         flash_scale: 1.0,
-        shake_secs: 0.35,
         shake_hz: 16.0,
-        flash_secs: 0.3,
-        coins: (shake: 0.0, flash: 0.0),
     ),
 
     // Sound. The sounds themselves are recipes in sounds.ron; this is which
@@ -111,7 +107,7 @@
     //                   An enemy's hit on a horse makes none.
     //   hit_gap_secs    one fight sound heard again sooner than this is not
     //                   played, so a Burst on three enemies is one sound
-    //   hit_level       how loud a hit is against the fountain's sounds
+    // How loud each sound is played is its event's level in importance.ron.
     sound: (
         volume: 0.6,
         land_coin: "land_coin",
@@ -131,7 +127,6 @@
             plant: "hit_plant",
         ),
         hit_gap_secs: 0.06,
-        hit_level: 0.7,
     ),
 
     // The test burst: thrown as this fountain, with this many coins.

@@ -8,6 +8,7 @@ pub mod dangle;
 pub mod death;
 pub mod drops;
 pub mod impact;
+pub mod importance;
 pub mod numbers;
 pub mod response;
 pub mod sound;
@@ -28,7 +29,8 @@ pub struct FxPlugin {
 
 impl Plugin for FxPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(drops::DropsPlugin {
+        app.add_plugins(importance::ImportancePlugin)
+        .add_plugins(drops::DropsPlugin {
             burst: self.burst,
             pickup: self.pickup,
             burst_at: self.burst_at.unwrap_or(drops::BURST_AT),

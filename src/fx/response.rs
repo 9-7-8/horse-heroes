@@ -1,7 +1,8 @@
 //! Screen response: when a fountain erupts the scene shakes and flashes once,
 //! as strongly as the best piece in the burst says and no more for there
-//! being many. A rarity's strengths are in `assets/data/gear.ron`; how long
-//! they last, and the two scales that turn them down or off, are in
+//! being many. The piece's rarity has a level, and the level's budget in
+//! `assets/data/importance.ron` (#39) says how strong and how long; the two
+//! scales that turn every level down or off are in
 //! `assets/data/loot_shower.ron`.
 //!
 //! How far the view is thrown and how solid the flash is are plain arithmetic
@@ -17,7 +18,8 @@ use super::drops::{Shower, rarity_colour};
 use crate::game::menu::tokens::Tokens;
 use crate::game::scene::camera_home;
 use crate::game::{Game, SceneView};
-use crate::sim::data::{GearTable, ResponseDef};
+use super::importance::{Budget, Importance};
+use crate::sim::data::GearTable;
 
 /// The `response` numbers in `loot_shower.ron`.
 #[derive(Clone, Debug, Deserialize)]
@@ -25,11 +27,7 @@ pub struct ResponseFeel {
     /// Multiply every shake and every flash. 0 turns that one off.
     pub shake_scale: f32,
     pub flash_scale: f32,
-    pub shake_secs: f32,
     pub shake_hz: f32,
-    pub flash_secs: f32,
-    /// A burst with no gear in it.
-    pub coins: ResponseDef,
 }
 
 /// A burst has been thrown: its first piece leaves `in_secs` from now, and
@@ -40,12 +38,15 @@ pub struct Erupted {
     pub best: Option<usize>,
 }
 
-/// How strongly the screen answers a burst whose best piece is `best`.
-pub fn strength(feel: &ResponseFeel, gear: &GearTable, best: Option<usize>) -> ResponseDef {
-    let def = best.map_or(feel.coins, |tier| gear.rarities[tier].look.response);
-    ResponseDef {
-        shake: def.shake * feel.shake_scale,
-        flash: def.flash * feel.flash_scale,
+/// How strongly, and for how long, the screen answers a burst whose best
+/// piece is `best`: its rarity's level's budget, turned down by the scales.
+pub fn strength(feel: &ResponseFeel, importance: &Importance, gear: &GearTable, best: Option<usize>) -> Budget {
+    let level = best.map_or(importance.coins, |tier| importance.rarity(&gear.rarities[tier]));
+    let budget = *importance.budget(level);
+    Budget {
+        shake: budget.shake * feel.shake_scale,
+        flash: budget.flash * feel.flash_scale,
+        ..budget
     }
 }
 
@@ -59,19 +60,19 @@ fn left(age: f32, secs: f32) -> f32 {
     left * left
 }
 
-/// Where a shake of `strength` has thrown the view `age` seconds in, across
-/// the screen and up it, in world units. Never further than `strength` either
-/// way, and back where it was by `shake_secs`.
-pub fn shake_offset(feel: &ResponseFeel, strength: f32, age: f32) -> Vec2 {
+/// Where a shake of `strength` lasting `secs` has thrown the view `age`
+/// seconds in, across the screen and up it, in world units. Never further
+/// than `strength` either way, and back where it was by `secs`.
+pub fn shake_offset(feel: &ResponseFeel, strength: f32, secs: f32, age: f32) -> Vec2 {
     let turn = TAU * feel.shake_hz * age;
     // Two rates that do not line up, so it does not trace the same loop.
-    strength * left(age, feel.shake_secs) * Vec2::new(turn.sin(), (1.3 * turn + 1.0).cos())
+    strength * left(age, secs) * Vec2::new(turn.sin(), (1.3 * turn + 1.0).cos())
 }
 
-/// How solid a flash of `strength` is `age` seconds in. It only fades: one
-/// pulse, never a flicker.
-pub fn flash_alpha(feel: &ResponseFeel, strength: f32, age: f32) -> f32 {
-    strength * left(age, feel.flash_secs)
+/// How solid a flash of `strength` lasting `secs` is `age` seconds in. It
+/// only fades: one pulse, never a flicker.
+pub fn flash_alpha(strength: f32, secs: f32, age: f32) -> f32 {
+    strength * left(age, secs)
 }
 
 pub struct ResponsePlugin;
@@ -92,7 +93,19 @@ struct Flash;
 #[derive(Clone, Copy)]
 struct Pulse {
     strength: f32,
+    secs: f32,
     age: f32,
+}
+
+impl Pulse {
+    /// How much of its strength it still has.
+    fn left(&self) -> f32 {
+        self.strength * left(self.age, self.secs)
+    }
+
+    fn over(&self) -> bool {
+        self.age >= self.secs
+    }
 }
 
 #[derive(Resource, Default)]
@@ -125,6 +138,7 @@ fn respond(
     shower: Res<Shower>,
     view: Res<SceneView>,
     tokens: Res<Tokens>,
+    importance: Res<Importance>,
     mut erupted: MessageReader<Erupted>,
     mut pulses: ResMut<Pulses>,
     mut camera: Single<&mut Transform, With<Camera3d>>,
@@ -155,19 +169,16 @@ fn respond(
     });
     for best in due {
         // A weaker response does not cut short what is left of a stronger one.
-        let wanted = strength(feel, &game.data.gear, best);
-        let shaking = pulses.shake.map_or(0.0, |pulse| {
-            pulse.strength * left(pulse.age, feel.shake_secs)
-        });
+        let wanted = strength(feel, &importance, &game.data.gear, best);
+        let shaking = pulses.shake.map_or(0.0, |pulse| pulse.left());
         if wanted.shake > shaking {
             pulses.shake = Some(Pulse {
                 strength: wanted.shake,
+                secs: wanted.shake_secs,
                 age: 0.0,
             });
         }
-        let flashing = pulses.flash.map_or(0.0, |(pulse, _)| {
-            flash_alpha(feel, pulse.strength, pulse.age)
-        });
+        let flashing = pulses.flash.map_or(0.0, |(pulse, _)| pulse.left());
         if wanted.flash > flashing {
             let colour = match best {
                 Some(tier) => rarity_colour(&game.data.gear.rarities[tier]).into(),
@@ -175,22 +186,23 @@ fn respond(
             };
             let pulse = Pulse {
                 strength: wanted.flash,
+                secs: wanted.flash_secs,
                 age: 0.0,
             };
             pulses.flash = Some((pulse, colour));
         }
     }
 
-    if pulses.shake.is_some_and(|pulse| pulse.age >= feel.shake_secs) {
+    if pulses.shake.is_some_and(|pulse| pulse.over()) {
         pulses.shake = None;
     }
-    if pulses.flash.is_some_and(|(pulse, _)| pulse.age >= feel.flash_secs) {
+    if pulses.flash.is_some_and(|(pulse, _)| pulse.over()) {
         pulses.flash = None;
     }
 
     let home = camera_home();
     let offset = pulses.shake.map_or(Vec2::ZERO, |pulse| {
-        shake_offset(feel, pulse.strength, pulse.age)
+        shake_offset(feel, pulse.strength, pulse.secs, pulse.age)
     });
     let wanted = home.translation + home.rotation * offset.extend(0.0);
     if camera.translation != wanted {
@@ -200,7 +212,7 @@ fn respond(
     // The flash covers the scene's share of the window and none of the menus.
     let (mut node, mut background) = flash.into_inner();
     let colour = pulses.flash.map_or(Color::NONE, |(pulse, colour)| {
-        colour.with_alpha(flash_alpha(feel, pulse.strength, pulse.age))
+        colour.with_alpha(flash_alpha(pulse.strength, pulse.secs, pulse.age))
     });
     if background.0 != colour {
         background.0 = colour;
@@ -215,6 +227,7 @@ fn respond(
 mod tests {
     use super::*;
     use crate::fx::drops::{Kind, best_tier};
+    use crate::fx::importance::Level;
     use crate::sim::data::Data;
 
     fn feel() -> ResponseFeel {
@@ -222,19 +235,36 @@ mod tests {
     }
 
     /// The response numbers can be used as they are: scales that are not
-    /// negative, times that are, and a flash too short and too faint to
-    /// hide what it is over.
+    /// negative, and a flash too short and too faint to hide what it is
+    /// over.
     #[test]
     fn the_response_numbers_are_usable() {
+        let (feel, importance, data) = (feel(), Importance::load(), Data::load());
+        assert!(feel.shake_scale >= 0.0 && feel.flash_scale >= 0.0 && feel.shake_hz > 0.0);
+        for tier in (0..data.gear.rarities.len()).map(Some).chain([None]) {
+            let wanted = strength(&feel, &importance, &data.gear, tier);
+            assert!(wanted.flash <= 0.5 && wanted.shake <= 0.5, "{tier:?}");
+            assert!(wanted.shake_secs <= 1.0 && wanted.flash_secs <= 1.0, "{tier:?}");
+        }
+    }
+
+    /// The screen answers a burst with its best piece's level and nothing
+    /// of its own: changing a level's budget changes every burst at it.
+    #[test]
+    fn a_burst_is_answered_at_its_level() {
         let (feel, data) = (feel(), Data::load());
-        assert!(feel.shake_scale >= 0.0 && feel.flash_scale >= 0.0);
-        assert!(feel.shake_secs > 0.0 && feel.flash_secs > 0.0 && feel.shake_hz > 0.0);
-        assert!(feel.shake_secs <= 1.0 && feel.flash_secs <= 1.0);
-        assert!(feel.coins.shake >= 0.0 && (0.0..=1.0).contains(&feel.coins.flash));
+        let mut importance = Importance::load();
+        let rare = data.gear.rarities.iter().position(|r| r.name == "Rare").unwrap();
+        let level = importance.rarity(&data.gear.rarities[rare]);
+        assert_eq!(strength(&feel, &importance, &data.gear, Some(rare)), *importance.budget(level));
+        let mut budget = *importance.budget(level);
+        budget.shake += 0.1;
+        budget.flash_secs += 0.1;
+        importance.set(level, budget);
         for tier in 0..data.gear.rarities.len() {
-            let wanted = strength(&feel, &data.gear, Some(tier));
-            assert!(wanted.flash <= 0.5, "{}", data.gear.rarities[tier].name);
-            assert!(wanted.shake <= 0.5, "{}", data.gear.rarities[tier].name);
+            let at = importance.rarity(&data.gear.rarities[tier]) == level;
+            let wanted = strength(&feel, &importance, &data.gear, Some(tier));
+            assert_eq!(wanted == budget, at, "{}", data.gear.rarities[tier].name);
         }
     }
 
@@ -242,16 +272,16 @@ mod tests {
     /// pieces there are.
     #[test]
     fn the_best_piece_decides_not_the_count() {
-        let (feel, data) = (feel(), Data::load());
+        let (feel, importance, data) = (feel(), Importance::load(), Data::load());
         let rare = data.gear.rarities.iter().position(|r| r.name == "Rare").unwrap();
         assert_eq!(best_tier(&[Kind::Coin; 40]), None);
         assert_eq!(best_tier(&[]), None);
         let mut few = vec![Kind::Coin, Kind::Gear(rare), Kind::Gear(0)];
         assert_eq!(best_tier(&few), Some(rare));
-        let small = strength(&feel, &data.gear, best_tier(&few));
+        let small = strength(&feel, &importance, &data.gear, best_tier(&few));
         few.extend([Kind::Coin; 40]);
         few.extend([Kind::Gear(0); 5]);
-        assert_eq!(strength(&feel, &data.gear, best_tier(&few)), small);
+        assert_eq!(strength(&feel, &importance, &data.gear, best_tier(&few)), small);
     }
 
     /// A better piece is never answered more weakly, and a fountain with a
@@ -259,9 +289,9 @@ mod tests {
     /// fountain without: with coins alone, or with any lower tier.
     #[test]
     fn a_rare_is_felt() {
-        let (feel, data) = (feel(), Data::load());
+        let (feel, importance, data) = (feel(), Importance::load(), Data::load());
         let tiers = data.gear.rarities.len();
-        let of = |best| strength(&feel, &data.gear, best);
+        let of = |best| strength(&feel, &importance, &data.gear, best);
         for tier in 1..tiers {
             let (lower, higher) = (of(Some(tier - 1)), of(Some(tier)));
             assert!(lower.shake <= higher.shake && lower.flash <= higher.flash);
@@ -278,25 +308,26 @@ mod tests {
     /// the other half alone.
     #[test]
     fn each_scale_turns_its_response_off() {
-        let data = Data::load();
+        let (importance, data) = (Importance::load(), Data::load());
         let top = Some(data.gear.rarities.len() - 1);
-        let full = strength(&feel(), &data.gear, top);
+        let full = strength(&feel(), &importance, &data.gear, top);
         assert!(full.shake > 0.0 && full.flash > 0.0);
 
         let mut still = feel();
         still.shake_scale = 0.0;
-        let wanted = strength(&still, &data.gear, top);
+        let wanted = strength(&still, &importance, &data.gear, top);
         assert_eq!((wanted.shake, wanted.flash), (0.0, full.flash));
         for step in 0..60 {
-            assert_eq!(shake_offset(&still, wanted.shake, step as f32 / 120.0), Vec2::ZERO);
+            let age = step as f32 / 120.0;
+            assert_eq!(shake_offset(&still, wanted.shake, wanted.shake_secs, age), Vec2::ZERO);
         }
 
         let mut dark = feel();
         dark.flash_scale = 0.0;
-        let wanted = strength(&dark, &data.gear, top);
+        let wanted = strength(&dark, &importance, &data.gear, top);
         assert_eq!((wanted.shake, wanted.flash), (full.shake, 0.0));
         for step in 0..60 {
-            assert_eq!(flash_alpha(&dark, wanted.flash, step as f32 / 120.0), 0.0);
+            assert_eq!(flash_alpha(wanted.flash, wanted.flash_secs, step as f32 / 120.0), 0.0);
         }
     }
 
@@ -305,20 +336,22 @@ mod tests {
     #[test]
     fn a_response_stays_within_its_strength_and_ends() {
         let feel = feel();
+        let high = *Importance::load().budget(Level::High);
+        let (shake_secs, flash_secs) = (high.shake_secs, high.flash_secs);
         let (mut furthest, mut last_alpha) = (0.0_f32, f32::MAX);
         for step in 0..240 {
-            let age = step as f32 / 240.0 * feel.shake_secs.max(feel.flash_secs);
-            let offset = shake_offset(&feel, 0.3, age);
+            let age = step as f32 / 240.0 * shake_secs.max(flash_secs);
+            let offset = shake_offset(&feel, 0.3, shake_secs, age);
             assert!(offset.x.abs() <= 0.3 && offset.y.abs() <= 0.3, "{offset} at {age}");
             furthest = furthest.max(offset.length());
-            let alpha = flash_alpha(&feel, 0.25, age);
+            let alpha = flash_alpha(0.25, flash_secs, age);
             assert!(alpha <= last_alpha, "the flash grew at {age}");
             last_alpha = alpha;
         }
         assert!(furthest > 0.15, "the shake hardly moved: {furthest}");
-        assert_eq!(flash_alpha(&feel, 0.25, 0.0), 0.25);
-        assert_eq!(shake_offset(&feel, 0.3, feel.shake_secs), Vec2::ZERO);
-        assert_eq!(shake_offset(&feel, 0.3, feel.shake_secs + 1.0), Vec2::ZERO);
-        assert_eq!(flash_alpha(&feel, 0.25, feel.flash_secs), 0.0);
+        assert_eq!(flash_alpha(0.25, flash_secs, 0.0), 0.25);
+        assert_eq!(shake_offset(&feel, 0.3, shake_secs, shake_secs), Vec2::ZERO);
+        assert_eq!(shake_offset(&feel, 0.3, shake_secs, shake_secs + 1.0), Vec2::ZERO);
+        assert_eq!(flash_alpha(0.25, flash_secs, flash_secs), 0.0);
     }
 }

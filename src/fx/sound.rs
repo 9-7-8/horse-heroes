@@ -10,7 +10,8 @@
 //! (`render`). Which sound plays when is data too: a rarity names its own in
 //! `gear.ron`, a fountain its own in `loot_shower.ron`, a death its own in
 //! `deaths.ron`, an ability its own in `abilities.ron`, and the rest are in
-//! `sound` in `loot_shower.ron`.
+//! `sound` in `loot_shower.ron`. How loud each is played is its event's
+//! level in `importance.ron` (#39).
 //!
 //! Making the samples and deciding what is heard (`Run`, `Gate`) are plain
 //! arithmetic, so they are unit-tested; the system below them only plays.
@@ -27,6 +28,7 @@ use serde::Deserialize;
 
 use super::death::Deaths;
 use super::drops::{Kind, Shower};
+use super::importance::{Importance, Level};
 use crate::game::{Cast, Game, Landed};
 use crate::sim::data::{Data, Element};
 use crate::sim::expedition::Struck;
@@ -101,7 +103,6 @@ pub struct SoundFeel {
     pub pickup_run_secs: f32,
     pub hits: HitSounds,
     pub hit_gap_secs: f32,
-    pub hit_level: f32,
 }
 
 /// A horse's hit on an enemy, by its element (#358).
@@ -299,15 +300,15 @@ pub fn named<'a>(shower: &'a Shower, data: &'a Data, deaths: &'a Deaths) -> Vec<
 #[derive(Message, Clone, Debug)]
 pub enum Heard {
     /// A burst has been thrown: its first piece leaves `in_secs` from now,
-    /// with this sound.
-    Burst { in_secs: f32, sound: String },
+    /// with the sound of the fountain of this name.
+    Burst { in_secs: f32, fountain: String },
     /// A piece of gear of this rarity tier has left the body.
     Thrown(usize),
     /// A piece has touched the ground, for the `touch`th time, from 0.
     Landed { kind: Kind, touch: u32 },
     /// A piece has reached the party.
     Collected(Kind),
-    /// An enemy's body has broken, with this sound.
+    /// An enemy's body has broken, with the sound of the death of this name.
     Died(String),
 }
 
@@ -389,7 +390,7 @@ struct Clips(BTreeMap<String, Handle<Clip>>);
 #[derive(Resource, Default)]
 struct Hearing {
     mute: bool,
-    /// Bursts thrown whose first piece has not left yet.
+    /// Bursts thrown whose first piece has not left yet, by fountain name.
     waiting: Vec<(f32, String)>,
     run: Run,
     gate: Gate,
@@ -425,6 +426,8 @@ fn play(
     time: Res<Time<Real>>,
     game: Res<Game>,
     shower: Res<Shower>,
+    deaths: Res<Deaths>,
+    importance: Res<Importance>,
     clips: Res<Clips>,
     mut heard: MessageReader<Heard>,
     mut casts: MessageReader<Cast>,
@@ -437,28 +440,29 @@ fn play(
     hearing.run.wait(dt);
     hearing.gate.wait(dt);
     hearing.fight.wait(dt);
+    // How loud a sound at this level is played, before anything else.
+    let at = |level: Level| importance.budget(level).sound;
 
     // What to play this frame: a sound, how loud, and how many semitones up.
     let mut due: Vec<(&str, f32, f32)> = Vec::new();
-    // Launches and breaks, which bring their sound's name with them.
     let mut launches = Vec::new();
-    hearing.waiting.retain_mut(|(in_secs, sound)| {
+    hearing.waiting.retain_mut(|(in_secs, fountain)| {
         *in_secs -= dt;
         if *in_secs <= 0.0 {
-            launches.push(std::mem::take(sound));
+            launches.push(std::mem::take(fountain));
         }
         *in_secs > 0.0
     });
     for event in heard.read() {
         match event {
-            Heard::Burst { in_secs, sound } if *in_secs > 0.0 => {
-                hearing.waiting.push((*in_secs, sound.clone()));
+            Heard::Burst { in_secs, fountain } if *in_secs > 0.0 => {
+                hearing.waiting.push((*in_secs, fountain.clone()));
             }
-            Heard::Burst { sound, .. } => launches.push(sound.clone()),
+            Heard::Burst { fountain, .. } => launches.push(fountain.clone()),
             Heard::Thrown(tier) => {
-                let sound = &game.data.gear.rarities[*tier].look.sound;
-                if !sound.is_empty() {
-                    due.push((sound, 1.0, 0.0));
+                let rarity = &game.data.gear.rarities[*tier];
+                if !rarity.look.sound.is_empty() {
+                    due.push((&rarity.look.sound, at(importance.rarity(rarity)), 0.0));
                 }
             }
             Heard::Landed { kind, touch } => {
@@ -469,22 +473,29 @@ fn play(
                     };
                     let vary = 2.0 * Rng::new(hearing.landings).unit() - 1.0;
                     hearing.landings += 1;
-                    due.push((sound, landing_level(feel, *touch), feel.land_vary * vary));
+                    let level = at(importance.landing) * landing_level(feel, *touch);
+                    due.push((sound, level, feel.land_vary * vary));
                 }
             }
             Heard::Collected(Kind::Coin) => {
                 let step = hearing.run.next(feel);
-                due.push((&feel.pickup_coin, 1.0, run_semitones(feel, step)));
+                due.push((&feel.pickup_coin, at(importance.pickup), run_semitones(feel, step)));
             }
-            Heard::Collected(Kind::Gear(_)) => due.push((&feel.pickup_gear, 1.0, 0.0)),
-            Heard::Died(sound) => launches.push(sound.clone()),
+            Heard::Collected(Kind::Gear(_)) => {
+                due.push((&feel.pickup_gear, at(importance.pickup), 0.0));
+            }
+            Heard::Died(name) => {
+                due.push((&deaths.death(name).sound, at(importance.death(name)), 0.0));
+            }
         }
     }
-    due.extend(launches.iter().map(|sound| (sound.as_str(), 1.0, 0.0)));
+    for name in &launches {
+        due.push((&shower.fountain(name).sound, at(importance.fountain(name)), 0.0));
+    }
     for Cast { ability, .. } in casts.read() {
         let sound = game.data.abilities[*ability].sound.as_str();
         if hearing.fight.pass(feel, sound) {
-            due.push((sound, 1.0, 0.0));
+            due.push((sound, at(importance.ability), 0.0));
         }
     }
     for Landed { hit, .. } in landed.read() {
@@ -493,7 +504,7 @@ fn play(
         }
         let sound = feel.hits.of(hit.element);
         if hearing.fight.pass(feel, sound) {
-            due.push((sound, feel.hit_level, 0.0));
+            due.push((sound, at(importance.hit), 0.0));
         }
     }
 
@@ -696,25 +707,28 @@ mod tests {
     }
 
     /// A death lands with its fountain's launch: the two played together,
-    /// when each is due, stay inside full scale. Whether one covers the
+    /// when each is due and at its level, stay inside full scale. Whether one covers the
     /// other is for an ear to say.
     #[test]
     fn a_death_and_its_launch_fit_together() {
         let (shower, data, book) = (Shower::load(), Data::load(), SoundBook::load());
-        let deaths = Deaths::load();
+        let (deaths, importance) = (Deaths::load(), Importance::load());
+        let loud = |level| importance.budget(level).sound;
         for enemy in &data.enemies {
             let death = deaths.death(&enemy.death);
             let fountain = shower.fountain(&enemy.fountain);
             let broke = render(&book.sounds[&death.sound]);
             let launch = render(&book.sounds[&fountain.sound]);
+            let broke_level = loud(importance.death(&enemy.death));
+            let launch_level = loud(importance.fountain(&enemy.fountain));
             let at = |secs: f32| (secs * RATE as f32) as usize;
             let (broke_at, launch_at) = (at(death.fall_secs), at(fountain.delay_secs));
             let mut both = vec![0.0; (broke_at + broke.len()).max(launch_at + launch.len())];
             for (i, sample) in broke.iter().enumerate() {
-                both[broke_at + i] += sample;
+                both[broke_at + i] += broke_level * sample;
             }
             for (i, sample) in launch.iter().enumerate() {
-                both[launch_at + i] += sample;
+                both[launch_at + i] += launch_level * sample;
             }
             let loudest = shower.sound.volume * peak(&both);
             assert!(loudest <= 1.0, "{}: {loudest}", enemy.id);
@@ -754,7 +768,6 @@ mod tests {
             let fights = place.starts_with("abilities.ron") || place.starts_with("loot_shower.ron: hits");
             assert!(fights || !fight.contains(&name), "{place} uses {name}");
         }
-        assert!(shower.sound.hit_level > 0.0 && shower.sound.hit_level <= 1.0);
     }
 
     /// The same fight sound twice within the gap is heard once, and again

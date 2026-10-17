@@ -673,7 +673,7 @@ fn launch_kills(
         });
         heard.write(Heard::Burst {
             in_secs: fountain.delay_secs,
-            sound: fountain.sound.clone(),
+            fountain: kill.fountain.clone(),
         });
         let after = After::Kill(kill.coins);
         spawn_burst(&mut commands, &look, &shower, kill.at, &launches, &kinds, after);
@@ -727,7 +727,7 @@ fn test_burst(
     });
     heard.write(Heard::Burst {
         in_secs: fountain.delay_secs,
-        sound: fountain.sound.clone(),
+        fountain: shower.burst_fountain.clone(),
     });
     test.watch = Some(Watch::default());
 }

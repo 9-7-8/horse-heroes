@@ -254,9 +254,6 @@ pub struct RarityLook {
     /// The column of light over a drop of this tier, if it has one.
     #[serde(default)]
     pub beam: Option<BeamDef>,
-    /// What the screen does when a burst erupts with this tier the best in it.
-    #[serde(default)]
-    pub response: ResponseDef,
     /// The sound a drop of this tier makes as it is thrown, by its name in
     /// `sounds.ron`. Empty is none.
     #[serde(default)]
@@ -323,15 +320,6 @@ impl PartDef {
         };
         self.at.1.abs() + own
     }
-}
-
-/// How strongly the screen answers a burst: none of either is 0.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Deserialize)]
-pub struct ResponseDef {
-    /// How far the view is thrown, in world units.
-    pub shake: f32,
-    /// How solid the flash is at its start: 0 clear, 1 opaque.
-    pub flash: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
@@ -579,9 +567,6 @@ mod tests {
                 assert!(0.0 < beam.alpha && beam.alpha <= 1.0, "{}", rarity.name);
                 assert!(beam.rise_secs >= 0.0, "{}", rarity.name);
             }
-            let response = look.response;
-            assert!(response.shake >= 0.0, "{}", rarity.name);
-            assert!((0.0..=1.0).contains(&response.flash), "{}", rarity.name);
         }
         // Listed lowest first: a higher tier never spends fewer points.
         for pair in gear.rarities.windows(2) {
