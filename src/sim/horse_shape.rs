@@ -767,17 +767,20 @@ mod tests {
                 shape.clearance.1 - 0.002 <= clearance && clearance <= shape.clearance.2 + 0.002,
                 "a clearance of {clearance} H"
             );
-            let ladder = [
-                0.0,
-                frame.hoof_top,
-                frame.fetlock,
-                frame.knee,
-                frame.hock,
-                frame.clearance,
-                frame.elbow,
-                frame.croup,
-            ];
-            assert!(ladder.windows(2).all(|pair| pair[0] < pair[1]), "{ladder:?}");
+            // The knee and the hock are level in the base horse (#278), so
+            // each is checked against the rungs either side, not the other.
+            for joint in [frame.knee, frame.hock] {
+                let ladder = [
+                    0.0,
+                    frame.hoof_top,
+                    frame.fetlock,
+                    joint,
+                    frame.clearance,
+                    frame.elbow,
+                    frame.croup,
+                ];
+                assert!(ladder.windows(2).all(|pair| pair[0] < pair[1]), "{ladder:?}");
+            }
             assert!(frame.croup <= h * 1.0001);
             assert!(frame.muzzle_width < frame.head_width);
             assert!(frame.chest_width < frame.barrel_width);

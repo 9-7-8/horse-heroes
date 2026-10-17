@@ -6,7 +6,7 @@ rotation to give a joint in this model is the difference from the rest angle
 here (`docs/philosophy/horse-movement.md`). **Every figure is worked out from
 `assets/data/horse_shape.ron` by the formulas of `src/sim/horse_shape.rs`;
 none is measured from a horse.** Made by `target/hh_rest_pose.py` on
-2026-10-11; if the shape data changes, these are stale.
+2026-10-17; if the shape data changes, these are stale.
 
 ## Conventions
 
@@ -45,13 +45,13 @@ none is measured from a horse.** Made by `target/hh_rest_pose.py` on
 | --- | ---: | ---: | ---: | ---: |
 | fore top of leg | +0.3780 | 0.6800 | +62.4 | 112.2 |
 | elbow | +0.3780 | 0.6000 | +62.4 | 99.0 |
-| knee (carpus) | +0.3780 | 0.3060 | +62.4 | 50.5 |
+| knee (carpus) | +0.3780 | 0.3200 | +62.4 | 52.8 |
 | fore fetlock | +0.3780 | 0.1210 | +62.4 | 20.0 |
 | fore hoof top (coronet) | +0.3980 | 0.0670 | +65.7 | 11.1 |
 | fore hoof on the ground | +0.3980 | 0.0000 | +65.7 | 0.0 |
 | hind top of leg | -0.3424 | 0.7000 | -56.5 | 115.5 |
 | stifle | -0.3024 | 0.5700 | -49.9 | 94.1 |
-| hock | -0.4856 | 0.3640 | -80.1 | 60.1 |
+| hock | -0.4856 | 0.3200 | -80.1 | 52.8 |
 | hind fetlock | -0.4776 | 0.1210 | -78.8 | 20.0 |
 | hind hoof top (coronet) | -0.4586 | 0.0670 | -75.7 | 11.1 |
 | hind hoof on the ground | -0.4586 | 0.0000 | -75.7 | 0.0 |
@@ -73,17 +73,17 @@ depth at the girth 76 cm, clearance under the chest 89 cm.
 
 | Segment | From | To | Length / H | cm | Lean, degrees |
 | --- | --- | --- | ---: | ---: | ---: |
-| Forearm | elbow | knee (carpus) | 0.2940 | 48.5 | +0.0 |
-| Fore cannon | knee (carpus) | fore fetlock | 0.1850 | 30.5 | +0.0 |
+| Forearm | elbow | knee (carpus) | 0.2800 | 46.2 | +0.0 |
+| Fore cannon | knee (carpus) | fore fetlock | 0.1990 | 32.8 | +0.0 |
 | Fore pastern | fore fetlock | fore hoof top (coronet) | 0.0576 | 9.5 | +20.3 |
 | Thigh (stand-in, see above) | hind top of leg | stifle | 0.1360 | 22.4 | +17.1 |
-| Gaskin | stifle | hock | 0.2757 | 45.5 | -41.6 |
-| Hind cannon | hock | hind fetlock | 0.2431 | 40.1 | +1.9 |
+| Gaskin | stifle | hock | 0.3099 | 51.1 | -36.2 |
+| Hind cannon | hock | hind fetlock | 0.1992 | 32.9 | +2.3 |
 | Hind pastern | hind fetlock | hind hoof top (coronet) | 0.0572 | 9.4 | +19.4 |
 
 Hoof height, coronet to ground: 0.067 H (11.1 cm), fore and hind.
 Foreleg along its segments, elbow to ground: 0.604 H (100 cm).
-Hind leg along its segments, stifle to ground: 0.643 H (106 cm).
+Hind leg along its segments, stifle to ground: 0.633 H (105 cm).
 Neck, root to poll: 0.53 H (87 cm), carried 50 degrees above level.
 Withers: 1.0000 H (165.0 cm) high, by definition.
 Head, poll to muzzle: 0.36 H (59 cm), the face 47 degrees below level.
@@ -98,9 +98,9 @@ Dock: 0.25 H (41 cm), 11.5 degrees behind straight down.
 | Knee (carpus) | elbow, fore fetlock | 180.0 |  |
 | Fore fetlock | knee (carpus), fore hoof top (coronet) | 159.7 | 200.3 |
 | Hip | not in the model | none | |
-| Stifle (thigh is a stand-in) | hind top of leg, hock | 121.2 |  |
-| Hock | stifle, hind fetlock | 136.5 |  |
-| Hind fetlock | hock, hind hoof top (coronet) | 162.5 | 197.5 |
+| Stifle (thigh is a stand-in) | hind top of leg, hock | 126.7 |  |
+| Hock | stifle, hind fetlock | 141.5 |  |
+| Hind fetlock | hock, hind hoof top (coronet) | 162.9 | 197.1 |
 
 ## How it moves today
 
