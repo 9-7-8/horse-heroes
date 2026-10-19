@@ -23,6 +23,7 @@
         "mire_toad":      (wind_up: 0.55, release: 0.12, recovery: 0.35, rear: 0.16, lunge: 0.22),
         "corrupted_stag": (wind_up: 0.60, release: 0.12, recovery: 0.35, rear: 0.14, lunge: 0.20),
         "hollow_wolf":    (wind_up: 0.35, release: 0.08, recovery: 0.25, rear: 0.12, lunge: 0.20),
+        "corrupted_yearling": (wind_up: 0.60, release: 0.12, recovery: 0.35, rear: 0.14, lunge: 0.20),
     },
     // Each ability's own swing (#18), by its id in abilities.ron, in the
     // same five numbers: longer and deeper than an ordinary hit, so it is

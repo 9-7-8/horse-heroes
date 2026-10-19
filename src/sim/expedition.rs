@@ -4,7 +4,7 @@
 
 use super::data::{AbilityKind, Data, Element, Rules};
 use super::lessons::Event;
-use super::loot::{Gear, Horse, Odds, roll_gear, roll_piece};
+use super::loot::{Gear, Horse, Odds, fixed_piece, roll_gear, roll_piece};
 use super::rng::Rng;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -21,9 +21,39 @@ pub struct Plan {
     pub encounters: Vec<Vec<Spawn>>,
     /// A fairy spring heals the party after this encounter (index), if any.
     pub bonus_after: Option<usize>,
+    /// The trail's own piece, if the plan gives it (#294); otherwise it is
+    /// rolled at the trail's odds when the trail ends.
+    pub piece: Option<Gear>,
 }
 
 impl Plan {
+    /// A new game's first trail (#294): the one plan `encounters.ron` gives
+    /// it, the same for every seed, with no spring and its own piece. The
+    /// seed still rolls what the fight rolls: whom an enemy strikes, each
+    /// swing's timing, coins and the kills' pieces.
+    pub fn first(data: &Data, seed: u64) -> Plan {
+        let first = &data.encounters.first;
+        Plan {
+            seed,
+            level: 0,
+            encounters: first
+                .encounters
+                .iter()
+                .map(|piece| {
+                    piece
+                        .iter()
+                        .map(|(id, element)| Spawn {
+                            enemy: data.enemy_index(id),
+                            element: *element,
+                        })
+                        .collect()
+                })
+                .collect(),
+            bonus_after: None,
+            piece: Some(fixed_piece(data, &first.piece)),
+        }
+    }
+
     pub fn generate(data: &Data, seed: u64, level: u32) -> Plan {
         let mut rng = Rng::new(seed);
         let ordinary = data.rules.ordinary_encounters;
@@ -62,6 +92,7 @@ impl Plan {
             level,
             encounters,
             bonus_after,
+            piece: None,
         }
     }
 }
@@ -207,8 +238,8 @@ impl Outcome {
         self.drops.iter().max_by_key(|gear| gear.rarity)
     }
 
-    /// The trail's own piece, rolled at the trail's odds: the last to drop,
-    /// when an encounter was cleared.
+    /// The trail's own piece, the plan's or rolled at the trail's odds: the
+    /// last to drop, when an encounter was cleared.
     pub fn trail_piece(&self) -> Option<&Gear> {
         self.drops.last().filter(|_| self.cleared > 0)
     }
@@ -581,11 +612,13 @@ impl Expedition {
         } else {
             self.encounter
         };
-        // The trail's own piece, at the trail's odds: the only one that can
-        // be of the higher tiers.
+        // The trail's own piece, the plan's or at the trail's odds: the only
+        // one that can be of the higher tiers.
         let drop = (cleared > 0).then(|| {
-            let mut rng = Rng::new(self.plan.seed ^ 0x100F_100F_100F_100F);
-            roll_gear(data, &mut rng, won, self.plan.level)
+            self.plan.piece.clone().unwrap_or_else(|| {
+                let mut rng = Rng::new(self.plan.seed ^ 0x100F_100F_100F_100F);
+                roll_gear(data, &mut rng, won, self.plan.level)
+            })
         });
         // A trail is won in the tick its last enemy falls, so that kill is
         // still here, not yet taken.
@@ -703,6 +736,7 @@ impl Expedition {
 mod tests {
     use super::*;
     use crate::sim::data::{AbilityDef, Slot, Stats};
+    use crate::sim::loot::score;
 
     const TICK: f32 = 0.1;
 
@@ -715,7 +749,12 @@ mod tests {
     }
 
     fn run_with(data: &Data, seed: u64, level: u32, party: &[Horse]) -> Expedition {
-        let plan = Plan::generate(data, seed, level);
+        walk(data, Plan::generate(data, seed, level), party)
+    }
+
+    /// A trail walked to its end.
+    fn walk(data: &Data, plan: Plan, party: &[Horse]) -> Expedition {
+        let seed = plan.seed;
         let mut expedition = Expedition::new(data, plan, party);
         // Ten minutes of game time is far past any real run.
         for _ in 0..6000 {
@@ -746,6 +785,7 @@ mod tests {
                 })
                 .collect(),
             bonus_after: None,
+            piece: None,
         };
         let mut expedition = Expedition::new(data, plan, &party(data));
         expedition.start_encounter(data);
@@ -853,6 +893,101 @@ mod tests {
         assert!((0.25..=0.75).contains(&starting), "the starting party wins {starting}");
         // 0.75 when the abilities came in (#357): with the party element it was 0.5.
         assert!(best - worst >= 0.5, "the abilities' elements barely matter");
+    }
+
+    /// Every set of abilities the party may carry: each horse any ability.
+    fn every_set_of_abilities(data: &Data) -> Vec<Vec<Horse>> {
+        let n = data.abilities.len();
+        (0..n * n * n)
+            .map(|i| {
+                let mut horses = party(data);
+                for (k, horse) in horses.iter_mut().enumerate() {
+                    horse.ability = i / n.pow(k as u32) % n;
+                }
+                horses
+            })
+            .collect()
+    }
+
+    /// A new game's first trail is one plan (#294): the same fights,
+    /// elements and piece for every seed, no spring, and level 0.
+    #[test]
+    fn the_first_trail_is_the_same_whatever_the_seed() {
+        let data = Data::load();
+        let one = Plan::first(&data, 0);
+        assert_eq!(one.level, 0);
+        assert_eq!(one.bonus_after, None);
+        assert!(one.piece.is_some());
+        for seed in 1..200 {
+            let other = Plan::first(&data, seed);
+            assert_eq!((&other.encounters, &other.piece), (&one.encounters, &one.piece), "seed {seed}");
+            assert_eq!(other.bonus_after, None);
+        }
+        // The trail after it is rolled, as every later one is.
+        let second = Plan::generate(&data, 1, 1);
+        assert_eq!(second.piece, None);
+        assert_ne!(second.encounters, one.encounters);
+    }
+
+    /// The first trail cannot be lost, by tuning alone (#289, question 3):
+    /// under the ordinary rules, with every set of abilities the party may
+    /// carry and over many seeds, every run is won. That no horse falls
+    /// (#293, call 2) is held for the starting party, below: with some sets
+    /// a horse reaches the boss with almost nothing left, so no tuning of
+    /// the boss keeps every set standing. Run with `--nocapture` to see how
+    /// often one falls.
+    #[test]
+    fn the_first_trail_is_won_with_every_set_of_abilities() {
+        let data = Data::load();
+        let sets = every_set_of_abilities(&data);
+        let seeds = 100;
+        let mut falls = 0;
+        for horses in &sets {
+            for seed in 0..seeds {
+                let run = walk(&data, Plan::first(&data, seed), horses);
+                let abilities: Vec<&str> = horses.iter().map(|h| data.abilities[h.ability].id.as_str()).collect();
+                assert!(run.outcome.as_ref().unwrap().won, "seed {seed}, {abilities:?}: lost");
+                falls += run.party.iter().any(|fighter| fighter.health <= 0) as usize;
+            }
+        }
+        println!("first trail: a horse fell in {falls} of {} runs", sets.len() * seeds as usize);
+    }
+
+    /// The starting party, on the first trail: no horse falls (#293, call
+    /// 2), each of its three abilities fires, Ember Shot is resisted by the
+    /// Toad (#293, call 4), and the
+    /// trail's piece is the plan's, an upgrade for a bare horse (#293,
+    /// call 3), dropped last by the boss.
+    #[test]
+    fn the_first_trail_shows_every_ability_and_a_resist() {
+        let data = Data::load();
+        let horses = party(&data);
+        let piece = Plan::first(&data, 0).piece.unwrap();
+        assert_eq!(data.gear.rarities[piece.rarity].name, "Rare");
+        // Above any tier a kill throws, so it stands out by its look alone.
+        let thrown = data.gear.rarities.iter().rposition(|r| r.kill_weight > 0).unwrap();
+        assert!(piece.rarity > thrown);
+        // Worn, it is more than a bare horse has.
+        let mut worn = horses[0].clone();
+        worn.gear[piece.slot.index()] = Some(piece.clone());
+        assert!(score(&data, worn.stats()) > score(&data, horses[0].stats()));
+
+        let mut least = vec![i32::MAX; horses.len()];
+        for seed in 0..1000 {
+            let run = walk(&data, Plan::first(&data, seed), &horses);
+            for (horse, least) in least.iter_mut().enumerate() {
+                let fighter = &run.party[horse];
+                assert!(run.casts.iter().any(|used| used.horse == horse), "seed {seed}: {} never cast", fighter.name);
+                assert!(fighter.health > 0, "seed {seed}: {} fell", fighter.name);
+                *least = (*least).min(fighter.health);
+            }
+            assert!(run.events.contains(&Event::Resisted), "seed {seed}: nothing resisted");
+            let outcome = run.outcome.as_ref().unwrap();
+            assert!(outcome.won, "seed {seed}");
+            assert_eq!(outcome.trail_piece(), Some(&piece), "seed {seed}");
+            assert_eq!(run.kills.last().unwrap().gear.last(), Some(&piece), "seed {seed}");
+        }
+        println!("the starting party's least health left over 1000 seeds: {least:?}");
     }
 
     /// Every enemy brought down is reported once, with the coins it dropped.

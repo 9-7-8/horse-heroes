@@ -1,6 +1,6 @@
 //! Horses, their gear, and rolling a gear drop.
 
-use super::data::{Data, HorseDef, Slot, Stats};
+use super::data::{Data, FixedPiece, HorseDef, Slot, Stats};
 pub use super::look::Look;
 use super::rng::Rng;
 
@@ -85,6 +85,29 @@ pub enum Odds {
 /// The trail's own piece.
 pub fn roll_gear(data: &Data, rng: &mut Rng, won: bool, level: u32) -> Gear {
     roll_piece(data, rng, Odds::Trail { won }, level)
+}
+
+/// A piece given whole in the data, not rolled (#294): the same piece every
+/// time, look and all.
+pub fn fixed_piece(data: &Data, def: &FixedPiece) -> Gear {
+    let table = &data.gear;
+    let rarity = table
+        .rarities
+        .iter()
+        .position(|r| r.name == def.rarity)
+        .unwrap_or_else(|| panic!("no rarity `{}` in gear.ron", def.rarity));
+    let base = table
+        .bases
+        .iter()
+        .find(|base| base.names.contains(&def.noun))
+        .unwrap_or_else(|| panic!("no slot in gear.ron has a piece named `{}`", def.noun));
+    Gear {
+        name: format!("{} {}", table.rarities[rarity].prefix, def.noun),
+        slot: base.slot,
+        rarity,
+        stats: def.stats,
+        look: Look::roll(&data.looks, &Rng::new(def.look_seed)),
+    }
 }
 
 pub fn roll_piece(data: &Data, rng: &mut Rng, odds: Odds, level: u32) -> Gear {

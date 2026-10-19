@@ -325,7 +325,9 @@ impl Game {
             cargo: Vec::new(),
             level: 0,
             coins: 0,
-            plan: Plan::generate(&data, seed, 0),
+            // The first trail is authored (#294); the seed moves only what
+            // the fight rolls. Every trail after it is generated.
+            plan: Plan::first(&data, seed),
             screen: Screen::Camp {
                 last: None,
                 note: String::new(),
@@ -943,7 +945,19 @@ impl Game {
 impl Game {
     /// A game back in town from its first trail, with whatever it dropped.
     pub fn back_from_a_trail(seed: u64) -> Game {
+        Game::back_from(Game::new(seed))
+    }
+
+    /// A new game back in town from a rolled trail in place of its authored
+    /// first one (#294): for a test of what only some trails bring, a loss
+    /// or a high tier, which the first trail never does.
+    pub fn back_from_a_rolled_trail(seed: u64) -> Game {
         let mut game = Game::new(seed);
+        game.plan = Plan::generate(&game.data, seed, 0);
+        Game::back_from(game)
+    }
+
+    fn back_from(mut game: Game) -> Game {
         game.act(Action::SetOut, Hand::horse(0));
         let outcome = loop {
             let Screen::Trail(expedition) = &mut game.screen else {

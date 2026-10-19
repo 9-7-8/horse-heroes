@@ -221,6 +221,30 @@ pub struct EnemyDef {
 pub struct Encounters {
     pub ordinary: Vec<Vec<String>>,
     pub finals: Vec<Vec<String>>,
+    /// A new game's first trail (#294): authored, not rolled.
+    pub first: FirstTrail,
+}
+
+/// The first trail's one plan (#294; docs/opening.md): the same fights, the
+/// same elements and the same piece in every new game, whatever the seed.
+#[derive(Clone, Debug, Deserialize)]
+pub struct FirstTrail {
+    /// Its encounters in order, the last its final: each enemy by its id in
+    /// `enemies.ron`, with the element it has.
+    pub encounters: Vec<Vec<(String, Element)>>,
+    /// The trail's own piece, dropped by the final enemy.
+    pub piece: FixedPiece,
+}
+
+/// A piece given whole, not rolled: of this rarity (by its name in
+/// `gear.ron`), named by the rarity's prefix and this noun, which is one of
+/// a slot's names there. Its look is rolled once, from `look_seed`.
+#[derive(Clone, Debug, Deserialize)]
+pub struct FixedPiece {
+    pub rarity: String,
+    pub noun: String,
+    pub stats: Stats,
+    pub look_seed: u64,
 }
 
 /// One rarity tier. A piece of gear names its tier by its place in

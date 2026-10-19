@@ -12,4 +12,27 @@
         ["corrupted_stag"],
         ["hollow_wolf"],
     ],
+
+    // A new game's first trail (#294; docs/opening.md, "The first trail"):
+    // not rolled, the same in every game, with no fairy spring. Each enemy
+    // is given its element. One small enemy, a group for Frost Burst, the
+    // Toad at Ice so Ember Shot is resisted once (the owner, 2026-10-17),
+    // and a boss tuned so that no horse falls (a test holds it). From the
+    // second trail the ordinary pieces above are rolled.
+    first: (
+        encounters: [
+            [("thornling", Plant)],
+            [("gloom_sprite", Fire), ("gloom_sprite", Fire), ("gloom_sprite", Fire)],
+            [("mire_toad", Ice)],
+            [("corrupted_yearling", Fire)],
+        ],
+        // The trail's own piece, dropped by the Yearling: Rare, the one tier
+        // above anything a kill throws, eight points as a Rare has.
+        piece: (
+            rarity: "Rare",
+            noun: "Halter",
+            stats: (attack: 4, defense: 2, health: 10),
+            look_seed: 294,
+        ),
+    ),
 )

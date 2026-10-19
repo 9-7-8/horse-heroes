@@ -5814,9 +5814,9 @@ mod tests {
 
         // Home from a trail the map's rules call a highlight.
         let seed = (0..200)
-            .find(|&seed| places.wants(&Game::back_from_a_trail(seed), journal, None))
+            .find(|&seed| places.wants(&Game::back_from_a_rolled_trail(seed), journal, None))
             .expect("no seed under 200 brings home a report worth a mark");
-        let mut game = Game::back_from_a_trail(seed);
+        let mut game = Game::back_from_a_rolled_trail(seed);
         shell.open(trade);
         look(&shell, &places, &mut game);
         assert!(marked(&game).contains(&journal));
@@ -5833,7 +5833,7 @@ mod tests {
 
         // Not read in town, it is still wanted on the road, where the place
         // opens on the fight. Earlier, by its key from anywhere, is on it.
-        let mut game = Game::back_from_a_trail(seed);
+        let mut game = Game::back_from_a_rolled_trail(seed);
         shell.open(trade);
         game.act(Action::SetOut, Hand::horse(0));
         shell.close();

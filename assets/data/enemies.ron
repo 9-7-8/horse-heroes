@@ -10,4 +10,8 @@
     (id: "mire_toad",    name: "Mire Toad",       health: 95,  attack: 6,  attack_interval: 2.8, coins: (2, 4), gear: (1, 2), fountain: "small", death: "small"),
     (id: "corrupted_stag", name: "Corrupted Stag", health: 390, attack: 9, defense: 1, attack_interval: 2.0, coins: (10, 15), gear: (2, 4), fountain: "full", death: "big"),
     (id: "hollow_wolf",  name: "Hollow Wolf",     health: 325, attack: 6,  attack_interval: 1.2, coins: (10, 15), gear: (2, 4), fountain: "full", death: "big"),
+    // The first trail's boss only (#294; docs/opening.md): the Stag's body,
+    // weaker, tuned so that no horse of the starting party falls on that
+    // trail and its fight lasts 12 to 14 s (tests in expedition.rs).
+    (id: "corrupted_yearling", name: "Corrupted Yearling", health: 200, attack: 3, defense: 1, attack_interval: 2.8, coins: (10, 15), gear: (2, 4), fountain: "full", death: "big"),
 ]
