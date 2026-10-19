@@ -4,6 +4,10 @@
 use bevy::{
     log::LogPlugin,
     prelude::*,
+    render::{
+        RenderPlugin,
+        settings::{MemoryHints, WgpuSettings},
+    },
     window::{WindowResizeConstraints, WindowResolution},
 };
 
@@ -46,6 +50,18 @@ fn main() {
                 })
                 .set(LogPlugin {
                     custom_layer: crash_log::file_layer,
+                    ..default()
+                })
+                // The GPU's memory is taken in small blocks, not wgpu's
+                // default of 128 to 256 MB each: flat colours need little of
+                // it, and a big block is held whole however little is in it
+                // (#375, docs/memory.md).
+                .set(RenderPlugin {
+                    render_creation: WgpuSettings {
+                        memory_hints: MemoryHints::MemoryUsage,
+                        ..default()
+                    }
+                    .into(),
                     ..default()
                 }),
         )

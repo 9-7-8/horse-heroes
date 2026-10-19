@@ -1314,6 +1314,12 @@ impl Plugin for ShellPlugin {
                 )
                     .chain(),
             )
+            .add_systems(
+                Last,
+                picture::forget_unheld_looks.run_if(bevy::time::common_conditions::on_real_timer(
+                    std::time::Duration::from_secs(5),
+                )),
+            )
             .add_observer(on_activate)
             .add_observer(on_drag_start)
             .add_observer(on_drag_end);

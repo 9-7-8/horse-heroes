@@ -983,6 +983,27 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
         }
         _ => "not sampled, or the run was under five minutes".into(),
     };
+    // The GPU's memory, Windows' count of what the process holds on the
+    // card (#375); a launcher older than that sampled none.
+    let on_card: Vec<(f32, f32)> = memory
+        .lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split('\t').collect();
+            Some((parts.first()?.parse().ok()?, parts.get(3)?.parse().ok()?))
+        })
+        // A sample taken as the game closes finds nothing on the card.
+        .filter(|(_, mb): &(f32, f32)| *mb > 0.0)
+        .collect();
+    let gpu_line = match (on_card.iter().find(|(secs, _)| *secs >= 300.0), on_card.last()) {
+        (Some((_, first)), Some((_, last))) => {
+            let most = on_card.iter().map(|(_, mb)| *mb).fold(0.0, f32::max);
+            if *last > first * 1.25 && last - first > 50.0 {
+                problems.add("GPU memory grows", format!("{first:.0} MB after five minutes, {last:.0} MB at the end"));
+            }
+            format!("{first:.0} MB after five minutes, {last:.0} MB at the end, {most:.0} MB at most")
+        }
+        _ => "not sampled, or the run was under five minutes".into(),
+    };
 
     // The report.
     let spread = |values: &[f32]| {
@@ -1102,6 +1123,7 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
         spread(&town_entities)
     ));
     say(format!("  memory: {memory_line}"));
+    say(format!("  GPU memory: {gpu_line}"));
     if !asset_lines.is_empty() {
         say(format!("  assets on the GPU, a minute's count: {}", asset_lines.join("; ")));
     }
@@ -1228,5 +1250,24 @@ mod tests {
         };
         assert!(kinds(beats(&|_| 300)).is_empty());
         assert_eq!(kinds(beats(&|minute| 300 + 20 * minute)), ["assets on the GPU pile up"]);
+    }
+
+    /// The launcher's samples of the GPU's memory (#375): flat is nothing
+    /// wrong, a climb is, and samples without that column say nothing.
+    #[test]
+    fn gpu_memory_that_climbs_is_found() {
+        let data = Data::load();
+        let events = written(&data, 2);
+        let samples = |gpu: &dyn Fn(usize) -> f32| -> String {
+            (0..=30)
+                .map(|minute| format!("{}\t500.0\t900.0\t{:.1}\t100.0\n", 60 * minute, gpu(minute)))
+                .collect()
+        };
+        let report = |memory: &str| check(&data, &events, "", memory, "");
+        let grows = |memory: &str| report(memory).problems.iter().any(|(kind, _)| kind == "GPU memory grows");
+        assert!(!grows(&samples(&|_| 300.0)));
+        assert!(report(&samples(&|_| 300.0)).text.contains("GPU memory: 300 MB after five minutes, 300 MB at the end"));
+        assert!(grows(&samples(&|minute| 300.0 + 10.0 * minute as f32)));
+        assert!(!grows("0\t500.0\t900.0\n600\t900.0\t1400.0\n"));
     }
 }

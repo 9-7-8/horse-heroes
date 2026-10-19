@@ -942,11 +942,27 @@ fn show_worn(
                 }
                 Visibility::Inherited
             }
-            None => Visibility::Hidden,
+            None => {
+                // A piece taken off lets go of its look, so nothing holds
+                // it once no horse wears it (#375).
+                if !worn.rim && material.0 != looks.unworn {
+                    material.0 = looks.unworn.clone();
+                }
+                Visibility::Hidden
+            }
         };
         if *visibility != wanted {
             *visibility = wanted;
         }
+    }
+    // Only the looks worn now are kept made.
+    let wearing: Vec<(usize, Look)> = game
+        .party
+        .iter()
+        .flat_map(|horse| horse.gear.iter().flatten().map(|gear| (gear.rarity, gear.look)))
+        .collect();
+    if looks.made.keys().any(|made| !wearing.contains(made)) {
+        looks.made.retain(|made, _| wearing.contains(made));
     }
 }
 

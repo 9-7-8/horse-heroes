@@ -170,6 +170,28 @@ impl LookImages {
             })
             .clone()
     }
+
+    /// Let go of every image only the cache still holds (#375): the look of
+    /// a piece sold, worn out of sight or drawn at a size no longer shown.
+    /// Nothing else holding it, the image is freed, and is painted again if
+    /// it is wanted again.
+    pub fn forget_unheld(&mut self) {
+        self.0.retain(|_, image| held_elsewhere(image));
+    }
+}
+
+/// Whether anything but the one handle given holds this image.
+fn held_elsewhere(image: &Handle<Image>) -> bool {
+    match image {
+        Handle::Strong(strong) => std::sync::Arc::strong_count(strong) > 1,
+        Handle::Uuid(..) => true,
+    }
+}
+
+/// Every few seconds, by the wall clock so a pop-up's pause does not stop
+/// it, the cache lets go of what nothing shows.
+pub fn forget_unheld_looks(mut looks: ResMut<LookImages>) {
+    looks.forget_unheld();
 }
 
 /// A look painted into pixels: the `ground` (the rarity's fill in a menu, its
