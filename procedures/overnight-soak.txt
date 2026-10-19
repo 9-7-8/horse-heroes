@@ -41,7 +41,8 @@ STEPS
 WHAT IS CHECKED (src/soak.rs, `check`)
   - Town to town: trail numbers and seeds follow on, the level follows each
     result, the party leaves by itself after the wait (the soak keeps Keep
-    going on, a lost trail's stop included; #305), the walk back is its
+    going on, a lost trail's stop included; #305), a new game's first trail
+    is the authored one and leaves at once (#294, #376), the walk back is its
     length, and the game ends by itself at its limit.
   - Damage: every hit takes at least 1, and every trail is walked again in
     the sim from its seed, party and element: the game's fight must be the

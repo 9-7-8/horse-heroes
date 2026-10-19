@@ -117,10 +117,13 @@ fn depart_line(data: &Data, trail: u32, expedition: &Expedition, waited: f32) ->
             )
         })
         .collect();
+    // A new game's first trail is authored, not rolled from its seed (#294, #376).
+    let first = expedition.plan == Plan::first(data, expedition.plan.seed);
     format!(
-        "depart\ttrail={trail}\tseed={}\tlevel={}\tabilities={}\twaited={waited:.2}\tparty={}",
+        "depart\ttrail={trail}\tseed={}\tlevel={}\tfirst={}\tabilities={}\twaited={waited:.2}\tparty={}",
         expedition.plan.seed,
         expedition.plan.level,
+        u8::from(first),
         abilities.join(","),
         party.join(","),
     )
@@ -512,12 +515,20 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
                 );
             }
         }
+        // A new game starts on its first trail, with no wait (#292, #294).
+        let first = depart.num::<u8>("first") == 1;
+        if first && (index != 0 || number != 1 || level != 0) {
+            problems.add("a trail after a new game's first was walked as the first", at.clone());
+        }
         let waited: f32 = depart.num("waited");
-        waits.push(waited);
-        if (waited - CAMP_SECS).abs() > 0.5 {
+        let wait = if first { 0.0 } else { CAMP_SECS };
+        if !first {
+            waits.push(waited);
+        }
+        if (waited - wait).abs() > 0.5 {
             problems.add(
                 "the party did not leave town by itself on time",
-                format!("{at}: waited {waited:.2} s, not {CAMP_SECS}"),
+                format!("{at}: waited {waited:.2} s, not {wait}"),
             );
         }
 
@@ -726,7 +737,7 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
             .collect();
         match horses {
             Some(horses) => {
-                let plan = Plan::generate(data, seed, level);
+                let plan = if first { Plan::first(data, seed) } else { Plan::generate(data, seed, level) };
                 let mut again = Expedition::new(data, plan, &horses);
                 for _ in 0..1_000_000 {
                     if again.outcome.is_some() {
@@ -1108,8 +1119,8 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
 mod tests {
     use super::*;
 
-    /// A run as `record` writes it, from the sim alone: trail after trail
-    /// from town, with nothing worn.
+    /// A run as `record` writes it of a new game, from the sim alone: the
+    /// first trail at once, then trail after trail from town, nothing worn.
     fn written(data: &Data, trails: u32) -> String {
         let party: Vec<Horse> = Horse::party(&data);
         let mut drops = Uncollected::default();
@@ -1117,10 +1128,14 @@ mod tests {
         let mut out = "0.00\tstart\tversion=test\tseed=6\tlimit=0\n".to_string();
         let mut write = |t: f32, line: String| out += &format!("{t:.2}\t{line}\n");
         for number in 1..=trails {
-            t += CAMP_SECS;
-            let plan = Plan::generate(data, 5 + u64::from(number), level);
+            let seed = 5 + u64::from(number);
+            let (plan, waited) = match number {
+                1 => (Plan::first(data, seed), 0.0),
+                _ => (Plan::generate(data, seed, level), CAMP_SECS),
+            };
+            t += waited;
             let mut expedition = Expedition::new(data, plan, &party);
-            write(t, depart_line(data, number, &expedition, CAMP_SECS));
+            write(t, depart_line(data, number, &expedition, waited));
             let mut lines = 0;
             let outcome = loop {
                 expedition.tick(data, TICK);
@@ -1172,6 +1187,14 @@ mod tests {
         // A party that stayed in town.
         let late = log.replacen("waited=12.00", "waited=40.00", 1);
         assert_eq!(kinds(&late, ""), ["the party did not leave town by itself on time"]);
+        // A new game's first trail is the authored one, at once (#376).
+        assert!(log.contains("first=1\tabilities"), "{log}");
+        let first_late = log.replacen("waited=0.00", "waited=12.00", 1);
+        assert_eq!(kinds(&first_late, ""), ["the party did not leave town by itself on time"]);
+        let rolled = log.replacen("first=1", "first=0", 1);
+        assert!(kinds(&rolled, "").iter().any(|kind| kind.contains("not the one the sim walks")));
+        let again = log.replacen("first=0", "first=1", 1);
+        assert!(kinds(&again, "").iter().any(|kind| kind.contains("walked as the first")));
         // A run that stops in the middle, and what the game printed.
         let cut = &log[..log.len() / 2];
         assert!(kinds(cut, "")[0].contains("did not end by itself"));
