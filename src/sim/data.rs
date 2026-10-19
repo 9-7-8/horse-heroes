@@ -632,6 +632,8 @@ mod tests {
         assert!(0.0 < rules.weak_multiplier);
         assert!(rules.weak_multiplier < 1.0 && 1.0 < rules.strong_multiplier);
         assert!(rules.level_scaling >= 0.0);
+        // The Journal keeps the report just written (#231).
+        assert!(rules.reports_kept > 0);
     }
 
     /// A piece's reach and thickness cover every solid in it, wherever the
