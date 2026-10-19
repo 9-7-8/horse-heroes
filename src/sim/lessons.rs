@@ -61,11 +61,13 @@ pub enum Event {
     Boss,
     /// The player gave a horse another ability (#357).
     Chose,
+    /// The player opened the Map (#372).
+    Mapped,
 }
 
 impl Event {
     #[cfg(test)]
-    pub const ALL: [Event; 20] = [
+    pub const ALL: [Event; 21] = [
         Event::Fight,
         Event::Ability,
         Event::Kill,
@@ -86,6 +88,7 @@ impl Event {
         Event::Dragged,
         Event::Boss,
         Event::Chose,
+        Event::Mapped,
     ];
 }
 
@@ -638,8 +641,15 @@ mod tests {
                 // Nothing in braces but what the game fills in.
                 assert!(!rest.contains(['{', '}']), "{}: {words}", def.id);
             }
-            // A Drop is the only target that moves.
-            assert!(def.instead.is_none() || def.target == Target::Drop, "{}", def.id);
+            // A Drop is the only target that moves, and a line with
+            // {change} the only one said otherwise with nothing equipped.
+            let other = def.target == Target::Drop || def.words.contains("{change}");
+            assert!(def.instead.is_none() || other, "{}", def.id);
+            // Every town hint asks for something to be done (owner,
+            // 2026-10-19, #372): none is answered by watching alone.
+            if def.shown != Shown::Road {
+                assert!(matches!(def.done, Done::Did(_)), "{}: a town lesson is answered by a Did", def.id);
+            }
         }
         // What Skip all hints is answered with (#350) is one line too.
         let parting = lessons.parting().expect("lessons.ron: nothing answers Skip all hints");

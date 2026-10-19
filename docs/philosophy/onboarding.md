@@ -142,6 +142,13 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
   it is about, and the game pauses until it is answered, on the road too.
   Where this file says a lesson never holds the party up, that is
   overruled for a lesson that is showing.
+- **Every town hint asks for something to be done** (owner, 2026-10-19,
+  after 0.2.5 put about ten pop-ups in a row in front of her with nothing
+  to do but read them: "ALL in-town hints MUST require the user to do
+  something: a hint should never just be a pop up with words that require
+  no action, because a user will ignore it"). A town lesson names one
+  thing to do on a real control and goes when it is done; it has no Got
+  it. A line with nothing to do is cut, or folded into one that has.
 - **The card gives numbers, not a verdict** (owner, 2026-10-12, #351): no
   lesson or card says a piece is an upgrade.
 - **The 12 seconds are not a deadline to learn.** Setting out mid-read loses

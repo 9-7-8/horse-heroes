@@ -54,9 +54,16 @@ pub fn find(target: &Target, map: &Places, game: &Game, selected: usize) -> Opti
 /// A lesson's line as it is said now: with what the game fills in (#298),
 /// `{change}` the last-equipped horse's stat as it was and as it is, and
 /// `{level}` the trail level.
+/// A line with `{change}` and nothing put on a horse this visit says its
+/// `instead`, if it has one (#372).
 fn say(game: &Game, lesson: usize, found: Found) -> String {
+    let equipped = game.last_equipped();
+    let found = match game.lessons.defs()[lesson].words.contains("{change}") && equipped.is_none() {
+        true => Found::Moved,
+        false => found,
+    };
     let words = game.lessons.words(lesson, found);
-    let change = match game.last_equipped() {
+    let change = match equipped {
         Some((_, was, now)) => change_line(&game.data, was, now),
         None => "no stat changed".into(),
     };
@@ -71,6 +78,8 @@ pub struct Held {
     card: bool,
     piece: Option<Piece>,
     horse: usize,
+    /// The Map was open.
+    mapped: bool,
     visited: Vec<bool>,
     /// The player was where the hints are found again (#350).
     there: bool,
@@ -116,6 +125,12 @@ pub fn follow_over(game: &mut Game, shell: &mut Shell, map: &Places, held: &mut 
         }
     }
     (held.card, held.horse) = (open, hand.horse);
+    // The Map opened (#372): where Keep going is.
+    let mapped = shell.is_open() && map.places.get(shell.place()).is_some_and(|place| place.name == "Map");
+    if mapped && !held.mapped {
+        game.lessons.raise(Event::Mapped);
+    }
+    held.mapped = mapped;
     // Every place of the bar, opened in town since the list asked.
     if !game.lessons.wants(Event::Toured) {
         held.visited.clear();
@@ -299,6 +314,14 @@ pub fn waits_on(game: &Game, shell: &Shell) -> bool {
     shell.hint().is_some_and(|hint| game.lessons.knows(&hint.lesson))
 }
 
+/// Whether Got it, or Escape, puts the hint showing away. Not in town for
+/// a lesson or the answer to Skip all hints: every town hint is answered by
+/// doing its thing (owner, 2026-10-19, #372). On the road, and for the dev
+/// key's sample, it does.
+pub fn got_it(game: &Game, shell: &Shell) -> bool {
+    shell.hint().is_some() && !(game.in_town() && (waits_on(game, shell) || shell.parting()))
+}
+
 pub fn teach(
     mut game: ResMut<Game>,
     mut shell: ResMut<Shell>,
@@ -387,6 +410,49 @@ mod tests {
         let place = shell.place();
         let tab = shell.tab(place);
         shell.show_detail(place, Detail { tab, item: Item::Carried(0), opener: None });
+    }
+
+    /// Every town hint is answered by doing its thing (owner, 2026-10-19,
+    /// #372): in town a lesson's pop-up is not put away by Got it, and the
+    /// answer to Skip all hints is not either; on the road a lesson's is,
+    /// and the dev key's sample is anywhere.
+    #[test]
+    fn got_it_answers_no_hint_in_town() {
+        let map = Places::load();
+        let mut game = (0..50)
+            .map(Game::back_from_a_trail)
+            .find(|game| game.pending_drop().is_some())
+            .expect("no seed under 50 brings a drop home");
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(game.in_town() && waits_on(&game, &shell), "a town lesson is up");
+        assert!(!got_it(&game, &shell));
+        // Done by its thing, it goes.
+        let lesson = hinted(&shell).unwrap().to_owned();
+        open_carried(&mut shell);
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert_ne!(hinted(&shell), Some(lesson.as_str()));
+        // The answer to Skip all hints, in town.
+        shell.skip_hints();
+        follow(&mut game, &mut shell, &map, &mut held);
+        assert!(shell.parting() && !got_it(&game, &shell));
+        // The sample is put away by Got it in town.
+        let mut shell = Shell::new(map.pages().count());
+        shell.raise_hint(sample_hint(&map, 0));
+        assert!(got_it(&game, &shell));
+
+        // On the road, a lesson's Got it answers it.
+        let mut game = Game::opening(6);
+        let (mut shell, mut held) = (Shell::new(map.pages().count()), Held::default());
+        follow(&mut game, &mut shell, &map, &mut held);
+        for _ in 0..6000 {
+            if waits_on(&game, &shell) {
+                break;
+            }
+            pass(&mut game);
+            follow(&mut game, &mut shell, &map, &mut held);
+        }
+        assert!(!game.in_town() && got_it(&game, &shell));
     }
 
     /// The lesson of a resisted ability (#357) is on the horse whose ability
@@ -662,6 +728,7 @@ mod tests {
             Event::Detailed,
             Event::Dragged,
             Event::Chose,
+            Event::Mapped,
         ];
         let by_itself = |event: &Event| !by_hand.contains(event);
         let mut game = Game::new(0);
@@ -728,13 +795,16 @@ mod tests {
         assert!(game.lessons.happened(Event::Dragged));
 
         // Every place opened, once the list asks; and Set out by hand.
+        // The Map among them (#372).
         assert!(game.lessons.wants(Event::Toured), "the file's list asks for no tour");
+        assert!(!game.lessons.happened(Event::Mapped));
         for place in 0..map.places.len() {
             assert!(!game.lessons.happened(Event::Toured), "before place {place}");
             shell.open(place);
             follow(&mut game, &mut shell, &map, &mut held);
         }
         assert!(game.lessons.happened(Event::Toured));
+        assert!(game.lessons.happened(Event::Mapped));
         assert!(game.lessons.happened(Event::SentOut));
 
         for def in game.lessons.defs() {
@@ -1234,10 +1304,10 @@ mod tests {
     }
 
     /// The lessons of the file itself, in a first town with a piece (#296),
-    /// by what each waits for and never by its name or words. Nothing about
-    /// a swap is said before a swap is done; nothing about Equip's result
-    /// before Equip; a lesson on the selected horse follows the selection;
-    /// and a player who presses nothing is shown one lesson and no second.
+    /// by what each waits for and never by its name or words. A lesson on
+    /// the selected horse follows the selection; none after Equip is only to
+    /// be read (#372); and a player who presses nothing is shown one lesson
+    /// and no second.
     #[test]
     fn the_first_item_is_taught_by_what_the_player_does() {
         let map = Places::load();
@@ -1297,28 +1367,16 @@ mod tests {
         assert_eq!(hand, Hand { horse: 2, open: Some(Piece::Carried(0)) });
         game.act(Action::Equip, hand);
         follow(&mut game, &mut shell, &map, &mut held);
-        assert_eq!(due(&game), Some(Event::Equipped));
-        assert!(waits_for(&game, Event::Swapped), "the swap's lesson is gone from the file");
+        // Nothing in town is only to be read (#372): no lesson waits on a
+        // swap, and whatever follows Equip is not put away by Got it.
+        assert!(!waits_for(&game, Event::Swapped));
+        assert!(hinted(&shell).is_none() || !got_it(&game, &shell));
 
-        // Put away, and nothing about a swap comes after it.
-        assert!(shell.dismiss_hint());
-        follow(&mut game, &mut shell, &map, &mut held);
-        assert_eq!(hinted(&shell), None);
-
-        // A piece taken from the horse that wears it: now it is said, on
-        // the horse that has it.
-        let slot = game.party[2].gear.iter().position(|worn| worn.is_some()).unwrap();
-        shell.inspect(0, None);
-        game.act(Action::Equip, Hand { horse: 0, open: Some(Piece::Worn { horse: 2, slot }) });
-        follow(&mut game, &mut shell, &map, &mut held);
-        assert_eq!(due(&game), Some(Event::Swapped));
-        assert_eq!(shell.hint().unwrap().about, About::Horse(0));
-
-        // Setting out finishes what was only to be seen in town.
+        // Setting out by hand finishes the lesson answered by it.
         game.act(Action::SetOut, Hand::default());
         follow(&mut game, &mut shell, &map, &mut held);
         for (lesson, def) in game.lessons.defs().iter().enumerate() {
-            if def.done == Done::Did(Event::SetOut) {
+            if def.done == Done::Did(Event::SentOut) && game.lessons.progress(lesson).due {
                 assert!(game.lessons.progress(lesson).done, "{}", def.id);
             }
         }

@@ -32,6 +32,7 @@
 //              Dragged   the player put a piece on a horse by dragging it
 //              Boss      a trail's boss fight began: its last encounter
 //              Chose     the player gave a horse another ability
+//              Mapped    the player opened the Map
 //   fight    left out, or a number: the event counts only from that fight
 //            on, counted from 1 since the game began. `due: Kill, fight: 2`
 //            is the first kill of the second fight.
@@ -72,7 +73,12 @@
 //              Did(Equipped)  that happens once the lesson is due, shown or
 //                             not: the player needed no telling
 //   instead  the line to say when the state has moved on: when a Drop is
-//            no longer in the cargo but on a horse.
+//            no longer in the cargo but on a horse; or, for a line with
+//            {change}, when no piece was put on a horse this visit.
+//
+// A lesson shown in town is answered by doing its thing, never by Got it
+// alone (owner, 2026-10-19, #372: "ALL in-town hints MUST require the user
+// to do something"): its done is a Did, and its pop-up has no Got it.
 //
 // The first is the opening's (#292). The next two are a starting set, from docs/philosophy/onboarding.md; the
 // first trail's lessons are #295 and the element's #299. The rest are the
@@ -210,26 +216,6 @@ lessons: [
         words: "You choose who: Equip's, or another from this list. Left alone, it stays carried.",
         done: Did(Equipped),
     ),
-    // Only once a swap has been done: never before one is tried.
-    (
-        id: "a swap loses nothing",
-        due: Swapped,
-        shown: Town,
-        target: Selected,
-        words: "The two horses exchanged pieces. Nothing is lost.",
-        done: Did(SetOut),
-    ),
-    // On the horse it went on, worn gear seen there (#359), with what it
-    // changed on that horse as it was and as it is (#298): the numbers, never
-    // that a fight will go better.
-    (
-        id: "it is on",
-        due: Equipped,
-        shown: Town,
-        target: Equipped,
-        words: "{change} with it on. Undo takes it back until you set out.",
-        done: Did(SetOut),
-    ),
     // Abilities carry their elements (#357): at the first resisted hit, in
     // town where it can be changed, on the horse whose ability it was.
     // Done by giving a horse another ability.
@@ -241,22 +227,9 @@ lessons: [
         words: "Its ability's element was resisted. Select it, then Abilities [2] to change it.",
         done: Did(Chose),
     ),
-    // The next trail, explained honestly (#298): after the first win, apart
-    // from what a piece changed, that the win raised the level, on Set out
-    // where the footer says the level. Stats, not "harder". Answered by Got
-    // it (Win does not happen in town); setting out cuts it off and it is
-    // offered once more.
-    (
-        id: "a win raises the level",
-        due: Win,
-        shown: Town,
-        target: Control("Set out"),
-        words: "A win raises the trail level, now {level}: enemies gain health and attack, pieces stats.",
-        done: Watched(Win),
-    ),
     // The opening's exit line (#298): what the party does next by itself,
-    // and that it can be left to it. Answered by Got it, as above. On the
-    // Map, where the itinerary will be: Keep going stands in for it and
+    // and that it can be left to it, answered by opening the Map (#372). On
+    // the Map, where the itinerary will be: Keep going stands in for it and
     // nothing may depend on it (places.ron), so only these words name it,
     // and change when #201 ships.
     (
@@ -264,8 +237,23 @@ lessons: [
         due: Win,
         shown: Town,
         target: Place("Map"),
-        words: "Keep going here sends the party out by itself till a trail is lost: leave it to it.",
-        done: Watched(Win),
+        words: "Keep going here sends the party out by itself till a trail is lost. Open it to see.",
+        done: Did(Mapped),
+    ),
+    // The next trail, explained honestly (#298), last in town, on Set out
+    // where the footer says the level, and answered by setting out (#372):
+    // what the piece changed on the horse it went on, as it was and as it
+    // is, and the level the win raised. The numbers, never that a fight
+    // will go better. With nothing put on a horse this visit, the level
+    // alone.
+    (
+        id: "set out to try it",
+        due: Win,
+        shown: Town,
+        target: Control("Set out"),
+        words: "{change} with it on. Trail level {level} now: set out to try it.",
+        done: Did(SentOut),
+        instead: "A win raises the trail level, now {level}: enemies and pieces gain stats. Set out.",
     ),
 ],
 list: [

@@ -89,14 +89,16 @@ const READING_SECS: f32 = 1.0;
 /// game's clock, which stops while a lesson's pop-up is up (#353), so a time
 /// means the same moment of the game whatever lessons came before it. Each
 /// lesson is answered with Got it after `READING_SECS`, as a player who
-/// reads it and goes on would (owner, 2026-10-17: no `--no-pause`).
+/// reads it and goes on would (owner, 2026-10-17: no `--no-pause`). A town
+/// lesson has no Got it (#372): the run puts it away itself, as nobody at it
+/// does the thing.
 fn shoot_then_exit(
     mut commands: Commands,
     real: Res<Time<Real>>,
     game_time: Res<Time<Virtual>>,
     shot: Res<Shot>,
     game: Res<Game>,
-    shell: Res<Shell>,
+    mut shell: ResMut<Shell>,
     got_its: Query<Entity, With<DismissHint>>,
     mut reading: Local<f32>,
     mut taken: Local<Option<f32>>,
@@ -107,9 +109,17 @@ fn shoot_then_exit(
         if *reading >= READING_SECS
             && let Some(entity) = got_its.iter().next()
         {
-            let lesson = shell.hint().map(|hint| hint.lesson.as_str()).unwrap_or_default();
-            info!("lesson: \"{lesson}\" answered at {:.2} s of game time", game_time.elapsed_secs());
-            commands.trigger(Activate { entity });
+            let lesson = shell.hint().map(|hint| hint.lesson.clone()).unwrap_or_default();
+            match teach::got_it(&game, &shell) {
+                true => {
+                    info!("lesson: \"{lesson}\" answered at {:.2} s of game time", game_time.elapsed_secs());
+                    commands.trigger(Activate { entity });
+                }
+                false => {
+                    info!("lesson: \"{lesson}\" put away by the run at {:.2} s of game time", game_time.elapsed_secs());
+                    shell.dismiss_hint();
+                }
+            }
             *reading = 0.0;
         }
     } else {
@@ -726,21 +736,21 @@ fn plan_lesson(mut tour: ResMut<Tour>) {
         Step::Key(KeyCode::KeyH),
         Step::Carried(0),
         Step::Key(KeyCode::KeyE),
-        Step::Shot("it is on".into()),
         Step::Key(KeyCode::KeyZ),
         Step::Key(KeyCode::KeyE),
+        // Every town hint is answered by doing its thing (#372): Escape
+        // leaves it up.
         Step::Key(KeyCode::Escape),
-        Step::Shot("a swap loses nothing".into()),
-        Step::Key(KeyCode::Escape),
-        Step::Shot("a resisted ability".into()),
-        // After the first win (#298): the level, then what the party does
-        // by itself, each put away in turn.
-        Step::Key(KeyCode::Escape),
-        Step::Shot("a win raises the level".into()),
-        Step::Key(KeyCode::Escape),
+        Step::Shot("a resisted ability, escape leaves it up".into()),
+        Step::Key(KeyCode::Digit2),
+        Step::Key(KeyCode::KeyP),
+        Step::Key(KeyCode::KeyF),
+        // After the first win (#298): what the party does by itself, on the
+        // Map, then the piece and the level, on Set out.
         Step::Shot("it can be left".into()),
-        Step::Key(KeyCode::Escape),
-        Step::Shot("put away and nothing follows".into()),
+        Step::Key(KeyCode::KeyM),
+        Step::Shot("set out to try it".into()),
+        Step::Key(KeyCode::KeyH),
         // Found again (#300): the Journal's list, a press on the piece's
         // row, and the switch in Settings.
         Step::Key(KeyCode::KeyJ),

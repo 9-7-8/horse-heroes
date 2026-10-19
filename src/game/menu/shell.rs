@@ -2402,7 +2402,9 @@ fn on_activate(
     if let Ok((_, entry)) = others.get(entity) {
         shell.equip_on(&mut game, entry.horse);
     } else if dismisses.contains(entity) {
-        shell.dismiss_hint();
+        if teach::got_it(&game, &shell) {
+            shell.dismiss_hint();
+        }
     } else if skips.contains(entity) {
         shell.skip_hints();
     } else if let Ok(row) = listed.get(entity) {
@@ -2900,9 +2902,9 @@ fn close_detail(shell: &mut Shell, focus: &mut InputFocus) {
     }
 }
 
-/// Escape goes back one level: it puts a hint away; with none showing it
-/// closes the side panel, and on the road, with no side panel open, the
-/// place.
+/// Escape goes back one level: it puts a hint away where Got it would
+/// (never a town lesson, #372); otherwise it closes the side panel, and on
+/// the road, with no side panel open, the place.
 fn escape(
     keys: Res<ButtonInput<KeyCode>>,
     game: Res<Game>,
@@ -2912,7 +2914,7 @@ fn escape(
     if !keys.just_pressed(KeyCode::Escape) {
         return;
     }
-    if shell.hint().is_some() {
+    if teach::got_it(&game, &shell) {
         shell.dismiss_hint();
         return;
     }
@@ -3546,7 +3548,8 @@ fn about_name(map: &Places, game: &Game, about: About) -> (String, Option<String
 
 /// The hint's line says what the hint showing says: its control's name,
 /// that control's key, and its words. The answer to Skip all hints has
-/// Got it beside it and no Skip all hints (#350).
+/// Got it beside it and no Skip all hints (#350). In town a lesson, and
+/// that answer, have no Got it: they go when their thing is done (#372).
 fn show_hint(
     shell: Res<Shell>,
     game: Res<Game>,
@@ -3554,13 +3557,19 @@ fn show_hint(
     line: Single<Entity, With<HintLine>>,
     children: Query<&Children>,
     mut texts: Query<(&HintText, &mut Text)>,
-    mut skips: Query<(&mut Node, &mut Visibility), With<SkipHints>>,
+    mut skips: Query<(&mut Node, &mut Visibility), (With<SkipHints>, Without<DismissHint>)>,
+    mut got_its: Query<(&mut Node, &mut Visibility), With<DismissHint>>,
 ) {
-    let (display, seen) = match shell.parting() {
-        true => (Display::None, Visibility::Hidden),
-        false => (Display::Flex, Visibility::Inherited),
+    let shown = |on: bool| match on {
+        true => (Display::Flex, Visibility::Inherited),
+        false => (Display::None, Visibility::Hidden),
     };
-    for (mut node, mut visibility) in &mut skips {
+    let got_it = shell.hint().is_none() || teach::got_it(&game, &shell);
+    let buttons = skips
+        .iter_mut()
+        .map(|button| (button, shown(!shell.parting())))
+        .chain(got_its.iter_mut().map(|button| (button, shown(got_it))));
+    for ((mut node, mut visibility), (display, seen)) in buttons {
         if node.display != display {
             node.display = display;
         }

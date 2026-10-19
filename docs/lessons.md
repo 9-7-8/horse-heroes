@@ -126,6 +126,14 @@ pauses.
   pause, so they are put away rather than done. The opening's no longer
   goes by itself when the first fight begins; the fight lesson's line no
   longer says to watch.
+- **A lesson in town is answered only by doing its thing** (owner,
+  2026-10-19, #372: "ALL in-town hints MUST require the user to do
+  something"). Its pop-up has no Got it, and Escape does not put it away
+  (`teach::got_it`); Skip all hints is still there. Every lesson shown in
+  town is a `Did`, which `the_lessons_file_is_consistent` holds. The
+  answer to Skip all hints has no Got it in town either: it goes when the
+  player gets to the Journal's Hints. A timed picture run puts a town
+  lesson away itself after its second's reading, and logs that it did.
 - **Picture runs answer like a player** (owner, 2026-10-17: no
   `--no-pause`). `IDLE_SHOT_AT` counts the game's clock, which stops under
   a pop-up, so a time is the same moment of the game whatever lessons came
@@ -152,7 +160,8 @@ it; a lesson on the item card stands beside the card; no `--no-pause`.
 Guidance that can be skipped can be found afterwards (#300;
 `philosophy/onboarding.md`, principle 10).
 
-- **Got it** (or Escape) puts the hint showing away. **Skip all hints**
+- **Got it** (or Escape) puts the hint showing away, on the road (#372).
+  **Skip all hints**
   puts it away and turns hints off. Both are the shell's controls, and what
   is put away and whether hints are off is the shell's to say:
   `teach::follow` tells the queue each frame (`put_away`, `turn_off`).
@@ -162,9 +171,9 @@ Guidance that can be skipped can be found afterwards (#300;
   keep (`Shell::owes_parting`, `say_parting`; `teach::follow` finds the
   target and says it). Its mark is on the Journal's Hints tab, and on the
   Journal in the bar while the player is not at the Journal (`point_out`
-  does that for any tab's hint). It has Got it beside it and no Skip all
-  hints, is shown though hints are off, and holds nothing up. It goes by
-  Got it or Escape, when the player gets to that tab, or when hints are
+  does that for any tab's hint). It has Got it beside it on the road (none
+  in town, #372) and no Skip all hints, is shown though hints are off, and
+  holds nothing up. It goes by Got it or Escape on the road, when the player gets to that tab, or when hints are
   turned on. It is never said a second time, never while hints are on, and
   the switch in Settings, which says what it does itself, does not raise
   it ([gallery](gallery/2026-10-13-where-the-hints-went/README.md)).
@@ -308,40 +317,41 @@ none of which has to be done:
    one of the list it opens; left alone it stays carried. Finished by
    equipping, either way. Nothing equips by itself and no lesson names a horse
    for the piece (owner, 2026-10-12, #351).
-5. Once a piece is on, on the horse it went on, where it is now seen worn
-   (#359): what it changed there, as it was and as it is ("defense 1 to 5
-   and 3 more with it on", #298), and that Undo takes it back until the
-   party sets out. Finished by setting out. Undo takes the lesson's horse
-   back with the piece, and it waits for the next Equip.
-6. Only after Equip has taken a piece from the horse that wore it: the
-   horses exchanged pieces and nothing is lost. Never before a swap.
+Until #372 a fifth said what the piece changed on its horse and a sixth,
+after a swap, that nothing was lost; both were only to be read, and are
+gone (owner, 2026-10-19). What the piece changed is now said on Set out,
+below.
 
 **The next trail, explained honestly** (#298;
-`philosophy/onboarding.md`, "Do not oversell an upgrade"). What a piece
-changed is said on Equip, above; what the win changed is said apart, after
-the first item's lessons, in town after the first win:
+`philosophy/onboarding.md`, "Do not oversell an upgrade"), in town after
+the first win, after the first item's lessons and the resisted ability's:
 
-- On Set out, beside the footer's "Level N trail.": "A win raises the
-  trail level, now N: enemies gain health and attack, pieces stats." True
-  of the sim: enemy health and attack scale by `level_scaling` a level, and
-  a piece's points by one a level (`loot::roll_piece`).
 - The opening's exit line, on the Map: Keep going there sends the party
-  out by itself until a trail is lost, and it can be left to it. On the
-  place, not the control: Keep going stands in for the itinerary and
-  nothing may depend on it, so only the words name it (change them with
-  #201).
+  out by itself until a trail is lost, and the line says to open it.
+  Finished by opening the Map (`Mapped`, #372). On the place, not the
+  control: Keep going stands in for the itinerary and nothing may depend
+  on it, so only the words name it (change them with #201).
+- Last, on Set out, beside the footer's "Level N trail.": what the piece
+  changed on the horse it went on, as it was and as it is, and the level:
+  "attack 6 to 10 and 2 more with it on. Trail level 1 now: set out to try
+  it." With nothing put on a horse this visit it says its `instead`, the
+  level alone: "A win raises the trail level, now N: enemies and pieces
+  gain stats. Set out." True of the sim: enemy health and attack scale by
+  `level_scaling` a level, and a piece's points by one a level
+  (`loot::roll_piece`). Finished by pressing Set out (`SentOut`); Keep
+  going's departure cuts it off, and it is offered once more.
 
-Both are answered by Got it (`Watched(Win)`, which never happens in town);
-setting out with one up cuts it off, and it is offered once more. No line
-says a piece or a win made anything easier or better:
+No line says a piece or a win made anything easier or better:
 `no_lesson_claims_what_the_report_cannot_show` holds the file's words and
 the list's to a list of such words. Whether a first-time player can say
 why the second trail was harder is #301's to find out
 ([gallery](gallery/2026-10-16-next-trail-honestly/README.md)).
 
 Chosen without the owner: the words; the stat that moved the most and a
-count of the rest, not every stat; the Map for the exit line; Got it, not
-Set out, finishes the two win lessons.
+count of the rest, not every stat; the Map for the exit line. Ruled by the
+owner (2026-10-19, #372): the swap's line cut, what the piece changed and
+the level folded into one line on Set out, the exit line answered by
+opening the Map.
 
 A player who presses nothing is shown the first and no other, and the
 party leaves as it would have. Coins are not mentioned. Whether a

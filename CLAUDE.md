@@ -98,6 +98,10 @@ RNG, so a drop table can be tested by rolling it a million times in a test.
    ever just a wall of text a player is expected to read."** The player
    learns a thing by watching it happen or doing it, with at most a line
    beside it.
+   **Every in-town hint asks the player to do something** (owner,
+   2026-10-19: "a hint should never just be a pop up with words that
+   require no action, because a user will ignore it"). A town lesson is
+   answered by doing its thing, never by a Got it alone.
 
 ---
 ## Planning (owner, 2026-10-09)
