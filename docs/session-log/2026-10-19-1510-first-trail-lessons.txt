@@ -1,0 +1,49 @@
+ASKED
+  /next. Tier 1: the only open bug, #246, waits on her watching. Tier 2:
+  nothing found. Every open menus issue is built. Tier 3: PICK UP, #295.
+
+DONE
+  - #295 First-trail lessons. Five of the six were already in lessons.ron;
+    what was missing was speed waiting for fight 2. A lesson may now name
+    a `fight` in lessons.ron: its due event counts only from that fight on
+    (Lessons counts Fight events). Speed has `fight: 2`.
+  - Tests: a_lesson_can_wait_for_a_later_fights_kill (sim), and
+    the_first_trail_says_six_things_on_the_road (walks the first trail,
+    answers each pop-up with Got it, holds the six in order, one at a time,
+    speed at fight 2's first kill). Seen to fail with `fight: 2` taken out
+    (speed straight after the numbers). cargo test 276 passed.
+  - Seen running, --seed 6: timed picture runs now log each lesson they
+    answer. Road lessons at 0, 4, 6, 8.84 (numbers), 15.34 (speed, fight 2
+    of 4, first Gloom Sprite down) and 31.12 (boss) s of game time.
+    Picture at 15.34 shows that kill; the pop-up itself had been answered.
+  - docs/lessons.md: the `fight` field and the six. Commit a5312b0,
+    closes #295.
+
+DECIDED
+  - Mine: `fight` counts fights since the game began, not per trail; only
+    the first trail uses it.
+
+FOUND
+  - A kill that ends a fight moves Expedition::encounter on in the same
+    step, so the encounter index does not say which fight a kill was in.
+
+NOT DONE
+  - Nothing started and left.
+
+PICK UP
+  - /next: every open 0.2.5 issue but the epic waits on the owner (#298,
+    #353 built-untested; #301 is her play test), so release 0.2.5 by
+    procedures/release-a-build.txt.
+
+NEXT RELEASE
+  0.2.5 The opening: 6 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - closed
+    #294 The tutorial trail - closed
+    #295 First-trail lessons - closed
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element, at the first resisted fight - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
