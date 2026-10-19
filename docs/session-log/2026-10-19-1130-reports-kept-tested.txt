@@ -1,0 +1,33 @@
+ASKED
+  /next, no steer. Build green, 285 tests. Tier 1 only owner-look bugs
+  (#246, #372, #373, #374), so tier 2.
+
+DONE
+  - Tier 2 sweep of src/sim/ and assets/data/: every data file has a test
+    that loads it; the one gap was rules.reports_kept, which nothing held
+    above 0 (at 0 the Journal drops the report just written, #231).
+    data_files_are_consistent now asserts it; seen to fail with
+    reports_kept: 0, data restored. cargo test 285 passed. Commit 462bb52.
+
+DECIDED
+  - Nothing.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - #375 untouched.
+
+PICK UP
+  - /next: tiers 1 and 2 are empty but for owner-look bugs; build #375
+    (audit the graphics pipeline for memory).
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 2 of 6 closed.
+    #371 Decide: no horse falls on the first trail - closed
+    #372 Every town hint asks the player to do something - built-untested
+    #373 Normal pieces' pictures are a white block - built-untested
+    #374 The game quits on a GPU out-of-memory error, with no crash.log - built-untested
+    #375 Audit the graphics pipeline for memory - unbuilt
+    #376 The soak report flags the tutorial trail as wrong on every run - closed
+  Riding along (menus): #246 The menus shrink and expand - built-untested
