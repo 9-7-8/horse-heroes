@@ -16,7 +16,7 @@ use bevy::{
 use super::held::Held;
 use super::shell::Shell;
 use super::tokens::Tokens;
-use crate::fx::drops::rarity_colour;
+use crate::fx::drops::{rarity_colour, rarity_fill};
 use crate::game::{Game, Piece};
 use crate::sim::data::{Data, PictureDef, RarityDef, RarityLook, Slot, Solid};
 use crate::sim::look::{Layer, Look, paint};
@@ -152,7 +152,8 @@ impl LookImages {
             .entry(key)
             .or_insert_with(|| {
                 let round = round.map(|r| r * LOOK_DENSITY);
-                images.add(look_image(data, tier, look, size, round, data.looks.picture_decoration))
+                let ground = rarity_fill(&data.gear.rarities[tier]);
+                images.add(look_image(data, ground, look, size, round, data.looks.picture_decoration))
             })
             .clone()
     }
@@ -164,17 +165,19 @@ impl LookImages {
             .entry((look, tier, None))
             .or_insert_with(|| {
                 let size = (WORN_SIDE, WORN_SIDE);
-                images.add(look_image(data, tier, look, size, [0.0; 4], data.looks.worn_decoration))
+                let ground = rarity_colour(&data.gear.rarities[tier]);
+                images.add(look_image(data, ground, look, size, [0.0; 4], data.looks.worn_decoration))
             })
             .clone()
     }
 }
 
-/// A look painted into pixels: the rarity's colour, the pattern's ink and
-/// the decoration's, and clear outside the shape.
+/// A look painted into pixels: the `ground` (the rarity's fill in a menu, its
+/// colour on the horse), the pattern's ink and the decoration's, and clear
+/// outside the shape.
 fn look_image(
     data: &Data,
-    tier: usize,
+    ground: Srgba,
     look: Look,
     (w, h): (u32, u32),
     round: [f32; 4],
@@ -187,7 +190,7 @@ fn look_image(
     };
     let colours = [
         [0, 0, 0, 0],
-        rarity_colour(&data.gear.rarities[tier]).to_u8_array(),
+        ground.to_u8_array(),
         ink(look.pattern_ink),
         ink(look.decoration_ink),
     ];
@@ -249,14 +252,15 @@ pub fn draw(
     };
     let colour = Color::from(rarity_colour(tier));
     match look {
-        // The look fills the whole shape; the border is the rarity's colour.
+        // The look fills the whole shape; the border is the rarity's colour,
+        // which may differ from its fill (#373).
         Some(image) => {
             let filled = Node { border: UiRect::ZERO, ..outline.clone() };
             square.spawn((filled, ImageNode::new(image)));
             square.spawn((outline, BorderColor::all(colour)));
         }
         None => {
-            square.spawn((outline, BackgroundColor(colour), BorderColor::all(colour)));
+            square.spawn((outline, BackgroundColor(rarity_fill(tier).into()), BorderColor::all(colour)));
         }
     }
     // The tier's mark, cut out of the shape: told with the colour taken away.
@@ -363,6 +367,17 @@ mod tests {
             for b in &rarities[i + 1..] {
                 assert_ne!(mark, stamp(&b.look), "{} and {}", a.name, b.name);
             }
+        }
+    }
+
+    /// No tier fills its picture with white or near it, which reads as a
+    /// blank ground rather than a piece (#373).
+    #[test]
+    fn no_picture_is_filled_white() {
+        for rarity in Data::load().gear.rarities {
+            let fill = rarity_fill(&rarity);
+            let palest = fill.red.min(fill.green).min(fill.blue);
+            assert!(palest < 0.8, "{}: fill {fill:?} is near white", rarity.name);
         }
     }
 

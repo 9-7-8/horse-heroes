@@ -271,13 +271,17 @@ flat UI nodes, so nothing depends on it.
   by its own amount. A tall shield for the head, a wide blanket for the
   body, a low dome for the saddle.
 - **The rarity is the colour and the mark.** The shape is filled with the
-  rarity's colour, and the rarity's `shape` from the loot shower, seen from
-  above, is cut out of it (`stamp`): a slab, a cross, a ringed stone, a sun
-  with rays, three stones. So the piece on the ground and the piece in the
-  menu carry the same sign, and it is told with the colour taken away. A
-  prism is drawn as a disc.
+  rarity's `fill` where it has one and its colour where not, and outlined
+  in its colour (`rarity_fill`, `fx/drops.rs`). Only Normal has a fill: a
+  mid grey under its white outline, because a white fill read as a blank
+  ground, not a piece (#373; `no_picture_is_filled_white`). The rarity's
+  `shape` from the loot shower, seen from above, is cut out of it
+  (`stamp`): a slab, a cross, a ringed stone, a sun with rays, three
+  stones. So the piece on the ground and the piece in the menu carry the
+  same sign, and it is told with the colour taken away. A prism is drawn
+  as a disc. The gear a horse wears keeps the rarity's colour, white too.
 - **The piece is its look** (#361; the owner, 2026-10-14: "unique art for
-  every item. We'll do three layers"). Over the rarity's colour, a
+  every item. We'll do three layers"). Over the rarity's fill, a
   `pattern` (spots, diamonds, stripes, checks, rings, bands) in one ink, and
   on top a `decoration` (a star, a flame, a vine, a sun, a clover, a heart)
   in another, both from `assets/data/looks.ron`. A piece rolls its look

@@ -31,12 +31,16 @@
 // picture's square, with each corner rounded by a share of it, `round` going
 // top left, top right, bottom right, bottom left. A tall shield for the head,
 // a wide blanket for the body, a low dome for the saddle. The tier's `shape`,
-// seen from above, is stamped on it.
+// seen from above, is stamped on it. The shape is filled with the tier's
+// `fill` where it has one and its colour where not; the outline is always
+// its colour. Normal's is a mid grey under its white outline, because a
+// white fill reads as a blank ground, not a piece (#373). A fill stays clear
+// of white and of the inks (looks.ron) and the dark cut of the mark.
 (
     health_per_point: 5,
     rarities: [
         (name: "Normal",    prefix: "Trail-worn",  weight: 60, win_weight: 35, kill_weight: 80, points: (2, 3),
-         look: (colour: "ffffff", glow: 0.0, size: 1.0,
+         look: (colour: "ffffff", fill: Some("a3a8ae"), glow: 0.0, size: 1.0,
                 shape: [(solid: Box(0.46, 0.2, 0.34))],
                 sound: "drop_normal")),
         (name: "Magic",     prefix: "Fae-touched", weight: 27, win_weight: 35, kill_weight: 20, points: (4, 5),

@@ -112,6 +112,15 @@ pub fn rarity_colour(rarity: &RarityDef) -> Srgba {
     Srgba::hex(text).unwrap_or_else(|e| panic!("gear.ron: {} colour `{text}`: {e}", rarity.name))
 }
 
+/// What a piece of a rarity's menu picture is filled with: its `fill`, or its
+/// colour where it has none (#373).
+pub fn rarity_fill(rarity: &RarityDef) -> Srgba {
+    match &rarity.look.fill {
+        Some(text) => Srgba::hex(text).unwrap_or_else(|e| panic!("gear.ron: {} fill `{text}`: {e}", rarity.name)),
+        None => rarity_colour(rarity),
+    }
+}
+
 /// One solid of a rarity's shape as a mesh, and where it sits in the piece.
 fn part_mesh(part: &PartDef) -> (Mesh, Transform) {
     let mesh = match part.solid {

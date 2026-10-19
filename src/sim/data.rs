@@ -269,6 +269,11 @@ pub struct RarityDef {
 pub struct RarityLook {
     /// sRGB hex, `"rrggbb"`.
     pub colour: String,
+    /// What a piece's menu picture is filled with, where that is not
+    /// `colour` (#373): Normal's white would read as a blank ground. Its
+    /// outline keeps `colour`. sRGB hex.
+    #[serde(default)]
+    pub fill: Option<String>,
     /// How strongly the piece gives off its own colour; 0 is none.
     pub glow: f32,
     /// What the piece multiplies its `shape` by.

@@ -1,6 +1,6 @@
 // A look of its own for every piece of gear (#361): three layers, drawn very
-// simply. The background is the piece's slot shape in its rarity's colour
-// (gear.ron); over it a `pattern` in one ink; on top a `decoration` in
+// simply. The background is the piece's slot shape in its rarity's colour,
+// or in a menu its fill where it has one (gear.ron); over it a `pattern` in one ink; on top a `decoration` in
 // another. Each piece rolls its pattern, its decoration and its two inks
 // when it drops, and keeps them. They are cosmetic for now: they mean
 // nothing about stats or element (owner, 2026-10-14).
