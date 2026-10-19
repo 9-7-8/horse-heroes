@@ -65,7 +65,14 @@ try {
 
     # Its memory once a minute, until it has gone or is two minutes overdue.
     $memory = Join-Path $dir 'memory.tsv'
-    "secs`tworking_set_mb`tprivate_mb" | Set-Content $memory
+    # The GPU's share is Windows' own count of the video memory the process
+    # holds (dedicated, on the card; shared, in RAM for the GPU's use), #375.
+    "secs`tworking_set_mb`tprivate_mb`tgpu_dedicated_mb`tgpu_shared_mb" | Set-Content $memory
+    $gpu = {
+        param($kind)
+        $samples = (Get-Counter "\GPU Process Memory(pid_$($game.Id)_*)\$kind Usage" -ErrorAction SilentlyContinue)?.CounterSamples
+        (($samples | Measure-Object CookedValue -Sum).Sum ?? 0) / 1MB
+    }
     $deadline = $started.AddSeconds($secs + 120)
     $nextSample = $started
     while (-not $game.HasExited -and (Get-Date) -lt $deadline) {
@@ -73,8 +80,9 @@ try {
             $nextSample = $nextSample.AddSeconds(60)
             $game.Refresh()
             if (-not $game.HasExited) {
-                '{0:F0}`t{1:F1}`t{2:F1}' -f ((Get-Date) - $started).TotalSeconds,
-                    ($game.WorkingSet64 / 1MB), ($game.PrivateMemorySize64 / 1MB) |
+                '{0:F0}`t{1:F1}`t{2:F1}`t{3:F1}`t{4:F1}' -f ((Get-Date) - $started).TotalSeconds,
+                    ($game.WorkingSet64 / 1MB), ($game.PrivateMemorySize64 / 1MB),
+                    (& $gpu 'Dedicated'), (& $gpu 'Shared') |
                     ForEach-Object { $_.Replace('`t', "`t") } | Add-Content $memory
             }
         }
