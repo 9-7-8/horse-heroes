@@ -1,0 +1,41 @@
+ASKED
+  /next. Tier 1: the only open bug, #246, waits on her watching. Tier 2:
+  nothing found. Tier 3: PICK UP, #294's second-trail balance line.
+
+DONE
+  - Measured the second trail (level 1, rolled as the game rolls it) over
+    300 seeds in the first trail's gear: bare 6%; one horse in the Starlit
+    Halter 97%; each horse in its best piece 100%, and 94% / 64% / 12% at
+    levels 2 / 3 / 4. Put to her through the question tool.
+  - Test the_second_trail_is_won_in_the_first_trails_piece: at least 90%
+    with the Halter worn. Seen to fail without it (6%). cargo test 274
+    passed. Commit 7a0fef0, #294 closed.
+  - opening.md ("After it") and onboarding.md (the stale 68% bullet)
+    brought up to date.
+
+DECIDED
+  - Hers (2026-10-19, #294): "Keep tuning". Level 1 stays as it is; the
+    challenge comes back a few levels on. first_trail_balance keeps
+    measuring level 0 bare.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - Nothing started and left.
+
+PICK UP
+  - /next: #295 First-trail lessons, the lowest unbuilt feature of 0.2.5.
+
+NEXT RELEASE
+  0.2.5 The opening: 5 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - closed
+    #294 The tutorial trail - closed
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element, at the first resisted fight - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
