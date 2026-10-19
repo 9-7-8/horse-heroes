@@ -1,0 +1,40 @@
+ASKED
+  /next. Tier 1: the only open bug, #246, waits on her watching. Tier 2:
+  nothing found. Tier 3, step 0: every open 0.2.5 issue waits on her
+  (PICK UP), and the open menus issues #366-#369 are built already, so
+  release 0.2.5.
+
+DONE
+  - Released 0.2.5 by release-a-build.txt: version commit e475370, tag
+    v0.2.5, https://github.com/9-7-8/horse-heroes/releases/tag/v0.2.5.
+  - Checked: cargo test 276 passed; staged build run from the scratchpad
+    with --seed 6 at 3, 20, 33, 40 and 70 s, no ERROR or WARN, pictures
+    read (out of the gate, the Yearling announced, home with the Starlit
+    Halter); silent install to a scratch folder, version.txt 0.2.5, a
+    picture from the installed copy, uninstall left nothing; the downloaded
+    asset's hash matches the built one; all 13 note pictures answer 200.
+    Not done: the clean-machine test (#198), the wizard and SmartScreen
+    (her test).
+  - docs/gallery/2026-10-19-release-0.2.5: three pictures from the staged
+    build (f163cb6).
+
+DECIDED
+  - Mine: the notes name #366-#369 (v0.3.0, menus) as riding this release.
+
+FOUND
+  - The 0.2.6 milestone holds only #371, closed, so the next release has
+    nothing left to build.
+
+NOT DONE
+  - Nothing started and left.
+
+PICK UP
+  - /next: 0.2.1 to 0.2.6 have nothing to build but her looking; the
+    first buildable feature is in 0.3.0, #10 drop and pickup sounds per
+    rarity (lowest number; #241 death sounds after it).
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 1 of 1 closed.
+    #371 Decide: no horse falls on the first trail - closed
+  Riding along (menus, built since 0.2.4 and shipped in 0.2.5):
+    #366, #367, #368, #369 - built-untested
