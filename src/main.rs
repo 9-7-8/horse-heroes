@@ -11,6 +11,7 @@ mod crash_log;
 mod dev_screenshot;
 mod fx;
 mod game;
+mod render_errors;
 mod sim;
 mod soak;
 
@@ -49,6 +50,7 @@ fn main() {
                 }),
         )
         .add_plugins(crash_log::CrashTestPlugin)
+        .add_plugins(render_errors::RenderErrorsPlugin)
         .add_plugins(game::GamePlugin {
             seed,
             bare: std::env::args().any(|arg| arg == "--bare"),

@@ -115,6 +115,37 @@ pub fn report(report: &Report) -> String {
     )
 }
 
+/// Writes a render error to `crash.log` (#374): Bevy meets these without a
+/// panic, so the panic hook never sees them.
+pub fn render_error(kind: &str, description: &str, source: &str, outcome: &str, assets: &str) {
+    let text = render_report(&utc_now(), env!("CARGO_PKG_VERSION"), SEED.get().copied(), kind, description, source, outcome, assets);
+    let _ = append_capped(&log_dir().join(CRASH_LOG), &text, CRASH_LOG_CAP);
+}
+
+/// What one render error's entry in `crash.log` says.
+#[allow(clippy::too_many_arguments)]
+pub fn render_report(
+    when: &str,
+    version: &str,
+    seed: Option<u64>,
+    kind: &str,
+    description: &str,
+    source: &str,
+    outcome: &str,
+    assets: &str,
+) -> String {
+    let seed = seed.map_or_else(|| "(unknown)".to_string(), |seed| seed.to_string());
+    format!(
+        "==== Horse Heroes {version} render error at {when} ====\n\
+         seed: {seed}\n\
+         error: {kind}\n\
+         message: {description}\n\
+         source: {source}\n\
+         the game: {outcome}\n\
+         assets: {assets}\n\n",
+    )
+}
+
 /// Appends `text` to the file at `path`. If that would make it longer than
 /// `cap` bytes, the oldest entries go first: what is kept is the newest
 /// part, at most half of `cap`, cut at the start of an entry.
@@ -230,6 +261,16 @@ mod tests {
         ] {
             assert!(text.contains(part), "{part:?} missing from {text}");
         }
+    }
+
+    #[test]
+    fn a_render_error_says_what_it_was_and_what_the_game_did() {
+        let text = render_report(&utc(0), "0.0.0", Some(6), "OutOfMemory", "", "(none)", "quit", "images=3");
+        for part in ["Horse Heroes 0.0.0 render error", "seed: 6", "error: OutOfMemory", "the game: quit", "images=3"] {
+            assert!(text.contains(part), "{part:?} missing from {text}");
+        }
+        // It is cut by the cap like a crash.
+        assert!(text.starts_with("==== Horse Heroes "));
     }
 
     #[test]

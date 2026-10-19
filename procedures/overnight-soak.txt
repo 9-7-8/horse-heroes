@@ -52,7 +52,8 @@ WHAT IS CHECKED (src/soak.rs, `check`)
     rarities near their weights; every piece of the shower collected or
     carried off, none still out after a won trail.
   - The machine: no minute without frames, none under 20 a second, no
-    slowing, entities and memory not growing, the game's clock keeping up
+    slowing, entities, memory and the GPU's images, meshes and materials
+    (counted each minute, #374) not growing, the game's clock keeping up
     with the wall clock, and no warning or error printed.
 
 NOTES

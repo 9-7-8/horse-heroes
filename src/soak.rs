@@ -174,12 +174,36 @@ fn town_line(trail: u32, level: u32, coins: i32, walked: f32, drops: &Uncollecte
     )
 }
 
+/// The assets that live on the GPU, counted (#374): a count that climbs
+/// through a long run is a leak.
+#[derive(bevy::ecs::system::SystemParam)]
+struct GpuAssets<'w> {
+    images: Res<'w, Assets<Image>>,
+    meshes: Res<'w, Assets<Mesh>>,
+    materials: Res<'w, Assets<StandardMaterial>>,
+}
+
+impl GpuAssets<'_> {
+    fn fields(&self) -> String {
+        asset_fields(self.images.len(), self.meshes.len(), self.materials.len())
+    }
+}
+
+/// The asset counts as a line's fields, the names the report reads them by.
+pub fn asset_fields(images: usize, meshes: usize, materials: usize) -> String {
+    format!("images={images}\tmeshes={meshes}\tmaterials={materials}")
+}
+
+/// Each asset count's name in a beat line.
+const ASSETS: [&str; 3] = ["images", "meshes", "materials"];
+
 fn record(
     time: Res<Time>,
     mut game: ResMut<Game>,
     uncollected: Res<Uncollected>,
     mut killed: MessageReader<Killed>,
     entities: Query<Entity>,
+    assets: GpuAssets,
     mut soak: ResMut<Soak>,
     mut exit: MessageWriter<AppExit>,
 ) {
@@ -254,12 +278,13 @@ fn record(
             "road"
         };
         let line = format!(
-            "beat\twall={wall:.1}\tframes={}\tmean_ms={:.2}\tworst_ms={:.1}\tentities={}\tpieces={}\tplace={place}",
+            "beat\twall={wall:.1}\tframes={}\tmean_ms={:.2}\tworst_ms={:.1}\tentities={}\tpieces={}\t{}\tplace={place}",
             soak.frames,
             1000.0 * soak.secs / soak.frames.max(1) as f32,
             1000.0 * soak.worst,
             entities.iter().count(),
             uncollected.pieces,
+            assets.fields(),
         );
         soak.write(t, &line);
         (soak.frames, soak.secs, soak.worst) = (0, 0.0, 0.0);
@@ -872,6 +897,29 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
         );
     }
 
+    // Assets on the GPU (#374): after the first quarter, a count that keeps
+    // climbing is a leak. Read only where the beats carry them.
+    let mut asset_lines = Vec::new();
+    for name in ASSETS {
+        let counts: Vec<f32> = beats
+            .iter()
+            .filter(|beat| beat.fields.contains_key(name))
+            .map(|beat| beat.num(name))
+            .collect();
+        if counts.len() < 4 {
+            continue;
+        }
+        let quarter = counts.len() / 4;
+        let (early, late) = (median(&counts[quarter..2 * quarter]), median(&counts[counts.len() - quarter..]));
+        if late > early * 1.25 && late - early > 20.0 {
+            problems.add(
+                "assets on the GPU pile up",
+                format!("{name}: {early:.0} early in the run, {late:.0} late"),
+            );
+        }
+        asset_lines.push(format!("{name} {early:.0} early, {late:.0} late"));
+    }
+
     // What the game printed.
     let mut printed: Vec<(String, u32)> = Vec::new();
     let mut noise = 0;
@@ -1043,6 +1091,9 @@ pub fn check(data: &Data, events: &str, logs: &str, memory: &str, run: &str) -> 
         spread(&town_entities)
     ));
     say(format!("  memory: {memory_line}"));
+    if !asset_lines.is_empty() {
+        say(format!("  assets on the GPU, a minute's count: {}", asset_lines.join("; ")));
+    }
     say(format!(
         "  printed by the game: {} kinds of warning or error, and {noise} lines of the GOG Galaxy overlay's (ignored)",
         printed.len()
@@ -1126,5 +1177,33 @@ mod tests {
         assert!(kinds(cut, "")[0].contains("did not end by itself"));
         let printed = kinds(&log, "2026 WARN bevy: something\n2026 ERROR Loader Message\n\tgalaxy_overlay\n");
         assert_eq!(printed, ["warnings and errors the game printed"]);
+    }
+
+    /// Assets that hold steady pass; images that keep climbing are a leak.
+    #[test]
+    fn assets_that_keep_climbing_are_found() {
+        let data = Data::load();
+        // The beats go after the trails, and the end after the beats.
+        let written = written(&data, 2);
+        let log = &written[..written.rfind("end\t").unwrap()];
+        let log = log[..log.rfind('\n').unwrap() + 1].to_string();
+        let beats = |images: &dyn Fn(usize) -> usize| -> String {
+            (1..=16)
+                .map(|minute| {
+                    format!(
+                        "{0}.00\tbeat\twall={0}.0\tframes=3600\tmean_ms=16.00\tworst_ms=20.0\tentities=100\tpieces=0\t{1}\tplace=town\n",
+                        60 * minute,
+                        asset_fields(images(minute), 50, 40),
+                    )
+                })
+                .collect::<String>()
+                    + "960.00\tend\treason=limit\twall=960.0\n"
+        };
+        let kinds = |extra: String| -> Vec<String> {
+            let report = check(&data, &(log.clone() + &extra), "", "", "");
+            report.problems.into_iter().map(|(kind, _)| kind).collect()
+        };
+        assert!(kinds(beats(&|_| 300)).is_empty());
+        assert_eq!(kinds(beats(&|minute| 300 + 20 * minute)), ["assets on the GPU pile up"]);
     }
 }

@@ -100,6 +100,21 @@ pub fn pop(feel: &Feel, age: f32) -> f32 {
     feel.pop + (1.0 - feel.pop) * age / feel.pop_secs
 }
 
+/// The font size a number's text is made at: its size as it appears, popped,
+/// to the whole pixel. Bevy keeps a glyph atlas, an image on the GPU, for
+/// every font size it has drawn and never lets one go, so a size that changed
+/// every frame filled the GPU (#374). The text is made once at this size and
+/// the pop is a scale on its box ([`pop_scale`]).
+pub fn text_px(feel: &Feel, size: f32) -> f32 {
+    (size * pop(feel, 0.0)).round().max(1.0)
+}
+
+/// The scale of a number's box `age` seconds in, so that its text, made at
+/// [`text_px`], is drawn `size * pop` big.
+pub fn pop_scale(feel: &Feel, age: f32) -> f32 {
+    pop(feel, age) / pop(feel, 0.0)
+}
+
 /// Where the `n`th number on one thing, of those close together, is set from
 /// the first, in pixels across and up the screen: the middle, then right,
 /// then left, and on up a row.
@@ -147,7 +162,6 @@ struct Number {
     at: Vec3,
     offset: Vec2,
     age: f32,
-    size: f32,
     solid: f32,
     colour: Color,
 }
@@ -167,8 +181,8 @@ fn show(
     mut recent: ResMut<Recent>,
     mut landed: MessageReader<Landed>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera3d>>,
-    mut numbers: Query<(Entity, &mut Number, &mut Node)>,
-    mut texts: Query<(&mut TextFont, &mut TextColor, &mut TextShadow)>,
+    mut numbers: Query<(Entity, &mut Number, &mut Node, &mut UiTransform)>,
+    mut texts: Query<(&mut TextColor, &mut TextShadow)>,
 ) {
     let dt = time.delta_secs();
     let on = shell.is_on(Switch::DamageNumbers);
@@ -180,7 +194,7 @@ fn show(
     recent.0.retain(|(_, _, since)| *since < run_secs);
 
     let mut alive = 0;
-    for (entity, mut number, _) in &mut numbers {
+    for (entity, mut number, _, _) in &mut numbers {
         number.age += dt;
         if !on || number.age >= feel.life_secs {
             commands.entity(entity).despawn();
@@ -214,7 +228,7 @@ fn show(
             .spawn((
                 Text::new(words(hit)),
                 TextFont {
-                    font_size: FontSize::Px(size * pop(&feel, 0.0)),
+                    font_size: FontSize::Px(text_px(&feel, size)),
                     ..default()
                 },
                 TextColor(colour.with_alpha(solid)),
@@ -233,7 +247,6 @@ fn show(
                     at: *at,
                     offset: place(&feel, n),
                     age: 0.0,
-                    size,
                     solid,
                     colour,
                 },
@@ -247,6 +260,7 @@ fn show(
                     top: Val::Px(-BOX.y),
                     ..default()
                 },
+                UiTransform::default(),
                 // Under the menus, so a number never covers a control.
                 GlobalZIndex(-1),
                 Pickable::IGNORE,
@@ -259,8 +273,8 @@ fn show(
     if alive > feel.most {
         let mut ages: Vec<(f32, Entity)> = numbers
             .iter()
-            .filter(|(_, number, _)| number.age < feel.life_secs)
-            .map(|(entity, number, _)| (number.age, entity))
+            .filter(|(_, number, _, _)| number.age < feel.life_secs)
+            .map(|(entity, number, _, _)| (number.age, entity))
             .collect();
         ages.sort_by(|a, b| b.0.total_cmp(&a.0));
         for (_, entity) in ages.into_iter().take(alive - feel.most) {
@@ -269,7 +283,7 @@ fn show(
     }
 
     let (camera, view) = *camera;
-    for (_, number, mut node) in &mut numbers {
+    for (_, number, mut node, mut transform) in &mut numbers {
         if number.age >= feel.life_secs {
             continue;
         }
@@ -280,11 +294,8 @@ fn show(
         let spot = spot + Vec2::new(number.offset.x, -number.offset.y) - BOX / 2.0;
         node.left = Val::Px(spot.x);
         node.top = Val::Px(spot.y);
-        if let Ok((mut font, mut colour, mut shadow)) = texts.get_mut(number.text) {
-            let wanted = FontSize::Px(number.size * pop(&feel, number.age));
-            if font.font_size != wanted {
-                font.font_size = wanted;
-            }
+        transform.scale = Vec2::splat(pop_scale(&feel, number.age));
+        if let Ok((mut colour, mut shadow)) = texts.get_mut(number.text) {
             let fade = alpha(&feel, number.age);
             colour.0 = number.colour.with_alpha(number.solid * fade);
             shadow.color = feel.shadow.0.with_alpha(feel.shadow.0.alpha() * fade);
@@ -353,6 +364,33 @@ mod tests {
             assert!(up >= last_lift && up - last_lift <= last_step + 1e-5, "at {age}");
             assert!(solid <= last_alpha, "at {age}");
             (last_step, last_lift, last_alpha) = (up - last_lift, up, solid);
+        }
+    }
+
+    /// Every number's text is made at one of a few whole font sizes, however
+    /// big the hit and however far into its pop (#374): Bevy keeps a glyph
+    /// atlas on the GPU for each size it has drawn, for good. The pop is a
+    /// scale, and shows the size it did.
+    #[test]
+    fn numbers_use_few_font_sizes() {
+        let feel = Feel::load();
+        let mut sizes: Vec<u32> = Vec::new();
+        for damage in 1..=feel.big_damage * 1000 {
+            for kind in [HitKind::Plain, HitKind::Strong, HitKind::Resisted, HitKind::Warded] {
+                let px = text_px(&feel, size(&feel, damage, kind));
+                assert_eq!(px.fract(), 0.0, "{px}");
+                if !sizes.contains(&(px as u32)) {
+                    sizes.push(px as u32);
+                }
+            }
+        }
+        let most = (feel.large * feel.strong_scale * feel.pop).ceil() as usize;
+        assert!(sizes.len() <= most, "{} font sizes", sizes.len());
+        for step in 0..=20 {
+            let age = step as f32 / 20.0 * feel.life_secs;
+            let size = size(&feel, 7, HitKind::Plain);
+            let shown = text_px(&feel, size) * pop_scale(&feel, age);
+            assert!((shown - size * pop(&feel, age)).abs() <= 1.0, "at {age}: {shown}");
         }
     }
 

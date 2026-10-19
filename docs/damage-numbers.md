@@ -28,7 +28,10 @@ menus (`GlobalZIndex(-1)`), so a number never covers a control.
   `taken`, a hue no element has, and starts with a minus.
 - **Motion**: it pops in `pop` times its size and settles over `pop_secs`,
   rises `rise` world units, slowing, over `life_secs`, and fades over the last
-  `fade_secs`.
+  `fade_secs`. The text is made once, at its popped size to the whole pixel,
+  and the pop is a scale on its box: Bevy keeps a glyph atlas on the GPU for
+  every font size it has drawn and never frees one, and a size that changed
+  every frame filled the GPU in ten minutes (#374).
 - **Many at once**: hits on one thing within half a number's life are set
   side by side, `spread` pixels apart, `row` to a row, the next row
   `row_height` higher. A Burst puts one on each enemy. A plain hit has no element (#357), so
