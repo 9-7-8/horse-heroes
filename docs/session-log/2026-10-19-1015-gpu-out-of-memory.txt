@@ -1,0 +1,53 @@
+ASKED
+  /next, no steer. Tier 1: PICK UP named bug #374.
+
+DONE
+  - #374 The leak: damage numbers changed their font size every frame of
+    their pop, and Bevy 0.20 keeps a glyph atlas image per exact font size
+    for good (bevy_text FontAtlasSet, keyed by f32 bits, never evicted).
+    Now the text is made once at a whole-pixel size (fx::numbers::text_px)
+    and the pop is a UiTransform scale (pop_scale). Test
+    numbers_use_few_font_sizes, seen to fail without the rounding.
+  - #374 Render errors: src/render_errors.rs replaces Bevy's handler, which
+    quit on any error with no panic. Out of memory, or an error within a
+    minute of one: picture stops 2 s, every image is re-sent, drawing tried
+    again, at most 8 a minute. Anything else, or more: crash.log entry
+    (crash_log::render_error) and quit. Unit tests on the decision.
+    HORSE_HEROES_RENDER_ERROR=quit|oom makes a real wgpu validation error
+    5 s in: seen running, quit writes crash.log and exits; oom pauses,
+    "Drawing again", plays on, and a screenshot at 10 s shows the scene
+    drawn. A real out-of-memory was not made (cannot be on purpose).
+  - Soak: each minute's line counts images, meshes, materials; the report
+    flags a climb (test assets_that_keep_climbing_are_found, seen to fail).
+  - Measured, 15-minute soaks, seed 6. Before: images 265 to 3967, RAM
+    1376 to 2454 MB. After: images 40 to 176, RAM 549 to 501 MB (551 most).
+  - docs/crash-log.md (Render errors), docs/damage-numbers.md. cargo test
+    285 passed. Commit eb4e32b. #374 left open: her long run is the rest.
+
+DECIDED
+  - Mine: 2 s pause and 8 a minute, so a failure that keeps coming cannot
+    flash the screen; a validation error with no out-of-memory before it is
+    a bug and still quits.
+
+FOUND
+  - What still grows is cargo: every dropped piece is kept, so entities
+    (3397 to 6207) and look images grow with it. Written on #375.
+  - The soak report flags the tutorial trail on every run (no wait, not
+    the generated trail): filed #376.
+  - Bevy's exit code after AppExit::error() is 0: main does not return it.
+
+NOT DONE
+  - A real GPU out-of-memory has never been survived on purpose; only its
+    aftermath path was run. Her long run on the laptop is the test.
+
+PICK UP
+  - /next: tier 1, bug #376 - the soak report flags the tutorial trail.
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 1 of 6 closed.
+    #371 Decide: no horse falls on the first trail - closed
+    #372 Every town hint asks the player to do something - built-untested
+    #373 Normal pieces' pictures are a white block - built-untested
+    #374 The game quits on a GPU out-of-memory error, with no crash.log - built-untested
+    #375 Audit the graphics pipeline for memory - unbuilt
+    #376 The soak report flags the tutorial trail as wrong on every run - unbuilt
