@@ -3,6 +3,7 @@
 Pictures of the game as it is built, one folder per piece of work, newest
 first. Each folder's README shows its pictures in order with a line on each.
 
+- [2026-10-19, release 0.2.5](2026-10-19-release-0.2.5/README.md) (#254, #292, #294, #19)
 - [2026-10-15, selecting a horse](2026-10-15-selection/README.md) (#366, #367, #368, #369)
 - [2026-10-15, release 0.2.4](2026-10-15-release-0.2.4/README.md) (#359, #361, #365)
 - [2026-10-14, the horses leave the strip](2026-10-14-horse-tags/README.md) (#356)
