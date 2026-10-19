@@ -107,6 +107,8 @@ fn shoot_then_exit(
         if *reading >= READING_SECS
             && let Some(entity) = got_its.iter().next()
         {
+            let lesson = shell.hint().map(|hint| hint.lesson.as_str()).unwrap_or_default();
+            info!("lesson: \"{lesson}\" answered at {:.2} s of game time", game_time.elapsed_secs());
             commands.trigger(Activate { entity });
             *reading = 0.0;
         }

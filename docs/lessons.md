@@ -16,6 +16,7 @@ One entry of `lessons.ron`, whose header says the same in full:
 |---|---|
 | `id` | its name, by which a lesson put away is known again |
 | `due` | the event that has to happen first |
+| `fight` | left out, or a number: `due` counts only from that fight on, counted from 1 since the game began (#295). `due: Kill, fight: 2` is the first kill of the second fight |
 | `shown` | `Town`, `Road`, or left out for either |
 | `target` | the control its mark goes on, named as `places.ron` names it: `Place`, `Tab`, `Control`, `Horse(n)`, `Selected` (the selected horse, whichever it is now), `Drop`, `Party` (no control: the line alone, with no mark and no name, #292), `Boss` (the boss in the scene while its fight is on, #360), `Resisted` (#357), or `Equipped` (the horse a piece was last put on this visit, while that change stands, `Game::last_equipped`, #298) |
 | `words` | its one line, 85 letters at most, counted with what the game fills in at its longest: `{change}`, the `Equipped` horse's stat that moved the most as it was and as it is (`change_line`: "attack 12 to 15 and 2 more", health counted in stat points), and `{level}`, the trail level (`teach::say`, #298) |
@@ -49,8 +50,17 @@ Plain facts (`Event`), told to the queue with `Lessons::raise`:
 | `Boss` | the trail, with `Fight`, when its last encounter begins (#360) |
 
 An event makes its lessons due the first time it happens and never again,
-so a return to town does not replay the opening. A test holds that the game
-raises every one of them.
+so a return to town does not replay the opening; a lesson with a `fight`, the
+first time from that fight on (the queue counts `Fight`s). A test holds that
+the game raises every one of them.
+
+The first trail's road lessons (#295) are six, in this order, one at a time:
+the opening's line, the party fights by itself (first fight), abilities fire
+by themselves (first ability), the numbers are hits (first kill), speed
+(fight 2's first kill, so never straight after the numbers), and the boss.
+`teach::tests::the_first_trail_says_six_things_on_the_road` holds it. In a
+timed picture run each answered pop-up is logged as `lesson: "<id>" answered
+at <s> s of game time`; on `--seed 6`: 0, 4, 6, 8.84, 15.34 and 31.12.
 
 ## The queue
 

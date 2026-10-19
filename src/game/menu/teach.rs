@@ -328,6 +328,7 @@ mod tests {
     use super::*;
     use crate::game::menu::shell::{Detail, Item, SAMPLE, sample_hint};
     use crate::game::{Action, CAMP_SECS, Hand, Screen, TICK, step};
+    use crate::sim::expedition::Phase;
     use crate::sim::lessons::{Done, LessonDef, Lessons, Progress, Shown};
 
     /// Four lessons of the tests' own, so that none of these tests holds a
@@ -335,6 +336,7 @@ mod tests {
     /// piece and one about a control.
     fn lessons() -> Lessons {
         let lesson = |id: &str, due, shown, target, done| LessonDef {
+            fight: 0,
             id: id.into(),
             due,
             shown,
@@ -430,6 +432,7 @@ mod tests {
         let lesson = |id: &str, target, words: &str| LessonDef {
             id: id.into(),
             due: Event::Gear,
+            fight: 0,
             shown: Shown::Town,
             target,
             words: words.into(),
@@ -591,6 +594,54 @@ mod tests {
         assert!(met >= 2, "two boss fights were met, {met}");
         let at = game.lessons.defs().iter().position(|def| def.id == boss).unwrap();
         assert_eq!(game.lessons.state(at), State::PutAway, "answered by Got it");
+    }
+
+    /// The first trail's road lessons (#295), from `lessons.ron`, on a new
+    /// game nobody touches but to answer each with Got it: the six of the
+    /// beat sheet (docs/opening.md), one at a time, in order, and no other.
+    /// Speed comes at fight 2's first kill, not straight after the numbers.
+    #[test]
+    fn the_first_trail_says_six_things_on_the_road() {
+        const SIX: [&str; 6] = [
+            "the horses go by themselves",
+            "the party fights by itself",
+            "abilities fire by themselves",
+            "the numbers are hits",
+            "speed",
+            "the boss",
+        ];
+        let map = Places::load();
+        let mut game = Game::opening(6);
+        let (mut shell, mut held) = (shell(&map), Held::default());
+        // What was said, with the encounter the trail was on and the kills
+        // so far.
+        let mut said: Vec<(String, usize, usize)> = Vec::new();
+        let mut fight_two_from = None;
+        for _ in 0..20000 {
+            follow(&mut game, &mut shell, &map, &mut held);
+            let Screen::Trail(expedition) = &game.screen else { break };
+            let (fight, kills) = (expedition.encounter, expedition.kills.len());
+            if fight == 1 && expedition.phase == Phase::Fighting {
+                fight_two_from.get_or_insert(kills);
+            }
+            if let Some(lesson) = hinted(&shell).map(str::to_owned) {
+                assert!(waits_on(&game, &shell), "{lesson}: the game waits on it");
+                said.push((lesson.clone(), fight, kills));
+                shell.dismiss_hint();
+                follow(&mut game, &mut shell, &map, &mut held);
+                assert_eq!(hinted(&shell), None, "one at a time: after {lesson}");
+            }
+            pass(&mut game);
+        }
+        assert!(game.in_town(), "the first trail ended");
+        let ids: Vec<&str> = said.iter().map(|(id, _, _)| id.as_str()).collect();
+        assert_eq!(ids, SIX);
+        let at = |id: &str| said.iter().find(|(said, _, _)| said == id).map(|(_, fight, kills)| (*fight, *kills));
+        let fight_two_from = fight_two_from.expect("the first trail has a second fight");
+        // A kill that ends a fight moves the trail on to the next in the
+        // same step, so the kills say which fight a kill was in.
+        assert_eq!(at("the numbers are hits").map(|(_, kills)| kills), Some(1), "the numbers at the first kill");
+        assert_eq!(at("speed").map(|(_, kills)| kills), Some(fight_two_from + 1), "speed at fight 2's first kill");
     }
 
     /// Every event a lesson can wait for is one the game raises: the trail

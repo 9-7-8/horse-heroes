@@ -32,6 +32,9 @@
 //              Dragged   the player put a piece on a horse by dragging it
 //              Boss      a trail's boss fight began: its last encounter
 //              Chose     the player gave a horse another ability
+//   fight    left out, or a number: the event counts only from that fight
+//            on, counted from 1 since the game began. `due: Kill, fight: 2`
+//            is the first kill of the second fight.
 //   shown    where: Town, Road, or left out for either. A Town lesson that
 //            is showing when the party sets out waits for the next town,
 //            and is not offered by itself after it is left a second time.
@@ -147,10 +150,13 @@ lessons: [
         done: Watched(Kill),
     ),
     // Speed (#355), on the fastest of the starting party, whose hits come
-    // the most often: seen in the hits around it once the game goes on.
+    // the most often: seen in the hits around it once the game goes on. At
+    // fight 2's first kill, so it never follows the numbers back to back
+    // (#293 call 5).
     (
         id: "speed",
         due: Kill,
+        fight: 2,
         shown: Road,
         target: Horse(0),
         words: "The faster a horse, the more often it hits. The party walks at their average speed.",

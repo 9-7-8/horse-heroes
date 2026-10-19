@@ -149,6 +149,10 @@ pub enum Done {
 pub struct LessonDef {
     pub id: String,
     pub due: Event,
+    /// Its event counts only from this fight on, counted from 1 since the
+    /// game began (#295): a later kill than the first. 0 is any.
+    #[serde(default)]
+    pub fight: u32,
     #[serde(default)]
     pub shown: Shown,
     pub target: Target,
@@ -256,6 +260,8 @@ pub struct Lessons {
     cut: Vec<u8>,
     /// Every event that has happened, once.
     raised: Vec<Event>,
+    /// How many fights have begun (#295).
+    fights: u32,
     /// The lessons that have become due, in the order they came (#300).
     came: Vec<usize>,
     /// The lesson that is showing: one at a time.
@@ -292,6 +298,7 @@ impl Lessons {
             cut: vec![0; defs.len()],
             defs,
             raised: Vec::new(),
+            fights: 0,
             came: Vec::new(),
             showing: None,
             asked: None,
@@ -418,9 +425,13 @@ impl Lessons {
     }
 
     /// Something happened. A lesson that was waiting for it is finished;
-    /// and, the first time only, the lessons it makes due are due. It can
-    /// be told the same thing any number of times.
+    /// and, the first time only, the lessons it makes due are due: the
+    /// first time from its fight on, for one that names a fight. It can be
+    /// told the same thing any number of times.
     pub fn raise(&mut self, event: Event) {
+        if event == Event::Fight {
+            self.fights += 1;
+        }
         // Before anything becomes due: what makes a lesson due is never
         // what finishes it, in the same breath.
         for lesson in 0..self.defs.len() {
@@ -456,11 +467,11 @@ impl Lessons {
             for (def, tick) in self.entries.iter().zip(&mut self.ticks) {
                 tick.listed |= def.due == event;
             }
-            for (lesson, def) in self.defs.iter().enumerate() {
-                if def.due == event {
-                    self.progress[lesson].due = true;
-                    self.came.push(lesson);
-                }
+        }
+        for (lesson, def) in self.defs.iter().enumerate() {
+            if def.due == event && !self.progress[lesson].due && self.fights >= def.fight {
+                self.progress[lesson].due = true;
+                self.came.push(lesson);
             }
         }
     }
@@ -591,6 +602,7 @@ mod tests {
         LessonDef {
             id: id.into(),
             due,
+            fight: 0,
             shown,
             target: Target::Horse(0),
             words: format!("{id}."),
@@ -842,6 +854,24 @@ mod tests {
             lessons.raise(Event::Win);
             assert_eq!(lessons.show(true, &HERE), None, "the opening played again");
         }
+    }
+
+    /// A lesson that names a fight (#295) is due at its event's first time
+    /// from that fight on, not before; the others at its first time ever.
+    #[test]
+    fn a_lesson_can_wait_for_a_later_fights_kill() {
+        let mut later = lesson("later", Event::Kill, Shown::Road, Done::Watched(Event::Kill));
+        later.fight = 2;
+        let mut lessons = Lessons::new(vec![lesson("first", Event::Kill, Shown::Road, Done::Watched(Event::Kill)), later]);
+        lessons.raise(Event::Fight);
+        lessons.raise(Event::Kill);
+        lessons.raise(Event::Kill);
+        assert!(lessons.progress(0).due && !lessons.progress(1).due, "fight 1's kills");
+        lessons.raise(Event::Fight);
+        assert!(!lessons.progress(1).due, "fight 2 has begun, with no kill yet");
+        lessons.raise(Event::Kill);
+        assert!(lessons.progress(1).due);
+        assert_eq!(lessons.listed(), [0, 1]);
     }
 
     /// Seen, done and skipped are three facts. What makes a lesson due does
