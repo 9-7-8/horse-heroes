@@ -622,6 +622,13 @@ Set are the tiers with a beam.
   not from a heal before it. Springs are first met on later trails. She chose
   this over a fixed spring before the boss and over leaving a rare fall
   (Morrow, about 1 run in 80) before falls are taught.
+  - **"No horse falls" holds for the starting party** (confirmed
+    2026-10-19, #371): the starting party (Ember Shot, Frost Burst, Ward)
+    never loses a horse on the first trail, held by a test over many
+    seeds; every set of abilities the party may carry must still win every
+    run. A rare fall with another set (about 20 runs in 6400, measured as
+    built) is accepted. She chose this over making the first trail's
+    earlier fights gentler so that every set stays standing.
 - **The tutorial trail's own piece is a fixed Starlit Halter, Rare**
   (confirmed 2026-10-17, #293 call 3): the same in every game (yellow, the
   ringed stone; attack +4, defense +2, health +10, its look rolled once from

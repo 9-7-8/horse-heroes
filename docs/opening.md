@@ -116,8 +116,7 @@ The Toad at Ice lives a little longer than at Fire (Ember Shot does three
 quarters, Frost Burst no bonus), which #294's no-fall test measures with
 the Yearling's tuning.
 
-**As built** (#294, 2026-10-18, on the branch `overnight-294-first-trail`
-until she has looked): the Yearling is health 200, attack 3, defense 1, a
+**As built** (#294, 2026-10-18): the Yearling is health 200, attack 3, defense 1, a
 blow every 2.8 s. Over 1000 seeds the starting party wins every run, loses
 no horse (6 health is the least any horse is left with), uses all three
 abilities and has Ember Shot resisted; the boss fight lasts 11.7 to 13.8 s.
@@ -125,7 +124,8 @@ Every one of the 64 sets of abilities wins every one of 100 seeds, but a
 horse falls in about 20 of those 6400 runs, all in the boss fight or the
 Toad's: with some sets (Frost Burst on Juniper, few damage abilities)
 Morrow reaches the boss with almost nothing left, so no tuning of the boss
-alone keeps every set standing. Whether that is enough is hers to rule on.
+alone keeps every set standing. She ruled (2026-10-19, #371): no fall is
+held for the starting party; every set must still win.
 
 *The numbers below are from the draft that had a spring and a Fire Toad.*
 

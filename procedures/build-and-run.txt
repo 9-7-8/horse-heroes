@@ -24,7 +24,7 @@ Use the cheapest step that can prove the change:
    Screenshot (src/dev_screenshot.rs): with IDLE_SHOT set, the game saves one
    PNG at 3 s and exits by itself at 5 s, so it can run in the foreground:
        $env:IDLE_SHOT = "screenshots/name.png"; cargo run *> run.log
-   STALE SINCE #294 (2026-10-18, branch overnight-294-first-trail): the
+   STALE SINCE #294 (2026-10-18): the
    first trail is authored, the same for every seed (Thornling, three
    Gloom Sprites, Mire Toad, Corrupted Yearling), so the --seed 6 times
    below, taken on a rolled first trail (the Hollow Wolf), are out of

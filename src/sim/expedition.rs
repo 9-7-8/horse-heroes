@@ -932,10 +932,10 @@ mod tests {
     /// The first trail cannot be lost, by tuning alone (#289, question 3):
     /// under the ordinary rules, with every set of abilities the party may
     /// carry and over many seeds, every run is won. That no horse falls
-    /// (#293, call 2) is held for the starting party, below: with some sets
-    /// a horse reaches the boss with almost nothing left, so no tuning of
-    /// the boss keeps every set standing. Run with `--nocapture` to see how
-    /// often one falls.
+    /// (#293, call 2) is held for the starting party, below (the owner,
+    /// 2026-10-19, #371): with some sets a horse reaches the boss with
+    /// almost nothing left, and a rare fall there is accepted. Run with
+    /// `--nocapture` to see how often one falls.
     #[test]
     fn the_first_trail_is_won_with_every_set_of_abilities() {
         let data = Data::load();
