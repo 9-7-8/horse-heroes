@@ -158,8 +158,14 @@ Comparing one worn piece against another, the first trade-off, comes after
 (onboarding, principle 8).
 
 **After it.** From the second trail the generator and the ordinary balance
-apply. `first_trail_balance` then measures a level 1 trail, the one a new
-player meets second.
+apply. The second trail is level 1, and the party meets it in the first
+trail's gear. Measured over 300 seeds (2026-10-19): bare, it wins 6%; with
+one horse in the Starlit Halter, 97%; with each horse in its best piece,
+100% (94% at level 2, 64% at level 3, 12% at level 4). Her ruling (#294,
+2026-10-19): that stands, and the challenge comes back a few levels on.
+`first_trail_balance` keeps measuring level 0 bare, the generator's own
+tuning; `the_second_trail_is_won_in_the_first_trails_piece` holds the
+second trail won at least nine times in ten with the Halter worn.
 
 ## The beat sheet
 

@@ -895,6 +895,34 @@ mod tests {
         assert!(best - worst >= 0.5, "the abilities' elements barely matter");
     }
 
+    /// The second trail, level 1 and rolled, is the one the generator's
+    /// balance first meets, and the party comes to it with the first trail's
+    /// gear. A bare party wins it about 6% of the time; one horse in the
+    /// Starlit Halter wins it nearly always (97% when measured, 2026-10-19),
+    /// and each horse in its best piece every time. The owner's ruling
+    /// (2026-10-19, #294): that stands, and the challenge comes back a few
+    /// levels on. This holds it: the trail's piece, worn, wins the trail
+    /// after it, as the game rolls it, nine times in ten.
+    #[test]
+    fn the_second_trail_is_won_in_the_first_trails_piece() {
+        let data = Data::load();
+        let seeds = 300;
+        let mut wins = 0;
+        for seed in 0..seeds {
+            let first = walk(&data, Plan::first(&data, seed), &party(&data));
+            let piece = first.outcome.as_ref().unwrap().trail_piece().unwrap().clone();
+            let mut horses = party(&data);
+            let slot = piece.slot.index();
+            horses[0].gear[slot] = Some(piece);
+            // As the game rolls it after a win: the next seed, one level up.
+            let second = walk(&data, Plan::generate(&data, seed.wrapping_add(1), 1), &horses);
+            wins += second.outcome.unwrap().won as usize;
+        }
+        let rate = wins as f32 / seeds as f32;
+        println!("the second trail, one horse in the trail's piece: won {rate:.2}");
+        assert!(rate >= 0.9, "won {rate}");
+    }
+
     /// Every set of abilities the party may carry: each horse any ability.
     fn every_set_of_abilities(data: &Data) -> Vec<Vec<Horse>> {
         let n = data.abilities.len();

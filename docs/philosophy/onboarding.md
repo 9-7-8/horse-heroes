@@ -115,11 +115,12 @@ Checked against the game as built on 2026-10-11 (`docs/expedition.md`,
   The first town visit is the one after the first trail, and it waits for
   Set out (#305). There is no title screen and no "begin" button, and none
   should be added that must be pressed.
-- **The first trail is not forgiving.** The win rate at trail level 0 with
-  no gear is 68%, and 44% with the worst element for the trail
-  (`first_trail_balance`). A new player has about one chance in three of
-  losing the trail that is meant to build confidence. A loss costs nothing
-  yet, and nothing says so.
+- **The first trail was not forgiving; now it cannot be lost.** On
+  2026-10-11 a new player lost it about one time in three. Since #294 it is
+  one authored plan that every set of abilities wins ([opening.md](../opening.md)).
+  The second trail, the first rolled one, is won nearly always once the
+  Starlit Halter is worn and seldom bare (owner, 2026-10-19: that stands),
+  so equipping the first piece is what carries the party on.
 - **The reward is nearly reliable already.** One piece drops per run if any
   encounter was cleared. What is not reliable is that it is an upgrade a
   new player can read at a glance.
