@@ -1,0 +1,37 @@
+ASKED
+  /next, no steer.
+
+DONE
+  - #373: a rarity can name a menu `fill` apart from its colour
+    (gear.ron, RarityLook.fill, fx::drops::rarity_fill). Normal's is a mid
+    grey (a3a8ae) under its white outline, its slab mark cut out as before;
+    every other tier fills with its colour as it did. Worn gear keeps the
+    rarity's colour. Commit 5926fd1. Checked: cargo test 278 passed;
+    no_picture_is_filled_white seen to fail with Normal's fill taken out;
+    seen running on the parts screen (--parts) and in the menu tour's
+    Inventory (picture 19, --seed 6 --cargo 7), Normal pieces grey with
+    their patterns over them. Left open for her to look in a release.
+    docs/item-card.md, "The picture", updated.
+
+DECIDED
+  - Mine: the grey, a3a8ae, light enough that the mid-tone inks and the
+    dark cut of the mark read on it; worn gear stays white on the horse,
+    since the issue is about menu pictures.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - #374, #375 unbuilt. No release of #372 or #373 yet.
+
+PICK UP
+  - /next: tier 1, bug #374 - the game quits on a GPU out-of-memory error
+    with no crash.log.
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 1 of 5 closed.
+    #371 Decide: no horse falls on the first trail - closed
+    #372 Every town hint asks the player to do something - built-untested
+    #373 Normal pieces' pictures are a white block - built-untested
+    #374 The game quits on a GPU out-of-memory error, with no crash.log - unbuilt
+    #375 Audit the graphics pipeline for memory - unbuilt
