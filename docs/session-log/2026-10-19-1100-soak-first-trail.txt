@@ -1,0 +1,39 @@
+ASKED
+  /next, no steer. Tier 1: the menus bugs (#246, #372, #373) and #374 wait
+  only on her look, so PICK UP's bug #376.
+
+DONE
+  - #376 The soak's depart line says first=1 when the plan is Plan::first.
+    check() expects no wait before that trail and walks it again from
+    Plan::first; a first trail anywhere but a new game's first departure is
+    a problem. The test log (written) now starts as the game does, and
+    the_report_finds_what_is_wrong_and_nothing_else holds each case; seen
+    to fail without the fix. procedures/overnight-soak.txt says so.
+  - Checked: a 4-minute soak, seed 6 (soak/2026-10-19-1054): neither
+    problem. cargo test 285 passed. Commit 7fe90f1.
+
+DECIDED
+  - Mine: the first trail is told by the plan itself (equal to
+    Plan::first of its seed), not by its trail number, so a soak of a
+    loaded save is not mistaken for a new game.
+
+FOUND
+  - The 4-minute soak still flags "assets on the GPU pile up", images 41 to
+    68: the cargo growth already written on #375.
+
+NOT DONE
+  - Nothing of #376.
+
+PICK UP
+  - /next: tier 1 is only owner-look bugs; tier 2, then #375 (audit the
+    graphics pipeline for memory).
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 2 of 6 closed.
+    #371 Decide: no horse falls on the first trail - closed
+    #372 Every town hint asks the player to do something - built-untested
+    #373 Normal pieces' pictures are a white block - built-untested
+    #374 The game quits on a GPU out-of-memory error, with no crash.log - built-untested
+    #375 Audit the graphics pipeline for memory - unbuilt
+    #376 The soak report flags the tutorial trail as wrong on every run - closed
+  Riding along (menus): #246 The menus shrink and expand - built-untested
