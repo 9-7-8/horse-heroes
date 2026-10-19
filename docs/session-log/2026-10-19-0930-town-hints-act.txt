@@ -1,0 +1,60 @@
+ASKED
+  After 0.2.5 was released this session: "major issue with the in-town
+  hints: there's like 10 in a row without a user actually doing anything.
+  New rule: ALL in-town hints MUST require the user to do something." Then:
+  why some items have a white background; the game crashed, where are the
+  logs; and that it must degrade gracefully, with an audit of the graphics
+  pipeline's memory "hopefully soon".
+
+DONE
+  - The rule: CLAUDE.md rule 5, docs/philosophy/onboarding.md, the header
+    of lessons.ron.
+  - #372: in town a lesson's pop-up has no Got it and Escape leaves it up
+    (teach::got_it); Skip all hints stays. "A swap loses nothing" cut; "it
+    is on" and the level folded into one last line on Set out, answered by
+    pressing Set out (its instead says the level alone when nothing was
+    equipped); "it can be left" answered by opening the Map (new Mapped
+    event). Commit 08a3aad. Checked: cargo test 277 passed;
+    got_it_answers_no_hint_in_town seen to fail with the town rule taken
+    out; the file test holds every non-road lesson to a Did; the lesson
+    walk (--seed 6) seen running, pictures read: the resisted ability up
+    after Escape with no Got it, the Map answering the exit line, the Set
+    out line "attack 6 to 10 and 2 more with it on. Trail level 1 now: set
+    out to try it." Left open for her to try in a release.
+  - Filed #373 (Normal pieces' white fill), #374 (GPU out-of-memory quits
+    the game with no crash.log), #375 (memory audit), all in 0.2.6.
+
+DECIDED
+  - Hers: every town hint asks for an action (standing rule); the four
+    read-only town lessons: cut the swap's, merge "it is on" with the
+    level on Set out, the exit line answered by opening the Map.
+  - Mine: the answer to Skip all hints has no Got it in town either (it
+    goes at the Journal's Hints); a timed picture run puts a town lesson
+    away itself; #375 put in 0.2.6, since she asked for it soon.
+
+FOUND
+  - Her crash (log she sent): ten minutes in, "Couldn't get swap chain
+    texture: Timeout", then "Caught rendering error: Out of Memory" and
+    "Quitting the application due to OutOfMemory RenderError". Bevy quits
+    without a panic, so the crash hook never runs: no crash.log. Laptop
+    RTX 3050 Ti, Windows 11, with Firefox and modded Minecraft running.
+    Not installed on this machine; her logs are on hers.
+  - Normal's rarity colour is ffffff, and a piece's picture is filled with
+    its rarity's colour: that is the white background (#373).
+  - A Set-Content in a test-the-test step failed and left a broken line in
+    teach.rs; caught by grepping before going on, and put back.
+
+NOT DONE
+  - #373, #374, #375 unbuilt. No release of #372 yet.
+
+PICK UP
+  - /next: tier 1, bug #373 (menus first) - Normal pieces' white
+    pictures; then #374, the out-of-memory quit.
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 1 of 5 closed.
+    #371 Decide: no horse falls on the first trail - closed
+    #372 Every town hint asks the player to do something - built-untested
+    #373 Normal pieces' pictures are a white block - unbuilt
+    #374 The game quits on a GPU out-of-memory error, with no crash.log - unbuilt
+    #375 Audit the graphics pipeline for memory - unbuilt
