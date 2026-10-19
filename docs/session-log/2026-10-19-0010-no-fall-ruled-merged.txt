@@ -1,0 +1,43 @@
+ASKED
+  The overnight session's question (#371), answered through the question
+  tool: "Starting party (Recommended)".
+
+DONE
+  - Her ruling in vision.md (Tutorials, under the no-spring call),
+    opening.md and the test's comment. Commit 32d141f; cargo test 273
+    passed.
+  - The branch overnight-294-first-trail fast-forwarded into main and
+    pushed; the branch deleted, here and on GitHub.
+  - #371 closed with her answer; #294 commented, left open.
+
+DECIDED
+  - Hers (2026-10-19, #371): "no horse falls" on the first trail holds for
+    the starting party; every set of abilities must still win every run.
+
+FOUND
+  - Nothing new.
+
+NOT DONE
+  - #294's last line: the balance test on the second trail (a bare party
+    wins a level 1 trail 6% of the time). Not asked: it needs a choice of
+    what the party wears in the test, or a retune of level 1.
+
+PICK UP
+  - /next: #294's second-trail balance line. Measure level 1 with the
+    party wearing the Halter and its best kill pieces, and put the numbers
+    to the owner if they do not hold.
+
+NEXT RELEASE
+  0.2.5 The opening: 4 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - closed
+    #294 The tutorial trail - unbuilt (all but the second-trail balance)
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element, at the first resisted fight - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Then 0.2.6 The opening, continued: 1 of 1 closed.
+    #371 Decide: no horse falls on the first trail - closed
