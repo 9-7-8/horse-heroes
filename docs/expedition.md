@@ -6,7 +6,7 @@ horse's ability, equips, or skips the wait.
 ## Run it
 
     cargo run                  # seed from the clock
-    cargo run -- --seed 42     # fixed first trail; later trails are 43, 44, ...
+    cargo run -- --seed 42     # fixed fight rolls; later trails are 43, 44, ...
     cargo test                 # the sim, including a balance check
 
 Keys, in camp only, on Horses, Abilities: `F` Ember Shot, `I` Frost Burst,
@@ -47,9 +47,23 @@ presentation, in `src/game/mod.rs`; the sim's trail is already finished.
   and the player changes it in town on Horses, Abilities, by pointer or
   key, with Undo. Points, levels, a loadout of several and choosing among
   them in a fight are #220, #222 and #93.
-- A trail is 3 ordinary encounters drawn from 5 hand-written pieces in a rolled
-  order, then 1 of 2 finals. Each enemy's element is rolled. A quarter of
-  trails have a fairy spring that heals the party after one encounter.
+- A new game's first trail is not rolled (#294; `Plan::first`): it is the
+  one plan in `encounters.ron`'s `first`, the same fights, elements and
+  piece whatever the seed, with no spring. One Thornling (Plant), three
+  Gloom Sprites (Fire), a Mire Toad (Ice, which resists Ember Shot) and a
+  Corrupted Yearling (Fire), a boss of its own in `enemies.ron`, tuned so
+  that the starting party never falls (health 200, attack 3, a blow every
+  2.8 s; its fight lasts 12 to 14 s). Its own piece is fixed in the plan
+  (`Plan::piece`): a Starlit Halter, Rare, attack +4, defense +2, health
+  +10, its look rolled once from `look_seed`. The seed still rolls whom an
+  enemy strikes, each swing's timing, coins and the kills' pieces. Tests:
+  every set of abilities wins every run; the starting party loses no
+  horse, uses all three abilities, is resisted at least once, and brings
+  the Halter home (docs/opening.md has the plan and why).
+- Every later trail is 3 ordinary encounters drawn from 5 hand-written
+  pieces in a rolled order, then 1 of 2 finals. Each enemy's element is
+  rolled. A quarter of trails have a fairy spring that heals the party
+  after one encounter.
 - Speed is a stat (#355), in `horses.ron` (Juniper 22, Sable 20, Morrow 19)
   and added to by gear like any other, though no piece rolls it yet. A
   horse's ordinary hits come `attack_tempo / speed` seconds apart (31, so

@@ -1,0 +1,77 @@
+ASKED
+  "You've got overnight, can you tackle the next couple things you can do
+  without my input?"
+
+DONE
+  - Tiers 1 and 2 empty: build green, 270 tests; the one open bug, #246,
+    waits on her watching. A sweep for untested sim code and unchecked
+    data found none (boss.ron and parallax.ron do have value tests).
+    Every open menus issue in an earlier milestone is built and waits on
+    her.
+  - Tier 3: #294, the authored first trail, built on the branch
+    overnight-294-first-trail (commit c0d6621), NOT merged to main. The
+    overnight rule (memory: small clear fixes only) holds features for
+    her, so it waits on a branch for her look.
+    - encounters.ron `first`: Thornling (Plant), three Gloom Sprites
+      (Fire), Mire Toad (Ice), Corrupted Yearling (Fire); no spring.
+      Plan::first builds it; Plan::piece carries the fixed Starlit Halter
+      (Rare, attack +4, defense +2, health +10, look from seed 294).
+      Game::new uses it; later trails are Plan::generate as before.
+    - The Yearling, new in enemies.ron and attacks.ron (the Stag's
+      swing): health 200, attack 3, defense 1, a blow every 2.8 s.
+    - Tests: the plan is the same for every seed; all 64 sets of
+      abilities win every run over 100 seeds; the starting party, 1000
+      seeds: no horse falls (6 health least), all three abilities fire,
+      Resisted raised, the Halter dropped last by the boss and is an
+      upgrade. The resist test was seen to fail with the Toad set to Fire.
+    - A shell test (a mark on the Journal) needed a rolled first trail:
+      Game::back_from_a_rolled_trail gives it one.
+    - Checked: cargo test 273 passed; seen running, --seed 6, pictures at
+      6 (Thornling), 30 (walking to the boss), 40 (the Yearling's banner
+      and fight), 70 (town, the Starlit Halter in the cargo).
+    - docs/expedition.md and docs/opening.md say what was built and
+      measured.
+
+DECIDED
+  - Mine: build #294 on a branch, not main, because of the overnight rule.
+  - Mine: the Yearling's numbers (above), chosen from a sweep for the
+    widest no-fall margin with a 12 to 14 s boss fight.
+  - Mine: the ten-issue cap put the new decision in a new patch,
+    0.2.6 The opening, continued (milestone and v0.2.6 label created).
+
+FOUND
+  - "No horse falls with every set of abilities" cannot hold by tuning the
+    boss alone: some sets bring Morrow to the boss with 0 to 3 health.
+    About 20 of 6400 runs lose a horse. Filed as #371 (decision).
+  - A bare party wins a level 1 trail 6% of the time, so the "balance
+    test holds for the second trail" line of #294 is not met;
+    first_trail_balance still measures level 0. In #371.
+  - The cargo column shows one carried piece by design (item-card.md);
+    the kills' pieces are in the Inventory.
+  - build-and-run.txt's --seed 6 times were taken on a rolled first trail
+    and are stale on the branch; marked so there.
+
+NOT DONE
+  - #294 left open: the every-set no-fall and the second-trail balance
+    wait on #371. Not merged to main; no release.
+  - The seed-6 picture times in build-and-run.txt not re-measured.
+  - The lesson walk and the menu tour not run on the branch.
+
+PICK UP
+  - Ask her #371 (/answers), then merge overnight-294-first-trail into
+    main if she accepts the branch.
+
+NEXT RELEASE
+  0.2.5 The opening: 4 of 10 closed.
+    #288 Epic: the opening - unbuilt
+    #289 Decide: the opening - closed
+    #293 Design the tutorial trail - closed
+    #294 The tutorial trail - unbuilt (built in part, on a branch)
+    #295 First-trail lessons - unbuilt
+    #298 The next trail, explained honestly - built-untested
+    #299 One line for the party element, at the first resisted fight - closed
+    #301 Play test the opening with nobody explaining it - unbuilt
+    #353 A lesson is a pop-up by the thing it is about - built-untested
+    #365 A flinch when struck, and every hit animation - closed
+  Then 0.2.6 The opening, continued: 0 of 1 closed.
+    #371 Decide: no horse falls on the first trail - unbuilt
