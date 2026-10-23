@@ -1,0 +1,47 @@
+ASKED
+  /next, no steer. Tier 1: #377 (menus bug, unbuilt); the other open bugs
+  wait on her look. PICK UP also asked for the 30-minute soak at cada43a.
+
+DONE
+  - #377: fit_cargo replaces grow_cargo (src/game/menu/shell.rs). Each
+    Inventory group holds one tile per carried piece of its type, newest
+    first; on a cargo change its tiles are pointed at the pieces now at
+    those places (CarriedCell::at, When::Held, Picture::aim) and spares are
+    despawned. Test the_inventory_has_a_tile_for_each_carried_piece (grow,
+    a new piece at the front, shrink to one and to none), seen to fail with
+    the despawn taken out. cargo test 287 passed, no warnings.
+    Menu tour, seed 6, --cargo 7: pictures 19, 82, 94 read and look as
+    before (the lifted piece's tile shows its empty slot); Tab 26 stops,
+    0 out of sight. Commit a3efd34. docs/menu-shell.md, docs/memory.md.
+  - #377 left open and commented: the soak part of "done when" is unmet.
+
+DECIDED
+  - Nothing.
+
+FOUND
+  - The background soak was stopped at 8 minutes by Claude Code because
+    the machine ran low on memory (the Minecraft server is up). A soak
+    cannot go in the foreground either (30 min over the 10-minute
+    timeout), so a soak is the owner's run, or a session started with
+    CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1. Its 8 minutes at
+    c129031: GPU dedicated 511 MB, shared 72 MB, private RAM 826 MB.
+
+NOT DONE
+  - The 30-minute soak, before and after #377 (#375's and #377's numbers
+    in docs/memory.md, Measured).
+
+PICK UP
+  - /next: every open 0.2.6 issue now waits only on her (looking, or her
+    soak run), so release 0.2.6 (release-a-build.txt).
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 2 of 7 closed.
+    #371 Decide: no horse falls on the first trail - closed
+    #372 Every town hint asks the player to do something - built-untested
+    #373 Normal pieces' pictures are a white block - built-untested
+    #374 The game quits on a GPU out-of-memory error, with no crash.log - built-untested
+    #375 Audit the graphics pipeline for memory - built-untested (her soak)
+    #376 The soak report flags the tutorial trail as wrong on every run - closed
+    #377 The Inventory makes a tile per cargo place in every group - built-untested (her soak)
+  Riding along (menus): #246 The menus shrink and expand - built-untested;
+  #377 too.
