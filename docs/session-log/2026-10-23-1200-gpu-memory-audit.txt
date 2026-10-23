@@ -1,0 +1,49 @@
+ASKED
+  /next, no steer. Tier 1 only owner-look bugs, tier 2 empty; PICK UP #375
+  (audit the graphics pipeline for memory). Then "End session".
+
+DONE
+  - Soak samples the game's GPU memory each minute (Windows' GPU Process
+    Memory counter, dedicated and shared) into memory.tsv; the report has a
+    "GPU memory" line and flags a climb. Test gpu_memory_that_climbs_is_found.
+    Commit 154b7cb (script), cada43a (report).
+  - Baseline 30-minute soak, seed 6, at 154b7cb: GPU dedicated 622 MB flat,
+    shared 127 MB, RAM private 987 to 1027 MB; images 124 to 281, entities
+    3593 to 9314 (both flagged); 2 of 24 trails won.
+  - main.rs: wgpu MemoryHints::MemoryUsage (blocks 8-64 MB, not 128-256).
+    Measured in a 16 s run: GPU 622 -> 429 MB, shared 127 -> 67, RAM
+    ~940 -> 708 MB. An empty Bevy window with a 3D camera measures 425 MB
+    with the same hints, so the game's own content is about 4 MB; no camera,
+    198 MB. DX12 is no better than Vulkan (434 MB).
+  - LookImages::forget_unheld, every 5 s of wall clock: drops images only
+    the cache holds. show_worn keeps only looks worn now, and a hidden worn
+    piece goes back to the plain material. Compiled and tested; not yet
+    measured in a soak.
+  - docs/memory.md: what is held, by whom, the numbers, how to measure.
+    cargo test 286 passed. #375 left open, commented.
+
+DECIDED
+  - Mine: keep 4x MSAA (window size moves GPU memory only ~20 MB); keep
+    images' RAM copy (render_errors.rs re-sends them after an OOM).
+
+FOUND
+  - The Inventory makes a tile per cargo place in every group: filed #377.
+  - The rest of the GPU memory is Bevy's 3D view and the driver, not ours.
+
+NOT DONE
+  - The 30-minute soak after cada43a. Her long run.
+
+PICK UP
+  - /next: run pwsh tools/soak.ps1 -Minutes 30 -Seed 6 at cada43a, put the
+    numbers in docs/memory.md (Measured), then build #377.
+
+NEXT RELEASE
+  0.2.6 The opening, continued: 2 of 7 closed.
+    #371 Decide: no horse falls on the first trail - closed
+    #372 Every town hint asks the player to do something - built-untested
+    #373 Normal pieces' pictures are a white block - built-untested
+    #374 The game quits on a GPU out-of-memory error, with no crash.log - built-untested
+    #375 Audit the graphics pipeline for memory - unbuilt
+    #376 The soak report flags the tutorial trail as wrong on every run - closed
+    #377 The Inventory makes a tile per cargo place in every group - unbuilt
+  Riding along (menus): #246 The menus shrink and expand - built-untested
