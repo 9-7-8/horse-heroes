@@ -551,11 +551,14 @@ comparisons when you hover an item".
   for the keyboard.
 - **Every cell a group can hold is spawned once** and shows while its piece
   is held (`When::Held`, `When::NoneHeld`, in `show_carried`), as the rest
-  of the shell is shown and hidden and never rebuilt. The cargo has no most
-  it can hold, so its tiles are made as it grows (`grow_cargo`, #352): each
-  group gets a tile for every place in the cargo, `Piece::Carried(at)`
-  counted from the newest, and a tile shows while the piece at its place
-  is of its group's type. A tile is never taken away.
+  of the shell is shown and hidden and never rebuilt. The carried pieces'
+  tiles are the exception: the cargo has no most it can hold, so each group
+  is fitted to it (`fit_cargo`, #352, #377). A group has one tile for each
+  carried piece of its type, newest first; when the cargo changes, its
+  tiles keep their places and are pointed at the pieces now there
+  (`CarriedCell::at`, `When::Held`, `Picture::aim`), the group makes the
+  tiles it is short of and lets go of the ones it has spare. Focus,
+  pointing and dragging read `at` when they happen, so they follow.
 - **The grid** is a CSS grid of as many columns as fit, each
   `size.inventory_cell` wide (104): six at the smallest window.
 - **It has the place's width.** The place has no horses column and no

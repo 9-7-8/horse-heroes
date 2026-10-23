@@ -31,7 +31,7 @@ use super::card;
 use super::held::{self, Held};
 use super::teach;
 use super::ink;
-use super::picture::{self, picture, picture_of, reported_picture};
+use super::picture::{self, Picture, picture, picture_of, reported_picture};
 use super::parts::{
     ClosePanel, CounterValue, DismissHint, HintText, NotBuilt, Part, PartText, Pointed, PopupArrow, RowValue,
     SkipHints, Stop, Target, Unseen, button, cell, counter, dim, panel, popup, reason, side_panel, tab, tag,
@@ -1062,8 +1062,8 @@ pub struct CarriedCell {
 }
 
 /// A type's group of the Inventory: where the tiles of the carried pieces
-/// of that type go. `grow_cargo` gives it a tile for every place in the
-/// cargo, since the cargo has no most it can hold (#352).
+/// of that type go. `fit_cargo` gives it a tile for each carried piece of
+/// its type, since the cargo has no most it can hold (#352, #377).
 #[derive(Component)]
 struct CarriedGrid {
     place: usize,
@@ -1303,7 +1303,7 @@ impl Plugin for ShellPlugin {
                     )
                         .chain(),
                     show_wearer,
-                    (grow_cargo, show_carried, mark_lessons).chain(),
+                    (fit_cargo, show_carried, mark_lessons).chain(),
                     (show_hover_card, held::hold).chain(),
                     picture::show_pictures,
                     show_reasons,
@@ -1982,9 +1982,9 @@ fn spawn_content(
             }
         }
         Content::Inventory => {
-            // A headed group for each type (#308). Every tile a group can
-            // come to hold is here, and shows while its piece is held, so
-            // the grid follows the game with nothing rebuilt. A tile is the
+            // A headed group for each type (#308). A worn piece's tile is
+            // here, and shows while the horse wears one; the carried pieces'
+            // are fitted to the cargo (`fit_cargo`). A tile is the
             // piece's picture and whose it is; the pointer on it says the
             // rest, against what the selected horse wears.
             for slot in Slot::ALL {
@@ -2025,7 +2025,7 @@ fn spawn_content(
                         });
                     }
                     // The carried pieces' tiles come after these, as the
-                    // cargo comes to hold them (`grow_cargo`).
+                    // cargo comes to hold them (`fit_cargo`).
                 });
             }
         }
@@ -2083,25 +2083,48 @@ fn tile(t: &Tokens) -> Node {
     }
 }
 
-/// Every group of the Inventory has a tile for every place in the cargo
-/// (#352). A tile shows while the piece at its place is of its group's type
-/// (`show_carried`), so a tile is made once and never taken away: the cargo
-/// only says which of them are in sight.
-fn grow_cargo(
+/// Each group of the Inventory has a tile for each carried piece of its type
+/// (#352, #377), newest first. The tiles stay as the cargo changes and are
+/// pointed at the pieces now at those places; a group makes the tiles it is
+/// short of, and lets go of those it has spare.
+fn fit_cargo(
     mut commands: Commands,
     tokens: Res<Tokens>,
     game: Res<Game>,
-    mut made: Local<usize>,
-    grids: Query<(Entity, &CarriedGrid)>,
+    grids: Query<(Entity, &CarriedGrid, Option<&Children>)>,
+    mut tiles: Query<(&mut CarriedCell, &mut When, &Children)>,
+    mut pictures: Query<&mut Picture>,
 ) {
-    let wanted = game.cargo().len();
-    if wanted <= *made || grids.is_empty() {
-        return;
-    }
     let t = &*tokens;
-    for (entity, grid) in &grids {
+    for (entity, grid, children) in &grids {
+        let wanted: Vec<usize> = (0..game.cargo().len())
+            .filter(|&at| game.piece(Piece::Carried(at)).is_some_and(|gear| gear.slot.index() == grid.slot))
+            .collect();
+        let have: Vec<Entity> =
+            children.into_iter().flatten().copied().filter(|&child| tiles.contains(child)).collect();
+        for (&tile, &at) in have.iter().zip(&wanted) {
+            let Ok((mut cell, mut when, parts)) = tiles.get_mut(tile) else {
+                continue;
+            };
+            if cell.at == at {
+                continue;
+            }
+            cell.at = at;
+            *when = When::Held(Piece::Carried(at), grid.slot);
+            for &part in parts {
+                if let Ok(mut picture) = pictures.get_mut(part) {
+                    picture.aim(Piece::Carried(at));
+                }
+            }
+        }
+        for &spare in have.iter().skip(wanted.len()) {
+            commands.entity(spare).despawn();
+        }
+        if wanted.len() <= have.len() {
+            continue;
+        }
         commands.entity(entity).with_children(|tiles| {
-            for at in *made..wanted {
+            for &at in &wanted[have.len()..] {
                 let piece = Piece::Carried(at);
                 tiles
                     .spawn((
@@ -2117,7 +2140,6 @@ fn grow_cargo(
             }
         });
     }
-    *made = wanted;
 }
 
 /// The newest carried piece as a list shows it: the summary of its card.
@@ -5607,6 +5629,49 @@ mod tests {
                 .flat_map(|place| &place.tabs)
                 .all(|tab| tab.content != Content::Inventory)
         );
+    }
+
+    /// The Inventory's groups hold a tile for each carried piece of their
+    /// type, and no more (#377): as the cargo grows, as a new piece comes in
+    /// at the front, and as it shrinks.
+    #[test]
+    fn the_inventory_has_a_tile_for_each_carried_piece() {
+        use bevy::ecs::system::RunSystemOnce;
+        let mut world = World::new();
+        world.insert_resource(Tokens::load());
+        world.insert_resource(Game::back_from_a_trail(6));
+        for slot in 0..Slot::ALL.len() {
+            world.spawn(CarriedGrid { place: 0, tab: 0, slot });
+        }
+        let check = |world: &mut World| {
+            world.run_system_once(fit_cargo).unwrap();
+            let mut tiles = world.query::<(&CarriedCell, &When, &ChildOf)>();
+            let mut shown: Vec<usize> = Vec::new();
+            for (cell, when, parent) in tiles.iter(world) {
+                let grid = world.get::<CarriedGrid>(parent.parent()).unwrap();
+                let game = world.resource::<Game>();
+                let gear = game.piece(Piece::Carried(cell.at)).expect("a tile of nothing");
+                assert_eq!(gear.slot.index(), grid.slot, "{} is under the wrong type", gear.name);
+                assert!(matches!(when, When::Held(Piece::Carried(at), _) if *at == cell.at));
+                assert!(!shown.contains(&cell.at), "{} has two tiles", gear.name);
+                shown.push(cell.at);
+            }
+            assert_eq!(shown.len(), world.resource::<Game>().cargo().len());
+        };
+        let pieces = world.resource::<Game>().cargo().len();
+        assert!(pieces > 3);
+        check(&mut world);
+
+        // A new piece at the front moves every other one along.
+        let newest = world.resource::<Game>().cargo()[pieces - 1].clone();
+        world.resource_mut::<Game>().cargo.insert(0, newest);
+        check(&mut world);
+
+        // Sold down to one, and then to none.
+        world.resource_mut::<Game>().cargo.truncate(1);
+        check(&mut world);
+        world.resource_mut::<Game>().cargo.clear();
+        check(&mut world);
     }
 
     /// A press on a horse (#311) selects it and opens its view where the

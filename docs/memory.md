@@ -52,10 +52,10 @@ Images keep their pixels in RAM as well as on the card (Bevy's default
 
 Mostly Bevy, wgpu and the driver; the debug build is about twice the release.
 What grows with play is the cargo: every dropped piece is kept until it is
-sold, and the Inventory has a tile for every place in the cargo in each of
-its groups (`grow_cargo`, #352), made once and never taken away. That is a
-few entities per piece per group; the RAM it costs is small beside the rest
-(below), but it is the one thing that keeps growing (#TODO).
+sold, and the Inventory has a tile for each carried piece in its type's
+group (`fit_cargo`, #377), let go of when the piece is. Until #377 every
+group had a tile for every place in the cargo, made once and never taken
+away: several entities per piece per group.
 
 ## Measured
 

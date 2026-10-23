@@ -100,6 +100,17 @@ pub fn picture_of(t: &Tokens, of: Piece, side: f32) -> impl Bundle + use<> {
     (Picture { of: Of::At(of), side, shown: None }, square(t, side))
 }
 
+impl Picture {
+    /// Make the square the picture of another piece: a tile of the Inventory
+    /// is of whichever carried piece of its type is at its place (#377). It
+    /// is drawn again when what it shows changes.
+    pub fn aim(&mut self, of: Piece) {
+        if !matches!(self.of, Of::At(now) if now == of) {
+            self.of = Of::At(of);
+        }
+    }
+}
+
 /// The square of the picture of the piece the showing report dropped. It is
 /// away while the party does not have that piece.
 pub fn reported_picture(t: &Tokens) -> impl Bundle + use<> {
